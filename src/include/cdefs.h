@@ -1,5 +1,5 @@
 #pragma once
-#include "../../config/autoconf.h"
+#include <autoconf.h>
 
 #define KRNLSYMTABLE_REQUESTPAGE 0
 #define KRNLSYMTABLE_REQUESTPAGES 1
