@@ -5,6 +5,7 @@
 #include <cpuid.h>
 #include <sys/printk.hpp>
 #include <arch/x64/cpu/cpu.hpp>
+#include <stdint.h>
 
 /* Enum containing processor features derived from cpuid */
 enum {
@@ -75,6 +76,7 @@ enum {
 /* Call to asm function that activate SSE
    (should only execuded after checking if SSE is actually present) */
 extern "C" void ActivateSSE();
+extern "C" void ActivateAVX();
 
 namespace x86_64 {
 /*
@@ -82,26 +84,74 @@ namespace x86_64 {
 */
 void x86CPU::Init() {
 	/* We check for SSE first of all */
-        if(CheckSSE()) {
+        if(CheckSSE(1)) {
 		PRINTK::PrintK("SSE status: Present but not active\r\n");
 		/* If it is present, we activate it */
 		ActivateSSE();
 		sseStatus = true;
 		PRINTK::PrintK("SSE status: Active\r\n");
+
+		if(CheckSSE(2)) PRINTK::PrintK("SSE status: SSE 2 present\r\n");
+
+		if(CheckSSE(3) == 1) PRINTK::PrintK("SSE status: SSE 3 present\r\n");
+		else if (CheckSSE(3) == 2) PRINTK::PrintK("SSE status SSE and SSSE 3 present\r\n");
+
+		if(CheckSSE(4)) PRINTK::PrintK("SSE status: SSE 4 present\r\n");
+
+		if(CheckAVX()) {
+			PRINTK::PrintK("AVX status: Present but not active\r\n");
+			ActivateAVX();
+
+			PRINTK::PrintK("AVX status: Active\r\n");
+		}
         } else {
+		PRINTK::PrintK("SSE status: Not present\r\n");
+
 		/* Otherwise, we disable SSE */
 		sseStatus = false;
 	}
-
 }
 
 /*
    Function that tests the presence of SSE via CPUID;
 */
-int x86CPU::CheckSSE() {
-	unsigned int eax, unused, edx;
-	__cpuid(1, eax, unused, unused, edx);
-	return edx & CPUID_FEAT_EDX_SSE;
+int x86CPU::CheckSSE(int version) {
+	unsigned int eax, ebx, ecx, edx;
+	__cpuid(1, eax, ebx, ecx, edx);
+
+	int result = 0;
+
+	switch (version) {
+		case 1:
+			if(edx & CPUID_FEAT_EDX_SSE) result = 1;
+			break;
+		case 2:
+			if(edx & CPUID_FEAT_EDX_SSE2) result = 1;
+			break;
+		case 3:
+			if(edx & CPUID_FEAT_ECX_SSE3) {
+				result = 1;
+				if(edx & CPUID_FEAT_ECX_SSSE3) result = 2;
+			}
+			break;
+		case 4:
+			if(ecx & CPUID_FEAT_ECX_SSE4_1) {
+				result = 1;
+				if(ecx & CPUID_FEAT_ECX_SSE4_2)
+					result = 2;
+			}
+			break;
+		default:
+			break;
+	}
+
+	return result;
+}
+
+int x86CPU::CheckAVX() {
+	unsigned int eax, unused, ecx;
+	__cpuid(1, eax, unused, ecx, unused);
+	return ecx & CPUID_FEAT_ECX_AVX;
 }
 
 /*

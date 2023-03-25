@@ -25,7 +25,8 @@ namespace x86_64 {
 		void GetVendor(char *string);
 	private:
 		/* Member function that checks for SSE */
-		int CheckSSE();
+		int CheckSSE(int version);
+		int CheckAVX();
 		/* Wether SSE is actually active */
 		bool sseStatus = false;
 	};
