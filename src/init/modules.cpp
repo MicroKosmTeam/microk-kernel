@@ -1,28 +1,22 @@
 #include <init/modules.hpp>
-#include <limine.h>
 #include <sys/panic.hpp>
 #include <sys/printk.hpp>
 #include <mm/memory.hpp>
 #include <mm/string.hpp>
 #include <mm/pmm.hpp>
 #include <mm/vmm.hpp>
-#include <sys/ustar/ustar.hpp>
 #include <mm/string.hpp>
 #include <sys/elf.hpp>
-#include <fs/vfs.hpp>
 #include <cdefs.h>
 #include <sys/driver.hpp>
 #include <mkmi.hpp>
-
-static volatile limine_module_request moduleRequest {
-	.id = LIMINE_MODULE_REQUEST,
-	.revision = 0
-};
+#include <init/kinfo.hpp>
 
 uint64_t *KRNLSYMTABLE;
 
 namespace MODULE {
-void Init(KInfo *info) {
+void Init() {
+	KInfo *info = GetInfo();
 	// Kernel symbol table
 	for (int i = 0; i < CONFIG_SYMBOL_TABLE_PAGES * 0x1000; i += 0x1000) {
 		VMM::MapMemory(CONFIG_SYMBOL_TABLE_BASE + i, PMM::RequestPage());
@@ -43,12 +37,6 @@ void Init(KInfo *info) {
 	KRNLSYMTABLE[KRNLSYMTABLE_BUFFERCREATE] = &MKMI::BufferCreate;
 	KRNLSYMTABLE[KRNLSYMTABLE_BUFFERIOCTL] = &MKMI::BufferIO;
 	KRNLSYMTABLE[KRNLSYMTABLE_BUFFERDELETE] = &MKMI::BufferDelete;
-
-	// Loading initrd
-	if (moduleRequest.response == NULL) PANIC("Module request not answered by Limine");
-
-	info->modules = moduleRequest.response->modules;
-	info->moduleCount = moduleRequest.response->module_count;
 
 	PRINTK::PrintK("Available modules:\r\n");
 

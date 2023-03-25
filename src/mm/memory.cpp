@@ -5,17 +5,6 @@
 #include <mm/vmm.hpp>
 #include <mm/bootmem.hpp>
 #include <mm/heap.hpp>
-#include <arch/x64/mm/pageindexer.hpp>
-
-volatile limine_hhdm_request hhdmRequest {
-	.id = LIMINE_HHDM_REQUEST,
-	.revision = 0
-};
-
-static volatile limine_memmap_request mMapRequest {
-	.id = LIMINE_MEMMAP_REQUEST,
-	.revision = 0
-};
 
 static char *memTypeStrings[] = {
 	"Usable",
@@ -83,13 +72,10 @@ void operator delete[](void* p, size_t size) {
 }
 
 namespace MEM {
-void Init(KInfo *info) {
-	if (mMapRequest.response == NULL) PANIC("Memory map request not answered by Limine");
+void Init() {
+	KInfo *info = GetInfo();
 
-	info->mMap = mMapRequest.response->entries;
-	info->mMapEntryCount = mMapRequest.response->entry_count;
-
-	PMM::InitPageFrameAllocator(info);
+	PMM::InitPageFrameAllocator();
 
 	PRINTK::PrintK("Memory map:\r\n");
 
@@ -100,7 +86,7 @@ void Init(KInfo *info) {
 				memTypeStrings[info->mMap[i]->type]);
 	}
 
-	VMM::InitVMM(info);
+	VMM::InitVMM();
 
 	PRINTK::PrintK("Done.\r\n");
 }

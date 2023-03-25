@@ -1,15 +1,6 @@
 #include <mm/pmm.hpp>
 #include <sys/printk.hpp>
-#include <limine.h>
-
-#define LIMINE_MEMMAP_USABLE		 0
-#define LIMINE_MEMMAP_RESERVED	       1
-#define LIMINE_MEMMAP_ACPI_RECLAIMABLE       2
-#define LIMINE_MEMMAP_ACPI_NVS	       3
-#define LIMINE_MEMMAP_BAD_MEMORY	     4
-#define LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE 5
-#define LIMINE_MEMMAP_KERNEL_AND_MODULES     6
-#define LIMINE_MEMMAP_FRAMEBUFFER	    7
+#include <init/kinfo.hpp>
 
 static uint64_t free_memory;
 static uint64_t reserved_memory;
@@ -23,27 +14,6 @@ static void UnreservePage(void *address);
 static void UnreservePages(void *address, uint64_t page_count);
 static void ReservePage(void *address);
 static void ReservePages(void *address, uint64_t page_count);
-
-static char *GetMemoryType(int type) {
-	switch (type) {
-		case LIMINE_MEMMAP_USABLE:
-			return "Usable";
-		case LIMINE_MEMMAP_RESERVED:
-			return "Reserved";
-		case LIMINE_MEMMAP_ACPI_RECLAIMABLE:
-			return "ACPI reclaimable";
-		case LIMINE_MEMMAP_ACPI_NVS:
-			return "ACPI NVS";
-		case LIMINE_MEMMAP_BAD_MEMORY:
-			return "Bad";
-		case LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE:
-			return "Bootloader reclaimable";
-		case LIMINE_MEMMAP_KERNEL_AND_MODULES:
-			return "Kernel and modules";
-		case LIMINE_MEMMAP_FRAMEBUFFER:
-			return "Framebuffer";
-	}
-}
 
 static void InitBitmap(size_t bitmap_size, void *buffer_address) {
 	page_bitmap.size = bitmap_size;
@@ -86,25 +56,27 @@ static void ReservePages(void *address, uint64_t page_count) {
 
 
 namespace PMM {
-void InitPageFrameAllocator(KInfo *info) {
+void InitPageFrameAllocator() {
 	if (initialized) return;
 
 	initialized = true;
+
+	KInfo *info = GetInfo();
 
 	void *largestFree = NULL;
 	size_t largestFreeSize = 0;
 
 	uint64_t memory_size = 0;
 	for (int i = 0; i < info->mMapEntryCount; i++) {
-		limine_memmap_entry *desc = info->mMap[i];
-		if (desc->type == LIMINE_MEMMAP_USABLE) {
+		MMapEntry *desc = info->mMap[i];
+		if (desc->type == MEMMAP_USABLE) {
 			if(desc->length > largestFreeSize) {
 				largestFree = (void*)desc->base;
 				largestFreeSize = desc->length;
 			}
 		}
 
-		if (desc->type != LIMINE_MEMMAP_RESERVED) memory_size += desc->length;
+		if (desc->type != MEMMAP_RESERVED) memory_size += desc->length;
 	}
 
 	uint64_t bitmap_size = memory_size / 4096 / 8 + 1;
@@ -119,8 +91,8 @@ void InitPageFrameAllocator(KInfo *info) {
 
 	// Unreserve usable pages (we do it because the mmap can have holes in it)
 	for (int i = 0; i < info->mMapEntryCount; i++){
-		limine_memmap_entry *desc = info->mMap[i];
-		if (desc->type == LIMINE_MEMMAP_USABLE) {
+		MMapEntry *desc = info->mMap[i];
+		if (desc->type == MEMMAP_USABLE) {
 			UnreservePages((void*)desc->base, desc->length / 4096);
 
 		}

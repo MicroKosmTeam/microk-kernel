@@ -1,39 +1,27 @@
 #include <arch/x64/mm/vmm.hpp>
-#include <limine.h>
 #include <sys/panic.hpp>
 #include <mm/pmm.hpp>
 #include <sys/printk.hpp>
 #include <mm/memory.hpp>
 #include <mm/bootmem.hpp>
 #include <arch/x64/mm/pagetable.hpp>
+#include <init/kinfo.hpp>
 
 #define PAGE_SIZE 0x1000
 
 bool initialized = false;
 
-static volatile limine_kernel_address_request kAddrRequest {
-	.id = LIMINE_KERNEL_ADDRESS_REQUEST,
-	.revision = 0
-};
-
 extern volatile uintptr_t text_start_addr, text_end_addr, rodata_start_addr, rodata_end_addr, data_start_addr, data_end_addr;
 
 PageTable *PML4;
 
-uint64_t higherHalf;
-uint64_t kVirtualBase;
-
 namespace x86_64 {
-void InitVMM(KInfo *info) {
+void InitVMM() {
 	if(initialized) return;
 
 	initialized = true;
 
-	if(kAddrRequest.response == NULL || hhdmRequest.response == NULL) PANIC("Virtual memory request not answered by Limine");
-
-	higherHalf = info->higherHalf = hhdmRequest.response->offset;
-	info->kernelPhysicalBase = kAddrRequest.response->physical_base;
-	kVirtualBase = info->kernelVirtualBase = kAddrRequest.response->virtual_base;
+	KInfo *info = GetInfo();
 
 	PML4 = (PageTable*)PMM::RequestPage();
 	memset(PML4, 0, PAGE_SIZE);

@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <mm/bootmem.hpp>
 #include <mm/string.hpp>
+#include <init/kinfo.hpp>
 
 UARTDevice *kernelPort;
 
@@ -48,7 +49,9 @@ void PrintK(char *format, ...) {
 }
 
 #ifdef CONFIG_HW_SERIAL
-void EarlyInit(KInfo *info) {
+void EarlyInit() {
+	KInfo *info = GetInfo();
+
 	info->kernelPort = (UARTDevice*)BOOTMEM::Malloc(sizeof(UARTDevice) + 1);
 	info->kernelPort->Init(COM1);
 	info->kernelPort->PutStr("Serial PrintK started.\n");

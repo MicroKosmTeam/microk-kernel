@@ -7,7 +7,6 @@
 #include <sys/panic.hpp>
 #include <stdarg.h>
 #include <sys/driver.hpp>
-
 #include <mm/pmm.hpp>
 #include <mm/vmm.hpp>
 
@@ -26,6 +25,12 @@ uint64_t *LoadELF(uint8_t *data) {
 	Elf64_Ehdr *elfHeader = (Elf64_Ehdr*)Malloc(elfHeaderSize);
 	memcpy(elfHeader, data, elfHeaderSize);
 
+	if(elfHeader->e_ident[EI_CLASS] != ELFCLASS64) {
+		PRINTK::PrintK("ELF File is not 64 bit.\r\n");
+		return NULL;
+	}
+
+/*
 	uint64_t sectionHeaderSize = elfHeader->e_shentsize;
 	uint64_t sectionHeaderOffset = elfHeader->e_shoff;
 	uint64_t sectionHeaderNumber = elfHeader->e_shnum;
@@ -48,10 +53,12 @@ uint64_t *LoadELF(uint8_t *data) {
 	}
 
 	delete sectionHeader;
+*/
 
 	uint64_t programHeaderSize = elfHeader->e_phentsize;
 	uint64_t programHeaderOffset = elfHeader->e_phoff;
 	uint64_t programHeaderNumber = elfHeader->e_phnum;
+
 
 	uint64_t progSize = 0;
 
@@ -60,7 +67,7 @@ uint64_t *LoadELF(uint8_t *data) {
 		memcpy(programHeader, data + programHeaderOffset + programHeaderSize * i, programHeaderSize);
 
 		if(programHeader->p_type == PT_LOAD && programHeader->p_memsz > 0) {
-			// This does not work.
+			// This does not work if p_memsz is bigger that one page.
 			for (uint64_t addr = programHeader->p_vaddr; addr < programHeader->p_vaddr + programHeader->p_memsz; addr+=0x1000) {
 				VMM::MapMemory(addr, PMM::RequestPage());
 			}

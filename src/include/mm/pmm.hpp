@@ -1,12 +1,11 @@
 #pragma once
 #include <stdint.h>
 #include <stddef.h>
-#include <init/kinfo.hpp>
 #include <sys/bitmap.hpp>
 #include <mm/memory.hpp>
 
 namespace PMM {
-	void InitPageFrameAllocator(KInfo *info);
+	void InitPageFrameAllocator();
 
 	void *RequestPage();
 	void *RequestPages(size_t pages);

@@ -27,7 +27,6 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <mm/pmm.hpp>
-#include <fs/vfs.hpp>
 #include <mm/heap.hpp>
 #include <init/main.hpp>
 #include <sys/panic.hpp>
@@ -37,26 +36,19 @@
 #include <sys/printk.hpp>
 #include <init/modules.hpp>
 #include <arch/x64/main.hpp>
-#include <dev/acpi/acpi.hpp>
 #include <proc/scheduler.hpp>
-#include <sys/ustar/ustar.hpp>
 
 /*
    Function that is started by the schedduler once kernel startup is complete.
 */
-void RestInit(KInfo *info);
-
-/*
-   Contains some basic information to be passed between components of the kernel
-*/
-KInfo *info;
+void RestInit();
 
 int EarlyKernelInit() {
 	/* Allocating memory for the info struct*/
-	info = (KInfo*)BOOTMEM::Malloc(sizeof(KInfo) + 1);
+	InitInfo();
 
 	/* Loading early serial printk */
-	PRINTK::EarlyInit(info);
+	PRINTK::EarlyInit();
 
 	return 0;
 }
@@ -68,15 +60,15 @@ int EarlyKernelInit() {
 void KernelStart() {
 	PRINTK::PrintK("Kernel started.\r\n");
 
-	/* Starting the memory subsystem */
-	MEM::Init(info);
-
 	/* Starting specific arch-dependent instructions */
 
 #ifdef CONFIG_ARCH_x86_64
 	/* Starting x8_64 specific instructions */
-	x86_64::Init(info);
+	x86_64::Init();
 #endif
+
+	/* Starting the memory subsystem */
+	MEM::Init();
 
 	/* Initializing the heap */
 	HEAP::InitializeHeap(CONFIG_HEAP_BASE, CONFIG_HEAP_SIZE / 0x1000 + 1);
@@ -84,49 +76,28 @@ void KernelStart() {
 	BOOTMEM::DeactivateBootmem();
 	PRINTK::PrintK("Free bootmem memory: %dkb out of %dkb.\r\n", BOOTMEM::GetFree() / 1024, BOOTMEM::GetTotal() / 1024);
 
-	/* Starting the VFS */
-	VFS::Init(info);
-
-	/* Starting ACPI subsystem */
-	ACPI::Init(info);
-
+	/* Printing banner */
 	PRINTK::PrintK(" __  __  _                _  __\r\n"
 		       "|  \\/  |(_) __  _ _  ___ | |/ /\r\n"
 		       "| |\\/| || |/ _|| '_|/ _ \\|   < \r\n"
 		       "|_|  |_||_|\\__||_|  \\___/|_|\\_\\\r\n"
-		       "The operating system for the future...at your fingertips.\r\n");
-	PRINTK::PrintK("%s %s Started.\r\n", CONFIG_KERNEL_CNAME, CONFIG_KERNEL_CVER);
-	PRINTK::PrintK("Free memory: %dkb out of %dkb (%d%% free).\r\n",
+		       "The operating system for the future...at your fingertips.\r\n"
+		       "%s %s Started.\r\n"
+		       "Free memory: %dkb out of %dkb (%d%% free).\r\n",
+		       CONFIG_KERNEL_CNAME,
+		       CONFIG_KERNEL_CVER,
 			PMM::GetFreeMem() / 1024,
 			(PMM::GetFreeMem() + PMM::GetUsedMem()) / 1024,
 			(PMM::GetFreeMem() + PMM::GetUsedMem()) / PMM::GetFreeMem() * 100 - 1);
 
-	PRINTK::PrintK("Press \'c\' to continue the boot process.\n\r");
-
-	/*
-	MKMI::BUFFER::Buffer *buffer = MKMI::BUFFER::Create(MKMI::BUFFER::COMMUNICATION_INTERKERNEL, 4096);
-	char *buffe[ = "Hello, world\0";
-	MKMI::BUFFER::IOCtl(buffer, MKMI::BUFFER::OPERATION_WRITEDATA, buffer, 13);
-*/
-
-	char ch;
-	while (ch != 'c') {
-		ch = info->kernelPort->GetChar();
-	}
-
 	/* Starting the modules subsystem */
-	MODULE::Init(info);
-
-	PRINTK::PrintK("Press \'r\' to reset the machine.\n\r");
-	while (ch != 'r') {
-		ch = info->kernelPort->GetChar();
-	}
+	MODULE::Init();
 
 	/* Finishing kernel startup */
-	RestInit(info);
+	RestInit();
 }
 
-void RestInit(KInfo *info) {
+void RestInit() {
 	/* We are done with the boot process */
 	PRINTK::PrintK("Kernel is now resting...\r\n");
 

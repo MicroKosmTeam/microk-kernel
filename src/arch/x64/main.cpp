@@ -3,6 +3,7 @@
 */
 
 #include <sys/printk.hpp>
+#include <init/kinfo.hpp>
 #include <arch/x64/main.hpp>
 #include <arch/x64/cpu/cpu.hpp>
 #include <arch/x64/cpu/gdt.hpp>
@@ -10,7 +11,9 @@
 
 namespace x86_64 {
 /* Function that initializes platform-specific features */
-void Init(KInfo *info) {
+void Init() {
+	KInfo *info = GetInfo();
+
 	/* We first of all get the position of the kernel stack and save it
 	   as we will use it to initialize the TSS */
 	asm ("mov %%rsp, %0" : "=r"(info->kernelStack) : : "memory");
