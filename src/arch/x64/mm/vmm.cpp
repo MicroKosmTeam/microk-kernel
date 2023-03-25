@@ -48,7 +48,7 @@ void InitVMM(KInfo *info) {
 	GlobalPageTableManager = new PageTableManager(PML4);
 	PRINTK::PrintK("Kernel page table initialized.\r\n");
 
-	/*
+/*
 	PT_Flag flags[128];
 	bool flagStatus[128];
 	uint64_t flagNumber;
@@ -76,10 +76,6 @@ void InitVMM(KInfo *info) {
 		GlobalPageTableManager->MapMemory((void*)t , (void*)phys, flagNumber, flags, flagStatus);
 	}
 
-
-	PT_Flag flags[16];
-	bool flagStatus[16];
-	uint64_t flagNumber;
 	flagNumber = 1;
 	flags[0] = PT_Flag::ReadWrite;
 	flagStatus[0] = true;
@@ -96,7 +92,8 @@ void InitVMM(KInfo *info) {
 		}
 	}
 
-	*/
+*/
+
 	PRINTK::PrintK("Done mapping.\r\n");
 
 	asm volatile ("mov %0, %%cr3" : : "r" (PML4));

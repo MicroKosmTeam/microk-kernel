@@ -7,7 +7,9 @@
 #include <sys/panic.hpp>
 #include <stdarg.h>
 #include <sys/driver.hpp>
-#include <dev/pci/pci.hpp>
+
+#include <mm/pmm.hpp>
+#include <mm/vmm.hpp>
 
 uint64_t *currentStack;
 
@@ -24,7 +26,7 @@ uint64_t *LoadELF(uint8_t *data) {
 	Elf64_Ehdr *elfHeader = (Elf64_Ehdr*)Malloc(elfHeaderSize);
 	memcpy(elfHeader, data, elfHeaderSize);
 
-	/* uint64_t sectionHeaderSize = elfHeader->e_shentsize;
+	uint64_t sectionHeaderSize = elfHeader->e_shentsize;
 	uint64_t sectionHeaderOffset = elfHeader->e_shoff;
 	uint64_t sectionHeaderNumber = elfHeader->e_shnum;
 
@@ -43,7 +45,9 @@ uint64_t *LoadELF(uint8_t *data) {
 			       sectionHeader->sh_offset,
 			       sectionHeader->sh_size);
 
-	} */
+	}
+
+	delete sectionHeader;
 
 	uint64_t programHeaderSize = elfHeader->e_phentsize;
 	uint64_t programHeaderOffset = elfHeader->e_phoff;
@@ -56,7 +60,11 @@ uint64_t *LoadELF(uint8_t *data) {
 		memcpy(programHeader, data + programHeaderOffset + programHeaderSize * i, programHeaderSize);
 
 		if(programHeader->p_type == PT_LOAD && programHeader->p_memsz > 0) {
-			VMalloc(programHeader->p_vaddr, programHeader->p_memsz);
+			// This does not work.
+			for (uint64_t addr = programHeader->p_vaddr; addr < programHeader->p_vaddr + programHeader->p_memsz; addr+=0x1000) {
+				VMM::MapMemory(addr, PMM::RequestPage());
+			}
+
 			memset(programHeader->p_vaddr, 0, programHeader->p_memsz);
 			memcpy(programHeader->p_vaddr, data + programHeader->p_offset, programHeader->p_filesz);
 		}
@@ -89,7 +97,7 @@ uint64_t *LoadELF(uint8_t *data) {
 	PRINTK::PrintK("Cleaned up.\r\n");
 
 	PRINTK::PrintK("Now calling %s with request 0.\r\n", driver->Name);
-	Ioctl(driver, 0, PCI::GetHeader());
+	Ioctl(driver, 0);
 
 	PRINTK::PrintK("\r\nELF Loader is done.\r\n");
 
