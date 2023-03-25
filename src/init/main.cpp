@@ -26,10 +26,10 @@
 #include <cdefs.h>
 #include <stdint.h>
 #include <stddef.h>
-#include <limine.h>
 #include <mm/pmm.hpp>
 #include <fs/vfs.hpp>
 #include <mm/heap.hpp>
+#include <init/main.hpp>
 #include <sys/panic.hpp>
 #include <mm/memory.hpp>
 #include <mm/bootmem.hpp>
@@ -42,39 +42,31 @@
 #include <sys/ustar/ustar.hpp>
 
 /*
-   Stack request for Limine
-   Stack size configured in autoconf.h
-*/
-static volatile limine_stack_size_request stackRequest {
-	.id = LIMINE_STACK_SIZE_REQUEST,
-	.revision = 0,
-	.stack_size = CONFIG_STACK_SIZE
-};
-
-/*
    Function that is started by the schedduler once kernel startup is complete.
 */
-void restInit(KInfo *info);
+void RestInit(KInfo *info);
 
 /*
    Contains some basic information to be passed between components of the kernel
 */
 KInfo *info;
 
-/*
-   Main kernel function. Declared extern "C" so that its name doesn't get
-   mangled by the compiler
-*/
-extern "C" void kernelStart(void) {
+int EarlyKernelInit() {
 	/* Allocating memory for the info struct*/
 	info = (KInfo*)BOOTMEM::Malloc(sizeof(KInfo) + 1);
 
 	/* Loading early serial printk */
 	PRINTK::EarlyInit(info);
 
-	/* Checking if the stack request has been answered by Limine */
-	/* If not, give up and shut down */
-	if (stackRequest.response == NULL) PANIC("Stack size request not answered by Limine");
+	return 0;
+}
+
+/*
+   Main kernel function. Declared extern "C" so that its name doesn't get
+   mangled by the compiler
+*/
+void KernelStart() {
+	PRINTK::PrintK("Kernel started.\r\n");
 
 	/* Starting the memory subsystem */
 	MEM::Init(info);
@@ -131,10 +123,10 @@ extern "C" void kernelStart(void) {
 	}
 
 	/* Finishing kernel startup */
-	restInit(info);
+	RestInit(info);
 }
 
-void restInit(KInfo *info) {
+void RestInit(KInfo *info) {
 	/* We are done with the boot process */
 	PRINTK::PrintK("Kernel is now resting...\r\n");
 
