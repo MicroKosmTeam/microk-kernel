@@ -40,9 +40,9 @@ void Init(KInfo *info) {
 	KRNLSYMTABLE[KRNLSYMTABLE_MALLOC] = &Malloc;
 	KRNLSYMTABLE[KRNLSYMTABLE_FREE] = &Free;
 	KRNLSYMTABLE[KRNLSYMTABLE_STRCPY] = &strcpy;
-	KRNLSYMTABLE[KRNLSYMTABLE_BUFFERCREATE] = &MKMI::BUFFER::Create;
-	KRNLSYMTABLE[KRNLSYMTABLE_BUFFERIOCTL] = &MKMI::BUFFER::IOCtl;
-	KRNLSYMTABLE[KRNLSYMTABLE_BUFFERDELETE] = &MKMI::BUFFER::Delete;
+	KRNLSYMTABLE[KRNLSYMTABLE_BUFFERCREATE] = &MKMI::BufferCreate;
+	KRNLSYMTABLE[KRNLSYMTABLE_BUFFERIOCTL] = &MKMI::BufferIO;
+	KRNLSYMTABLE[KRNLSYMTABLE_BUFFERDELETE] = &MKMI::BufferDelete;
 
 	// Loading initrd
 	if (moduleRequest.response == NULL) PANIC("Module request not answered by Limine");
@@ -53,23 +53,13 @@ void Init(KInfo *info) {
 	PRINTK::PrintK("Available modules:\r\n");
 
 	for (int i = 0; i < info->moduleCount; i++) {
-
-		if (strcmp(info->modules[i]->cmdline, "INITRD") == 0) {
-			PRINTK::PrintK("Initrd: [ %s %d ] %s\r\n",
+		if (strcmp(info->modules[i]->cmdline, "MODULE") == 0) {
+			PRINTK::PrintK("Kernel module: [ %s %d ] %s\r\n",
 					info->modules[i]->path,
-					info->modules[i]->size,
-					info->modules[i]->cmdline);
+					info->modules[i]->size);
 
-			PRINTK::PrintK("Unpacking initrd in /initrd.\r\n");
-			USTAR::LoadArchive(info->modules[i]->address, VFS::GetInitrdFS()->node);
-
-			//VFS::ListDir(VFS::GetInitrdFS()->node);
-			VFS::ListDir(VFS::GetRootFS()->node);
-		} else {
-			PRINTK::PrintK("Unknown module: [ %s %d ] %s\r\n",
-					info->modules[i]->path,
-					info->modules[i]->size,
-					info->modules[i]->cmdline);
+			PRINTK::PrintK("Loading kernel module...\r\n");
+			LoadELF(info->modules[i]->address);
 		}
 
 	}
