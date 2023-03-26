@@ -36,11 +36,11 @@ void InitVMM() {
 	GlobalPageTableManager = new PageTableManager(PML4);
 	PRINTK::PrintK("Kernel page table initialized.\r\n");
 
-/*
 	PT_Flag flags[128];
 	bool flagStatus[128];
 	uint64_t flagNumber;
 
+/*
 	for (uint64_t t = text_start_addr; t < text_end_addr; t++) {
 		uint64_t phys = t - info->kernelVirtualBase + info->kernelPhysicalBase;
 		GlobalPageTableManager->MapMemory((void*)t , (void*)phys);
@@ -63,24 +63,26 @@ void InitVMM() {
 		uint64_t phys = t - info->kernelVirtualBase + info->kernelPhysicalBase;
 		GlobalPageTableManager->MapMemory((void*)t , (void*)phys, flagNumber, flags, flagStatus);
 	}
+*/
 
-	flagNumber = 1;
+	flagNumber = 2;
 	flags[0] = PT_Flag::ReadWrite;
 	flagStatus[0] = true;
+	flags[1] = PT_Flag::UserSuper;
+	flagStatus[1] = true;
 
 	for (uint64_t i = 0; i < info->mMapEntryCount; i++) {
-		limine_memmap_entry *entry = info->mMap[i];
+		MMapEntry *entry = info->mMap[i];
 
 		uint64_t base = entry->base;
 		uint64_t top = base + entry->length;
 
 		for (uint64_t t = base; t < top; t += 4096){
 			GlobalPageTableManager->MapMemory((void*)t, (void*)t, flagNumber, flags, flagStatus);
-			GlobalPageTableManager->MapMemory((void*)t + info->higherHalf, (void*)t, flagNumber, flags, flagStatus);
+			GlobalPageTableManager->MapMemory((void*)t + info->higherHalfMapping, (void*)t, flagNumber, flags, flagStatus);
 		}
 	}
 
-*/
 
 	PRINTK::PrintK("Done mapping.\r\n");
 

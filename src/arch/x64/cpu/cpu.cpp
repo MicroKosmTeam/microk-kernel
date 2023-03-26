@@ -77,6 +77,7 @@ enum {
    (should only execuded after checking if SSE is actually present) */
 extern "C" void ActivateSSE();
 extern "C" void ActivateAVX();
+extern "C" void EnableSCE();
 
 namespace x86_64 {
 /*
@@ -110,6 +111,8 @@ void x86CPU::Init() {
 		/* Otherwise, we disable SSE */
 		sseStatus = false;
 	}
+
+	EnableSCE();
 }
 
 /*

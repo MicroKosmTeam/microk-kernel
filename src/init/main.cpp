@@ -43,6 +43,8 @@
 */
 void RestInit();
 
+extern "C" void EnterUserspace(void *function, void *stack);
+
 int EarlyKernelInit() {
 	/* Allocating memory for the info struct*/
 	InitInfo();
@@ -54,8 +56,7 @@ int EarlyKernelInit() {
 }
 
 /*
-   Main kernel function. Declared extern "C" so that its name doesn't get
-   mangled by the compiler
+   Main kernel function.
 */
 void KernelStart() {
 	PRINTK::PrintK("Kernel started.\r\n");
@@ -94,12 +95,19 @@ void KernelStart() {
 	MODULE::Init();
 
 	/* Finishing kernel startup */
-	RestInit();
+	// RestInit();
+}
+
+uint64_t userStack[1024];
+extern "C" volatile void UserFunction() {
+	for(;;);
 }
 
 void RestInit() {
 	/* We are done with the boot process */
 	PRINTK::PrintK("Kernel is now resting...\r\n");
+
+	EnterUserspace(UserFunction, &userStack[1023]);
 
 	while (true) {
 		asm volatile ("hlt");
