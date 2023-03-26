@@ -95,18 +95,21 @@ void KernelStart() {
 	MODULE::Init();
 
 	/* Finishing kernel startup */
-	// RestInit();
+	RestInit();
 }
 
-uint64_t userStack[1024];
-extern "C" volatile void UserFunction() {
-	for(;;);
+uint64_t userStack[1024] = {0};
+extern "C" void UserFunction() {
+	while (true);
 }
 
 void RestInit() {
 	/* We are done with the boot process */
 	PRINTK::PrintK("Kernel is now resting...\r\n");
 
+	asm volatile ("cli");
+
+	PRINTK::PrintK("Switching to userspace.\r\n");
 	EnterUserspace(UserFunction, &userStack[1023]);
 
 	while (true) {
