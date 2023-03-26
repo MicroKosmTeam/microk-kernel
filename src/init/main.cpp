@@ -46,7 +46,7 @@ void RestInit();
 extern "C" void EnterUserspace(void *function, void *stack);
 
 int EarlyKernelInit() {
-	/* Allocating memory for the info struct*/
+	/* Allocating memory for the info struct */
 	InitInfo();
 
 	/* Loading early serial printk */
@@ -72,7 +72,7 @@ void KernelStart() {
 	MEM::Init();
 
 	/* Initializing the heap */
-	HEAP::InitializeHeap(CONFIG_HEAP_BASE, CONFIG_HEAP_SIZE / 0x1000 + 1);
+	HEAP::InitializeHeap(CONFIG_HEAP_BASE, CONFIG_HEAP_SIZE / 0x1000);
 	/* With the heap initialize, disable new bootmem allocations */
 	BOOTMEM::DeactivateBootmem();
 	PRINTK::PrintK("Free bootmem memory: %dkb out of %dkb.\r\n", BOOTMEM::GetFree() / 1024, BOOTMEM::GetTotal() / 1024);
@@ -89,7 +89,7 @@ void KernelStart() {
 		       CONFIG_KERNEL_CVER,
 			PMM::GetFreeMem() / 1024,
 			(PMM::GetFreeMem() + PMM::GetUsedMem()) / 1024,
-			(PMM::GetFreeMem() + PMM::GetUsedMem()) / PMM::GetFreeMem() * 100 - 1);
+			(PMM::GetFreeMem() + PMM::GetUsedMem()) / PMM::GetFreeMem() * 100);
 
 	/* Starting the modules subsystem */
 	MODULE::Init();
