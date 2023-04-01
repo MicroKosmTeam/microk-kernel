@@ -11,8 +11,6 @@
 
 bool initialized = false;
 
-extern volatile uintptr_t text_start_addr, text_end_addr, rodata_start_addr, rodata_end_addr, data_start_addr, data_end_addr;
-
 PageTable *PML4;
 
 namespace x86_64 {
@@ -34,7 +32,32 @@ void InitVMM() {
 	}
 
 	GlobalPageTableManager = new PageTableManager(PML4);
+
 	PRINTK::PrintK("Kernel page table initialized.\r\n");
+
+	PT_Flag flags[128];
+	bool flagStatus[128];
+	uint64_t flagNumber;
+
+	flagNumber = 2;
+	flags[0] = PT_Flag::ReadWrite;
+	flagStatus[0] = true;
+	flags[1] = PT_Flag::UserSuper;
+	flagStatus[1] = true;
+
+	for (uint64_t i = 0; i < info->mMapEntryCount; i++) {
+		MMapEntry *entry = info->mMap[i];
+		if(entry->type == 1) continue; // Don't remap unusable pages to speed up process
+
+		uint64_t base = entry->base - (entry->base % 4096);
+		uint64_t top = base + entry->length + (entry->length % 4096);
+
+		for (uint64_t t = base; t < top; t += 4096){
+			GlobalPageTableManager->MapMemory((void*)t, (void*)t, flagNumber, flags, flagStatus);
+			GlobalPageTableManager->MapMemory((void*)t + info->higherHalfMapping, (void*)t, flagNumber, flags, flagStatus);
+		}
+	}
+
 
 	PRINTK::PrintK("Done mapping.\r\n");
 

@@ -112,6 +112,7 @@ void x86CPU::Init() {
 		sseStatus = false;
 	}
 
+	PRINTK::PrintK("Enabling SCE...\r\n");
 	EnableSCE();
 }
 

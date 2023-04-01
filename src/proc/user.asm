@@ -1,6 +1,5 @@
 [bits 64]
 
-extern TestFunction
 global JumpUsermode
 JumpUsermode:
     mov rcx, rdi        ; first argument, new instruction pointer

@@ -14,11 +14,11 @@ FlushGDT:
 	mov rax, 0x28
 	push rax
 	push rdi
-	retfq
+	retq
 
 ; Function to load the TSS
 global FlushTSS
 FlushTSS:
-	mov ax, 0x48
+	mov ax, 0x50
 	ltr ax
 	ret
