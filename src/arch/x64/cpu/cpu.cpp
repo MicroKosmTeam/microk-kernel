@@ -5,6 +5,7 @@
 #include <cpuid.h>
 #include <sys/printk.hpp>
 #include <arch/x64/cpu/cpu.hpp>
+#include <sys/panic.hpp>
 #include <stdint.h>
 
 /* Enum containing processor features derived from cpuid */
@@ -77,7 +78,7 @@ enum {
    (should only execuded after checking if SSE is actually present) */
 extern "C" void ActivateSSE();
 extern "C" void ActivateAVX();
-extern "C" void EnableSCE();
+extern "C" void EnableIntelSCE();
 
 namespace x86_64 {
 /*
@@ -112,7 +113,13 @@ void x86CPU::Init() {
 		sseStatus = false;
 	}
 
-	EnableSCE();
+	if(CheckMSR()) {
+		PRINTK::PrintK("MSRs available.\r\n");
+		EnableIntelSCE();
+	} else {
+		PANIC("MSRs are not available");
+	}
+
 }
 
 /*
@@ -126,21 +133,22 @@ int x86CPU::CheckSSE(int version) {
 
 	switch (version) {
 		case 1:
-			if(edx & CPUID_FEAT_EDX_SSE) result = 1;
+			if((bool)(edx & CPUID_FEAT_EDX_SSE)) result = 1;
 			break;
 		case 2:
-			if(edx & CPUID_FEAT_EDX_SSE2) result = 1;
+			if((bool)(edx & CPUID_FEAT_EDX_SSE2)) result = 1;
 			break;
 		case 3:
-			if(edx & CPUID_FEAT_ECX_SSE3) {
+			if((bool)(edx & CPUID_FEAT_ECX_SSE3)) {
 				result = 1;
-				if(edx & CPUID_FEAT_ECX_SSSE3) result = 2;
+				if((bool)(edx & CPUID_FEAT_ECX_SSSE3))
+					result = 2;
 			}
 			break;
 		case 4:
-			if(ecx & CPUID_FEAT_ECX_SSE4_1) {
+			if((bool)(ecx & CPUID_FEAT_ECX_SSE4_1)) {
 				result = 1;
-				if(ecx & CPUID_FEAT_ECX_SSE4_2)
+				if((bool)(ecx & CPUID_FEAT_ECX_SSE4_2))
 					result = 2;
 			}
 			break;
@@ -151,10 +159,16 @@ int x86CPU::CheckSSE(int version) {
 	return result;
 }
 
-int x86CPU::CheckAVX() {
+bool x86CPU::CheckAVX() {
 	unsigned int eax, unused, ecx;
 	__cpuid(1, eax, unused, ecx, unused);
 	return ecx & CPUID_FEAT_ECX_AVX;
+}
+
+bool x86CPU::CheckMSR() {
+	unsigned int eax, unused, edx;
+	__cpuid(1, eax, unused, unused, edx);
+	return edx & CPUID_FEAT_EDX_MSR;
 }
 
 /*
@@ -162,7 +176,7 @@ int x86CPU::CheckAVX() {
 */
 void x86CPU::GetVendor(char *string) {
 	uint32_t ebx, edx, ecx, unused;
-	__cpuid(0, unused, ebx, edx, ecx);
+	__cpuid(0, unused, ebx, ecx, edx);
 
 	/* This bitshift logic is used to get the correct 8-bit characters
 	   from the 32 bit registers. The vendor name is 12 characters + \0 */
@@ -170,14 +184,14 @@ void x86CPU::GetVendor(char *string) {
 	string[1] = (uint8_t)(ebx >> 8);
 	string[2] = (uint8_t)(ebx >> 16);
 	string[3] = (uint8_t)(ebx >> 24);
-	string[4] = (uint8_t)ecx;
-	string[5] = (uint8_t)(ecx >> 8);
-	string[6] = (uint8_t)(ecx >> 16);
-	string[7] = (uint8_t)(ecx >> 24);
-	string[8] = (uint8_t)edx;
-	string[9] = (uint8_t)(edx >> 8);
-	string[10] = (uint8_t)(edx >> 16);
-	string[11] = (uint8_t)(edx >> 24);
+	string[4] = (uint8_t)edx;
+	string[5] = (uint8_t)(edx >> 8);
+	string[6] = (uint8_t)(edx >> 16);
+	string[7] = (uint8_t)(edx >> 24);
+	string[8] = (uint8_t)ecx;
+	string[9] = (uint8_t)(ecx >> 8);
+	string[10] = (uint8_t)(ecx >> 16);
+	string[11] = (uint8_t)(ecx >> 24);
 	string[12] = '\0';
 }
 }
