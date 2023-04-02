@@ -119,7 +119,6 @@ void x86CPU::Init() {
 	} else {
 		PANIC("MSRs are not available");
 	}
-
 }
 
 /*

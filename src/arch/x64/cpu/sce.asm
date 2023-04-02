@@ -8,6 +8,6 @@ EnableSCE:
 	wrmsr               ; write back new EFER
 	mov rcx, 0xc0000081 ; STAR MSR
 	rdmsr               ; read current STAR
-	mov edx, 0x00180008 ; load up GDT segment bases 0x0 (kernel) and 0x18 (user)
+	mov edx, 0x00400028 ; load up GDT segment bases 0x28 (kernel) and 0x40 (user)
 	wrmsr               ; write back new STAR
 	ret                 ; return back to

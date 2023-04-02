@@ -46,6 +46,7 @@ struct GDT {
     GDTEntry _32bit_data;
     GDTEntry _64bit_code;
     GDTEntry _64bit_data;
+    GDTEntry user_null;
     GDTEntry user_data;
     GDTEntry user_code;
     TSSEntry tss;
