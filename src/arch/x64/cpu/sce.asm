@@ -2,6 +2,8 @@
 
 global EnableSCE
 EnableSCE:
+	mov rcx, 0xc0000082
+	wrmsr
 	mov rcx, 0xc0000080 ; EFER MSR
 	rdmsr               ; read current EFER
 	or eax, 1           ; enable SCE bit

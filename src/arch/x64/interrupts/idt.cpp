@@ -52,14 +52,14 @@ void IDTInit() {
 }
 }
 
+#include <sys/printk.hpp>
 /* Special page fault hanlder */
 extern "C" void pageFaultHandler() {
-	PANIC("Page fault!");
+	uint64_t addr;
+	asm volatile("mov %%cr2, %0" : "=r" (addr));
+	PRINTK::PrintK("\r\n\r\n !!! Page fault at address 0x%x !!!\r\n\r\n",addr);
 
-	/* Completely hangs the computer */
-	while (true) {
-		asm volatile ("cli; hlt");
-	}
+	return;
 }
 
 /* Stub exception handler */

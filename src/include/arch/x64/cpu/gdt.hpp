@@ -16,40 +16,37 @@ struct GDTEntry{
     uint8_t base_high8;
 } __attribute__((packed));
 
-struct TSSEntry {
-    uint16_t length;
-    uint16_t base_low16;
-    uint8_t base_mid8;
-    uint8_t flags0;
-    uint8_t flags1;
-    uint8_t base_high8;
-    uint32_t base_upper32;
-    uint32_t reserved;
-} __attribute__((packed));
-
 struct TSS {
-    uint32_t reserved0;
-    uint64_t rsp[3];
-    uint64_t reserved1;
-    uint64_t ist[7];
-    uint32_t reserved2;
-    uint32_t reserved3;
-    uint16_t reserved4;
-    uint16_t iopb_offset;
+	uint32_t reserved0;
+	uint64_t rsp0;
+	uint64_t rsp1;
+	uint64_t rsp2;
+	uint64_t reserved1;
+	uint64_t ist1;
+	uint64_t ist2;
+	uint64_t ist3;
+	uint64_t ist4;
+	uint64_t ist5;
+	uint64_t ist6;
+	uint64_t ist7;
+	uint64_t reserved2;
+	uint16_t reserved3;
+	uint16_t iopb_offset;
 } __attribute__((packed));
 
 struct GDT {
-    GDTEntry null;
-    GDTEntry _16bit_code;
-    GDTEntry _16bit_data;
-    GDTEntry _32bit_code;
-    GDTEntry _32bit_data;
-    GDTEntry _64bit_code;
-    GDTEntry _64bit_data;
-    GDTEntry user_null;
-    GDTEntry user_data;
-    GDTEntry user_code;
-    TSSEntry tss;
+	GDTEntry null;
+	GDTEntry _16bit_code;
+	GDTEntry _16bit_data;
+	GDTEntry _32bit_code;
+	GDTEntry _32bit_data;
+	GDTEntry _64bit_code;
+	GDTEntry _64bit_data;
+	GDTEntry user_null;
+	GDTEntry user_data;
+	GDTEntry user_code;
+	GDTEntry tss_low;
+	GDTEntry tss_high;
 } __attribute__((packed));
 
 extern "C" void FlushGDT(GDTPointer *pointer);

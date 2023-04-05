@@ -42,8 +42,6 @@
 */
 void RestInit();
 
-extern "C" void EnterUserspace(void *function, void *stack);
-
 int EarlyKernelInit() {
 	/* Allocating memory for the info struct */
 	InitInfo();
@@ -97,7 +95,21 @@ void KernelStart() {
 	RestInit();
 }
 
+
+extern "C" void EnterUserspace(void *function, void *stack);
+extern "C" void ExitUserspace();
+
 extern "C" void UserFunction() {
+	PRINTK::PrintK("Hello from userspace!\r\n");
+	
+	uint64_t *test = (uint64_t*)Malloc(128);
+	test[0x69] = 0x69;
+	PRINTK::PrintK("Number is 0x%x\r\n", test[0x69]);
+	Free(test);
+
+	PRINTK::PrintK("Halting system.\r\n");
+
+	ExitUserspace();
 	for (;;);
 }
 
@@ -106,7 +118,7 @@ void RestInit() {
 	PRINTK::PrintK("Kernel is now resting...\r\n");
 
 	void *stack = PMM::RequestPage();
-	void *func = &UserFunction; //- GetInfo()->kernelVirtualBase + GetInfo()->kernelPhysicalBase;
+	void *func = &UserFunction;
 	PRINTK::PrintK("Switching to userspace.\r\n"
 	               " Function Address: 0x%x\r\n"
 		       " Stack Address:    0x%x\r\n",
@@ -114,6 +126,8 @@ void RestInit() {
 		       (uint64_t)stack);
 
 	EnterUserspace(func, stack);
+
+	PRINTK::PrintK("Returned from userspace.\r\n");
 
 	while (true) {
 		asm volatile ("hlt");

@@ -9,6 +9,7 @@ enum PT_Flag {
         CacheDisabled = 4,
         Accessed = 5,
         LargerPages = 7,
+	Global = 8,
         Custom0 = 9,
         Custom1 = 10,
         Custom2 = 11,

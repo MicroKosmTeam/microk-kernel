@@ -30,6 +30,16 @@ struct BootFile {
 	char *cmdline;
 };
 
+struct Framebuffer {
+	void *Address;
+	uint64_t Width;
+	uint64_t Height;
+	uint16_t Bpp; // Bits per pixel
+	uint8_t RedShift;
+	uint8_t GreenShift;
+	uint8_t BlueShift;
+};
+
 /*
    KInfo struct
     Contains some basic information to be passes between components of the kernel
@@ -40,18 +50,22 @@ struct KInfo {
 	MMapEntry *mMap[512]; /* Pointer to the memory map */
 	uint64_t mMapEntryCount; /* Number of memory map regions */
 
-	uint64_t higherHalfMapping; /* Start of higher half mapping */
+	uintptr_t higherHalfMapping; /* Start of higher half mapping */
 	uintptr_t kernelStack; /* Start of kernel stack */
 
-	uint64_t kernelPhysicalBase; /* Start of the kernel in physical memory */
-	uint64_t kernelVirtualBase; /* Start of the kernel in virtual memory */
+	uintptr_t kernelPhysicalBase; /* Start of the kernel in physical memory */
+	uintptr_t kernelVirtualBase; /* Start of the kernel in virtual memory */
 
 	/* Module information */
 	BootFile *modules[512]; /* Pointer to the Limine modules */
 	uint64_t moduleCount; /* Number of modules provided */
 
 	/* Kernel serial device */
-	UARTDevice *kernelPort; /* UART device used as serial port */
+	UARTDevice *kernelPort; /* UART deivice used as serial port */
+
+	/* Kernel framebuffer */
+	bool fbPresent; /* Whether a framebuffer is available */
+	Framebuffer *framebuffer; /* The actual framebuffer struct */
 };
 
 void InitInfo();

@@ -30,11 +30,10 @@ void InitVMM() {
 
 	for (uint64_t i = 0; i < info->mMapEntryCount; i++) {
 		MMapEntry *entry = info->mMap[i];
+		if (entry->type == MEMMAP_BAD_MEMORY) continue;
 
 		uint64_t base = entry->base - (entry->base % 4096);
 		uint64_t top = base + entry->length + (entry->length % 4096);
-
-		PRINTK::PrintK("Mapping %s memory area [0x%x - 0x%x]\r\n", entry->type == MEMMAP_KERNEL_AND_MODULES ? "kernel" : "normal", base, top);
 
 		if (entry->type == MEMMAP_KERNEL_AND_MODULES && entry->base == info->kernelPhysicalBase) {
 			for (uint64_t t = base; t < top; t += 4096){

@@ -67,6 +67,11 @@ static volatile limine_kernel_address_request kaddrRequest {
 	.revision = 0
 };
 
+static volatile limine_framebuffer_request fbRequest {
+	.id = LIMINE_FRAMEBUFFER_REQUEST,
+	.revision = 0
+};
+
 extern "C" void LimineEntry() {
 	/* Startup basic kernel runtime services */
 	EarlyKernelInit();
@@ -119,6 +124,20 @@ extern "C" void LimineEntry() {
 		       bootloaderRequest.response->name,
 		       bootloaderRequest.response->version,
 		       timeRequest.response->boot_time);
+
+	if(fbRequest.response == NULL) {
+		info->fbPresent = false;
+	} else {
+		info->fbPresent = true;
+		info->framebuffer = (Framebuffer*)BOOTMEM::Malloc(sizeof(MMapEntry) + 1);
+		info->framebuffer->Address = fbRequest.response->framebuffers[0]->address;
+		info->framebuffer->Width = fbRequest.response->framebuffers[0]->width;
+		info->framebuffer->Height = fbRequest.response->framebuffers[0]->height;
+		info->framebuffer->Bpp = fbRequest.response->framebuffers[0]->bpp;
+		info->framebuffer->RedShift = fbRequest.response->framebuffers[0]->red_mask_shift;
+		info->framebuffer->GreenShift = fbRequest.response->framebuffers[0]->green_mask_shift;
+		info->framebuffer->BlueShift = fbRequest.response->framebuffers[0]->blue_mask_shift;
+	}
 
 	/* Launch the kernel proper */
 	KernelStart();

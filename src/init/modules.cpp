@@ -11,6 +11,7 @@
 #include <sys/driver.hpp>
 #include <mkmi.hpp>
 #include <init/kinfo.hpp>
+#include <init/fbsplash.hpp>
 
 uint64_t *KRNLSYMTABLE;
 
@@ -38,18 +39,27 @@ void Init() {
 	KRNLSYMTABLE[KRNLSYMTABLE_BUFFERIOCTL] = &MKMI::BufferIO;
 	KRNLSYMTABLE[KRNLSYMTABLE_BUFFERDELETE] = &MKMI::BufferDelete;
 
-	PRINTK::PrintK("Available modules:\r\n");
+	PRINTK::PrintK("Available modules: %d\r\n", info->moduleCount);
 
 	for (int i = 0; i < info->moduleCount; i++) {
 		if (strcmp(info->modules[i]->cmdline, "MODULE") == 0) {
-			PRINTK::PrintK("Kernel module: [ %s %d ] %s\r\n",
+			PRINTK::PrintK("Kernel module: [ %s %d ]\r\n",
 					info->modules[i]->path,
 					info->modules[i]->size);
 
-			PRINTK::PrintK("Loading kernel module...\r\n");
-			LoadELF(info->modules[i]->address);
+			//PRINTK::PrintK("Loading kernel module...\r\n");
+			//LoadELF(info->modules[i]->address, info->modules[i]->size);
+		} else if (strcmp(info->modules[i]->cmdline, "SPLASH") == 0) {
+			PRINTK::PrintK("MicroKosm splash: [ %s %d ]\r\n",
+					info->modules[i]->path,
+					info->modules[i]->size);
+
+			PRINTK::PrintK("Printing the splash screen on available framebuffers...\r\n");
+			LoadFBSplash(info->modules[i]->address, info->modules[i]->size);
 		}
 
 	}
+
+	return;
 }
 }
