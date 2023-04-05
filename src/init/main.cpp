@@ -36,7 +36,6 @@
 #include <sys/printk.hpp>
 #include <init/modules.hpp>
 #include <arch/x64/main.hpp>
-#include <proc/scheduler.hpp>
 
 /*
    Function that is started by the schedduler once kernel startup is complete.
@@ -84,11 +83,11 @@ void KernelStart() {
 		       "|_|  |_||_|\\__||_|  \\___/|_|\\_\\\r\n"
 		       "The operating system for the future...at your fingertips.\r\n"
 		       "%s %s Started.\r\n"
-		       "Free memory: %dkb out of %dkb (%d%% free).\r\n",
+		       "Free memory: %dMB out of %dMB (%d%% free).\r\n",
 		       CONFIG_KERNEL_CNAME,
 		       CONFIG_KERNEL_CVER,
-			PMM::GetFreeMem() / 1024,
-			(PMM::GetFreeMem() + PMM::GetUsedMem()) / 1024,
+			PMM::GetFreeMem() / 1024 / 1024,
+			(PMM::GetFreeMem() + PMM::GetUsedMem()) / 1024 / 1024,
 			(PMM::GetFreeMem() + PMM::GetUsedMem()) / PMM::GetFreeMem() * 100);
 
 	/* Starting the modules subsystem */
@@ -98,19 +97,23 @@ void KernelStart() {
 	RestInit();
 }
 
-uint64_t userStack[1024] = {0};
 extern "C" void UserFunction() {
-	while (true);
+	for (;;);
 }
 
 void RestInit() {
 	/* We are done with the boot process */
 	PRINTK::PrintK("Kernel is now resting...\r\n");
 
-	asm volatile ("cli");
+	void *stack = PMM::RequestPage();
+	void *func = &UserFunction; //- GetInfo()->kernelVirtualBase + GetInfo()->kernelPhysicalBase;
+	PRINTK::PrintK("Switching to userspace.\r\n"
+	               " Function Address: 0x%x\r\n"
+		       " Stack Address:    0x%x\r\n",
+		       (uint64_t)func,
+		       (uint64_t)stack);
 
-	PRINTK::PrintK("Switching to userspace.\r\n");
-	EnterUserspace(UserFunction, &userStack[1023]);
+	EnterUserspace(func, stack);
 
 	while (true) {
 		asm volatile ("hlt");
