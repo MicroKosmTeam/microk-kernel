@@ -24,43 +24,33 @@ void InitVMM() {
 	PML4 = (PageTable*)PMM::RequestPage();
 	memset(PML4, 0, PAGE_SIZE);
 
-	// Copy the bootloader page table into ours, so we know it's right
-	PageTable *OldPML4;
-	asm volatile("mov %%cr3, %0" : "=r"(OldPML4) : :"memory");
-	for (int i = 0; i < PAGE_SIZE; i++) {
-		PML4[i] = OldPML4[i];
-	}
-
 	GlobalPageTableManager = new PageTableManager(PML4);
 
 	PRINTK::PrintK("Kernel page table initialized.\r\n");
 
-	PT_Flag flags[128];
-	bool flagStatus[128];
-	uint64_t flagNumber;
-
-	flagNumber = 2;
-	flags[0] = PT_Flag::ReadWrite;
-	flagStatus[0] = true;
-	flags[1] = PT_Flag::UserSuper;
-	flagStatus[1] = true;
-
 	for (uint64_t i = 0; i < info->mMapEntryCount; i++) {
 		MMapEntry *entry = info->mMap[i];
-		if(entry->type == 1) continue; // Don't remap unusable pages to speed up process
 
 		uint64_t base = entry->base - (entry->base % 4096);
 		uint64_t top = base + entry->length + (entry->length % 4096);
 
-		for (uint64_t t = base; t < top; t += 4096){
-			GlobalPageTableManager->MapMemory((void*)t, (void*)t, flagNumber, flags, flagStatus);
-			GlobalPageTableManager->MapMemory((void*)t + info->higherHalfMapping, (void*)t, flagNumber, flags, flagStatus);
+		PRINTK::PrintK("Mapping %s memory area [0x%x - 0x%x]\r\n", entry->type == MEMMAP_KERNEL_AND_MODULES ? "kernel" : "normal", base, top);
+
+		if (entry->type == MEMMAP_KERNEL_AND_MODULES && entry->base == info->kernelPhysicalBase) {
+			for (uint64_t t = base; t < top; t += 4096){
+				GlobalPageTableManager->MapMemory((void*)info->kernelVirtualBase + t - info->kernelPhysicalBase, (void*)t);
+			}
+		} else {
+			for (uint64_t t = base; t < top; t += 4096){
+				GlobalPageTableManager->MapMemory((void*)t, (void*)t);
+				GlobalPageTableManager->MapMemory((void*)t + info->higherHalfMapping, (void*)t);
+			}
 		}
 	}
 
 
 	PRINTK::PrintK("Done mapping.\r\n");
 
-	asm volatile ("mov %0, %%cr3" : : "r" (PML4));
+	asm volatile ("mov %0, %%cr3" : : "r" (PML4) : "memory");
 }
 }
