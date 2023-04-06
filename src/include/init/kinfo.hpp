@@ -47,7 +47,7 @@ struct Framebuffer {
 */
 struct KInfo {
 	/* Memory map information */
-	MMapEntry *mMap[512]; /* Pointer to the memory map */
+	MMapEntry *mMap; /* Pointer to the memory map */
 	uint64_t mMapEntryCount; /* Number of memory map regions */
 
 	uintptr_t higherHalfMapping; /* Start of higher half mapping */
@@ -57,7 +57,7 @@ struct KInfo {
 	uintptr_t kernelVirtualBase; /* Start of the kernel in virtual memory */
 
 	/* Module information */
-	BootFile *modules[512]; /* Pointer to the Limine modules */
+	BootFile *modules; /* Pointer to the Limine modules */
 	uint64_t moduleCount; /* Number of modules provided */
 
 	/* Kernel serial device */

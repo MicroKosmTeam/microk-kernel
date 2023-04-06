@@ -28,6 +28,7 @@
 #include <stddef.h>
 #include <mm/pmm.hpp>
 #include <mm/heap.hpp>
+#include <sys/user.hpp>
 #include <init/main.hpp>
 #include <sys/panic.hpp>
 #include <mm/memory.hpp>
@@ -95,9 +96,6 @@ void KernelStart() {
 	RestInit();
 }
 
-
-extern "C" void EnterUserspace(void *function, void *stack);
-extern "C" void ExitUserspace();
 
 extern "C" void UserFunction() {
 	PRINTK::PrintK("Hello from userspace!\r\n");

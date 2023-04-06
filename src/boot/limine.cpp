@@ -94,25 +94,25 @@ extern "C" void LimineEntry() {
 	PRINTK::PrintK("Copying the memory map from Limine...\r\n");
 	uint64_t mMapEntryCount = mMapRequest.response->entry_count;
 	info->mMapEntryCount = mMapEntryCount;
+	info->mMap = (MMapEntry*)BOOTMEM::Malloc(sizeof(MMapEntry) * mMapEntryCount + 1);
 	PRINTK::PrintK("Allocating for %d memory map entries.\r\n", mMapEntryCount);
 	for (int i = 0; i < mMapEntryCount; i++) {
-		info->mMap[i] = (MMapEntry*)BOOTMEM::Malloc(sizeof(MMapEntry) + 1);
-		info->mMap[i]->base = mMapRequest.response->entries[i]->base;
-		info->mMap[i]->length = mMapRequest.response->entries[i]->length;
-		info->mMap[i]->type = mMapRequest.response->entries[i]->type;
+		info->mMap[i].base = mMapRequest.response->entries[i]->base;
+		info->mMap[i].length = mMapRequest.response->entries[i]->length;
+		info->mMap[i].type = mMapRequest.response->entries[i]->type;
 	}
 
 	/* Transporting modules */
 	PRINTK::PrintK("Copying modules from Limine...\r\n");
 	uint64_t moduleCount = moduleRequest.response->module_count;
 	info->moduleCount = moduleCount;
+	info->modules = (BootFile*)BOOTMEM::Malloc(sizeof(BootFile) * moduleCount + 1);
 	PRINTK::PrintK("Allocating for %d modules.\r\n", moduleCount);
 	for (int i = 0; i < moduleCount; i++) {
-		info->modules[i] = (BootFile*)BOOTMEM::Malloc(sizeof(BootFile) + 1);
-		info->modules[i]->address = moduleRequest.response->modules[i]->address;
-		info->modules[i]->size = moduleRequest.response->modules[i]->size;
-		info->modules[i]->path = moduleRequest.response->modules[i]->path;
-		info->modules[i]->cmdline = moduleRequest.response->modules[i]->cmdline;
+		info->modules[i].address = moduleRequest.response->modules[i]->address;
+		info->modules[i].size = moduleRequest.response->modules[i]->size;
+		info->modules[i].path = moduleRequest.response->modules[i]->path;
+		info->modules[i].cmdline = moduleRequest.response->modules[i]->cmdline;
 	}
 
 	info->higherHalfMapping = hhdmRequest.response->offset;

@@ -68,15 +68,15 @@ void InitPageFrameAllocator() {
 
 	uint64_t memory_size = 0;
 	for (int i = 0; i < info->mMapEntryCount; i++) {
-		MMapEntry *desc = info->mMap[i];
-		if (desc->type == MEMMAP_USABLE) {
-			if(desc->length > largestFreeSize) {
-				largestFree = (void*)desc->base;
-				largestFreeSize = desc->length;
+		MMapEntry desc = info->mMap[i];
+		if (desc.type == MEMMAP_USABLE) {
+			if(desc.length > largestFreeSize) {
+				largestFree = (void*)desc.base;
+				largestFreeSize = desc.length;
 			}
 		}
 
-		if (desc->type != MEMMAP_RESERVED) memory_size += desc->length;
+		if (desc.type != MEMMAP_RESERVED) memory_size += desc.length;
 	}
 
 	uint64_t bitmap_size = memory_size / 4096 / 8 + 1;
@@ -91,9 +91,9 @@ void InitPageFrameAllocator() {
 
 	// Unreserve usable pages (we do it because the mmap can have holes in it)
 	for (int i = 0; i < info->mMapEntryCount; i++){
-		MMapEntry *desc = info->mMap[i];
-		if (desc->type == MEMMAP_USABLE) {
-			UnreservePages((void*)desc->base, desc->length / 4096);
+		MMapEntry desc = info->mMap[i];
+		if (desc.type == MEMMAP_USABLE) {
+			UnreservePages((void*)desc.base, desc.length / 4096);
 
 		}
 	}

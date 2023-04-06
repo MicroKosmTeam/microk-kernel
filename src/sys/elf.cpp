@@ -10,9 +10,7 @@
 #include <mm/pmm.hpp>
 #include <mm/vmm.hpp>
 
-uint64_t *currentStack;
-
-uint64_t *LoadELF(uint8_t *data) {
+uint64_t LoadELF(uint8_t *data, size_t size) {
 	if (data[0] != 0x7F || data[1] != 'E' || data[2] != 'L' || data[3] != 'F') {
 		PRINTK::PrintK("ELF File not valid.\r\n");
 		return NULL;
@@ -90,23 +88,25 @@ uint64_t *LoadELF(uint8_t *data) {
 			       programHeader->p_memsz);
 	}
 
-	PRINTK::PrintK("Loading Complete. Program is %d bytes. Jumping to entry point at 0x%x\r\n", progSize ,elfHeader->e_entry);
+	PRINTK::PrintK("Loading Complete. Program is %d bytes.\r\n", progSize);
 
+	delete programHeader;
+	delete elfHeader;
+
+	/*
 	Driver* (*elfEntry)(void) = elfHeader->e_entry;
 
 	Driver *driver= elfEntry();
 
 	PRINTK::PrintK("\r\nELF file returned to kernel. Driver info address: 0x%x.\r\n", driver);
 
-	delete programHeader;
-	delete elfHeader;
-
 	PRINTK::PrintK("Cleaned up.\r\n");
 
 	PRINTK::PrintK("Now calling %s with request 0.\r\n", driver->Name);
 	Ioctl(driver, 0);
 
-	PRINTK::PrintK("\r\nELF Loader is done.\r\n");
 
-	return NULL;
+	*/
+
+	return elfHeader->e_entry;
 }

@@ -81,9 +81,9 @@ void Init() {
 
 	for (int i = 0; i < info->mMapEntryCount; i++) {
 		PRINTK::PrintK("[0x%x - 0x%x] -> %s\r\n",
-				info->mMap[i]->base,
-				info->mMap[i]->base + info->mMap[i]->length,
-				memTypeStrings[info->mMap[i]->type]);
+				info->mMap[i].base,
+				info->mMap[i].base + info->mMap[i].length,
+				memTypeStrings[info->mMap[i].type]);
 	}
 
 	VMM::InitVMM();
