@@ -30,7 +30,7 @@ void InitVMM() {
 
 	for (uint64_t i = 0; i < info->mMapEntryCount; i++) {
 		MMapEntry *entry = info->mMap[i];
-		if (entry->type == MEMMAP_BAD_MEMORY) continue;
+		if (entry->type == MEMMAP_BAD_MEMORY || entry->type == MEMMAP_RESERVED) continue;
 
 		uint64_t base = entry->base - (entry->base % 4096);
 		uint64_t top = base + entry->length + (entry->length % 4096);
