@@ -40,6 +40,29 @@ struct Framebuffer {
 	uint8_t BlueShift;
 };
 
+struct BootCPU;
+typedef void (*CPUGotoAddress)(BootCPU *);
+
+struct BootCPU {
+	uint32_t ProcessorID;
+
+	union {
+		struct {
+			uint32_t LApicID;
+		};
+		struct {
+			uint32_t GicIFaceNo;
+			uint64_t Mpidr;
+		};
+	};
+		
+	uint64_t Reserved;
+
+	CPUGotoAddress *GotoAddress;
+
+	uint64_t *ExtraArgument;
+};
+
 /*
    KInfo struct
     Contains some basic information to be passes between components of the kernel
@@ -66,6 +89,20 @@ struct KInfo {
 	/* Kernel framebuffer */
 	bool fbPresent; /* Whether a framebuffer is available */
 	Framebuffer *framebuffer; /* The actual framebuffer struct */
+
+	/* SMP information */
+	struct SMP {
+		bool IsEnabled;
+		size_t CpuCount;
+		uint32_t Flags;
+
+		union {
+			uint32_t BspLApicID;
+			uint32_t BspMpidr;
+		};
+
+		BootCPU *Cpus;
+	} SMP;
 };
 
 void InitInfo();
