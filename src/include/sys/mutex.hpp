@@ -12,19 +12,24 @@ public:
 	virtual void Unlock() = 0;
 	virtual bool IsLocked() = 0;
 protected:
-	bool Locked;
+	bool Locked = false;
 };
 
-class Spinlock : public Mutex {
+class SpinLock : public Mutex {
 public:
+	SpinLock() {
+		Locked = false;
+	}
+
 	void Lock() override {
-		int *p = (int*)&Locked;
-		while(!__sync_bool_compare_and_swap(p, 0, 1)) {
+		bool *p = &Locked;
+		while(!__sync_bool_compare_and_swap(p, false, true)) {
 			while(*p) CPUPause();
 		}
 	}
 
 	void Unlock() override {
+		asm volatile ("" : : : "memory");
 		Locked = false;
 	}
 

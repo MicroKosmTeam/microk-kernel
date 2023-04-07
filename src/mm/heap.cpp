@@ -1,6 +1,7 @@
 #include <mm/heap.hpp>
 #include <mm/pmm.hpp>
 #include <mm/vmm.hpp>
+#include <sys/mutex.hpp>
 #include <sys/printk.hpp>
 
 static void *heapStart;
@@ -10,6 +11,8 @@ static bool isHeapActive = false;
 
 static uint64_t freeMem;
 static uint64_t totalMem;
+
+static SpinLock HeapLock;
 
 namespace HEAP {
 bool IsHeapActive() {
@@ -89,12 +92,14 @@ void InitializeHeap(void *heapAddress, size_t pageCount) {
 }
 
 void *Malloc(size_t size) {
+	HeapLock.Lock();
+
         if (size % 0x10 > 0){ // Not multiple of 0x10
                 size -= (size % 0x10);
                 size += 0x10;
         }
 
-        if (size == 0) return NULL;
+        if (size == 0) { HeapLock.Unlock(); return NULL; }
 
         HeapSegHeader *currSeg = (HeapSegHeader*)heapStart;
         while (true) {
@@ -103,10 +108,12 @@ void *Malloc(size_t size) {
                                 currSeg->Split(size);
                                 currSeg->free = false;
 				freeMem -= size;
+				HeapLock.Unlock();
                                 return (void*)((uint64_t)currSeg + sizeof(HeapSegHeader));
                         } else if (currSeg->length == size) {
                                 currSeg->free = false;
 				freeMem -= size;
+				HeapLock.Unlock();
                                 return (void*)((uint64_t)currSeg + sizeof(HeapSegHeader));
                         }
                 }
@@ -116,16 +123,22 @@ void *Malloc(size_t size) {
         }
 
         ExpandHeap(size);
+
+	HeapLock.Unlock();
         return HEAP::Malloc(size);
 }
 
 void Free(void *address) {
+	HeapLock.Lock();
+
         HeapSegHeader *segment = (HeapSegHeader*)address - 1;
-	if(segment->free) return;
+	if(segment->free) { HeapLock.Unlock(); return; }
         segment->free = true;
         segment->CombineForward();
         segment->CombineBackward();
 	freeMem += segment->length + sizeof(HeapSegHeader);
+
+	HeapLock.Unlock();
 }
 
 void ExpandHeap(size_t length) {

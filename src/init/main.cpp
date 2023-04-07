@@ -32,6 +32,7 @@
 #include <init/main.hpp>
 #include <sys/panic.hpp>
 #include <mm/memory.hpp>
+#include <sys/atomic.hpp>
 #include <mm/bootmem.hpp>
 #include <init/kinfo.hpp>
 #include <sys/printk.hpp>
@@ -51,6 +52,22 @@ int EarlyKernelInit() {
 	PRINTK::EarlyInit();
 
 	return 0;
+}
+
+void PrintBanner() {
+	/* Printing banner */
+	PRINTK::PrintK(" __  __  _                _  __\r\n"
+		       "|  \\/  |(_) __  _ _  ___ | |/ /\r\n"
+		       "| |\\/| || |/ _|| '_|/ _ \\|   < \r\n"
+		       "|_|  |_||_|\\__||_|  \\___/|_|\\_\\\r\n"
+		       "The operating system for the future...at your fingertips.\r\n"
+		       "%s %s Started.\r\n"
+		       "Free memory: %dMB out of %dMB (%d%% free).\r\n",
+		       CONFIG_KERNEL_CNAME,
+		       CONFIG_KERNEL_CVER,
+			PMM::GetFreeMem() / 1024 / 1024,
+			(PMM::GetFreeMem() + PMM::GetUsedMem()) / 1024 / 1024,
+			(PMM::GetFreeMem() + PMM::GetUsedMem()) / PMM::GetFreeMem() * 100);
 }
 
 /*
@@ -75,19 +92,7 @@ void KernelStart() {
 	BOOTMEM::DeactivateBootmem();
 	PRINTK::PrintK("Free bootmem memory: %dkb out of %dkb.\r\n", BOOTMEM::GetFree() / 1024, BOOTMEM::GetTotal() / 1024);
 
-	/* Printing banner */
-	PRINTK::PrintK(" __  __  _                _  __\r\n"
-		       "|  \\/  |(_) __  _ _  ___ | |/ /\r\n"
-		       "| |\\/| || |/ _|| '_|/ _ \\|   < \r\n"
-		       "|_|  |_||_|\\__||_|  \\___/|_|\\_\\\r\n"
-		       "The operating system for the future...at your fingertips.\r\n"
-		       "%s %s Started.\r\n"
-		       "Free memory: %dMB out of %dMB (%d%% free).\r\n",
-		       CONFIG_KERNEL_CNAME,
-		       CONFIG_KERNEL_CVER,
-			PMM::GetFreeMem() / 1024 / 1024,
-			(PMM::GetFreeMem() + PMM::GetUsedMem()) / 1024 / 1024,
-			(PMM::GetFreeMem() + PMM::GetUsedMem()) / PMM::GetFreeMem() * 100);
+
 
 	/* Starting the modules subsystem */
 	MODULE::Init();
@@ -108,13 +113,15 @@ extern "C" void UserFunction() {
 	PRINTK::PrintK("Halting system.\r\n");
 
 	ExitUserspace();
-	for (;;);
+
+	while (true) CPUPause();
 }
 
 void SMPRest(BootCPU *cpuInfo) {
-	PRINTK::PrintK("Hello from CPU %d.\r\n", cpuInfo->ProcessorID);
+	uint64_t cpu = cpuInfo->ProcessorID;
+	PRINTK::PrintK("[CPU %d] Status: Active.\r\n", cpu);
 
-	while (true) asm volatile ("hlt");
+	while (true) CPUPause();
 }
 
 void RestInit() {
@@ -128,7 +135,6 @@ void RestInit() {
 			*info->SMP.Cpus[i].ExtraArgument = 0x1;
 			*info->SMP.Cpus[i].GotoAddress = SMPRest;
 		}
-
 	} else {
 		PRINTK::PrintK("No multiprocessing available.\r\n");
 	}
@@ -149,6 +155,6 @@ void RestInit() {
 	PRINTK::PrintK("Returned from userspace.\r\n");
 
 	while (true) {
-		asm volatile ("hlt");
+		CPUPause();
 	}
 }

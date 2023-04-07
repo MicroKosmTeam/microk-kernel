@@ -1,6 +1,7 @@
 #include <mm/pmm.hpp>
 #include <sys/printk.hpp>
 #include <init/kinfo.hpp>
+#include <sys/mutex.hpp>
 
 static uint64_t free_memory;
 static uint64_t reserved_memory;
@@ -8,6 +9,7 @@ static uint64_t used_memory;
 static bool initialized = false;
 static Bitmap page_bitmap;
 static uint64_t page_bitmap_index = 0; // Last page searched
+static SpinLock BitmapLock;
 
 static void InitBitmap(size_t bitmap_size, void *buffer_address);
 static void UnreservePage(void *address);
@@ -104,31 +106,32 @@ void InitPageFrameAllocator() {
 	// Locking the page bitmap
 	ReservePages(page_bitmap.buffer, page_bitmap.size / 4096 + 1);
 
+	BitmapLock.Unlock();
+	
 	PRINTK::PrintK("Bitmap allocator started: %dMb free out of %dMb\r\n", free_memory / 1024 / 1024, memory_size / 1024 / 1024);
 }
 
 void *RequestPage() {
+	BitmapLock.Lock();
+
 	for (; page_bitmap_index < page_bitmap.size * 8; page_bitmap_index++) {
 		if(page_bitmap[page_bitmap_index] == true) continue;
 		LockPage((void*)(page_bitmap_index * 4096));
 
+		BitmapLock.Unlock();
 		return (void*)(page_bitmap_index * 4096);
 	}
 
-	// Try again (because RequestPages might leave holes)
+	// Try again 
 	page_bitmap_index = 0;
-	for (; page_bitmap_index < page_bitmap.size * 8; page_bitmap_index++) {
-		if(page_bitmap[page_bitmap_index] == true) continue;
-		LockPage((void*)(page_bitmap_index * 4096));
+	BitmapLock.Unlock();
 
-		return (void*)(page_bitmap_index * 4096);
-	}
-
-	// No more memory
-	return NULL;
+	return RequestPage();
 }
 
 void *RequestPages(size_t pages) {
+	BitmapLock.Lock();
+
 	uint64_t old_page_index = page_bitmap_index;
 	for (; page_bitmap_index < (page_bitmap.size - pages)* 8; page_bitmap_index++) {
 		bool free = true;
@@ -138,6 +141,8 @@ void *RequestPages(size_t pages) {
 
 		if (free) {
 			LockPages((void*)(page_bitmap_index * 4096), pages);
+			BitmapLock.Unlock();
+
 			return (void*)(page_bitmap_index * 4096);
 		}
 
@@ -145,13 +150,21 @@ void *RequestPages(size_t pages) {
 
 	page_bitmap_index = old_page_index;
 
+	BitmapLock.Unlock();
+
 	// No more memory
 	return NULL;
 }
 
-void FreePage(void *address) {
+bool FreePage(void *address) {
+//	BitmapLock.Lock();
+
 	uint64_t index = (uint64_t)address / 4096;
-	if(page_bitmap[index] == false) return;
+	if(page_bitmap[index] == false) {
+		BitmapLock.Unlock();
+		return false;
+	}
+
 	if(page_bitmap.Set(index, false)) {
 		free_memory += 4096;
 		used_memory -= 4096;
@@ -160,15 +173,27 @@ void FreePage(void *address) {
 			page_bitmap_index = index; // Making sure that we don't miss free pages
 		}
 	}
+
+//	BitmapLock.Unlock();
+	return true;
 }
 
-void LockPage(void *address) {
+bool LockPage(void *address) {
+//	BitmapLock.Lock();	
+
 	uint64_t index = (uint64_t)address / 4096;
-	if(page_bitmap[index] == true) return;
+	if(page_bitmap[index] == true) {
+		BitmapLock.Unlock();
+		return false;
+	}
+	
 	if(page_bitmap.Set(index, true)) {
 		free_memory -= 4096;
 		used_memory += 4096;
 	}
+
+//	BitmapLock.Unlock();
+	return true;
 }
 
 

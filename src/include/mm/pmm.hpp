@@ -10,10 +10,10 @@ namespace PMM {
 	void *RequestPage();
 	void *RequestPages(size_t pages);
 
-	void LockPage(void *address);
+	bool LockPage(void *address);
 	void LockPages(void *address, uint64_t page_count);
 
-	void FreePage(void *address);
+	bool FreePage(void *address);
 	void FreePages(void *address, uint64_t page_count);
 
 	uint64_t GetFreeMem();

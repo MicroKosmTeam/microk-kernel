@@ -1,0 +1,1 @@
+#include <proc/smp.hpp>
