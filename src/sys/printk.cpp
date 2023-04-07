@@ -5,11 +5,14 @@
 #include <mm/bootmem.hpp>
 #include <mm/string.hpp>
 #include <init/kinfo.hpp>
+#include <sys/mutex.hpp>
 
 UARTDevice *kernelPort;
 
+static SpinLock PrintkSpinlock;
 namespace PRINTK {
 void PrintK(char *format, ...) {
+	PrintkSpinlock.Lock();
         va_list ap;
         va_start(ap, format);
 
@@ -46,6 +49,7 @@ void PrintK(char *format, ...) {
         }
 
         va_end(ap);
+	PrintkSpinlock.Unlock();
 }
 
 #ifdef CONFIG_HW_SERIAL
