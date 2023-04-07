@@ -2,7 +2,7 @@
 #include <stddef.h>
 #include <mm/memory.hpp>
 
-template <typename Type> class Vector : public Spinlock {
+template <typename Type> class Vector {
 public:
 	Vector() {
 		CurrentElement = 0;
