@@ -111,7 +111,28 @@ extern "C" void UserFunction() {
 	for (;;);
 }
 
+void SMPRest(BootCPU *cpuInfo) {
+	PRINTK::PrintK("Hello from CPU %d.\r\n", cpuInfo->ProcessorID);
+
+	while (true) asm volatile ("hlt");
+}
+
 void RestInit() {
+	KInfo *info = GetInfo();
+
+	if (info->SMP.IsEnabled) {
+		PRINTK::PrintK("Total CPU count: %d\r\n", info->SMP.CpuCount);
+		for (int i = 1; i < info->SMP.CpuCount; i++) {
+			PRINTK::PrintK("Starting CPU %d...\r\n", i);
+			
+			*info->SMP.Cpus[i].ExtraArgument = 0x1;
+			*info->SMP.Cpus[i].GotoAddress = SMPRest;
+		}
+
+	} else {
+		PRINTK::PrintK("No multiprocessing available.\r\n");
+	}
+
 	/* We are done with the boot process */
 	PRINTK::PrintK("Kernel is now resting...\r\n");
 
