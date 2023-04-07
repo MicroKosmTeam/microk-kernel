@@ -5,14 +5,18 @@
 template <typename Type> class Vector {
 public:
 	Vector() {
-		CurrentElement = 0;
-		Capacity = 1;
-		DataArray = new Type[1];
-		if (DataArray == NULL) Capacity = 0;
+		Init();
 	}
 
 	~Vector() {
 		delete[] DataArray;
+	}
+
+	void Init() {
+		CurrentElement = 0;
+		Capacity = 1;
+		DataArray = new Type[1];
+		if (DataArray == NULL) Capacity = 0;
 	}
 
 	bool Push(Type data) {

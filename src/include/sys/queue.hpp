@@ -5,16 +5,7 @@
 template <typename Type> class Queue {
 public:
 	Queue() {
-		TotalElements = 0;
-		First = new QueueNode;
-		Last = new QueueNode;
-		if (First == NULL || Last == NULL) return;
-		
-		First->Previous = NULL;
-		First->Next = Last;
-		Last->Previous = First;
-		Last->Next = NULL;
-
+		Init();
 	}
 
 	~Queue() {
@@ -28,17 +19,29 @@ public:
 		}
 	}
 
+	void Init() {
+		TotalElements = 0;
+		First = new QueueNode;
+		Last = new QueueNode;
+		if (First == NULL || Last == NULL) return;
+		
+		First->Previous = NULL;
+		First->Next = Last;
+		Last->Previous = First;
+		Last->Next = NULL;
+	}
+
 	bool Push(Type data) {
 		QueueNode *oldPrevious = Last->Previous;
 
 		Last->Previous = new QueueNode;
 		if (Last->Previous == NULL) return false;
-
+		
 		Last->Previous->Previous = oldPrevious;
 		Last->Previous->Previous->Next = Last->Previous;
 		Last->Previous->Data = data;
 		Last->Previous->Next = Last;
-
+		
 		TotalElements++;
 		return true;
 	}
@@ -69,9 +72,8 @@ private:
 		QueueNode *Next;
 	};
 
-	QueueNode *First;
-	QueueNode *Last;
+	QueueNode *First = NULL;
+	QueueNode *Last = NULL;
 	size_t TotalElements;
 
 };
-
