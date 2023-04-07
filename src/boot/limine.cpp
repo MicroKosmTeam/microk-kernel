@@ -1,3 +1,4 @@
+#include <cdefs.h>
 #include <limine.h>
 #include <sys/panic.hpp>
 #include <init/main.hpp>
@@ -72,6 +73,13 @@ static volatile limine_framebuffer_request fbRequest {
 	.revision = 0
 };
 
+static volatile limine_smp_request smpRequest {
+	.id = LIMINE_SMP_REQUEST,
+	.revision = 0,
+	.flags = 1
+};
+
+void SMPRest();
 extern "C" void LimineEntry() {
 	/* Startup basic kernel runtime services */
 	EarlyKernelInit();
@@ -137,6 +145,25 @@ extern "C" void LimineEntry() {
 		info->framebuffer->RedShift = fbRequest.response->framebuffers[0]->red_mask_shift;
 		info->framebuffer->GreenShift = fbRequest.response->framebuffers[0]->green_mask_shift;
 		info->framebuffer->BlueShift = fbRequest.response->framebuffers[0]->blue_mask_shift;
+	}
+
+	if(smpRequest.response == NULL) {
+		info->SMP.IsEnabled = false;
+	} else {
+		info->SMP.IsEnabled = true;
+		info->SMP.CpuCount = smpRequest.response->cpu_count;
+		info->SMP.Cpus = (BootCPU*)BOOTMEM::Malloc(sizeof(BootCPU) * info->SMP.CpuCount + 1);
+		
+		for (int i = 0; i < smpRequest.response->cpu_count; i++) {
+			info->SMP.Cpus[i].ProcessorID = smpRequest.response->cpus[i]->processor_id;
+			info->SMP.Cpus[i].GotoAddress = &smpRequest.response->cpus[i]->goto_address;
+			info->SMP.Cpus[i].ExtraArgument = &smpRequest.response->cpus[i]->extra_argument;
+
+#ifdef ARCH_x86_64
+			info->SMP.Cpus[i].LApicID = smpRequest.response->cpus[i]->lapic_id;
+#endif
+		}
+
 	}
 
 	/* Launch the kernel proper */
