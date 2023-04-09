@@ -32,6 +32,9 @@ void Cycle() {
 	
 void StartKernelThread(uintptr_t entrypoint) {
 	CreateThread(kernelProcess, entrypoint);
+
+	void (*Entrypoint)() = entrypoint;
+	Entrypoint();
 }
 
 }

@@ -26,7 +26,7 @@ void InitVMM() {
 	PML4 = (PageTable*)PMM::RequestPage();
 	memset(PML4, 0, PAGE_SIZE);
 
-	GlobalPageTableManager = new PageTableManager(PML4);
+	info->kernelVirtualSpace = new PageTableManager(PML4);
 
 	PRINTK::PrintK("Kernel page table initialized.\r\n");
 
@@ -50,12 +50,22 @@ void InitVMM() {
 		/* We use the kernel base to be sure we are not mapping module code over the kernel code. */
 		if (entry.type == MEMMAP_KERNEL_AND_MODULES && entry.base == info->kernelPhysicalBase) {
 			for (uint64_t t = base; t < top; t += PAGE_SIZE){
-				GlobalPageTableManager->MapMemory((void*)info->kernelVirtualBase + t - info->kernelPhysicalBase, (void*)t);
+				info->kernelVirtualSpace->MapMemory(t,
+						                  info->kernelVirtualBase +
+								  t -
+								  info->kernelPhysicalBase,
+								  0);
+
 			}
 		} else {
 			for (uint64_t t = base; t < top; t += PAGE_SIZE){
-				GlobalPageTableManager->MapMemory((void*)t, (void*)t);
-				GlobalPageTableManager->MapMemory((void*)t + info->higherHalfMapping, (void*)t);
+				info->kernelVirtualSpace->MapMemory(t,
+						                    t,
+								    0);
+				info->kernelVirtualSpace->MapMemory(t,
+					                            t +
+								    info->higherHalfMapping,
+								    0);
 			}
 		}
 	}

@@ -4,14 +4,17 @@
 #include <sys/atomic.hpp>
 
 namespace PROC {
-void SMPRest(BootCPU *cpuInfo) {
+namespace SMP {
+void Rest(BootCPU *cpuInfo) {
 	uint64_t cpu = cpuInfo->ProcessorID;
-	PRINTK::PrintK("[CPU %d] Status: Active.\r\n", cpu);
+	PRINTK::PrintK("[CPU %d] Status: Resting.\r\n", cpu);
 
-	while (true) CPUPause();
+	while (true) {
+		CPUPause();
+	}
 }
 
-void InitSMP() {
+void Init() {
 	KInfo *info = GetInfo();
 
 	if (info->SMP.IsEnabled) {
@@ -20,10 +23,11 @@ void InitSMP() {
 			PRINTK::PrintK("Starting CPU %d...\r\n", i);
 			
 			*info->SMP.Cpus[i].ExtraArgument = 0x1;
-			*info->SMP.Cpus[i].GotoAddress = SMPRest;
+			*info->SMP.Cpus[i].GotoAddress = Rest;
 		}
 	} else {
 		PRINTK::PrintK("No multiprocessing available.\r\n");
 	}
+}
 }
 }

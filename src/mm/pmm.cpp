@@ -108,7 +108,7 @@ void InitPageFrameAllocator() {
 
 	BitmapLock.Unlock();
 	
-	PRINTK::PrintK("Bitmap allocator started: %dMb free out of %dMb\r\n", free_memory / 1024 / 1024, memory_size / 1024 / 1024);
+	PRINTK::PrintK("Bitmap allocator started: %dkb free out of %dkb\r\n", free_memory / 1024, memory_size / 1024);
 }
 
 void *RequestPage() {

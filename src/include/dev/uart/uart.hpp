@@ -1,6 +1,6 @@
 #pragma once
 #include <cdefs.h>
-#ifdef CONFIG_HW_SERIAL
+#ifdef CONFIG_HW_UART
 #include <stdint.h>
 #include <stddef.h>
 #include <dev/dev.hpp>

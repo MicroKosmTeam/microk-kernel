@@ -2,6 +2,7 @@
 #include <mm/pmm.hpp>
 #include <mm/vmm.hpp>
 #include <sys/mutex.hpp>
+#include <init/kinfo.hpp>
 #include <sys/printk.hpp>
 
 static void *heapStart;
@@ -66,11 +67,13 @@ HeapSegHeader *HeapSegHeader::Split(size_t splitlength) {
 }
 
 void InitializeHeap(void *heapAddress, size_t pageCount) {
+	KInfo *info = GetInfo();
+
         void *pos = heapAddress;
 	PRINTK::PrintK("Initializing the heap at 0x%x with %d pages.\r\n", heapAddress, pageCount);
 
         for (size_t i = 0; i < pageCount; i++) {
-		VMM::MapMemory(pos, PMM::RequestPage());
+		VMM::MapMemory(info->kernelVirtualSpace, PMM::RequestPage(), pos);
                 pos = (void*)((size_t)pos + 0x1000); // Advancing
         }
 
@@ -142,6 +145,8 @@ void Free(void *address) {
 }
 
 void ExpandHeap(size_t length) {
+	KInfo *info = GetInfo();
+
         if (length % 0x1000) { // We can't allocate less that a page
                 length -= length % 0x1000;
                 length += 0x1000;
@@ -151,7 +156,7 @@ void ExpandHeap(size_t length) {
         HeapSegHeader *newSegment = (HeapSegHeader*)heapEnd;
 
         for (size_t i = 0; i < pageCount; i++) {
-		VMM::MapMemory(heapEnd, PMM::RequestPage());
+		VMM::MapMemory(info->kernelVirtualSpace, PMM::RequestPage(), heapEnd);
                 heapEnd = (void*)((size_t)heapEnd + 0x1000);
         }
 

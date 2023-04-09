@@ -9,12 +9,15 @@
 #include <sys/driver.hpp>
 #include <mm/pmm.hpp>
 #include <mm/vmm.hpp>
+#include <init/kinfo.hpp>
 
 uint64_t LoadELF(uint8_t *data, size_t size) {
 	if (data[0] != 0x7F || data[1] != 'E' || data[2] != 'L' || data[3] != 'F') {
 		PRINTK::PrintK("ELF File not valid.\r\n");
 		return NULL;
 	}
+
+	KInfo *info = GetInfo();
 
 	PRINTK::PrintK("ELF file is valid\r\n");
 
@@ -67,7 +70,7 @@ uint64_t LoadELF(uint8_t *data, size_t size) {
 		if(programHeader->p_type == PT_LOAD && programHeader->p_memsz > 0) {
 			// This does not work if p_memsz is bigger that one page.
 			for (uint64_t addr = programHeader->p_vaddr; addr < programHeader->p_vaddr + programHeader->p_memsz; addr+=0x1000) {
-				VMM::MapMemory(addr, PMM::RequestPage());
+				VMM::MapMemory(info->kernelVirtualSpace, PMM::RequestPage(), addr);
 			}
 
 			memset(programHeader->p_vaddr, 0, programHeader->p_memsz);

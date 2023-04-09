@@ -3,10 +3,14 @@
 */
 
 #pragma once
+#include <cdefs.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <limine.h>
+#include <mm/vmm.hpp>
+
+#ifdef CONFIG_HW_UART
 #include <dev/uart/uart.hpp>
+#endif
 
 #define MEMMAP_USABLE                 0
 #define MEMMAP_RESERVED               1
@@ -69,7 +73,7 @@ struct BootCPU {
     Sould only be allocated once by the respective bootloader function.
 */
 struct KInfo {
-	/* Memory map information */
+	/* Memory information */
 	MMapEntry *mMap; /* Pointer to the memory map */
 	uint64_t mMapEntryCount; /* Number of memory map regions */
 
@@ -79,12 +83,16 @@ struct KInfo {
 	uintptr_t kernelPhysicalBase; /* Start of the kernel in physical memory */
 	uintptr_t kernelVirtualBase; /* Start of the kernel in virtual memory */
 
+	VMM::VirtualSpace *kernelVirtualSpace; /* Kernel virtual memory space */
+
 	/* Module information */
 	BootFile *modules; /* Pointer to the Limine modules */
 	uint64_t moduleCount; /* Number of modules provided */
 
+#ifdef CONFIG_HW_UART
 	/* Kernel serial device */
 	UARTDevice *kernelPort; /* UART deivice used as serial port */
+#endif
 
 	/* Kernel framebuffer */
 	bool fbPresent; /* Whether a framebuffer is available */

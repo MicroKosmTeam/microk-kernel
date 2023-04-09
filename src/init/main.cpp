@@ -70,8 +70,8 @@ void PrintBanner() {
 		       "System stats:\r\n"
 		       "  Memory:\r\n"
 		       "   Physical: %dkb free out of %dkb (%dkb used).\r\n"
-		       "   Virtual: Kernel at 0x%x.\r\n"
-		       "   Bootmem: %dkb out of %dkb (%dkb used).\r\n"
+		       "   Virtual: Kernel at virtual address 0x%x.\r\n"
+		       "   Bootmem: %dkb free out of %dkb (%dkb used).\r\n"
 		       "   Heap: %dkb free out of %dkb (%dkb used).\r\n"
 		       "  CPUs:\r\n"
 		       "   SMP Status: %s\r\n"
@@ -114,13 +114,13 @@ void KernelStart() {
 	BOOTMEM::DeactivateBootmem();
 
 	/* Initializing multiprocessing */
-	PROC::InitSMP();
-
-	/* Printing banner to show off */
-	PrintBanner();
+	PROC::SMP::Init();
 
 	/* Initializing the scheduler framework */
 	PROC::Scheduler::Initialize();
+
+	/* Printing banner to show off */
+	PrintBanner();
 
 	/* Starting the modules subsystem */
 	PROC::Scheduler::StartKernelThread(MODULE::Init);
@@ -136,14 +136,7 @@ void KernelStart() {
 }
 
 extern "C" void UserFunction() {
-	PRINTK::PrintK("Hello from userspace!\r\n");
-	
-	uint64_t *test = (uint64_t*)Malloc(128);
-	test[0x69] = 0x69;
-	PRINTK::PrintK("Number is 0x%x\r\n", test[0x69]);
-	Free(test);
-
-	PRINTK::PrintK("Halting system.\r\n");
+	PRINTK::PrintK("[USER] Hello from userspace!\r\n");
 
 	ExitUserspace();
 

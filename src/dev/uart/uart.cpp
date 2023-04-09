@@ -1,5 +1,5 @@
 #include <dev/uart/uart.hpp>
-#ifdef CONFIG_HW_SERIAL
+#ifdef CONFIG_HW_UART
 #include <stdarg.h>
 
 #ifdef CONFIG_ARCH_x86_64

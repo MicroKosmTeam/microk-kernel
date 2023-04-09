@@ -1,5 +1,7 @@
 #pragma once
 
 namespace PROC {
-	void InitSMP();
+namespace SMP {
+	void Init();
+}
 }

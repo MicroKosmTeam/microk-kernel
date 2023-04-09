@@ -1,6 +1,7 @@
 #include <sys/printk.hpp>
 #include <mm/memory.hpp>
 #include <mm/string.hpp>
+#include <init/kinfo.hpp>
 #include <mm/pmm.hpp>
 #include <mm/vmm.hpp>
 #include <mkmi.hpp>
@@ -8,8 +9,10 @@
 uint64_t *KRNLSYMTABLE;
 
 void SetupSymtable() {
+	KInfo *info = GetInfo();
+
 	for (int i = 0; i < CONFIG_SYMBOL_TABLE_PAGES * 0x1000; i += 0x1000) {
-		VMM::MapMemory(CONFIG_SYMBOL_TABLE_BASE + i, PMM::RequestPage());
+		VMM::MapMemory(info->kernelVirtualSpace, PMM::RequestPage(), CONFIG_SYMBOL_TABLE_BASE + i);
 	}
 
 	KRNLSYMTABLE = CONFIG_SYMBOL_TABLE_BASE;

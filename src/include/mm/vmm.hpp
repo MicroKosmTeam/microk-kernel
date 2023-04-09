@@ -1,5 +1,5 @@
 #pragma once
-#include <init/kinfo.hpp>
+#include <stdint.h>
 
 namespace VMM {
 	enum VirtualMemoryFlags {
@@ -9,22 +9,13 @@ namespace VMM {
 		VMM_LARGEPAGE = 0b1000
 	};
 
-	class KernelVirtualSpace {
+	class VirtualSpace {
 	public:
 		virtual void MapMemory(void *physicalMemory, void *virtualMemory, uint64_t flags) = 0;
 		virtual void UnmapMemory(void *virtualMemory) = 0;
 	private:
-		virtual int Init();
-	};
-
-	class ProcessVirtualSpace {
-	public:
-		virtual void MapMemory(void *physicalMemory, void *virtualMemory, uint64_t flags) = 0;
-		virtual void UnmapMemory(void *virtualMemory) = 0;
-	private:
-		virtual int Init();
 	};
 
 	void InitVMM();
-	void MapMemory(void *virtual_memory, void *physical_memory);
+	void MapMemory(VirtualSpace *space, void *physicalMemory, void *virtualMemory);
 }

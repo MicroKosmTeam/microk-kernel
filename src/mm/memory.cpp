@@ -5,6 +5,7 @@
 #include <mm/vmm.hpp>
 #include <mm/bootmem.hpp>
 #include <mm/heap.hpp>
+#include <init/kinfo.hpp>
 
 static char *memTypeStrings[] = {
 	"Usable",
