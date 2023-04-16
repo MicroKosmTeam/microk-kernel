@@ -71,7 +71,7 @@ void PrintBanner() {
 		       "  Memory:\r\n"
 		       "   Physical: %dkb free out of %dkb (%dkb used).\r\n"
 		       "   Virtual: Kernel at virtual address 0x%x.\r\n"
-		       "   Bootmem: %dkb free out of %dkb (%dkb used).\r\n"
+		       "   Bootmem: %d bytes free out of %d bytes (%d bytes used).\r\n"
 		       "   Heap: %dkb free out of %dkb (%dkb used).\r\n"
 		       "  CPUs:\r\n"
 		       "   SMP Status: %s\r\n"
@@ -82,9 +82,9 @@ void PrintBanner() {
 			(PMM::GetFreeMem() + PMM::GetUsedMem()) / 1024,
 			PMM::GetUsedMem() / 1024,
 			info->kernelVirtualBase,
-			BOOTMEM::GetFree() / 1024,
-			BOOTMEM::GetTotal() / 1024,
-			(BOOTMEM::GetTotal() - BOOTMEM::GetFree()) / 1024,
+			BOOTMEM::GetFree(),
+			BOOTMEM::GetTotal(),
+			BOOTMEM::GetTotal() - BOOTMEM::GetFree(),
 			HEAP::GetFree() / 1024,
 			HEAP::GetTotal() / 1024,
 			(HEAP::GetTotal() - HEAP::GetFree()) / 1024,
@@ -110,11 +110,14 @@ void KernelStart() {
 
 	/* Initializing the heap */
 	HEAP::InitializeHeap(CONFIG_HEAP_BASE, CONFIG_HEAP_SIZE / 0x1000);
+
 	/* With the heap initialize, disable new bootmem allocations */
 	BOOTMEM::DeactivateBootmem();
 
+#ifdef CONFIG_MP_SMP
 	/* Initializing multiprocessing */
 	PROC::SMP::Init();
+#endif
 
 	/* Initializing the scheduler framework */
 	PROC::Scheduler::Initialize();
@@ -122,8 +125,10 @@ void KernelStart() {
 	/* Printing banner to show off */
 	PrintBanner();
 
+#ifdef CONFIG_KERNEL_MODULES
 	/* Starting the modules subsystem */
 	PROC::Scheduler::StartKernelThread(MODULE::Init);
+#endif
 
 	/* Finishing kernel startup */
 	PROC::Scheduler::StartKernelThread(RestInit);

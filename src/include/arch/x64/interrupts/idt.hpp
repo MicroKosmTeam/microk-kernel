@@ -16,10 +16,6 @@ struct IDTR {
 	uint64_t	base;
 } __attribute__((packed));
 
-
-extern "C" void exceptionHandler();
-extern "C" void pageFaultHandler();
-
 namespace x86_64 {
 	void IDTInit();
 }

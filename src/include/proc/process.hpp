@@ -44,6 +44,8 @@ namespace PROC {
 		ProcessType Type;
 		uint8_t Priority;
 		
+		VMM::VirtualSpace *VirtualMemorySpace;
+
 		size_t ThreadNumber;
 		Vector <Thread*> Threads;
 		Thread *MainThread;
@@ -66,7 +68,7 @@ namespace PROC {
 		Process *Owner;
 	};
 
-	Process *CreateProcess(ProcessType type, uintptr_t entrypoint);
+	Process *CreateProcess(ProcessType type, uintptr_t entrypoint, VMM::VirtualSpace *vms);
 	void DeleteProcess(Process *process);
 
 	Thread *CreateThread(Process *process, uintptr_t entrypoint);

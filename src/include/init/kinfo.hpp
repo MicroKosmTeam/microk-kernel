@@ -27,23 +27,16 @@ struct MMapEntry {
 	uint64_t type;
 };
 
+#ifdef CONFIG_KERNEL_MODULES
 struct BootFile {
 	void *address;
 	uint64_t size;
 	char *path;
 	char *cmdline;
 };
+#endif
 
-struct Framebuffer {
-	void *Address;
-	uint64_t Width;
-	uint64_t Height;
-	uint16_t Bpp; // Bits per pixel
-	uint8_t RedShift;
-	uint8_t GreenShift;
-	uint8_t BlueShift;
-};
-
+#ifdef CONFIG_MP_SMP
 struct BootCPU;
 typedef void (*CPUGotoAddress)(BootCPU *);
 
@@ -63,9 +56,8 @@ struct BootCPU {
 	uint64_t Reserved;
 
 	CPUGotoAddress *GotoAddress;
-
-	uint64_t *ExtraArgument;
 };
+#endif
 
 /*
    KInfo struct
@@ -85,19 +77,18 @@ struct KInfo {
 
 	VMM::VirtualSpace *kernelVirtualSpace; /* Kernel virtual memory space */
 
+#ifdef CONFIG_KERNEL_MODULES
 	/* Module information */
 	BootFile *modules; /* Pointer to the Limine modules */
 	uint64_t moduleCount; /* Number of modules provided */
+#endif
 
 #ifdef CONFIG_HW_UART
 	/* Kernel serial device */
 	UARTDevice *kernelPort; /* UART deivice used as serial port */
 #endif
 
-	/* Kernel framebuffer */
-	bool fbPresent; /* Whether a framebuffer is available */
-	Framebuffer *framebuffer; /* The actual framebuffer struct */
-
+#ifdef CONFIG_MP_SMP
 	/* SMP information */
 	struct SMP {
 		bool IsEnabled;
@@ -111,6 +102,7 @@ struct KInfo {
 
 		BootCPU *Cpus;
 	} SMP;
+#endif
 };
 
 void InitInfo();

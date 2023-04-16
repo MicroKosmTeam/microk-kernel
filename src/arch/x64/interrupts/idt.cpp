@@ -53,14 +53,6 @@ void IDTInit() {
 }
 
 #include <sys/printk.hpp>
-/* Special page fault hanlder */
-extern "C" void pageFaultHandler() {
-	uint64_t addr;
-	asm volatile("mov %%cr2, %0" : "=r" (addr));
-	PRINTK::PrintK("\r\n\r\n !!! Page fault at address 0x%x !!!\r\n\r\n",addr);
-
-	return;
-}
 
 /* Stub exception handler */
 __attribute__((noreturn))

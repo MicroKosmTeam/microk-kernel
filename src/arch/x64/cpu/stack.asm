@@ -2,9 +2,10 @@
 
 global SwitchStack
 SwitchStack:
+	; Save current thread's context
 	push rbp
 	mov rbp, rsp
-
+	
 	push r15
 	push r14
 	push r13
@@ -13,7 +14,9 @@ SwitchStack:
 	push rbp
 
 	mov [rdi], rsp
-	mov rsp, [rsi]
+
+	; Load new thread's context
+	mov rsp, rsi
 
 	pop rbp
 	pop rbx
@@ -22,5 +25,6 @@ SwitchStack:
 	pop r14
 	pop r15
 
-	leaveq
+	; Leave the stack frame
+	o64 leave
 	ret

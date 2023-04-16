@@ -3,7 +3,7 @@
 #include <arch/x64/mm/paging.hpp>
 #include <mm/vmm.hpp>
 
-class PageTableManager : public VMM::VirtualSpace{
+class PageTableManager : public VMM::VirtualSpace {
 public:
         PageTableManager(PageTable *PML4Address);
 

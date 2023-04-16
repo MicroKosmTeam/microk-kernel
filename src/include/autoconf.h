@@ -5,11 +5,6 @@
 #define AUTOCONF_INCLUDED
 
 /*
- * Kernel & Hardware
- */
-
-
-/*
  * System Architecture
  */
 
@@ -19,6 +14,7 @@
 #define CONFIG_HW_x86_64_SCE 1
 #undef CONFIG_HW_x86_64_AVX
 #undef CONFIG_HW_x86_64_COMP
+#define CONFIG_MP_SMP 1
 #define CONFIG_HW_UART 1
 
 /*
@@ -27,6 +23,7 @@
 
 #define CONFIG_KERNEL_CNAME "MicroKosm"
 #define CONFIG_KERNEL_CVER "0.1.0"
+#define CONFIG_KERNEL_MODULES 1
 
 /*
  * Memory Settings
@@ -39,7 +36,7 @@
  * Bootmem allocator
  */
 
-#define CONFIG_BOOTMEM_SIZE (8192)
+#define CONFIG_BOOTMEM_SIZE (4096)
 
 /*
  * Kernel heap

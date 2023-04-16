@@ -1,4 +1,7 @@
 #include <proc/smp.hpp>
+
+#ifdef CONFIG_MP_SMP
+
 #include <sys/printk.hpp>
 #include <init/kinfo.hpp>
 #include <sys/atomic.hpp>
@@ -22,7 +25,6 @@ void Init() {
 		for (int i = 1; i < info->SMP.CpuCount; i++) {
 			PRINTK::PrintK("Starting CPU %d...\r\n", i);
 			
-			*info->SMP.Cpus[i].ExtraArgument = 0x1;
 			*info->SMP.Cpus[i].GotoAddress = Rest;
 		}
 	} else {
@@ -31,3 +33,5 @@ void Init() {
 }
 }
 }
+
+#endif
