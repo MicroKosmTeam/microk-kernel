@@ -7,6 +7,7 @@
 #include <mm/memory.hpp>
 #include <mm/string.hpp>
 #include <sys/elf.hpp>
+#include <mm/vmm.hpp>
 #include <sys/driver.hpp>
 #include <init/kinfo.hpp>
 #include <sys/user.hpp>
@@ -28,8 +29,9 @@ void Init() {
 					info->modules[i].path,
 					info->modules[i].size);
 
-			//PRINTK::PrintK("Loading kernel module...\r\n");
-			//void *function = LoadELF(info->modules[i].address, info->modules[i].size);
+			PRINTK::PrintK("Loading kernel module...\r\n");
+			void (*function)() = LoadELF(info->modules[i].address, info->modules[i].size);
+			function();
 			//EnterUserspace(function, PMM::RequestPage());
 		} else {
 			PRINTK::PrintK("Unknown file: [ %s %d ]\r\n",

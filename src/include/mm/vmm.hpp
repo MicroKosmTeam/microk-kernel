@@ -13,9 +13,12 @@ namespace VMM {
 	public:
 		virtual void MapMemory(void *physicalMemory, void *virtualMemory, uint64_t flags) = 0;
 		virtual void UnmapMemory(void *virtualMemory) = 0;
+		virtual void *GetTopAddress();
 	private:
 	};
 
 	void InitVMM();
+	VirtualSpace *NewVirtualSpace();
+	void LoadVirtualSpace(VMM::VirtualSpace *space);
 	void MapMemory(VirtualSpace *space, void *physicalMemory, void *virtualMemory);
 }

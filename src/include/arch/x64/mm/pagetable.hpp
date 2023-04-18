@@ -9,6 +9,10 @@ public:
 
 	void MapMemory(void *physicalMemory, void *virtualMemory, uint64_t flags) override;
 	void UnmapMemory(void *virtualMemory) override;
+
+	void *GetTopAddress() override {
+		return PML4;
+	}
 private:
         PageTable *PML4;
 };

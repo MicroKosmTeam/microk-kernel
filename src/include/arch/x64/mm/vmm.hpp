@@ -2,5 +2,6 @@
 #include <init/kinfo.hpp>
 
 namespace x86_64 {
-	void InitVMM();
+	VMM::VirtualSpace *NewVirtualSpace();
+	void LoadVirtualSpace(VMM::VirtualSpace *space);
 }

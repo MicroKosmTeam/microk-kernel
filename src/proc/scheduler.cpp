@@ -44,6 +44,7 @@ void Initialize() {
 
 	PRINTK::PrintK("Scheduler initialized.\r\n");
 
+	/*
 	stackone = PMM::RequestPage();
 	stacktwo = PMM::RequestPage();
 	memset(stackone, 0, 0x1000);
@@ -64,6 +65,7 @@ void Initialize() {
 	PRINTK::PrintK("Done\r\n");
 
 	while (true) asm volatile("hlt");
+	*/
 }
 
 void Pause() {
