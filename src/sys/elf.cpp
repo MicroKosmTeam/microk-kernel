@@ -31,7 +31,6 @@ uint64_t LoadELF(uint8_t *data, size_t size) {
 		return NULL;
 	}
 
-/*
 	uint64_t sectionHeaderSize = elfHeader->e_shentsize;
 	uint64_t sectionHeaderOffset = elfHeader->e_shoff;
 	uint64_t sectionHeaderNumber = elfHeader->e_shnum;
@@ -54,7 +53,6 @@ uint64_t LoadELF(uint8_t *data, size_t size) {
 	}
 
 	delete sectionHeader;
-*/
 
 	uint64_t programHeaderSize = elfHeader->e_phentsize;
 	uint64_t programHeaderOffset = elfHeader->e_phoff;
@@ -95,21 +93,6 @@ uint64_t LoadELF(uint8_t *data, size_t size) {
 
 	delete programHeader;
 	delete elfHeader;
-
-	/*
-	Driver* (*elfEntry)(void) = elfHeader->e_entry;
-
-	Driver *driver= elfEntry();
-
-	PRINTK::PrintK("\r\nELF file returned to kernel. Driver info address: 0x%x.\r\n", driver);
-
-	PRINTK::PrintK("Cleaned up.\r\n");
-
-	PRINTK::PrintK("Now calling %s with request 0.\r\n", driver->Name);
-	Ioctl(driver, 0);
-
-
-	*/
 
 	return elfHeader->e_entry;
 }

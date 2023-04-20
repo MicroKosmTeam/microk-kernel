@@ -16,19 +16,26 @@ void *stacktwo;
 
 void Entrypoint() {
 	while(true) {
+		asm volatile ("sti");
+
 		PRINTK::PrintK("\r\nHello from thread.\r\n"
 				"Current stack: 0x%x\r\n"
-				"Next stack: 0x%x\r\n\r\n",
+				"Next stack: 0x%x\r\n"
+				"RBP: 0x%x\r\n"
+				"RBP2: 0x%x\r\n",
 				(uint64_t)stackone,
-				(uint64_t)stacktwo);
+				(uint64_t)stacktwo,
+				((SaveContext*)(stacktwo))->RBP,
+				((SaveContext*)(stacktwo))->RBP2);
+
 		void *tmp = stackone;
 		stackone = stacktwo;
 		stacktwo = tmp;
 
-		SwitchStack(stacktwo, stackone);
+		asm volatile ("cli");
+		SwitchStack(&stacktwo, &stackone);
 	}
 	
-	while(true) asm volatile("hlt");
 }
 
 void InitStack( ) {
@@ -44,9 +51,8 @@ void Initialize() {
 
 	PRINTK::PrintK("Scheduler initialized.\r\n");
 
-	/*
-	stackone = PMM::RequestPage();
-	stacktwo = PMM::RequestPage();
+	stackone = Malloc(512 * 1024);
+	stacktwo = Malloc(512 * 1024);
 	memset(stackone, 0, 0x1000);
 	memset(stacktwo, 0, 0x1000);
 
@@ -56,16 +62,21 @@ void Initialize() {
 	PRINTK::PrintK("Stack initialized.\r\n");
 	
 	PRINTK::PrintK("Current stack: 0x%x\r\n"
-			"Next stack: 0x%x\r\n",
+			"Next stack: 0x%x\r\n"
+			"RBP: 0x%x\r\n"
+			"RBP2: 0x%x\r\n",
 			(uint64_t)info->kernelStack,
-			(uint64_t)stackone);
+			(uint64_t)stackone,
+			((SaveContext*)(stackone))->RBP,
+			((SaveContext*)(stackone))->RBP2);
 
-	SwitchStack(info->kernelStack, stackone);
+	asm volatile ("cli");
+	SwitchStack(&info->kernelStack, &stackone);
+	asm volatile ("sti");
 
 	PRINTK::PrintK("Done\r\n");
 
 	while (true) asm volatile("hlt");
-	*/
 }
 
 void Pause() {

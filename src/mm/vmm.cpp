@@ -62,6 +62,9 @@ VirtualSpace *NewVirtualSpace() {
 	return x86_64::NewVirtualSpace();
 }
 
+VirtualSpace *Fork(VirtualSpace *space) {
+}
+
 void LoadVirtualSpace(VMM::VirtualSpace *space) {
 	x86_64::LoadVirtualSpace(space);
 }
