@@ -10,6 +10,7 @@ namespace Scheduler {
 
 Queue<Thread*> SchedulerQueue;
 Process *kernelProcess;
+Thread *currentThread;
 
 void InitStack( ) {
 
@@ -46,11 +47,9 @@ void AddCPU() {
 void Cycle() {
 	KInfo *info = GetInfo();
 
-	Thread *currentThread;
 	SchedulerQueue.Pop(&currentThread);
-
+	if (currentThread == NULL) return;
 	SwitchStack(&info->kernelStack, &currentThread->Stack);
-	
 	SchedulerQueue.Push(currentThread);
 }
 

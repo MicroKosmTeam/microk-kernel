@@ -72,7 +72,6 @@ void PrintBanner() {
 		       "   Physical: %dkb free out of %dkb (%dkb used).\r\n"
 		       "   Virtual: Kernel at virtual address 0x%x.\r\n"
 		       "   Bootmem: %d bytes free out of %d bytes (%d bytes used).\r\n"
-		       "   Heap: %dkb free out of %dkb (%dkb used).\r\n"
 		       "  CPUs:\r\n"
 		       "   SMP Status: %s\r\n"
 		       "   CPUs in the system: %d\r\n",
@@ -85,9 +84,6 @@ void PrintBanner() {
 			BOOTMEM::GetFree(),
 			BOOTMEM::GetTotal(),
 			BOOTMEM::GetTotal() - BOOTMEM::GetFree(),
-			HEAP::GetFree() / 1024,
-			HEAP::GetTotal() / 1024,
-			(HEAP::GetTotal() - HEAP::GetFree()) / 1024,
 			info->SMP.IsEnabled ? "Active" : "Not present",
 			info->SMP.IsEnabled ? info->SMP.CpuCount : 1);
 }
@@ -122,18 +118,20 @@ void KernelStart() {
 	/* Initializing the scheduler framework */
 	PROC::Scheduler::Initialize();
 
-	/* Printing banner to show off */
-	PrintBanner();
-
 #ifdef CONFIG_KERNEL_MODULES
 	/* Starting the modules subsystem */
 	MODULE::Init();
 #endif
-	/* Finishing kernel startup */
-	PROC::Scheduler::StartKernelThread(RestInit);
+
+	/* Printing banner to show off */
+	PrintBanner();
 
 	/* Starting the kernel scheduler by adding the root CPU */
-	PROC::Scheduler::AddCPU();	
+	PROC::Scheduler::AddCPU();
+
+	/* Finishing kernel startup */
+	RestInit();
+
 
 	/* We have finished operating */
 	while (true) CPUPause();

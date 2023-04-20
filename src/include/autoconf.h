@@ -43,7 +43,7 @@
  */
 
 #define CONFIG_HEAP_BASE 0xffffffff90000000
-#define CONFIG_HEAP_SIZE (4194304)
+#define CONFIG_HEAP_SIZE (33554432)
 
 /*
  * Symbol table
