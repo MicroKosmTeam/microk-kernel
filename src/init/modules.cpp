@@ -40,8 +40,6 @@ void Init() {
 					info->modules[i].size);
 		}
 	}
-
-	return;
 }
 }
 

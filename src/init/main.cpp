@@ -127,9 +127,8 @@ void KernelStart() {
 
 #ifdef CONFIG_KERNEL_MODULES
 	/* Starting the modules subsystem */
-	PROC::Scheduler::StartKernelThread(MODULE::Init);
+	MODULE::Init();
 #endif
-
 	/* Finishing kernel startup */
 	PROC::Scheduler::StartKernelThread(RestInit);
 

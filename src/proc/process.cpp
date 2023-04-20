@@ -2,6 +2,9 @@
 #include <mm/memory.hpp>
 #include <arch/x64/cpu/stack.hpp>
 
+#include <sys/printk.hpp>
+#include <mm/pmm.hpp>
+
 namespace PROC {
 static uint64_t CurrentPID;
 
@@ -17,7 +20,7 @@ static inline uint64_t RequestTID(Process *process) {
 	return process->LastTID;
 }
 
-Process *CreateProcess(ProcessType type, uintptr_t entrypoint, VMM::VirtualSpace *vms) {
+Process *CreateProcess(ProcessType type, VMM::VirtualSpace *vms) {
 	Process *newProcess = new Process;
 	newProcess->PID = RequestPID();
 	newProcess->State = P_READY;
@@ -27,7 +30,7 @@ Process *CreateProcess(ProcessType type, uintptr_t entrypoint, VMM::VirtualSpace
 
 	newProcess->ThreadNumber = 0;
 	newProcess->LastTID = 0;
-	newProcess->MainThread = CreateThread(newProcess, entrypoint);
+	newProcess->MainThread = NULL;
 
 	return newProcess;
 }
@@ -43,7 +46,9 @@ Thread *CreateThread(Process *process, uintptr_t entrypoint) {
 	newThread->Owner = process;
 	newThread->Entrypoint = entrypoint;
 	newThread->State = P_READY;
-	newThread->Stack = Malloc(THREAD_STACK_SIZE);
+	newThread->Stack = PMM::RequestPages(16);
+
+	InitializeStack(newThread->Stack, entrypoint);
 	
 	process->Threads.Push(newThread);
 	process->ThreadNumber++;
@@ -54,5 +59,4 @@ Thread *CreateThread(Process *process, uintptr_t entrypoint) {
 void DeleteThread(Thread *thread) {
 
 }
-
 }

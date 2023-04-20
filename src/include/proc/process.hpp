@@ -68,7 +68,7 @@ namespace PROC {
 		Process *Owner;
 	};
 
-	Process *CreateProcess(ProcessType type, uintptr_t entrypoint, VMM::VirtualSpace *vms);
+	Process *CreateProcess(ProcessType type, VMM::VirtualSpace *vms);
 	void DeleteProcess(Process *process);
 
 	Thread *CreateThread(Process *process, uintptr_t entrypoint);

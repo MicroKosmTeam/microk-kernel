@@ -13,6 +13,7 @@ namespace Scheduler {
 	void RemoveProcess(uint64_t PID);
 
 	void Cycle();
+	void Yeild(Thread *thread);
 
 	void StartKernelThread(uintptr_t entrypoint);
 }

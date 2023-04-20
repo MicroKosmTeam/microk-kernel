@@ -8,35 +8,8 @@
 namespace PROC {
 namespace Scheduler {
 
-Queue<Process*> SchedulerQueue;
+Queue<Thread*> SchedulerQueue;
 Process *kernelProcess;
-
-void *stackone;
-void *stacktwo;
-
-void Entrypoint() {
-	while(true) {
-		asm volatile ("sti");
-
-		PRINTK::PrintK("\r\nHello from thread.\r\n"
-				"Current stack: 0x%x\r\n"
-				"Next stack: 0x%x\r\n"
-				"RBP: 0x%x\r\n"
-				"RBP2: 0x%x\r\n",
-				(uint64_t)stackone,
-				(uint64_t)stacktwo,
-				((SaveContext*)(stacktwo))->RBP,
-				((SaveContext*)(stacktwo))->RBP2);
-
-		void *tmp = stackone;
-		stackone = stacktwo;
-		stacktwo = tmp;
-
-		asm volatile ("cli");
-		SwitchStack(&stacktwo, &stackone);
-	}
-	
-}
 
 void InitStack( ) {
 
@@ -45,38 +18,19 @@ void InitStack( ) {
 void Initialize() {
 	KInfo *info = GetInfo();
 
-	kernelProcess = CreateProcess(PT_KERNEL, PROC::Scheduler::Cycle, info->kernelVirtualSpace);
+	kernelProcess = CreateProcess(PT_KERNEL, info->kernelVirtualSpace);
+
 	SchedulerQueue.Init();
-	SchedulerQueue.Push(kernelProcess);
 
 	PRINTK::PrintK("Scheduler initialized.\r\n");
+}
 
-	stackone = Malloc(512 * 1024);
-	stacktwo = Malloc(512 * 1024);
-	memset(stackone, 0, 0x1000);
-	memset(stacktwo, 0, 0x1000);
+void Yeild(Thread *thread) {
+	KInfo *info = GetInfo();
 
-	InitializeStack(stackone, &Entrypoint);
-	InitializeStack(stacktwo, &Entrypoint);
+	SwitchStack(&thread->Stack, &info->kernelStack);
 
-	PRINTK::PrintK("Stack initialized.\r\n");
-	
-	PRINTK::PrintK("Current stack: 0x%x\r\n"
-			"Next stack: 0x%x\r\n"
-			"RBP: 0x%x\r\n"
-			"RBP2: 0x%x\r\n",
-			(uint64_t)info->kernelStack,
-			(uint64_t)stackone,
-			((SaveContext*)(stackone))->RBP,
-			((SaveContext*)(stackone))->RBP2);
-
-	asm volatile ("cli");
-	SwitchStack(&info->kernelStack, &stackone);
-	asm volatile ("sti");
-
-	PRINTK::PrintK("Done\r\n");
-
-	while (true) asm volatile("hlt");
+	return;
 }
 
 void Pause() {
@@ -84,21 +38,25 @@ void Pause() {
 }
 
 void AddCPU() {
+	while (true) {
+		Cycle();
+	}
 }
 
 void Cycle() {
-	Process *currentProcess;
-	SchedulerQueue.Pop(&currentProcess);
-	SchedulerQueue.Push(currentProcess);
+	KInfo *info = GetInfo();
 
-	// Execute the process here
+	Thread *currentThread;
+	SchedulerQueue.Pop(&currentThread);
+
+	SwitchStack(&info->kernelStack, &currentThread->Stack);
+	
+	SchedulerQueue.Push(currentThread);
 }
+
 	
 void StartKernelThread(uintptr_t entrypoint) {
-	CreateThread(kernelProcess, entrypoint);
-
-	void (*Entrypoint)() = entrypoint;
-	Entrypoint();
+	SchedulerQueue.Push(CreateThread(kernelProcess, entrypoint));
 }
 
 }
