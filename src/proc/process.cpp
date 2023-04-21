@@ -46,9 +46,9 @@ Thread *CreateThread(Process *process, uintptr_t entrypoint) {
 	newThread->Owner = process;
 	newThread->Entrypoint = entrypoint;
 	newThread->State = P_READY;
-	newThread->Stack = PMM::RequestPages(16);
+	newThread->Stack = PMM::RequestPage();
 
-	InitializeStack(newThread->Stack, entrypoint);
+	InitializeStack(newThread, entrypoint);
 	
 	process->Threads.Push(newThread);
 	process->ThreadNumber++;

@@ -48,8 +48,14 @@ void Cycle() {
 	KInfo *info = GetInfo();
 
 	SchedulerQueue.Pop(&currentThread);
-	if (currentThread == NULL) return;
+
+	if (currentThread == NULL) {
+		PRINTK::PrintK("Scheduler empty\r\n");
+		return;
+	}
+
 	SwitchStack(&info->kernelStack, &currentThread->Stack);
+
 	SchedulerQueue.Push(currentThread);
 }
 

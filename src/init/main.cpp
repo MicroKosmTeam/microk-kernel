@@ -88,6 +88,13 @@ void PrintBanner() {
 			info->SMP.IsEnabled ? info->SMP.CpuCount : 1);
 }
 
+void KThreadTest(PROC::Thread *thread) {
+	while (true) {
+		PRINTK::PrintK("Current thread: %d\r\n", thread->TID);
+		PROC::Scheduler::Yeild(thread);
+	}
+}
+
 /*
    Main kernel function.
 */
@@ -125,6 +132,8 @@ void KernelStart() {
 
 	/* Printing banner to show off */
 	PrintBanner();
+
+	for (int i = 0; i < 10; i++) PROC::Scheduler::StartKernelThread(KThreadTest);
 
 	/* Starting the kernel scheduler by adding the root CPU */
 	PROC::Scheduler::AddCPU();
