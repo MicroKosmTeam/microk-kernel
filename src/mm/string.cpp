@@ -99,7 +99,7 @@ void itoa (char *buf, int base, long long int d) {
         /*  Divide UD by DIVISOR until UD == 0. */
         do {
                 int remainder = ud % divisor;
-                *p++ = (remainder < 10) ? remainder + '0' : remainder + 'a' - 10;
+                *p++ = (remainder < 10) ? remainder + '0' : remainder + 'A' - 10;
         } while (ud /= divisor);
 
         /*  Terminate BUF. */

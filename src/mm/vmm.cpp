@@ -12,7 +12,7 @@ void InitVMM() {
 	info->kernelVirtualSpace = NewVirtualSpace();
 	
 	/* We go through every entry in the memory map and map it in virtual memory */
-	for (uint64_t i = 0; i < info->mMapEntryCount; i++) {
+	for (int i = 0; i < info->mMapEntryCount; i++) {
 		MMapEntry entry = info->mMap[i];
 
 		/* We will skip any memory that is not usable by our kernel, to make the process faster */
@@ -31,22 +31,13 @@ void InitVMM() {
 		/* We use the kernel base to be sure we are not mapping module code over the kernel code. */
 		if (entry.type == MEMMAP_KERNEL_AND_MODULES && entry.base == info->kernelPhysicalBase) {
 			for (uint64_t t = base; t < top; t += PAGE_SIZE){
-				info->kernelVirtualSpace->MapMemory(t,
-						info->kernelVirtualBase +
-						t -
-						info->kernelPhysicalBase,
-						0);
+				info->kernelVirtualSpace->MapMemory(t, info->kernelVirtualBase + t - info->kernelPhysicalBase, 0);
 
 			}
 		} else {
 			for (uint64_t t = base; t < top; t += PAGE_SIZE){
-				info->kernelVirtualSpace->MapMemory(t,
-						t,
-						0);
-				info->kernelVirtualSpace->MapMemory(t,
-						t +
-						info->higherHalfMapping,
-						0);
+				info->kernelVirtualSpace->MapMemory(t, t, 0);
+				info->kernelVirtualSpace->MapMemory(t, t + info->higherHalfMapping, 0);
 			}
 		}
 	}

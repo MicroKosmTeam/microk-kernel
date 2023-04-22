@@ -12,11 +12,9 @@ EnableSCE:
 	mov edx, 0x00400028 ; load up GDT segment bases 0x28 (kernel) and 0x40 (user)
 	wrmsr               ; write back new STAR
 
-;
-;	mov rcx, 0xc0000082 ; LSTAR MSR
-;	rdmsr               ; read current LSTAR
-;	mov rdx, rdi        ; reading from first argument kernel syscall entrypoint 
-;	wrmsr               ; write back new LSTAR
-;
+	mov rcx, 0xc0000082 ; LSTAR MSR
+	rdmsr               ; read current LSTAR
+	mov rdx, rdi        ; reading from first argument kernel syscall entrypoint 
+	wrmsr               ; write back new LSTAR
 
 	ret                 ; return back

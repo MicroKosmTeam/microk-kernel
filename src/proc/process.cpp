@@ -28,9 +28,20 @@ Process *CreateProcess(ProcessType type, VMM::VirtualSpace *vms) {
 
 	newProcess->VirtualMemorySpace = vms;
 
-	newProcess->ThreadNumber = 0;
 	newProcess->LastTID = 0;
+	newProcess->ThreadNumber = 0;
 	newProcess->MainThread = NULL;
+
+	switch(type) {
+		case PT_KERNEL:
+			break;
+		case PT_USER:
+			break;
+		case PT_VM:
+			break;
+		case PT_REALTIME:
+			break;
+	}
 
 	return newProcess;
 }
@@ -46,6 +57,8 @@ Thread *CreateThread(Process *process, uintptr_t entrypoint) {
 	newThread->Owner = process;
 	newThread->Entrypoint = entrypoint;
 	newThread->State = P_READY;
+	
+	// TODO: TMP remove
 	newThread->Stack = PMM::RequestPage();
 
 	InitializeStack(newThread, entrypoint);
@@ -53,10 +66,13 @@ Thread *CreateThread(Process *process, uintptr_t entrypoint) {
 	process->Threads.Push(newThread);
 	process->ThreadNumber++;
 
+	if (process->MainThread == NULL) process->MainThread = newThread;
+
 	return process->Threads.Get(process->ThreadNumber - 1);
 }
 
 void DeleteThread(Thread *thread) {
+	if (thread == NULL) return;
 
 }
 }

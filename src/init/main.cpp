@@ -44,7 +44,7 @@
 /*
    Function that is started by the scheduler once kernel startup is complete.
 */
-void RestInit();
+void RestInit(PROC::Thread *thread);
 
 int EarlyKernelInit() {
 	/* Allocating memory for the info struct */
@@ -88,13 +88,6 @@ void PrintBanner() {
 			info->SMP.IsEnabled ? info->SMP.CpuCount : 1);
 }
 
-void KThreadTest(PROC::Thread *thread) {
-	while (true) {
-		PRINTK::PrintK("Current thread: %d\r\n", thread->TID);
-		PROC::Scheduler::Yeild(thread);
-	}
-}
-
 /*
    Main kernel function.
 */
@@ -133,30 +126,36 @@ void KernelStart() {
 	/* Printing banner to show off */
 	PrintBanner();
 
-	for (int i = 0; i < 10; i++) PROC::Scheduler::StartKernelThread(KThreadTest);
+	/* Finishing kernel startup */
+	PROC::Scheduler::StartKernelThread(RestInit);
 
 	/* Starting the kernel scheduler by adding the root CPU */
 	PROC::Scheduler::AddCPU();
-
-	/* Finishing kernel startup */
-	RestInit();
-
 
 	/* We have finished operating */
 	while (true) CPUPause();
 }
 
+void RestInit(PROC::Thread *thread) {
+	/* We are done with the boot process */
+	PRINTK::PrintK("Kernel is now resting...\r\n");
+
+	while (true) {
+		PROC::Scheduler::Yeild(thread);
+	}
+}
+
+
+/*
 extern "C" void UserFunction() {
 	PRINTK::PrintK("[USER] Hello from userspace!\r\n");
 
 	ExitUserspace();
 
-	while (true) CPUPause();
-}
+	PRINTK::PrintK("Done.\r\n");
 
-void RestInit() {
-	/* We are done with the boot process */
-	PRINTK::PrintK("Kernel is now resting...\r\n");
+	while (true) asm volatile ("hlt");
+}
 
 	void *stack = PMM::RequestPage();
 	void *func = &UserFunction;
@@ -169,8 +168,4 @@ void RestInit() {
 	EnterUserspace(func, stack);
 
 	PRINTK::PrintK("Returned from userspace.\r\n");
-
-	while (true) {
-		CPUPause();
-	}
-}
+*/

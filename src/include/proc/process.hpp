@@ -4,12 +4,11 @@
 #include <mm/vmm.hpp>
 #include <sys/vector.hpp>
 
-#define THREAD_STACK_SIZE 0x100000 
-
 namespace PROC {
 	enum ProcessState {
 		P_READY,		/* Process is ready to run */
 		P_RUNNING,		/* Process is currently running */
+		P_WAITING,		/* Process is currently waiting for I/O */
 		P_PAUSED,		/* Process is not currently running */
 		P_DONE,			/* Process is no longer alive */
 	};
@@ -46,11 +45,10 @@ namespace PROC {
 		
 		VMM::VirtualSpace *VirtualMemorySpace;
 
-		size_t ThreadNumber;
-		Vector <Thread*> Threads;
-		Thread *MainThread;
-
 		uint64_t LastTID;
+		size_t ThreadNumber;
+		Vector<Thread*> Threads;
+		Thread *MainThread;
 		
 		union {
 			StandardProcess ProcessInfo;
@@ -61,7 +59,10 @@ namespace PROC {
 
 	struct Thread {
 		uint64_t TID;
+
 		uintptr_t Stack;
+		size_t StackSize;
+
 		uintptr_t Entrypoint;
 		ProcessState State;
 

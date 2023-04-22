@@ -10,7 +10,6 @@ struct SaveContext {
 	uint64_t R13;
 	uint64_t R14;
 	uint64_t R15;
-	uint64_t RSI;
 	uint64_t RDI;
 	uint64_t RBP2;
 	uint64_t ret;

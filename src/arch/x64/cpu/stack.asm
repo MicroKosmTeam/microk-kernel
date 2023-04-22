@@ -10,7 +10,6 @@ SwitchStack:
 	push r13
 	push r12
 	push rbx
-	push rsi
 	push rdi
 	push rbp
 
@@ -23,7 +22,6 @@ SwitchStack:
 	pop r13
 	pop r14
 	pop r15
-	pop rsi
 	pop rdi
 
 	leave

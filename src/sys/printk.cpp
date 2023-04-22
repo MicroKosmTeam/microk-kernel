@@ -12,6 +12,7 @@ UARTDevice *kernelPort;
 #endif
 
 static SpinLock PrintkSpinlock;
+
 namespace PRINTK {
 void PutChar(char ch) {
 #ifdef CONFIG_HW_UART
