@@ -11,8 +11,11 @@
 #include <mm/vmm.hpp>
 #include <mkmi.h>
 #include <init/kinfo.hpp>
+#include <module/modulemanager.hpp>
+#include <module/buffer.hpp>
 
 uint64_t LoadELF(uint8_t *data, size_t size) {
+
 	/* Checking for the correct signature */
 	if (data[0] != 0x7F || data[1] != 'E' || data[2] != 'L' || data[3] != 'F') {
 		return NULL;
@@ -20,6 +23,7 @@ uint64_t LoadELF(uint8_t *data, size_t size) {
 
 	/* Getting important kernel information */
 	KInfo *info = GetInfo();
+	VMM::VirtualSpace *space = info->kernelVirtualSpace;
 
 	/* Initializing the ELF header */
 	Elf64_Ehdr *elfHeader = (Elf64_Ehdr*)data;
@@ -28,10 +32,14 @@ uint64_t LoadELF(uint8_t *data, size_t size) {
 	if(elfHeader->e_ident[EI_CLASS] != ELFCLASS64) {
 		return NULL;
 	}
+/*
+	TODO: Dynamic SO files	
 
 	if(elfHeader->e_type != ET_DYN) {
 		return NULL;
 	}
+*/
+
 
 	uint64_t programHeaderSize = elfHeader->e_phentsize;
 	uint64_t programHeaderOffset = elfHeader->e_phoff;
@@ -42,19 +50,25 @@ uint64_t LoadELF(uint8_t *data, size_t size) {
 	Elf64_Phdr *programHeader;
 	for (int i = 0; i < programHeaderNumber; i++) {
 		programHeader = (Elf64_Phdr*)(data + programHeaderOffset + programHeaderSize * i);
+		if(programHeader->p_memsz == 0) continue;
 
-		if(programHeader->p_type == PT_LOAD && programHeader->p_memsz > 0) {
-			for (uint64_t addr = programHeader->p_vaddr; addr < programHeader->p_vaddr + programHeader->p_memsz; addr+=0x1000) {
-				VMM::MapMemory(info->kernelVirtualSpace, PMM::RequestPage(), addr);
-			}
+		switch (programHeader->p_type) {
+			case PT_LOAD: {
+				for (uint64_t addr = programHeader->p_vaddr;
+				     addr < programHeader->p_vaddr + programHeader->p_memsz;
+				     addr+=0x1000) {
+					VMM::MapMemory(space, PMM::RequestPage(), addr);
+				}
 
-			memset(programHeader->p_vaddr, 0, programHeader->p_memsz);
-			memcpy(programHeader->p_vaddr, data + programHeader->p_offset, programHeader->p_filesz);
+				memset(programHeader->p_vaddr, 0, programHeader->p_memsz);
+				memcpy(programHeader->p_vaddr, data + programHeader->p_offset, programHeader->p_filesz);
+				}
+				break;
+
 		}
 
 		progSize += programHeader->p_memsz;
 	}
-
 
 	uint64_t sectionHeaderSize = elfHeader->e_shentsize;
 	uint64_t sectionHeaderOffset = elfHeader->e_shoff;
@@ -73,23 +87,18 @@ uint64_t LoadELF(uint8_t *data, size_t size) {
 		PRINTK::PrintK("Section: %s\r\n", &sectionStrtabData[sectionHeader->sh_name]);
 
 		switch(sectionHeader->sh_type) {
-			case SHT_PROGBITS:
-				break;
-			case SHT_SYMTAB:
+			case SHT_SYMTAB: {
 				symtab = sectionHeader;
+				}
 				break;
-			case SHT_STRTAB:
+			case SHT_STRTAB: {
 				if (elfHeader->e_shstrndx == i) break;
 				strtab = sectionHeader;
-				break;
-			case SHT_DYNSYM:
-				break;
-			case SHT_NOBITS:
-				break;
-			default:
+				}
 				break;
 		}
 	}
+
 	size_t symbolNumber = symtab->sh_size / symtab->sh_entsize;
 	const char *strtabData = (const char*)(data + strtab->sh_offset);
 
@@ -115,6 +124,11 @@ uint64_t LoadELF(uint8_t *data, size_t size) {
 					" -> Author name: %s 0x%x\r\n",
 					modinfo->ID.Name, modinfo->ID.Codename,
 					modinfo->ID.Author, modinfo->ID.Writer);
+			modinfo->PrintK = PRINTK::PrintK;
+			modinfo->GetModule = MODULE::Manager::GetModule;
+			modinfo->BufferCreate = MODULE::Buffer::Create;
+			modinfo->BufferIO = MODULE::Buffer::IO;
+			modinfo->BufferDelete = MODULE::Buffer::Delete;
 		} else if (strcmp(name, "ModuleInit") == 0) {
 			entry = symbol->st_value;
 		} else if (strcmp(name, "ModuleDeinit") == 0) {
@@ -122,10 +136,15 @@ uint64_t LoadELF(uint8_t *data, size_t size) {
 		}
 	}
 
-
 	PRINTK::PrintK("Loading Complete. Program is %d bytes.\r\n", progSize);
 	
-	PRINTK::PrintK("Result: %d\r\n", entry());
+	MODULE::Manager::RegisterModule(modinfo);
+	entry();
+
+	// Do things...
+
+	exit();
+	MODULE::Manager::UnregisterModule(&modinfo->ID);
 
 	return NULL;
 }

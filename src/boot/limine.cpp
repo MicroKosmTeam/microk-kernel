@@ -61,13 +61,10 @@ static volatile limine_kernel_address_request kaddrRequest {
 	.revision = 0
 };
 
-/* SMP request */
-static volatile limine_smp_request smpRequest {
-	.id = LIMINE_SMP_REQUEST,
-	.revision = 0,
-	.flags = 1
+static volatile limine_rsdp_request rsdpRequest {
+	.id = LIMINE_RSDP_REQUEST,
+	.revision = 0
 };
-
 
 /* Main Limine initialization function */
 extern "C" void LimineEntry() {
@@ -117,28 +114,15 @@ extern "C" void LimineEntry() {
 		info->modules[i].cmdline = moduleRequest.response->modules[i]->cmdline;
 	}
 
-	/* Transporting SMP information */
-	if(smpRequest.response == NULL) {
-		info->SMP.IsEnabled = false;
+	if (rsdpRequest.response == NULL) {
 	} else {
-		info->SMP.IsEnabled = true;
-		info->SMP.CpuCount = smpRequest.response->cpu_count;
-		info->SMP.Cpus = (BootCPU*)BOOTMEM::Malloc(sizeof(BootCPU) * info->SMP.CpuCount + 1);
-		
-		for (int i = 0; i < smpRequest.response->cpu_count; i++) {
-			info->SMP.Cpus[i].ProcessorID = smpRequest.response->cpus[i]->processor_id;
-			info->SMP.Cpus[i].GotoAddress = &smpRequest.response->cpus[i]->goto_address;
-
-#ifdef ARCH_x86_64
-			info->SMP.Cpus[i].LApicID = smpRequest.response->cpus[i]->lapic_id;
-#endif
-		}
-
+		info->RSDP = rsdpRequest.response->address;
 	}
 
 	info->higherHalfMapping = hhdmRequest.response->offset;
 	info->kernelPhysicalBase = kaddrRequest.response->physical_base;
 	info->kernelVirtualBase = kaddrRequest.response->virtual_base;
+
 
 	PRINTK::PrintK("Welcome from MicroK.\r\n"
 		       "The kernel is booted by %s %s at %d\r\n",

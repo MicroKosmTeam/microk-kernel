@@ -88,21 +88,7 @@ struct KInfo {
 	UARTDevice *kernelPort; /* UART deivice used as serial port */
 #endif
 
-#ifdef CONFIG_MP_SMP
-	/* SMP information */
-	struct SMP {
-		bool IsEnabled;
-		size_t CpuCount;
-		uint32_t Flags;
-
-		union {
-			uint32_t BspLApicID;
-			uint32_t BspMpidr;
-		};
-
-		BootCPU *Cpus;
-	} SMP;
-#endif
+	void *RSDP;
 };
 
 void InitInfo();

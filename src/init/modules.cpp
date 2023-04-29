@@ -13,11 +13,14 @@
 #include <sys/user.hpp>
 #include <sys/symtable.hpp>
 #include <mkmi.h>
+#include <module/modulemanager.hpp>
 
 namespace MODULE {
 
 void Init() {
 	SetupSymtable();
+
+	Manager::Init();
 
 	KInfo *info = GetInfo();
 

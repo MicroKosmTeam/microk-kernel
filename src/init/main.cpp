@@ -38,6 +38,7 @@
 #include <sys/atomic.hpp>
 #include <sys/printk.hpp>
 #include <init/modules.hpp>
+#include <dev/acpi/acpi.hpp>
 #include <arch/x64/main.hpp>
 #include <proc/scheduler.hpp>
 
@@ -71,10 +72,7 @@ void PrintBanner() {
 		       "  Memory:\r\n"
 		       "   Physical: %dkb free out of %dkb (%dkb used).\r\n"
 		       "   Virtual: Kernel at virtual address 0x%x.\r\n"
-		       "   Bootmem: %d bytes free out of %d bytes (%d bytes used).\r\n"
-		       "  CPUs:\r\n"
-		       "   SMP Status: %s\r\n"
-		       "   CPUs in the system: %d\r\n",
+		       "   Bootmem: %d bytes free out of %d bytes (%d bytes used).\r\n",
 		       CONFIG_KERNEL_CNAME,
 		       CONFIG_KERNEL_CVER,
 			PMM::GetFreeMem() / 1024,
@@ -83,9 +81,7 @@ void PrintBanner() {
 			info->kernelVirtualBase,
 			BOOTMEM::GetFree(),
 			BOOTMEM::GetTotal(),
-			BOOTMEM::GetTotal() - BOOTMEM::GetFree(),
-			info->SMP.IsEnabled ? "Active" : "Not present",
-			info->SMP.IsEnabled ? info->SMP.CpuCount : 1);
+			BOOTMEM::GetTotal() - BOOTMEM::GetFree());
 }
 
 /*
@@ -109,6 +105,9 @@ void KernelStart() {
 
 	/* With the heap initialize, disable new bootmem allocations */
 	BOOTMEM::DeactivateBootmem();
+
+	/* Initialize the ACPI subsystem */
+	ACPI::Init();
 
 #ifdef CONFIG_MP_SMP
 	/* Initializing multiprocessing */

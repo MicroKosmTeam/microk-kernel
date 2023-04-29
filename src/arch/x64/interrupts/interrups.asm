@@ -1,20 +1,39 @@
 [bits 64]
 
 ; ISR macros
+%macro isr_null_stub 1
+isr_stub_%+%1:
+o64 iret
+%endmacro
+
 %macro isr_err_stub 1
 isr_stub_%+%1:
 call exceptionHandler
-iretq
+o64 iret
 %endmacro
 
 %macro isr_no_err_stub 1
 isr_stub_%+%1:
 call exceptionHandler
-iretq
+o64 iret
+%endmacro
+
+%macro isr_timer_stub 1
+isr_stub_%+%1:
+call timerHandler 
+o64 iret
+%endmacro
+
+%macro isr_spurious_stub 1
+isr_stub_%+%1:
+call spuriousHandler 
+o64 iret
 %endmacro
 
 ; Handling functions
 extern exceptionHandler
+extern timerHandler
+extern spuriousHandler
 
 isr_no_err_stub 0
 isr_no_err_stub 1
@@ -48,12 +67,20 @@ isr_no_err_stub 28
 isr_no_err_stub 29
 isr_err_stub    30
 isr_no_err_stub 31
+isr_timer_stub  32
+isr_null_stub   33
+isr_null_stub   34
+isr_null_stub   35
+isr_null_stub   36
+isr_null_stub   37
+isr_null_stub   38
+isr_spurious_stub  39
 
 ; The isr stub table
 global isrStubTable
 isrStubTable:
 %assign i 0
-%rep    32
+%rep    39
 dq isr_stub_%+i
 %assign i i+1
 %endrep

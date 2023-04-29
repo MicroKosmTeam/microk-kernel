@@ -3,10 +3,10 @@
 
 namespace VMM {
 	enum VirtualMemoryFlags {
-		VMM_READWRITE = 0b0001,
-		VMM_USERSUPER = 0b0010,
-		VMM_NOEXECUTE = 0b0100,
-		VMM_LARGEPAGE = 0b1000
+		VMM_READWRITE  = 0b00000001,
+		VMM_NOEXECUTE  = 0b00000010,
+		VMM_LARGEPAGE  = 0b00000100,
+		VMM_LARGERPAGE = 0b00001000,
 	};
 
 	class VirtualSpace {
@@ -19,6 +19,7 @@ namespace VMM {
 
 	void InitVMM();
 	VirtualSpace *NewVirtualSpace();
+	VirtualSpace *NewKernelVirtualSpace();
 	VirtualSpace *Fork(VirtualSpace *space);
 	void LoadVirtualSpace(VMM::VirtualSpace *space);
 	void MapMemory(VirtualSpace *space, void *physicalMemory, void *virtualMemory);

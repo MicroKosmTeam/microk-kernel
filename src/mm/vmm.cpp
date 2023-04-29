@@ -9,7 +9,18 @@ namespace VMM {
 void InitVMM() {
 	KInfo *info = GetInfo();
 
-	info->kernelVirtualSpace = NewVirtualSpace();
+	info->kernelVirtualSpace = NewKernelVirtualSpace();
+
+	LoadVirtualSpace(info->kernelVirtualSpace);
+
+	PRINTK::PrintK("Virtual memory subsystem initialized.\r\n");
+
+}
+
+VirtualSpace *NewKernelVirtualSpace() {
+	KInfo *info = GetInfo();
+
+	VirtualSpace *space = NewVirtualSpace();
 	
 	/* We go through every entry in the memory map and map it in virtual memory */
 	for (int i = 0; i < info->mMapEntryCount; i++) {
@@ -19,9 +30,7 @@ void InitVMM() {
 		/* We also ignore ACPI, as our kernel is not interested by the information contained in those structures */
 		/* It is the responsibility of the modules to manage any ACPI related code, and also to free reclaimable areas */
 		if (entry.type == MEMMAP_BAD_MEMORY ||
-				entry.type == MEMMAP_RESERVED ||
-				entry.type == MEMMAP_ACPI_NVS ||
-				entry.type == MEMMAP_ACPI_RECLAIMABLE) continue;
+		    entry.type == MEMMAP_RESERVED) continue;
 
 		/* We find the base and the top by rounding to the closest page boundary */
 		uint64_t base = entry.base - (entry.base % PAGE_SIZE);
@@ -31,22 +40,18 @@ void InitVMM() {
 		/* We use the kernel base to be sure we are not mapping module code over the kernel code. */
 		if (entry.type == MEMMAP_KERNEL_AND_MODULES && entry.base == info->kernelPhysicalBase) {
 			for (uint64_t t = base; t < top; t += PAGE_SIZE){
-				info->kernelVirtualSpace->MapMemory(t, info->kernelVirtualBase + t - info->kernelPhysicalBase, 0);
+				space->MapMemory(t, info->kernelVirtualBase + t - info->kernelPhysicalBase, 0);
 
 			}
 		} else {
 			for (uint64_t t = base; t < top; t += PAGE_SIZE){
-				info->kernelVirtualSpace->MapMemory(t, t, 0);
-				info->kernelVirtualSpace->MapMemory(t, t + info->higherHalfMapping, 0);
+				space->MapMemory(t, t, 0);
+				space->MapMemory(t, t + info->higherHalfMapping, 0);
 			}
 		}
 	}
 
-	PRINTK::PrintK("Kernel page table initialized.\r\n");
-
-	LoadVirtualSpace(info->kernelVirtualSpace);
-
-	PRINTK::PrintK("Virtual memory subsystem initialized.\r\n");
+	return space;
 }
 
 VirtualSpace *NewVirtualSpace() {

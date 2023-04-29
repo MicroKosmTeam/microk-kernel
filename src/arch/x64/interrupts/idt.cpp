@@ -42,8 +42,11 @@ void IDTInit() {
 
 	/* Fill in the 32 exception handlers */
 	for (uint8_t vector = 0; vector < 32; vector++) {
-		IDTSetDescriptor(vector, isrStubTable[vector], 0x8E);
+		IDTSetDescriptor(vector, isrStubTable[vector], 0x8F);
 	}
+		
+	IDTSetDescriptor(32, isrStubTable[32], 0x8E);
+	IDTSetDescriptor(39, isrStubTable[39], 0x8E);
 
 	/* Load the new IDT */
 	asm volatile ("lidt %0" : : "m"(idtr));
@@ -55,12 +58,19 @@ void IDTInit() {
 #include <sys/printk.hpp>
 
 /* Stub exception handler */
-__attribute__((noreturn))
 extern "C" void exceptionHandler() {
-	PANIC("Interrupt");
+	PANIC("Exception");
 
 	/* Completely hangs the computer */
 	while (true) {
 		asm volatile ("cli; hlt");
 	}
+}
+
+extern "C" void timerHandler() {
+	PRINTK::PrintK("Timer.\r\n");
+}
+
+extern "C" void spuriousHandler() {
+	PRINTK::PrintK("Spurious.\r\n");
 }

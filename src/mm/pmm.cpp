@@ -85,6 +85,8 @@ void InitPageFrameAllocator() {
 
 	free_memory = memory_size;
 
+	largestFree += info->higherHalfMapping;
+
 	// Initialize bitmap
 	InitBitmap(bitmap_size, largestFree);
 
