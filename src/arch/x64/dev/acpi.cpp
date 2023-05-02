@@ -1,10 +1,11 @@
-#include <arch/x64/cpu/mp.hpp>
+#include <arch/x64/dev/acpi.hpp>
 #include <sys/panic.hpp>
 #include <sys/printk.hpp>
 #include <stddef.h>
+#include <arch/x64/dev/apic.hpp>
 
 namespace x86_64 {
-void DetectCores() {
+void LoadMADT() {
 	MADTHeader *madt = FindTable(ACPI::GetXSDT(), (char*)"APIC");
 	if (madt == 0) PANIC("MADT not fount");
 
@@ -37,5 +38,7 @@ void DetectCores() {
 				break;
 		}
 	}
+
+	x86_64::EnableAPIC();
 }
 }

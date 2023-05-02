@@ -16,6 +16,8 @@ const Symbol *LookupSymbol(const char *name) {
 const Symbol *LookupSymbol(uint64_t addr) {
 	uint64_t symbolIndex;
 
+	if (addr < symbols[0].addr || addr > symbols[symbolCount - 1].addr) return NULL;
+
 	for (symbolIndex = 0; symbolIndex < symbolCount; symbolIndex++) {
 		uint64_t symAddr = symbols[symbolIndex].addr;
 		if (symAddr > addr) break;

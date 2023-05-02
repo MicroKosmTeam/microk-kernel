@@ -68,7 +68,8 @@ void PageTableManager::MapMemory(void *physicalMemory, void *virtualMemory, uint
 
 	PT->entries[indexer.P_i] = PDE;
 
-	asm volatile("invlpg (%0)" ::"r" (virtualMemory) : "memory");
+	// TODO: Manage TLB
+	// asm volatile("invlpg (%0)" ::"r" (virtualMemory) : "memory");
 }
 	
 void PageTableManager::UnmapMemory(void *virtualMemory) {

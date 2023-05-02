@@ -1,6 +1,8 @@
-#include <arch/x64/cpu/apic.hpp>
+#include <arch/x64/dev/apic.hpp>
 #include <sys/printk.hpp>
 #include <arch/x64/cpu/cpu.hpp>
+#include <init/kinfo.hpp>
+#include <mm/vmm.hpp>
 
 #define IA32_APIC_BASE_MSR 0x1B
 #define IA32_APIC_BASE_MSR_BSP 0x100 // Processor is a BSP
@@ -37,11 +39,36 @@ uint32_t ReadAPICRegister(uint16_t offset) {
 	return *apicRegister;
 }
 
-void EnableAPIC() {
-	PRINTK::PrintK("APIC at 0x%x\r\n", GetAPICBase());
+void WaitAPIC(uint32_t cycles) {
+	WriteAPICRegister(0x380, cycles);
+}
+
+void EnableAPIC() {	
+	KInfo *info = GetInfo();
+	void *base = GetAPICBase();
+
+	VMM::MapMemory(info->kernelVirtualSpace, base, base);
+
 	SetAPICBase(GetAPICBase());
-	WriteAPICRegister(0xF0, ReadAPICRegister(0xF0) | 0x100);
+
+	PRINTK::PrintK("APIC at 0x%x\r\n", GetAPICBase());
+
+	WriteAPICRegister(0xF0, 0x100 + 39);
+	WriteAPICRegister(0x80, 0x1);
+
+	WriteAPICRegister(0x320, 32);
+	WriteAPICRegister(0x340, 0x10000);
+	WriteAPICRegister(0x380, 0x0);
 
 	PRINTK::PrintK("APIC enabled.\r\n");
+}
+
+void StartAPICTimer() {
+	WaitAPIC(0x1000000);
+}
+
+void SendAPICEOI() {
+	WriteAPICRegister(0xB0, 0x0);
+	
 }
 }

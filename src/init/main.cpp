@@ -84,6 +84,8 @@ void PrintBanner() {
 			BOOTMEM::GetTotal() - BOOTMEM::GetFree());
 }
 
+#include <arch/x64/dev/apic.hpp>
+
 /*
    Main kernel function.
 */
@@ -128,8 +130,10 @@ void KernelStart() {
 	/* Finishing kernel startup */
 	PROC::Scheduler::StartKernelThread(RestInit);
 
+	x86_64::StartAPICTimer();
+
 	/* Starting the kernel scheduler by adding the root CPU */
-	PROC::Scheduler::AddCPU();
+	//PROC::Scheduler::AddCPU();
 
 	/* We have finished operating */
 	while (true) CPUPause();

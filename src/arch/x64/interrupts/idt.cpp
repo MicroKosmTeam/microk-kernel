@@ -67,10 +67,17 @@ extern "C" void exceptionHandler() {
 	}
 }
 
+#include <arch/x64/dev/apic.hpp>
 extern "C" void timerHandler() {
-	PRINTK::PrintK("Timer.\r\n");
+	PRINTK::PrintK(".");
+
+	x86_64::SendAPICEOI();
+	x86_64::WaitAPIC(0x1000000);
+
+	return;
 }
 
 extern "C" void spuriousHandler() {
 	PRINTK::PrintK("Spurious.\r\n");
+	return;
 }

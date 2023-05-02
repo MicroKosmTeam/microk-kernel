@@ -3,6 +3,8 @@
 #include <sys/printk.hpp>
 #include <mm/vmm.hpp>
 
+#include <arch/x64/dev/acpi.hpp>
+
 ACPI::SDTHeader *xsdt;
 
 namespace ACPI {
@@ -43,6 +45,9 @@ void Init() {
 			" - Length: %d\r\n",
 			xsdt->Signature,
 			xsdt->Length);
+
+
+	x86_64::LoadMADT();
 }
 
 /* Function that finds a table given the XSDT and the signature */

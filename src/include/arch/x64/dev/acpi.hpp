@@ -9,5 +9,5 @@ namespace x86_64 {
 		char EntriesBegin[];
         }__attribute__((packed));
 
-	void DetectCores();
+	void LoadMADT();
 }

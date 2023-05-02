@@ -5,7 +5,6 @@
 #include <cpuid.h>
 #include <sys/printk.hpp>
 #include <arch/x64/cpu/cpu.hpp>
-#include <arch/x64/cpu/apic.hpp>
 #include <sys/panic.hpp>
 #include <stdint.h>
 
@@ -126,8 +125,6 @@ void x86CPU::Init() {
 	} else {
 		PANIC("MSRs are not available");
 	}
-
-	EnableAPIC();
 }
 
 /*
