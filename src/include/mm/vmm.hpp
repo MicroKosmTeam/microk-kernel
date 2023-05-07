@@ -20,6 +20,7 @@ namespace VMM {
 	void InitVMM();
 	VirtualSpace *NewVirtualSpace();
 	VirtualSpace *NewKernelVirtualSpace();
+	VirtualSpace *NewModuleVirtualSpace();
 	VirtualSpace *Fork(VirtualSpace *space);
 	void LoadVirtualSpace(VMM::VirtualSpace *space);
 	void MapMemory(VirtualSpace *space, void *physicalMemory, void *virtualMemory);

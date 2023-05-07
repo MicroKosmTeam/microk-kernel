@@ -59,20 +59,20 @@ void IDTInit() {
 
 /* Stub exception handler */
 extern "C" void exceptionHandler() {
+	asm volatile ("cli");
+
 	PANIC("Exception");
 
 	/* Completely hangs the computer */
 	while (true) {
-		asm volatile ("cli; hlt");
+		asm volatile ("hlt");
 	}
 }
 
 #include <arch/x64/dev/apic.hpp>
 extern "C" void timerHandler() {
-	PRINTK::PrintK(".");
-
+	x86_64::SetAPICTimer();
 	x86_64::SendAPICEOI();
-	x86_64::WaitAPIC(0x1000000);
 
 	return;
 }

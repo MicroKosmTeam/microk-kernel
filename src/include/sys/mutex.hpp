@@ -37,3 +37,12 @@ public:
 		return Locked;
 	}
 };
+
+bool TryLockMutex(bool *lock);
+void SpinlockLockMutex(bool *lock);
+
+inline void LockMutex(bool *lock) {
+	SpinlockLockMutex(lock);
+}
+
+void UnlockMutex(bool *lock);

@@ -9,6 +9,6 @@ namespace x86_64 {
 	void WriteAPICRegister(uint16_t offset, uint32_t data);
 	void WaitAPIC(uint32_t cycles);
 	void SendAPICEOI();
-	void StartAPICTimer();
+	void SetAPICTimer();
 	uint32_t ReadAPICRegister(uint16_t offset);
 }

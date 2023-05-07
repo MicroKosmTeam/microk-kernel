@@ -6,5 +6,6 @@
     modules
 */
 extern uint64_t *KRNLSYMTABLE;
+extern uint64_t PHYSBASE;
 
 void SetupSymtable();

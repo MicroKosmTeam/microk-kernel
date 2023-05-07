@@ -9,5 +9,4 @@ EnterUserspace:
 
 global ExitUserspace 
 ExitUserspace:
-	mov r11, 0x202
 	o64 syscall

@@ -78,13 +78,8 @@ enum {
    (should only execuded after checking if SSE is actually present) */
 extern "C" void ActivateSSE();
 extern "C" void ActivateAVX();
-extern "C" void EnableSCE(uintptr_t syscallrip);
-
-void SyscallEntry(uint64_t syscall) {
-	PRINTK::PrintK("Hello, sycall\r\n");
-
-	asm volatile ("hlt");
-}
+extern "C" void EnableSCE();
+extern "C" void SyscallEntry();
 
 namespace x86_64 {
 /*
@@ -121,7 +116,7 @@ void x86CPU::Init() {
 
 	if(CheckMSR()) {
 		PRINTK::PrintK("MSRs available.\r\n");
-		EnableSCE(SyscallEntry);
+		EnableSCE();
 	} else {
 		PANIC("MSRs are not available");
 	}

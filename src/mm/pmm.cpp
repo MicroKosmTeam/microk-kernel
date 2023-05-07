@@ -10,6 +10,7 @@ static bool initialized = false;
 static Bitmap page_bitmap;
 static uint64_t page_bitmap_index = 0; // Last page searched
 static SpinLock BitmapLock;
+static uintptr_t HigherHalf;
 
 static void InitBitmap(size_t bitmap_size, void *buffer_address);
 static void UnreservePage(void *address);
@@ -65,6 +66,8 @@ void InitPageFrameAllocator() {
 
 	KInfo *info = GetInfo();
 
+	HigherHalf = info->higherHalfMapping; 
+
 	void *largestFree = NULL;
 	size_t largestFreeSize = 0;
 
@@ -85,7 +88,7 @@ void InitPageFrameAllocator() {
 
 	free_memory = memory_size;
 
-	largestFree += info->higherHalfMapping;
+	largestFree += HigherHalf;
 
 	// Initialize bitmap
 	InitBitmap(bitmap_size, largestFree);

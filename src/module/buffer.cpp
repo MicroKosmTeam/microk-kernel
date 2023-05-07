@@ -2,6 +2,7 @@
 #include <mm/pmm.hpp>
 #include <mm/memory.hpp>
 #include <sys/printk.hpp>
+#include <sys/mutex.hpp>
 
 namespace MODULE {
 namespace Buffer { 
@@ -24,7 +25,7 @@ MKMI_Buffer *Create(uint64_t code, MKMI_BufferType type, size_t size) {
 	destBuffer->type = type;
 	destBuffer->size = size;
 
-	MKMI_UnlockMutex(&destBuffer->lock);
+	UnlockMutex(&destBuffer->lock);
 
 	return destBuffer;
 }
@@ -32,7 +33,7 @@ MKMI_Buffer *Create(uint64_t code, MKMI_BufferType type, size_t size) {
 uint64_t IO(MKMI_Buffer *buffer, MKMI_BufferOperation operation, ...) {
 	if (buffer == NULL) return 0;
 
-	MKMI_LockMutex(&buffer->lock);
+	LockMutex(&buffer->lock);
 
 	uint64_t result;
 
@@ -65,7 +66,7 @@ uint64_t IO(MKMI_Buffer *buffer, MKMI_BufferOperation operation, ...) {
 			break;
 	}
 
-	MKMI_UnlockMutex(&buffer->lock);
+	UnlockMutex(&buffer->lock);
 
 	va_end(ap);
 
@@ -75,7 +76,7 @@ uint64_t IO(MKMI_Buffer *buffer, MKMI_BufferOperation operation, ...) {
 uint64_t Delete(MKMI_Buffer *buffer) {
 	if (buffer == NULL) return 0;
 
-	MKMI_LockMutex(&buffer->lock);
+	LockMutex(&buffer->lock);
 
 	switch(buffer->type) {
 		case COMMUNICATION_MODULE_KERNEL:

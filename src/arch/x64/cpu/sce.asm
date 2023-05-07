@@ -1,5 +1,7 @@
 [bits 64]
 
+extern SyscallEntry
+
 global EnableSCE
 EnableSCE:
 	mov rcx, 0xc0000080 ; EFER MSR
@@ -13,8 +15,16 @@ EnableSCE:
 	wrmsr               ; write back new STAR
 
 	mov rcx, 0xc0000082 ; LSTAR MSR
-	rdmsr               ; read current LSTAR
-	mov rdx, rdi        ; reading from first argument kernel syscall entrypoint 
+
+	push rdi
+
+	lea rdi, [SyscallEntry]
+
+	mov edx, dword [rdi]
+	mov eax, dword [rdi+4]
+
 	wrmsr               ; write back new LSTAR
+
+	pop rdi
 
 	ret                 ; return back

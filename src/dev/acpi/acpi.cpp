@@ -18,34 +18,8 @@ void Init() {
 
 	RSDP2 *rsdp = info->RSDP - info->higherHalfMapping;
 
-	PRINTK::PrintK("RSDP:\r\n"
-			" - Signature: %s\r\n"
-			" - Checksum: %d\r\n"
-			" - OEM ID: %s\r\n"
-			" - Revision: %d\r\n"
-			" - RSDT Address: 0x%x\r\n"
-			" - Length: %d\r\n"
-			" - XSDT Address: 0x%x\r\n"
-			" - Extended checksum: %d\r\n",
-			rsdp->Signature,
-			rsdp->Checksum,
-			rsdp->OEMID,
-			rsdp->Revision,
-			rsdp->RSDTAddress,
-			rsdp->Length,
-			rsdp->XSDTAddress,
-			rsdp->ExtendedChecksum
-			);
-
 	PRINTK::PrintK("Loading the XSDT table from 0x%x.\r\n", rsdp->XSDTAddress);
 	xsdt = (SDTHeader*)(rsdp->XSDTAddress);
-
-	PRINTK::PrintK("XSDT:\r\n"
-			" - Signature: %s\r\n"
-			" - Length: %d\r\n",
-			xsdt->Signature,
-			xsdt->Length);
-
 
 	x86_64::LoadMADT();
 }

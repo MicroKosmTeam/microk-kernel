@@ -67,7 +67,7 @@ static volatile limine_rsdp_request rsdpRequest {
 };
 
 /* Main Limine initialization function */
-extern "C" void LimineEntry() {
+__attribute__((noreturn)) extern "C" void LimineEntry() {
 	/* Startup basic kernel runtime services */
 	EarlyKernelInit();
 
@@ -132,4 +132,6 @@ extern "C" void LimineEntry() {
 
 	/* Launch the kernel proper */
 	KernelStart();
+
+	while(true);
 }

@@ -58,8 +58,8 @@ Thread *CreateThread(Process *process, uintptr_t entrypoint) {
 	newThread->Entrypoint = entrypoint;
 	newThread->State = P_READY;
 	
-	// TODO: TMP remove
-	newThread->Stack = PMM::RequestPage();
+	void *stackAddress = Malloc(512 * 1024);
+	newThread->Stack = stackAddress + ((uint64_t)stackAddress % 16);
 
 	InitializeStack(newThread, entrypoint);
 	

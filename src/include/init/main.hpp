@@ -1,4 +1,4 @@
 #pragma once
 
-void KernelStart();
+__attribute__((noreturn)) void KernelStart();
 int EarlyKernelInit();

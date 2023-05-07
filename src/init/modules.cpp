@@ -32,11 +32,17 @@ void Init() {
 					info->modules[i].path,
 					info->modules[i].size);
 
-			PRINTK::PrintK("Loading kernel module...\r\n");
+			PRINTK::PrintK("Loading kernel module at 0x%x...\r\n", info->modules[i].address);
 
-			void *function = LoadELF(info->modules[i].address, info->modules[i].size);
-			//function();
-			//EnterUserspace(function, PMM::RequestPage());
+			LoadELF(ELF_CORE_MODULE, info->modules[i].address, info->modules[i].size);
+		} else if (strcmp(info->modules[i].cmdline, "MKMI") == 0) {
+			PRINTK::PrintK("MKMI: [ %s %d ]\r\n",
+					info->modules[i].path,
+					info->modules[i].size);
+
+			PRINTK::PrintK("Loading and initializing MKMI at 0x%x...\r\n", info->modules[i].address);
+
+			LoadELF(ELF_MKMI, info->modules[i].address, info->modules[i].size);
 		} else {
 			PRINTK::PrintK("Unknown file: [ %s %d ]\r\n",
 					info->modules[i].path,

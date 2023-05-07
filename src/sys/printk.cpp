@@ -1,8 +1,8 @@
 #include <cdefs.h>
-#include <stdarg.h>
 #include <stdint.h>
 #include <mm/string.hpp>
 #include <sys/mutex.hpp>
+#include <sys/queue.hpp>
 #include <mm/bootmem.hpp>
 #include <sys/printk.hpp>
 #include <init/kinfo.hpp>
@@ -11,7 +11,6 @@
 UARTDevice *kernelPort;
 #endif
 
-static SpinLock PrintkSpinlock;
 
 namespace PRINTK {
 void PutChar(char ch) {
@@ -26,11 +25,22 @@ void PutStr(char *str) {
 #endif
 }
 
+static SpinLock PrintKSpinlock;
+
 void PrintK(char *format, ...) {
-	PrintkSpinlock.Lock();
+	PrintKSpinlock.Lock();
+
         va_list ap;
         va_start(ap, format);
 
+	VPrintK(format, ap);
+
+        va_end(ap);
+	PrintKSpinlock.Unlock();
+}
+
+
+void VPrintK(char *format, va_list ap) {
         char *ptr = format;
         char buf[128];
 
@@ -62,9 +72,6 @@ void PrintK(char *format, ...) {
                         PutChar(*ptr++);
                 }
         }
-
-        va_end(ap);
-	PrintkSpinlock.Unlock();
 }
 
 void EarlyInit() {

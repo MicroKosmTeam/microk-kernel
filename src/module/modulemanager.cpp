@@ -14,12 +14,12 @@ ModuleNode *last;
 
 namespace MODULE {
 namespace Manager {
-ModuleNode *FindModule(MKMI_ModuleID *id) {
+ModuleNode *FindModule(MKMI_ModuleID id) {
 	ModuleNode *node = last;
 
 	while (node->previous) {
-		if (node->module->ID.Codename == id->Codename &&
-		    node->module->ID.Writer == id->Writer) {
+		if (node->module->ID.Codename == id.Codename &&
+		    node->module->ID.Writer == id.Writer) {
 			break;
 		}
 
@@ -29,11 +29,11 @@ ModuleNode *FindModule(MKMI_ModuleID *id) {
 	return node;
 }
 
-uint64_t RegisterModule(MKMI_Module *module) {
+uint64_t RegisterModule(MKMI_Module module) {
 	ModuleNode *newNode = last->next;
 	newNode = new ModuleNode;
 	newNode->module = new MKMI_Module;
-	memcpy(newNode->module, module, sizeof(MKMI_Module));
+	memcpy(newNode->module, &module, sizeof(MKMI_Module));
 	newNode->previous = last;
 	newNode->next = NULL;
 	last = newNode;
@@ -45,7 +45,7 @@ uint64_t RegisterModule(MKMI_Module *module) {
 	return 0;
 }
 
-uint64_t UnregisterModule(MKMI_ModuleID *id) {
+uint64_t UnregisterModule(MKMI_ModuleID id) {
 	ModuleNode *node = FindModule(id);
 	if (node == NULL || node->module == NULL) return 1;
 
@@ -65,7 +65,7 @@ uint64_t UnregisterModule(MKMI_ModuleID *id) {
 	return 0;
 }
 
-MKMI_Module *GetModule(MKMI_ModuleID *id) {
+MKMI_Module *GetModule(MKMI_ModuleID id) {
 	ModuleNode *node = FindModule(id);
 	if (node == NULL || node->module == NULL) return NULL;
 

@@ -2,6 +2,7 @@
    File: arch/x64/main.cpp
 */
 
+#include <mm/pmm.hpp>
 #include <sys/printk.hpp>
 #include <init/kinfo.hpp>
 #include <arch/x64/main.hpp>
@@ -16,10 +17,9 @@ void Init() {
 
 	/* We first of all get the position of the kernel stack and save it
 	   as we will use it to initialize the TSS */
-	asm ("mov %%rsp, %0" : "=r"(info->kernelStack) : : "memory");
+	info->kernelStack = PMM::RequestPage() + info->higherHalfMapping;
 
 	/* Initialize the GDT and the TSS */
-	PRINTK::PrintK("Loading the x86_64 GDT\r\n");
 	LoadGDT(info->kernelStack);
 	PRINTK::PrintK("GDT Loaded.\r\n");
 

@@ -76,8 +76,6 @@ namespace MEM {
 void Init() {
 	KInfo *info = GetInfo();
 
-	PMM::InitPageFrameAllocator();
-
 	PRINTK::PrintK("Memory map:\r\n");
 
 	for (int i = 0; i < info->mMapEntryCount; i++) {

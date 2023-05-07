@@ -46,6 +46,7 @@
    Function that is started by the scheduler once kernel startup is complete.
 */
 void RestInit(PROC::Thread *thread);
+extern "C" void UserFunction();
 
 int EarlyKernelInit() {
 	/* Allocating memory for the info struct */
@@ -89,16 +90,16 @@ void PrintBanner() {
 /*
    Main kernel function.
 */
-void KernelStart() {
+__attribute__((noreturn)) void KernelStart() {
 	PRINTK::PrintK("Kernel started.\r\n");
 
-	/* Starting specific arch-dependent instructions */
+	/* Enabling the page frame allocator */
+	PMM::InitPageFrameAllocator();
 
 #ifdef CONFIG_ARCH_x86_64
-	/* Starting x8_64 specific instructions */
+	/* Starting x86_64 specific instructions */
 	x86_64::Init();
 #endif
-
 	/* Starting the memory subsystem */
 	MEM::Init();
 
@@ -119,49 +120,43 @@ void KernelStart() {
 	/* Initializing the scheduler framework */
 	PROC::Scheduler::Initialize();
 
+	/* Finishing kernel startup */
+	PROC::Scheduler::StartKernelThread(RestInit);
+
 #ifdef CONFIG_KERNEL_MODULES
 	/* Starting the modules subsystem */
 	MODULE::Init();
 #endif
 
-	/* Printing banner to show off */
-	PrintBanner();
-
-	/* Finishing kernel startup */
-	PROC::Scheduler::StartKernelThread(RestInit);
-
-	x86_64::StartAPICTimer();
-
 	/* Starting the kernel scheduler by adding the root CPU */
-	//PROC::Scheduler::AddCPU();
-
-	/* We have finished operating */
-	while (true) CPUPause();
+	PROC::Scheduler::AddCPU();
 }
 
 void RestInit(PROC::Thread *thread) {
+	/* Printing banner to show off */
+	PrintBanner();
+
 	/* We are done with the boot process */
 	PRINTK::PrintK("Kernel is now resting...\r\n");
 
-	while (true) {
-		PROC::Scheduler::Yeild(thread);
-	}
+	/* We enable the timer to start task-switching */
+	x86_64::SetAPICTimer();
+
+	while(true);
 }
 
-
-/*
 extern "C" void UserFunction() {
 	PRINTK::PrintK("[USER] Hello from userspace!\r\n");
 
-	ExitUserspace();
-
 	PRINTK::PrintK("Done.\r\n");
 
-	while (true) asm volatile ("hlt");
+	while (true);
 }
 
-	void *stack = PMM::RequestPage();
-	void *func = &UserFunction;
+/*
+	KInfo *info = GetInfo();
+	void *stack = PMM::RequestPage() + info->higherHalfMapping;
+	void *func = UserFunction;
 	PRINTK::PrintK("Switching to userspace.\r\n"
 	               " Function Address: 0x%x\r\n"
 		       " Stack Address:    0x%x\r\n",
@@ -171,4 +166,6 @@ extern "C" void UserFunction() {
 	EnterUserspace(func, stack);
 
 	PRINTK::PrintK("Returned from userspace.\r\n");
-*/
+
+	while (true) CPUPause();
+}*/
