@@ -58,8 +58,9 @@ Thread *CreateThread(Process *process, uintptr_t entrypoint) {
 	newThread->Entrypoint = entrypoint;
 	newThread->State = P_READY;
 	
-	void *stackAddress = Malloc(512 * 1024);
-	newThread->Stack = stackAddress + ((uint64_t)stackAddress % 16);
+	void *stackAddress = Malloc(64 * 1024) + 64 * 1024 - 512;
+	stackAddress -= (uintptr_t)stackAddress % 16;
+	newThread->Stack = stackAddress;
 
 	InitializeStack(newThread, entrypoint);
 	

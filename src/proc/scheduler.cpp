@@ -62,6 +62,7 @@ void Cycle() {
 	
 void StartKernelThread(uintptr_t entrypoint) {
 	SchedulerQueue.Push(CreateThread(kernelProcess, entrypoint));
+	PRINTK::PrintK("Kernel thread created.\r\n");
 }
 
 }

@@ -86,7 +86,7 @@ __attribute__((noreturn)) extern "C" void LimineEntry() {
 		PANIC("Requests not answered by Limine");
 
 	/* Transporting the MMAP */
-	PRINTK::PrintK("Copying the memory map from Limine...\r\n");
+	PRINTK::PrintK("Getting the memory map from Limine...\r\n");
 
 	uint64_t mMapEntryCount = mMapRequest.response->entry_count;
 	info->mMapEntryCount = mMapEntryCount;
@@ -100,8 +100,6 @@ __attribute__((noreturn)) extern "C" void LimineEntry() {
 	}
 
 	/* Transporting modules */
-	PRINTK::PrintK("Copying modules from Limine...\r\n");
-
 	uint64_t moduleCount = moduleRequest.response->module_count;
 	info->moduleCount = moduleCount;
 	info->modules = (BootFile*)BOOTMEM::Malloc(sizeof(BootFile) * moduleCount + 1);

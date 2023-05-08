@@ -19,8 +19,8 @@ namespace MODULE {
 
 void Init() {
 	SetupSymtable();
-
 	Manager::Init();
+	PRINTK::PrintK("OK.\r\n");
 
 	KInfo *info = GetInfo();
 

@@ -74,7 +74,6 @@ MKMI_Module *GetModule(MKMI_ModuleID id) {
 
 void Init() {
 	first = new ModuleNode;
-
 	first->module = NULL;
 	first->next = NULL;
 	first->previous = NULL;

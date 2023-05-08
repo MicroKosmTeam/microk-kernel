@@ -13,15 +13,15 @@ UARTDevice *kernelPort;
 
 
 namespace PRINTK {
-void PutChar(char ch) {
-#ifdef CONFIG_HW_UART
-	kernelPort->PutChar(ch);
-#endif
-}
-
 void PutStr(char *str) {
 #ifdef CONFIG_HW_UART
 	kernelPort->PutStr(str);
+#endif
+}
+
+void PutChar(char ch) {
+#ifdef CONFIG_HW_UART
+	kernelPort->PutChar(ch);
 #endif
 }
 

@@ -76,13 +76,6 @@ void UARTDevice::PutStr(const char* str) {
                         return;
                 }
 
-                if (character == '\n') {
-                        PutChar('\n');
-                        PutChar('\r');
-			continue;
-                }
-
-
                 PutChar(character);
         }
 }

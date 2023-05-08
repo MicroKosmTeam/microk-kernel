@@ -130,6 +130,7 @@ __attribute__((noreturn)) void KernelStart() {
 
 	/* Starting the kernel scheduler by adding the root CPU */
 	PROC::Scheduler::AddCPU();
+
 }
 
 void RestInit(PROC::Thread *thread) {
@@ -140,8 +141,8 @@ void RestInit(PROC::Thread *thread) {
 	PRINTK::PrintK("Kernel is now resting...\r\n");
 
 	/* We enable the timer to start task-switching */
-	x86_64::SetAPICTimer();
-
+	//x86_64::SetAPICTimer();
+	
 	while(true);
 }
 
