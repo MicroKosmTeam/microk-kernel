@@ -27,6 +27,7 @@ Process *CreateProcess(ProcessType type, VMM::VirtualSpace *vms) {
 	newProcess->Type = type;
 
 	newProcess->VirtualMemorySpace = vms;
+	newProcess->HighestFree = 0x00007FFFFFFFF000;
 
 	newProcess->LastTID = 0;
 	newProcess->ThreadNumber = 0;
@@ -57,10 +58,26 @@ Thread *CreateThread(Process *process, uintptr_t entrypoint) {
 	newThread->Owner = process;
 	newThread->Entrypoint = entrypoint;
 	newThread->State = P_READY;
-	
-	void *stackAddress = Malloc(64 * 1024) + 64 * 1024 - 512;
+
+	size_t stackSize = (512 * 1024);
+
+	/*
+	void *stackAddress = Malloc(stackSize) + stackSize - 500;
 	stackAddress -= (uintptr_t)stackAddress % 16;
 	newThread->Stack = stackAddress;
+	*/
+
+	for (uintptr_t i = process->HighestFree - stackSize; i < process->HighestFree; i+= 0x1000) {
+		VMM::MapMemory(process->VirtualMemorySpace, PMM::RequestPage(), i);
+	}
+
+	memset(process->HighestFree - stackSize, 0, stackSize);
+
+	/* We subtract so to leave some space for the first save context */
+	/* Also, we align it to the 16 bit mark */
+	newThread->Stack = process->HighestFree - sizeof(SaveContext);
+	newThread->Stack -= newThread->Stack % 16;
+	process->HighestFree -= stackSize;
 
 	InitializeStack(newThread, entrypoint);
 	

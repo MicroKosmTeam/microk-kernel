@@ -44,6 +44,7 @@ namespace PROC {
 		uint8_t Priority;
 		
 		VMM::VirtualSpace *VirtualMemorySpace;
+		uintptr_t HighestFree;
 
 		uint64_t LastTID;
 		size_t ThreadNumber;
