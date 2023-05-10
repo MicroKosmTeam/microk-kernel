@@ -47,6 +47,7 @@ void IDTInit() {
 		
 	IDTSetDescriptor(32, isrStubTable[32], 0x8E);
 	IDTSetDescriptor(39, isrStubTable[39], 0x8E);
+	IDTSetDescriptor(254, isrStubTable[254], 0b11101111);
 
 	/* Load the new IDT */
 	asm volatile ("lidt %0" : : "m"(idtr));
@@ -80,4 +81,10 @@ extern "C" void timerHandler() {
 extern "C" void spuriousHandler() {
 	PRINTK::PrintK("Spurious.\r\n");
 	return;
+}
+
+extern "C" void syscallHandler() {
+	PRINTK::PrintK("Syscall.\r\n");
+	
+	while(true);
 }

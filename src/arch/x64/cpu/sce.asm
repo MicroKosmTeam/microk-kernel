@@ -16,15 +16,9 @@ EnableSCE:
 
 	mov rcx, 0xc0000082 ; LSTAR MSR
 
-	push rdi
-
-	lea rdi, [SyscallEntry]
-
 	mov edx, dword [rdi]
 	mov eax, dword [rdi+4]
 
 	wrmsr               ; write back new LSTAR
-
-	pop rdi
 
 	ret                 ; return back

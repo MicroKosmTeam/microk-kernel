@@ -87,6 +87,7 @@ void PrintBanner() {
 
 #include <arch/x64/dev/apic.hpp>
 
+__attribute__((__aligned__((16))))volatile char userStack[8192];
 /*
    Main kernel function.
 */
@@ -130,7 +131,6 @@ __attribute__((noreturn)) void KernelStart() {
 
 	/* Starting the kernel scheduler by adding the root CPU */
 	PROC::Scheduler::AddCPU();
-
 }
 
 void RestInit(PROC::Thread *thread) {
@@ -141,32 +141,35 @@ void RestInit(PROC::Thread *thread) {
 	PRINTK::PrintK("Kernel is now resting...\r\n");
 
 	/* We enable the timer to start task-switching */
-	//x86_64::SetAPICTimer();
+	x86_64::SetAPICTimer();
 	
-	while(true);
-}
-
-extern "C" void UserFunction() {
-	PRINTK::PrintK("[USER] Hello from userspace!\r\n");
-
-	PRINTK::PrintK("Done.\r\n");
-
-	while (true);
-}
-
-/*
-	KInfo *info = GetInfo();
-	void *stack = PMM::RequestPage() + info->higherHalfMapping;
+	void *stack = &userStack[8191];
 	void *func = UserFunction;
 	PRINTK::PrintK("Switching to userspace.\r\n"
 	               " Function Address: 0x%x\r\n"
 		       " Stack Address:    0x%x\r\n",
 		       (uint64_t)func,
 		       (uint64_t)stack);
-
 	EnterUserspace(func, stack);
 
 	PRINTK::PrintK("Returned from userspace.\r\n");
 
 	while (true) CPUPause();
+}
+
+#include <debug/stack.hpp>
+extern "C" void UserFunction() {
+	PRINTK::PrintK("[USER] Hello from userspace!\r\n");
+
+	UnwindStack(2);
+	
+	PRINTK::PrintK("Done.\r\n");
+
+	asm volatile("int $254");
+
+	while (true);
+}
+
+/*
+
 }*/

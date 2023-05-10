@@ -1,32 +1,90 @@
 [bits 64]
 
+%macro pushall 0
+push rax
+push rbx
+push rcx
+push rdx
+
+push r8
+push r9
+push r10
+push r11
+push r12
+push r13
+push r14
+push r15
+
+%endmacro
+
+%macro popall 0
+
+pop r15
+pop r14
+pop r13
+pop r12
+pop r11
+pop r10
+pop r9
+pop r8
+
+pop rdx
+pop rcx
+pop rbx
+pop rax
+
+%endmacro
+
 ; ISR macros
 %macro isr_null_stub 1
 isr_stub_%+%1:
+pushall
+popall
 o64 iret
 %endmacro
 
 %macro isr_err_stub 1
 isr_stub_%+%1:
+pushall
 call exceptionHandler
+popall
 o64 iret
 %endmacro
 
 %macro isr_no_err_stub 1
 isr_stub_%+%1:
+pushall
 call exceptionHandler
+popall
+
 o64 iret
 %endmacro
 
 %macro isr_timer_stub 1
 isr_stub_%+%1:
+pushall
 call timerHandler 
+popall
+
 o64 iret
 %endmacro
 
 %macro isr_spurious_stub 1
 isr_stub_%+%1:
+
+pushall
 call spuriousHandler 
+popall
+
+o64 iret
+%endmacro
+
+%macro isr_syscall_stub 1
+isr_stub_%+%1:
+pushall
+call syscallHandler
+popall
+
 o64 iret
 %endmacro
 
@@ -34,6 +92,7 @@ o64 iret
 extern exceptionHandler
 extern timerHandler
 extern spuriousHandler
+extern syscallHandler
 
 isr_no_err_stub 0
 isr_no_err_stub 1
@@ -289,14 +348,14 @@ isr_null_stub   250
 isr_null_stub   251
 isr_null_stub   252
 isr_null_stub   253
-isr_null_stub   254
+isr_syscall_stub 254
 isr_null_stub   255
 
 ; The isr stub table
 global isrStubTable
 isrStubTable:
 %assign i 0
-%rep    39
+%rep    256
 dq isr_stub_%+i
 %assign i i+1
 %endrep
