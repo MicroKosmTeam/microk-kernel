@@ -6,10 +6,6 @@ __attribute__((noreturn))
 void Panic(const char *message, const char *file, const char *function, unsigned int line) {
         asm volatile ("cli"); // We don't want interrupts while we are panicking
 
-	uint64_t cr2;
-	asm volatile ("mov %0, %%cr2" : "=r"(cr2));
-	PRINTK::PrintK("CR2: 0x%x\r\n", cr2);
-
         // Printing the panic message
 	PRINTK::PrintK("\r\n\r\n KERNEL PANIC!! \r\n");
 	PRINTK::PrintK("Irrecoverable error in the kernel.\r\n\r\n");

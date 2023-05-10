@@ -33,59 +33,100 @@ pop rcx
 pop rbx
 pop rax
 
+add rsp, 16
+
 %endmacro
 
 ; ISR macros
 %macro isr_null_stub 1
 isr_stub_%+%1:
+
 pushall
 popall
+
 o64 iret
+
 %endmacro
 
 %macro isr_err_stub 1
 isr_stub_%+%1:
+
+push %1
+
 pushall
+mov rdi, rsp
 call exceptionHandler
+mov rsp, rax
 popall
+
 o64 iret
+
 %endmacro
 
 %macro isr_no_err_stub 1
 isr_stub_%+%1:
+
+push 0
+push %1
+
 pushall
+mov rdi, rsp
 call exceptionHandler
+mov rsp, rax
 popall
 
 o64 iret
+
 %endmacro
 
 %macro isr_timer_stub 1
 isr_stub_%+%1:
+
+push 0
+push %1
+
 pushall
+mov rdi, rsp
 call timerHandler 
+mov rsp, rax
 popall
 
 o64 iret
+
 %endmacro
 
 %macro isr_spurious_stub 1
 isr_stub_%+%1:
 
+push 0
+push %1
+
 pushall
+mov rdi, rsp
 call spuriousHandler 
+mov rsp, rax
 popall
 
 o64 iret
+
 %endmacro
 
 %macro isr_syscall_stub 1
 isr_stub_%+%1:
+
+push 0
+push %1
+
 pushall
+
+mov rdi, rsp
 call syscallHandler
+mov rsp, rax
+
 popall
 
 o64 iret
+
 %endmacro
 
 ; Handling functions

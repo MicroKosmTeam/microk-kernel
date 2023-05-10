@@ -16,6 +16,31 @@ struct IDTR {
 	uint64_t	base;
 } __attribute__((packed));
 
+struct CPUStatus {
+    uint64_t R15;
+    uint64_t R14;
+    uint64_t R13;
+    uint64_t R12;
+    uint64_t R11;
+    uint64_t R10;
+    uint64_t R9;
+    uint64_t R8;
+
+    uint64_t RDX;
+    uint64_t RCX;
+    uint64_t RBX;
+    uint64_t RAX;
+
+    uint64_t VectorNumber;
+    uint64_t ErrorCode;
+    
+    uint64_t IretRIP;
+    uint64_t IretCS;
+    uint64_t IretRFLAGS;
+    uint64_t IretRSP;
+    uint64_t IretSS;
+} __attribute__((packed));
+
 namespace x86_64 {
 	void IDTInit();
 }

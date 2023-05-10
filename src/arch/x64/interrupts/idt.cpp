@@ -3,6 +3,7 @@
 */
 
 #include <sys/panic.hpp>
+#include <sys/printk.hpp>
 #include <arch/x64/interrupts/idt.hpp>
 
 /* Setting the kernel offset in the GDT (5th entry) */
@@ -56,11 +57,52 @@ void IDTInit() {
 }
 }
 
-#include <sys/printk.hpp>
+static inline void PrintRegs(CPUStatus *context) {
+	PRINTK::PrintK(" -> RAX: 0x%x\r\n"
+			" -> RBX: 0x%x\r\n"
+			" -> RCX: 0x%x\r\n"
+			" -> RDX: 0x%x\r\n"
+			" -> R08: 0x%x\r\n"
+			" -> R09: 0x%x\r\n"
+			" -> R10: 0x%x\r\n"
+			" -> R11: 0x%x\r\n"
+			" -> R12: 0x%x\r\n"
+			" -> R13: 0x%x\r\n"
+			" -> R14: 0x%x\r\n"
+			" -> R15: 0x%x\r\n\r\n"
+			" Vector Number: 0x%x\r\n"
+			" Error Code: 0x%x\r\n"
+			" Iret RIP: 0x%x\r\n"
+			" Iret CS: 0x%x\r\n"
+			" Iret RFLAGS: 0x%x\r\n"
+			" Iret RSP: 0x%x\r\n"
+			" Iret SS: 0x%x\r\n",
+			context->RAX,
+			context->RBX,
+			context->RCX,
+			context->RDX,
+			context->R8,
+			context->R9,
+			context->R10,
+			context->R11,
+			context->R12,
+			context->R13,
+			context->R14,
+			context->R15,
+			context->VectorNumber,
+			context->ErrorCode,
+			context->IretRIP,
+			context->IretCS,
+			context->IretRFLAGS,
+			context->IretRSP,
+			context->IretSS);
+}
 
 /* Stub exception handler */
-extern "C" void exceptionHandler() {
-	asm volatile ("cli");
+extern "C" CPUStatus *exceptionHandler(CPUStatus *context) {
+	PRINTK::PrintK("\r\n\r\n\r\n EXCEPTION!!\r\n");
+
+	PrintRegs(context);
 
 	PANIC("Exception");
 
@@ -68,23 +110,31 @@ extern "C" void exceptionHandler() {
 	while (true) {
 		asm volatile ("hlt");
 	}
+
+	return context;
 }
 
 #include <arch/x64/dev/apic.hpp>
-extern "C" void timerHandler() {
+extern "C" CPUStatus *timerHandler(CPUStatus *context) {
 	x86_64::SetAPICTimer();
 	x86_64::SendAPICEOI();
 
-	return;
+	return context;
 }
 
-extern "C" void spuriousHandler() {
+extern "C" CPUStatus *spuriousHandler(CPUStatus *context) {
 	PRINTK::PrintK("Spurious.\r\n");
-	return;
-}
 
-extern "C" void syscallHandler() {
-	PRINTK::PrintK("Syscall.\r\n");
+	return context;
+}
+#include <sys/user.hpp>
+extern "C" CPUStatus *syscallHandler(CPUStatus *context) {
+	PRINTK::PrintK("Syscall\r\n");
 	
+	PrintRegs(context);
+
+	//EnterUserspace(context->IretRIP, context->IretRSP);
+
 	while(true);
+	return;
 }

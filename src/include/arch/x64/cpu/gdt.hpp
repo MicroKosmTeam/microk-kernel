@@ -42,9 +42,10 @@ struct GDT {
 	GDTEntry _32bit_data;
 	GDTEntry _64bit_code;
 	GDTEntry _64bit_data;
-	GDTEntry user_null;
-	GDTEntry user_data;
+	GDTEntry user_null_syscall;
+	GDTEntry user_null_sysret;
 	GDTEntry user_code;
+	GDTEntry user_data;
 	GDTEntry tss_low;
 	GDTEntry tss_high;
 } __attribute__((packed));

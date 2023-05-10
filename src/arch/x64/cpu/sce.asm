@@ -11,14 +11,14 @@ EnableSCE:
 
 	mov rcx, 0xc0000081 ; STAR MSR
 	rdmsr               ; read current STAR
-	mov edx, 0x00400028 ; load up GDT segment bases 0x28 (kernel) and 0x40 (user)
+	mov edx, 0x00400028 ; load up GDT segment bases 0x28 (kernel) and 0x48 (user)
 	wrmsr               ; write back new STAR
 
 	mov rcx, 0xc0000082 ; LSTAR MSR
-
 	mov edx, dword [rdi]
 	mov eax, dword [rdi+4]
-
 	wrmsr               ; write back new LSTAR
+
+	mov rcx, 0xc0000084
 
 	ret                 ; return back
