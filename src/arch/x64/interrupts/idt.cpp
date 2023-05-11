@@ -48,7 +48,7 @@ void IDTInit() {
 		
 	IDTSetDescriptor(32, isrStubTable[32], 0x8E);
 	IDTSetDescriptor(39, isrStubTable[39], 0x8E);
-	IDTSetDescriptor(254, isrStubTable[254], 0b11101111);
+	IDTSetDescriptor(254, isrStubTable[254], 0b11101110);
 
 	/* Load the new IDT */
 	asm volatile ("lidt %0" : : "m"(idtr));
@@ -129,12 +129,20 @@ extern "C" CPUStatus *spuriousHandler(CPUStatus *context) {
 }
 #include <sys/user.hpp>
 extern "C" CPUStatus *syscallHandler(CPUStatus *context) {
-	PRINTK::PrintK("Syscall\r\n");
+	PRINTK::PrintK("\r\nGot syscall 0x%x with argument 0x%x\r\n", context->RDI, context->RSI);
+
+	switch(context->RDI) {
+		case 0:
+			PRINTK::PrintK("%s\r\n", context->RSI);
+			break;
+		default:
+			PRINTK::PrintK("Unknown syscall\r\n");
+			break;
+	}
 	
-	PrintRegs(context);
+	//PrintRegs(context);
 
 	//EnterUserspace(context->IretRIP, context->IretRSP);
 
-	while(true);
-	return;
+	return context;
 }

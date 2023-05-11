@@ -1,6 +1,9 @@
 [bits 64]
 
 %macro pushall 0
+push rdi
+push rsi
+
 push rax
 push rbx
 push rcx
@@ -32,6 +35,9 @@ pop rdx
 pop rcx
 pop rbx
 pop rax
+
+pop rsi
+pop rdi
 
 add rsp, 16
 
@@ -124,11 +130,9 @@ call syscallHandler
 mov rsp, rax
 
 popall
-
 o64 iret
 
 %endmacro
-
 ; Handling functions
 extern exceptionHandler
 extern timerHandler

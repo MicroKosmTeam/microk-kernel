@@ -31,6 +31,9 @@ struct CPUStatus {
     uint64_t RBX;
     uint64_t RAX;
 
+    uint64_t RSI;
+    uint64_t RDI;
+
     uint64_t VectorNumber;
     uint64_t ErrorCode;
     

@@ -133,6 +133,14 @@ __attribute__((noreturn)) void KernelStart() {
 	PROC::Scheduler::AddCPU();
 }
 
+size_t Syscall(size_t syscallNum, size_t arg) {
+	asm("int $0xFE" 
+			: "=S"(arg)
+			: "D"(syscallNum), "S"(arg)
+			: "memory");
+	return arg;
+}
+
 void RestInit(PROC::Thread *thread) {
 	/* Printing banner to show off */
 	PrintBanner();
@@ -142,7 +150,10 @@ void RestInit(PROC::Thread *thread) {
 
 	/* We enable the timer to start task-switching */
 	// x86_64::SetAPICTimer();
-	
+	Syscall(0, "Syscall test.");
+
+	PRINTK::PrintK("Returned.\r\n");
+
 	void *stack = &userStack[8191];
 	void *func = UserFunction;
 	PRINTK::PrintK("Switching to userspace.\r\n"
@@ -159,13 +170,11 @@ void RestInit(PROC::Thread *thread) {
 
 #include <debug/stack.hpp>
 extern "C" void UserFunction() {
-	PRINTK::PrintK("[USER] Hello from userspace!\r\n");
+	Syscall(0, "[USER] Hello from userspace!");
+	while(true);
 
-	UnwindStack(2);
-	ExitUserspace();
-	
-	asm volatile("int $254");
-	PRINTK::PrintK("Done.\r\n");
+	Syscall(0, "Still alive");
+	//ExitUserspace();
 
 	while(true);
 }
