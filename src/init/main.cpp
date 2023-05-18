@@ -107,7 +107,7 @@ __attribute__((noreturn)) void KernelStart() {
 	/* Initializing the heap */
 	HEAP::InitializeHeap(CONFIG_HEAP_BASE, CONFIG_HEAP_SIZE / 0x1000);
 
-	/* With the heap initialize, disable new bootmem allocations */
+	/* With the heap initialized, disable new bootmem allocations */
 	BOOTMEM::DeactivateBootmem();
 
 	/* Initialize the ACPI subsystem */
@@ -117,7 +117,6 @@ __attribute__((noreturn)) void KernelStart() {
 	/* Initializing multiprocessing */
 	PROC::SMP::Init();
 #endif
-
 	/* Initializing the scheduler framework */
 	PROC::Scheduler::Initialize();
 
@@ -133,14 +132,6 @@ __attribute__((noreturn)) void KernelStart() {
 	PROC::Scheduler::AddCPU();
 }
 
-size_t Syscall(size_t syscallNum, size_t arg) {
-	asm("int $0xFE" 
-			: "=S"(arg)
-			: "D"(syscallNum), "S"(arg)
-			: "memory");
-	return arg;
-}
-
 void RestInit(PROC::Thread *thread) {
 	/* Printing banner to show off */
 	PrintBanner();
@@ -149,11 +140,8 @@ void RestInit(PROC::Thread *thread) {
 	PRINTK::PrintK("Kernel is now resting...\r\n");
 
 	/* We enable the timer to start task-switching */
-	// x86_64::SetAPICTimer();
-	Syscall(0, "Syscall test.");
-
-	PRINTK::PrintK("Returned.\r\n");
-
+	x86_64::SetAPICTimer();
+	
 	void *stack = &userStack[8191];
 	void *func = UserFunction;
 	PRINTK::PrintK("Switching to userspace.\r\n"
@@ -168,12 +156,29 @@ void RestInit(PROC::Thread *thread) {
 	while (true) CPUPause();
 }
 
+inline size_t __x64_syscall(size_t syscallNum, size_t arg1, size_t arg2, size_t arg3, size_t arg4, size_t arg5) {
+	asm volatile("int $0xFE" 
+			: "=S"(arg1) 
+			: "D"(syscallNum), "S"(arg1), "a"(arg2), "b"(arg3), "c"(arg4), "d"(arg5));
+
+	return arg1;
+}
+
+size_t Syscall(size_t syscallNum, size_t arg1, size_t arg2, size_t arg3, size_t arg4, size_t arg5) {
+	return __x64_syscall(syscallNum, arg1, arg2, arg3, arg4, arg5);
+}
+
 #include <debug/stack.hpp>
 extern "C" void UserFunction() {
-	Syscall(0, "[USER] Hello from userspace!");
-	while(true);
+	PRINTK::PrintK("We are in usermode\r\n");
+	uint64_t syscalls = 10000000;
 
-	Syscall(0, "Still alive");
+	for(uint64_t i = 0; i < syscalls; ++i) {
+		Syscall(2, 1, 0, 0, 0, 0);
+	}
+
+	PRINTK::PrintK("We have done %d syscalls\r\n", syscalls);
+
 	//ExitUserspace();
 
 	while(true);

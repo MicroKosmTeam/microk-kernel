@@ -21,6 +21,8 @@ void Init() {
 	SetupSymtable();
 	Manager::Init();
 
+	PRINTK::PrintK("Module managment initialized.\r\n");
+
 	KInfo *info = GetInfo();
 
 	PRINTK::PrintK("Available modules: %d\r\n", info->moduleCount);
