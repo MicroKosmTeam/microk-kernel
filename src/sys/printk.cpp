@@ -14,15 +14,19 @@ UARTDevice *kernelPort;
 
 namespace PRINTK {
 void PutStr(char *str) {
+	asm ("cli");
 #ifdef CONFIG_HW_UART
 	kernelPort->PutStr(str);
 #endif
+	asm ("sti");
 }
 
 void PutChar(char ch) {
+	asm ("cli");
 #ifdef CONFIG_HW_UART
 	kernelPort->PutChar(ch);
 #endif
+	asm ("sti");
 }
 
 static SpinLock PrintKSpinlock;

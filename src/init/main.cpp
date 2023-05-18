@@ -141,7 +141,6 @@ void RestInit(PROC::Thread *thread) {
 
 	/* We enable the timer to start task-switching */
 	x86_64::SetAPICTimer();
-	
 	void *stack = &userStack[8191];
 	void *func = UserFunction;
 	PRINTK::PrintK("Switching to userspace.\r\n"
@@ -168,16 +167,30 @@ size_t Syscall(size_t syscallNum, size_t arg1, size_t arg2, size_t arg3, size_t 
 	return __x64_syscall(syscallNum, arg1, arg2, arg3, arg4, arg5);
 }
 
-#include <debug/stack.hpp>
+#include <mm/string.hpp>
 extern "C" void UserFunction() {
-	PRINTK::PrintK("We are in usermode\r\n");
-	uint64_t syscalls = 10000000;
+	Syscall(1, "We are in usermode\r\n", 0, 0, 0, 0);
+	for (uint64_t i = 0; i < 10000000; i++) {
+		char buf[128] = { '\0' };
+		itoa(buf, 10, i);
 
-	for(uint64_t i = 0; i < syscalls; ++i) {
-		Syscall(2, 1, 0, 0, 0, 0);
+		Syscall(1, "Round ", 0, 0, 0, 0);
+		Syscall(1, buf, 0, 0, 0, 0);
+		Syscall(1, " \r\n", 0, 0, 0, 0);
+		uint64_t syscalls = 1000000;
+
+		for(uint64_t i = 0; i < syscalls; ++i) {
+			Syscall(2, 1, 0, 0, 0, 0);
+		}
+
+		itoa(buf, 10, syscalls);
+		Syscall(1, "We have done ", 0, 0, 0, 0);
+		Syscall(1, buf, 0, 0, 0, 0);
+		Syscall(1, " syscalls.\r\n", 0, 0, 0, 0);
+
 	}
-
-	PRINTK::PrintK("We have done %d syscalls\r\n", syscalls);
+		
+	Syscall(1, "Done!\r\n", 0, 0, 0, 0);
 
 	//ExitUserspace();
 
