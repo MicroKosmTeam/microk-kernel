@@ -13,12 +13,14 @@
 #include <init/kinfo.hpp>
 #include <module/modulemanager.hpp>
 #include <module/buffer.hpp>
+#include <proc/process.hpp>
 
 void LoadMKMI(uint8_t *data, size_t size);
 void LoadELFCoreModule(uint8_t *data, size_t size);
 
-void LoadProgramHeaders(uint8_t *data, size_t size, VMM::VirtualSpace *space, Elf64_Ehdr *elfHeader);
-void LinkSymbols(uint8_t *data, size_t size, VMM::VirtualSpace *space, Elf64_Ehdr *elfHeader);
+void LoadProgramHeaders(uint8_t *data, size_t size, Elf64_Ehdr *elfHeader, PROC::Process *proc);
+void LinkSymbols(uint8_t *data, size_t size, Elf64_Ehdr *elfHeader, PROC::Process *proc);
+void LoadProcess(Elf64_Ehdr *elfHeader, PROC::Process *proc);
 
 uint64_t LoadELF(ELFType type, uint8_t *data, size_t size) {
 	/* Checking for the correct signature */
@@ -51,17 +53,16 @@ void LoadMKMI(uint8_t *data, size_t size) {
 		return NULL;
 	}
 
-	LoadProgramHeaders(data, size, info->kernelVirtualSpace, elfHeader);
-
-	void (*MKMISetup)(uint64_t symtable) = elfHeader->e_entry;
-	MKMISetup(CONFIG_SYMBOL_TABLE_BASE);
+	// Do dynamic loading stuff
 }
 
 void LoadELFCoreModule(uint8_t *data, size_t size) {
 	KInfo *info = GetInfo();
 
 	VMM::VirtualSpace *space = VMM::NewModuleVirtualSpace();
-	VMM::LoadVirtualSpace(space);
+	PROC::Process *module = PROC::CreateProcess(PROC::PT_USER, space);
+
+	VMM::LoadVirtualSpace(module->VirtualMemorySpace);
 	
 	Elf64_Ehdr *elfHeader = (Elf64_Ehdr*)data;
 
@@ -70,11 +71,12 @@ void LoadELFCoreModule(uint8_t *data, size_t size) {
 		return NULL;
 	}
 
-	LoadProgramHeaders(data, size, space, elfHeader);
-	LinkSymbols(data, size, space, elfHeader);
+	LoadProgramHeaders(data, size, elfHeader, module);
+	LinkSymbols(data, size, elfHeader, module);
+	LoadProcess(elfHeader, module);
 }
 
-void LoadProgramHeaders(uint8_t *data, size_t size, VMM::VirtualSpace *space, Elf64_Ehdr *elfHeader) {
+void LoadProgramHeaders(uint8_t *data, size_t size, Elf64_Ehdr *elfHeader, PROC::Process *proc) {
 	KInfo *info = GetInfo();
 
 	uint64_t programHeaderSize = elfHeader->e_phentsize;
@@ -90,13 +92,15 @@ void LoadProgramHeaders(uint8_t *data, size_t size, VMM::VirtualSpace *space, El
 
 		switch (programHeader->p_type) {
 			case PT_LOAD: {
-				if((uintptr_t)space != (uintptr_t)info->kernelVirtualSpace) VMM::LoadVirtualSpace(info->kernelVirtualSpace);
+				VMM::LoadVirtualSpace(info->kernelVirtualSpace);
+
 				for (uint64_t addr = programHeader->p_vaddr;
 				     addr < programHeader->p_vaddr + programHeader->p_memsz;
 				     addr+=0x1000) {
-					VMM::MapMemory(space, PMM::RequestPage(), addr);
+					VMM::MapMemory(proc->VirtualMemorySpace, PMM::RequestPage(), addr);
 				}
-				if((uintptr_t)space != (uintptr_t)info->kernelVirtualSpace) VMM::LoadVirtualSpace(space);
+
+				VMM::LoadVirtualSpace(proc->VirtualMemorySpace);
 
 				memset(programHeader->p_vaddr, 0, programHeader->p_memsz);
 				memcpy(programHeader->p_vaddr, data + programHeader->p_offset, programHeader->p_filesz);
@@ -111,7 +115,7 @@ void LoadProgramHeaders(uint8_t *data, size_t size, VMM::VirtualSpace *space, El
 	PRINTK::PrintK("Loading Complete. Program is %d bytes.\r\n", progSize);
 }
 
-void LinkSymbols(uint8_t *data, size_t size, VMM::VirtualSpace *space, Elf64_Ehdr *elfHeader) {
+void LinkSymbols(uint8_t *data, size_t size, Elf64_Ehdr *elfHeader, PROC::Process *proc) {
 	KInfo *info = GetInfo();
 
 	uint64_t sectionHeaderSize = elfHeader->e_shentsize;
@@ -150,50 +154,43 @@ void LinkSymbols(uint8_t *data, size_t size, VMM::VirtualSpace *space, Elf64_Ehd
 	//PRINTK::PrintK("There are %d symbols.\r\n", symbolNumber);
 
 	Elf64_Sym *symbol;
-	MKMI_Module *modinfo;
-
-	uint64_t (*entry)();
-	uint64_t (*exit)();
+	MKMI_Module modinfo;
 
 	for (int i = 0; i < symbolNumber; i++) {
 		symbol = (Elf64_Sym*)(data + symtab->sh_offset + symtab->sh_entsize * i);
 		const char *name = &strtabData[symbol->st_name];
 
-		//PRINTK::PrintK("-> %s at 0x%x\r\n", name, symbol->st_value);
-
 		if (strcmp(name, "ModuleInfo") == 0) {
-			modinfo = symbol->st_value;
-			/*PRINTK::PrintK("Module info:\r\n"
-					" -> Module name: %s 0x%x\r\n"
-					" -> Author name: %s 0x%x\r\n",
-					modinfo->ID.Name, modinfo->ID.Codename,
-					modinfo->ID.Author, modinfo->ID.Writer);*/
-			modinfo->PrintK = PRINTK::PrintK;
-			modinfo->GetModule = MODULE::Manager::GetModule;
-			modinfo->BufferCreate = MODULE::Buffer::Create;
-			modinfo->BufferIO = MODULE::Buffer::IO;
-			modinfo->BufferDelete = MODULE::Buffer::Delete;
-		} else if (strcmp(name, "ModuleInit") == 0) {
-			entry = symbol->st_value;
-		} else if (strcmp(name, "ModuleDeinit") == 0) {
-			exit = symbol->st_value;
+			memcpy(&modinfo, (MKMI_Module*)(symbol->st_value), sizeof(MKMI_Module));
 		}
 	}
 
-	// TODO: TMP sections
-	MKMI_Module newinfo = *modinfo;
 	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
-	MODULE::Manager::RegisterModule(newinfo);
-	VMM::LoadVirtualSpace(space);
+	MODULE::Manager::RegisterModule(modinfo);
+	VMM::LoadVirtualSpace(proc->VirtualMemorySpace);
+}
 
+#include <arch/x64/cpu/stack.hpp>
+void LoadProcess(Elf64_Ehdr *elfHeader, PROC::Process *proc) {
+	KInfo *info = GetInfo();
+	PRINTK::PrintK("Creating thread..\r\n");
+	void *entry = elfHeader->e_entry;
+	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
+	PROC::Thread *mainThread = PROC::CreateThread(proc, entry);
+	VMM::LoadVirtualSpace(proc->VirtualMemorySpace);
+	
+	SaveContext *context = mainThread->Stack - sizeof(SaveContext);
+	PRINTK::PrintK("Save context:\r\n"
+			"ret: 0x%x", context->ret);
+	while(true);
+	
 	PRINTK::PrintK("Launching...\r\n");
-
-	entry();
-
+	SwitchStack(&info->kernelStack, &mainThread->Stack);
 	// Do things...
 
-	exit();
+	while(true);
 
-	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
-	MODULE::Manager::UnregisterModule(modinfo->ID);
+	//VMM::LoadVirtualSpace(info->kernelVirtualSpace);
+	//MODULE::Manager::UnregisterModule(modinfo->ID);
+
 }

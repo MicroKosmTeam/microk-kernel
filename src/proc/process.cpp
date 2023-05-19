@@ -66,6 +66,8 @@ Thread *CreateThread(Process *process, uintptr_t entrypoint) {
 	stackAddress -= (uintptr_t)stackAddress % 16;
 	newThread->Stack = stackAddress;
 	*/
+	
+	process->HighestFree -= process->HighestFree % 16;
 
 	for (uintptr_t i = process->HighestFree - stackSize; i < process->HighestFree; i+= 0x1000) {
 		VMM::MapMemory(process->VirtualMemorySpace, PMM::RequestPage(), i);
@@ -74,9 +76,7 @@ Thread *CreateThread(Process *process, uintptr_t entrypoint) {
 	memset(process->HighestFree - stackSize, 0, stackSize);
 
 	/* We subtract so to leave some space for the first save context */
-	/* Also, we align it to the 16 bit mark */
 	newThread->Stack = process->HighestFree - sizeof(SaveContext);
-	newThread->Stack -= newThread->Stack % 16;
 	process->HighestFree -= stackSize;
 
 	InitializeStack(newThread, entrypoint);
@@ -86,7 +86,9 @@ Thread *CreateThread(Process *process, uintptr_t entrypoint) {
 
 	if (process->MainThread == NULL) process->MainThread = newThread;
 
-	return process->Threads.Get(process->ThreadNumber - 1);
+	Thread *complete = process->Threads.Get(process->ThreadNumber - 1);
+
+	return complete;
 }
 
 void DeleteThread(Thread *thread) {

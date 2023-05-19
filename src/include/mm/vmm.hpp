@@ -11,6 +11,7 @@ namespace VMM {
 
 	class VirtualSpace {
 	public:
+		virtual void Fork(VirtualSpace *space) = 0;
 		virtual void MapMemory(void *physicalMemory, void *virtualMemory, uint64_t flags) = 0;
 		virtual void UnmapMemory(void *virtualMemory) = 0;
 		virtual void *GetTopAddress() = 0;

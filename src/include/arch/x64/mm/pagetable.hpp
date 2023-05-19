@@ -7,6 +7,7 @@ class PageTableManager : public VMM::VirtualSpace {
 public:
         PageTableManager(PageTable *PML4Address);
 
+	void Fork(VMM::VirtualSpace *space) override;
 	void MapMemory(void *physicalMemory, void *virtualMemory, uint64_t flags) override;
 	void UnmapMemory(void *virtualMemory) override;
 
