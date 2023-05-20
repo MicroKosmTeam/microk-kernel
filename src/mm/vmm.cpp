@@ -3,9 +3,6 @@
 #include <arch/x64/mm/vmm.hpp>
 #include <sys/printk.hpp>
 
-//TODO FIX
-#include <sys/symtable.hpp>
-
 #define PAGE_SIZE 0x1000
 
 namespace VMM {
@@ -25,9 +22,8 @@ VirtualSpace *NewModuleVirtualSpace() {
 
 	VirtualSpace *space = NewVirtualSpace();
 
-	info->kernelVirtualSpace->Fork(space);
+	info->kernelVirtualSpace->Fork(space, true);
 
-	PRINTK::PrintK("Fork complete.\r\n");
 	return space;
 }
 
@@ -70,9 +66,6 @@ VirtualSpace *NewKernelVirtualSpace() {
 
 VirtualSpace *NewVirtualSpace() {
 	return x86_64::NewVirtualSpace();
-}
-
-VirtualSpace *Fork(VirtualSpace *space) {
 }
 
 void LoadVirtualSpace(VMM::VirtualSpace *space) {

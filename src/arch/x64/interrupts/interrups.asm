@@ -156,6 +156,7 @@ popall
 exitisr
 
 %endmacro
+
 ; Handling functions
 extern exceptionHandler
 extern timerHandler

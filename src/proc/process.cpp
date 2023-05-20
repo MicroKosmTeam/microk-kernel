@@ -60,24 +60,25 @@ Thread *CreateThread(Process *process, uintptr_t entrypoint) {
 	newThread->State = P_READY;
 
 	size_t stackSize = (512 * 1024);
+	stackSize -= stackSize % 16;
 
-	/*
-	void *stackAddress = Malloc(stackSize) + stackSize - 500;
+	// This is obviously wrong, but it is the only thing that works
+	void *stackAddress = Malloc(stackSize) + stackSize;
 	stackAddress -= (uintptr_t)stackAddress % 16;
 	newThread->Stack = stackAddress;
-	*/
 	
-	process->HighestFree -= process->HighestFree % 16;
+	/*process->HighestFree -= process->HighestFree % 16;
 
 	for (uintptr_t i = process->HighestFree - stackSize; i < process->HighestFree; i+= 0x1000) {
-		VMM::MapMemory(process->VirtualMemorySpace, PMM::RequestPage(), i);
+		process->VirtualMemorySpace->MapMemory((void*)PMM::RequestPage(), (void*)i, 0);
 	}
 
 	memset(process->HighestFree - stackSize, 0, stackSize);
 
 	/* We subtract so to leave some space for the first save context */
-	newThread->Stack = process->HighestFree - sizeof(SaveContext);
-	process->HighestFree -= stackSize;
+	//newThread->Stack = process->HighestFree - sizeof(SaveContext);
+	newThread->Stack -= sizeof(SaveContext);
+	//process->HighestFree = newThread->Stack - 0x1000;
 
 	InitializeStack(newThread, entrypoint);
 	

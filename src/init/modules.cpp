@@ -11,14 +11,12 @@
 #include <sys/driver.hpp>
 #include <init/kinfo.hpp>
 #include <sys/user.hpp>
-#include <sys/symtable.hpp>
 #include <mkmi.h>
 #include <module/modulemanager.hpp>
 
 namespace MODULE {
 
 void Init() {
-	SetupSymtable();
 	Manager::Init();
 
 	PRINTK::PrintK("Module managment initialized.\r\n");

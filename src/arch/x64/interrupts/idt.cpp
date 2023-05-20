@@ -69,7 +69,9 @@ static inline void PrintRegs(CPUStatus *context) {
 			" -> R12: 0x%x\r\n"
 			" -> R13: 0x%x\r\n"
 			" -> R14: 0x%x\r\n"
-			" -> R15: 0x%x\r\n\r\n"
+			" -> R15: 0x%x\r\n"
+			" -> RDI: 0x%x\r\n"
+			" -> RSI: 0x%x\r\n\r\n"
 			" Vector Number: 0x%x\r\n"
 			" Error Code: 0x%x\r\n"
 			" Iret RIP: 0x%x\r\n"
@@ -89,6 +91,8 @@ static inline void PrintRegs(CPUStatus *context) {
 			context->R13,
 			context->R14,
 			context->R15,
+			context->RDI,
+			context->RSI,
 			context->VectorNumber,
 			context->ErrorCode,
 			context->IretRIP,
@@ -129,8 +133,21 @@ extern "C" CPUStatus *spuriousHandler(CPUStatus *context) {
 }
 #include <sys/user.hpp>
 #include <sys/syscall.hpp>
+#include <init/kinfo.hpp>
+extern "C" void Test() {
+	PRINTK::PrintK("Officially returned to kernel.\r\n");
+}
+__attribute__((__aligned__((16)))) char testStack[8192];
 extern "C" CPUStatus *syscallHandler(CPUStatus *context) {
-	context->RDI = HandleSyscall(context->RDI, context->RSI, context->RAX, context->RBX, context->RCX, context->RDX);
+	KInfo *info = GetInfo();
+
+	HandleSyscall(context->RDI, context->RSI, context->RDX, context->RCX, context->R8, context->R9);
+
+	/*
+	context->IretRIP = HandleSyscall;
+	context->IretCS = GDT_OFFSET_KERNEL_CODE;
+	context->IretRSP = &testStack[8191];
+	context->IretSS = GDT_OFFSET_KERNEL_CODE + 0x8;*/
 
 	return context;
 }

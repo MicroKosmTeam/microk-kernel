@@ -11,18 +11,10 @@ PageTableManager::PageTableManager(PageTable *PML4Address){
 }
 
 #include <sys/printk.hpp>
-static void PrintTable(PageTable *one, PageTable *two) {
-	for (int i = 0; i < ENTRIES; i++) {
-		PRINTK::PrintK("Difference %d: 0x%x 0x%x\r\n", i, one->entries[i], two->entries[i]);
-	}
-
-	while(true);
-}
-
-void PageTableManager::Fork(VMM::VirtualSpace *space) {
+void PageTableManager::Fork(VMM::VirtualSpace *space, bool higherHalf) {
 	PageTable *newPML4 = space->GetTopAddress();
 
-	for (int PDP_i = 0; PDP_i < ENTRIES; PDP_i++) {
+	for (int PDP_i = (higherHalf) ? (256) : (0); PDP_i < ENTRIES; PDP_i++) {
 		PageDirectoryEntry PDE;
 		PageDirectoryEntry newPDE;
 
@@ -82,9 +74,10 @@ void PageTableManager::Fork(VMM::VirtualSpace *space) {
 								if (PDE.GetFlag(PT_Flag::Present)) {
 									newPDE.SetAddress(PDE.GetAddress());
 									newPDE.SetFlag(PT_Flag::Present, true);
-									newPDE.SetFlag(PT_Flag::ReadWrite, true);
-									newPDE.SetFlag(PT_Flag::UserSuper, true);
-									newPDE.SetFlag(PT_Flag::Global, true);
+
+									newPDE.SetFlag(PT_Flag::ReadWrite, PDE.GetFlag(PT_Flag::ReadWrite));
+									newPDE.SetFlag(PT_Flag::UserSuper, PDE.GetFlag(PT_Flag::UserSuper));
+									newPDE.SetFlag(PT_Flag::Global, PDE.GetFlag(PT_Flag::Global));
 
 									newPT->entries[P_i] = newPDE;
 								}
@@ -159,10 +152,66 @@ void PageTableManager::MapMemory(void *physicalMemory, void *virtualMemory, uint
 
 	PT->entries[indexer.P_i] = PDE;
 
-	// TODO: Manage TLB
-	// asm volatile("invlpg (%0)" ::"r" (virtualMemory) : "memory");
+	asm volatile("invlpg (%0)" ::"r" (virtualMemory) : "memory");
 }
 	
 void PageTableManager::UnmapMemory(void *virtualMemory) {
+	PageMapIndexer indexer = PageMapIndexer((uint64_t)virtualMemory);
+	PageDirectoryEntry PDE;
 
+	PDE = PML4->entries[indexer.PDP_i];
+	PageTable* PDP;
+	if (PDE.GetFlag(PT_Flag::Present)) {
+		PDP = (PageTable*)((uint64_t)PDE.GetAddress() << 12);
+	} else return;
+
+	PDE = PDP->entries[indexer.PD_i];
+	PageTable* PD;
+	if (PDE.GetFlag(PT_Flag::Present)) {
+		PD = (PageTable*)((uint64_t)PDE.GetAddress() << 12);
+	} else return;
+
+	PDE = PD->entries[indexer.PT_i];
+	PageTable* PT;
+	if (PDE.GetFlag(PT_Flag::Present)) {
+		PT = (PageTable*)((uint64_t)PDE.GetAddress() << 12);
+	} else return;
+
+	PDE = PT->entries[indexer.P_i];
+	if (PDE.GetFlag(PT_Flag::Present)) PDE.SetFlag(PT_Flag::Present, false);
+	else return;
+	PT->entries[indexer.P_i] = PDE;
+	
+	asm volatile("invlpg (%0)" ::"r" (virtualMemory) : "memory");
+}
+
+void *PageTableManager::GetPhysicalAddress(void *virtualMemory) {
+	PageMapIndexer indexer = PageMapIndexer((uint64_t)virtualMemory);
+	PageDirectoryEntry PDE;
+	void *address;
+
+	PDE = PML4->entries[indexer.PDP_i];
+	PageTable* PDP;
+	if (PDE.GetFlag(PT_Flag::Present)) {
+		PDP = (PageTable*)((uint64_t)PDE.GetAddress() << 12);
+	} else return NULL;
+
+	PDE = PDP->entries[indexer.PD_i];
+	PageTable* PD;
+	if (PDE.GetFlag(PT_Flag::Present)) {
+		PD = (PageTable*)((uint64_t)PDE.GetAddress() << 12);
+	} else return NULL;
+
+	PDE = PD->entries[indexer.PT_i];
+	PageTable* PT;
+	if (PDE.GetFlag(PT_Flag::Present)) {
+		PT = (PageTable*)((uint64_t)PDE.GetAddress() << 12);
+	} else return NULL;
+
+	PDE = PT->entries[indexer.P_i];
+	if (PDE.GetFlag(PT_Flag::Present)) {
+		address = (void*)((uint64_t)PDE.GetAddress() << 12);
+	} else return NULL;
+
+	return address;
 }

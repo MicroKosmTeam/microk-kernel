@@ -180,17 +180,17 @@ void LoadProcess(Elf64_Ehdr *elfHeader, PROC::Process *proc) {
 	VMM::LoadVirtualSpace(proc->VirtualMemorySpace);
 	
 	SaveContext *context = mainThread->Stack - sizeof(SaveContext);
-	PRINTK::PrintK("Save context:\r\n"
-			"ret: 0x%x", context->ret);
-	while(true);
-	
+	PRINTK::PrintK("Save context: 0x%x\r\n"
+			"RBP: 0x%x\r\n"
+			"RBP2: 0x%x\r\n"
+			"ret: 0x%x\r\n", 
+			context,
+			context->RBP, context->RBP2, context->ret);
 	PRINTK::PrintK("Launching...\r\n");
 	SwitchStack(&info->kernelStack, &mainThread->Stack);
 	// Do things...
-
-	while(true);
-
-	//VMM::LoadVirtualSpace(info->kernelVirtualSpace);
+	
+	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
 	//MODULE::Manager::UnregisterModule(modinfo->ID);
 
 }
