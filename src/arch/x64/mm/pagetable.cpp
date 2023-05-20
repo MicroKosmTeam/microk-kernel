@@ -6,6 +6,8 @@
 
 #define ENTRIES 512
 
+#pragma GCC push_options
+#pragma GCC optimize ("O3")
 PageTableManager::PageTableManager(PageTable *PML4Address){
 	this->PML4 = PML4Address;
 }
@@ -152,7 +154,7 @@ void PageTableManager::MapMemory(void *physicalMemory, void *virtualMemory, uint
 
 	PT->entries[indexer.P_i] = PDE;
 
-	asm volatile("invlpg (%0)" ::"r" (virtualMemory) : "memory");
+	asm ("invlpg (%0)" ::"r" (virtualMemory) : "memory");
 }
 	
 void PageTableManager::UnmapMemory(void *virtualMemory) {
@@ -215,3 +217,4 @@ void *PageTableManager::GetPhysicalAddress(void *virtualMemory) {
 
 	return address;
 }
+#pragma GCC pop_options

@@ -29,7 +29,6 @@
 #include <mm/pmm.hpp>
 #include <mm/heap.hpp>
 #include <proc/smp.hpp>
-#include <sys/user.hpp>
 #include <init/main.hpp>
 #include <sys/panic.hpp>
 #include <mm/memory.hpp>
@@ -46,7 +45,6 @@
    Function that is started by the scheduler once kernel startup is complete.
 */
 void RestInit(PROC::Thread *thread);
-extern "C" void UserFunction();
 
 int EarlyKernelInit() {
 	/* Allocating memory for the info struct */
@@ -87,7 +85,6 @@ void PrintBanner() {
 
 #include <arch/x64/dev/apic.hpp>
 
-__attribute__((__aligned__((16))))volatile char userStack[8192];
 /*
    Main kernel function.
 */
@@ -127,6 +124,8 @@ __attribute__((noreturn)) void KernelStart() {
 	/* Starting the modules subsystem */
 	MODULE::Init();
 #endif
+	/* We enable the timer to start task-switching */
+	x86_64::SetAPICTimer();
 
 	/* Starting the kernel scheduler by adding the root CPU */
 	PROC::Scheduler::AddCPU();
@@ -139,60 +138,5 @@ void RestInit(PROC::Thread *thread) {
 	/* We are done with the boot process */
 	PRINTK::PrintK("Kernel is now resting...\r\n");
 
-	/* We enable the timer to start task-switching */
-	x86_64::SetAPICTimer();
-	void *stack = &userStack[8191];
-	void *func = UserFunction;
-	PRINTK::PrintK("Switching to userspace.\r\n"
-	               " Function Address: 0x%x\r\n"
-		       " Stack Address:    0x%x\r\n",
-		       (uint64_t)func,
-		       (uint64_t)stack);
-	EnterUserspace(func, stack);
-
-	PRINTK::PrintK("Returned from userspace.\r\n");
-
 	while (true) CPUPause();
-}
-
-inline size_t __x64_syscall(size_t syscallNum, size_t arg1, size_t arg2, size_t arg3, size_t arg4, size_t arg5) {
-	asm volatile("int $0xFE" 
-			: "=S"(arg1) 
-			: "D"(syscallNum), "S"(arg1), "a"(arg2), "b"(arg3), "c"(arg4), "d"(arg5));
-
-	return arg1;
-}
-
-size_t Syscall(size_t syscallNum, size_t arg1, size_t arg2, size_t arg3, size_t arg4, size_t arg5) {
-	return __x64_syscall(syscallNum, arg1, arg2, arg3, arg4, arg5);
-}
-
-#include <mm/string.hpp>
-extern "C" void UserFunction() {
-	Syscall(1, "We are in usermode\r\n", 0, 0, 0, 0);
-	for (uint64_t i = 0; i < 10000000; i++) {
-		char buf[128] = { '\0' };
-		itoa(buf, 10, i);
-
-		Syscall(1, "Round ", 0, 0, 0, 0);
-		Syscall(1, buf, 0, 0, 0, 0);
-		Syscall(1, " \r\n", 0, 0, 0, 0);
-		uint64_t syscalls = 1000000;
-
-		for(uint64_t i = 0; i < syscalls; ++i) {
-			Syscall(2, 1, 0, 0, 0, 0);
-		}
-
-		itoa(buf, 10, syscalls);
-		Syscall(1, "We have done ", 0, 0, 0, 0);
-		Syscall(1, buf, 0, 0, 0, 0);
-		Syscall(1, " syscalls.\r\n", 0, 0, 0, 0);
-
-	}
-		
-	Syscall(1, "Done!\r\n", 0, 0, 0, 0);
-
-	//ExitUserspace();
-
-	while(true);
 }

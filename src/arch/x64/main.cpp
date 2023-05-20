@@ -30,6 +30,17 @@ void Init() {
 	IDTInit();
 	PRINTK::PrintK("IDT Loaded.\r\n");
 
+	asm volatile ("push %rax\n\t"
+			"push %rbx\n\t"
+			"pushfq\n\t"
+			"pop %rax\n\t"
+			"mov $0xFFFFFFFFFFFFCFFF, %rbx\n\t"
+			"and %rbx, %rax\n\t"
+			"push %rax\n\t"
+			"popfq\n\t"
+			"pop %rbx\n\t"
+			"pop %rax");
+
 	/* x86 CPU initialization */
 	x86CPU *defaultCPU = new x86CPU; /* Allocated by BOOTMEM, do not free */
 

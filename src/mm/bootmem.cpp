@@ -2,7 +2,7 @@
 #include <cdefs.h>
 
 const uint32_t BOOTMEM_SIZE = CONFIG_BOOTMEM_SIZE;
-uint8_t bootmemMemory[BOOTMEM_SIZE];
+__attribute__((__aligned__((16)))) uint8_t bootmemMemory[BOOTMEM_SIZE];
 uint32_t lastPosition = 0;
 bool bootmemStatus = true;
 

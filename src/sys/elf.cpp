@@ -13,6 +13,7 @@
 #include <init/kinfo.hpp>
 #include <module/modulemanager.hpp>
 #include <module/buffer.hpp>
+#include <sys/user.hpp>
 #include <proc/process.hpp>
 
 void LoadMKMI(uint8_t *data, size_t size);
@@ -179,16 +180,24 @@ void LoadProcess(Elf64_Ehdr *elfHeader, PROC::Process *proc) {
 	PROC::Thread *mainThread = PROC::CreateThread(proc, entry);
 	VMM::LoadVirtualSpace(proc->VirtualMemorySpace);
 	
-	SaveContext *context = mainThread->Stack - sizeof(SaveContext);
+	/*SaveContext *context = mainThread->Stack - sizeof(SaveContext);
 	PRINTK::PrintK("Save context: 0x%x\r\n"
 			"RBP: 0x%x\r\n"
 			"RBP2: 0x%x\r\n"
 			"ret: 0x%x\r\n", 
 			context,
-			context->RBP, context->RBP2, context->ret);
+			context->RBP, context->RBP2, context->ret);*/
 	PRINTK::PrintK("Launching...\r\n");
-	SwitchStack(&info->kernelStack, &mainThread->Stack);
-	// Do things...
+
+	void *stack = mainThread->Stack + sizeof(SaveContext);
+	PRINTK::PrintK("Switching to userspace.\r\n"
+	               " Function Address: 0x%x\r\n"
+		       " Stack Address:    0x%x\r\n",
+		       (uint64_t)entry,
+		       (uint64_t)stack);
+	EnterUserspace(entry, stack);
+
+	//SwitchStack(&info->kernelStack, &mainThread->Stack);
 	
 	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
 	//MODULE::Manager::UnregisterModule(modinfo->ID);
