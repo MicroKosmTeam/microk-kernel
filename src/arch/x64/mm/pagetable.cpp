@@ -11,61 +11,93 @@ PageTableManager::PageTableManager(PageTable *PML4Address){
 }
 
 #include <sys/printk.hpp>
+static void PrintTable(PageTable *one, PageTable *two) {
+	for (int i = 0; i < ENTRIES; i++) {
+		PRINTK::PrintK("Difference %d: 0x%x 0x%x\r\n", i, one->entries[i], two->entries[i]);
+	}
+
+	while(true);
+}
+
 void PageTableManager::Fork(VMM::VirtualSpace *space) {
 	PageTable *newPML4 = space->GetTopAddress();
-	memcpy(newPML4, PML4, 0x1000);
 
-	for(int level4 = 0; level4 < ENTRIES; level4++) {
-		PageDirectoryEntry PDE = PML4->entries[level4];
-		PageDirectoryEntry newPDE = newPML4->entries[level4];
+	for (int PDP_i = 0; PDP_i < ENTRIES; PDP_i++) {
+		PageDirectoryEntry PDE;
+		PageDirectoryEntry newPDE;
 
-		if(PDE.GetFlag(PT_Flag::Present)) {
-			PageTable *PDP = (PageTable*)((uint64_t)PDE.GetAddress() << 12);
-			PageTable *newPDP = (PageTable*)PMM::RequestPage();
+		PDE = PML4->entries[PDP_i];
+		newPDE = newPML4->entries[PDP_i];
 
-			memcpy(newPDP, PDP, 0x1000);
+		PageTable *PDP = (PageTable*)((uint64_t)PDE.GetAddress() << 12);
+		PageTable *newPDP;
+		if (PDE.GetFlag(PT_Flag::Present)) {
+			newPDP = (PageTable*)PMM::RequestPage();
+			memset(newPDP, 0, 0x1000);
 
-			for (int level3 = 0; level3 < ENTRIES; level3++) {
-				PageDirectoryEntry PDE = PDP->entries[level3];
-				PageDirectoryEntry newPDE = newPDP->entries[level3];
+			newPDE.SetAddress((uint64_t)newPDP >> 12);
+			newPDE.SetFlag(PT_Flag::Present, true);
+			newPDE.SetFlag(PT_Flag::ReadWrite, true);
+			newPDE.SetFlag(PT_Flag::UserSuper, true);
+			newPDE.SetFlag(PT_Flag::Global, true);
+			newPML4->entries[PDP_i] = newPDE;
 
-				if(PDE.GetFlag(PT_Flag::Present)) {
-					PageTable *PD = (PageTable*)((uint64_t)PDE.GetAddress() << 12);
-					PageTable *newPD = (PageTable*)PMM::RequestPage();
-			
-					memcpy(newPD, PD, 0x1000);
+			for (int PD_i = 0; PD_i < ENTRIES; PD_i++) {
+				PDE = PDP->entries[PD_i];
+				newPDE = newPDP->entries[PD_i];
 
-					for (int level2 = 0; level2 < ENTRIES; level2++) {
-						PageDirectoryEntry PDE = PD->entries[level2];
-						PageDirectoryEntry newPDE = newPD->entries[level2];
-		
-						if(PDE.GetFlag(PT_Flag::Present)) {
-							PageTable *PT = (PageTable*)((uint64_t)PDE.GetAddress() << 12);
-							PageTable *newPT = (PageTable*)PMM::RequestPage();
-			
-							memcpy(newPT, PT, 0x1000);
+				PageTable *PD = (PageTable*)((uint64_t)PDE.GetAddress() << 12);
+				PageTable *newPD;
+				if (PDE.GetFlag(PT_Flag::Present)) {
+					newPD = (PageTable*)PMM::RequestPage();
+					memset(newPD, 0, 0x1000);
+					
+					newPDE.SetAddress((uint64_t)newPD >> 12);
+					newPDE.SetFlag(PT_Flag::Present, true);
+					newPDE.SetFlag(PT_Flag::ReadWrite, true);
+					newPDE.SetFlag(PT_Flag::UserSuper, true);
+					newPDE.SetFlag(PT_Flag::Global, true);
+					newPDP->entries[PD_i] = newPDE;
 
-							for (int level1 = 0; level1 < ENTRIES; level1++) {
-								PageDirectoryEntry PDE = PT->entries[level1];
-								PageDirectoryEntry newPDE = newPT->entries[level1];
+					for (int PT_i = 0; PT_i < ENTRIES; PT_i++) {
+						PDE = PD->entries[PT_i];
+						newPDE = newPD->entries[PT_i];
 
+						PageTable *PT = (PageTable*)((uint64_t)PDE.GetAddress() << 12);
+						PageTable *newPT;
+						if (PDE.GetFlag(PT_Flag::Present)) {
+							newPT = (PageTable*)PMM::RequestPage();
+							memset(newPT, 0, 0x1000);
+							newPDE.SetAddress((uint64_t)newPT >> 12);
+							newPDE.SetFlag(PT_Flag::Present, true);
+							newPDE.SetFlag(PT_Flag::ReadWrite, true);
+							newPDE.SetFlag(PT_Flag::UserSuper, true);
+							newPDE.SetFlag(PT_Flag::Global, true);
+							newPD->entries[PT_i] = newPDE;
 
-								newPT->entries[level1] = newPDE;
+							for (int P_i = 0; P_i < ENTRIES; P_i++) {
+								PDE = PT->entries[P_i];
+								newPDE = newPT->entries[P_i];
+								
+								if (PDE.GetFlag(PT_Flag::Present)) {
+									newPDE.SetAddress(PDE.GetAddress());
+									newPDE.SetFlag(PT_Flag::Present, true);
+									newPDE.SetFlag(PT_Flag::ReadWrite, true);
+									newPDE.SetFlag(PT_Flag::UserSuper, true);
+									newPDE.SetFlag(PT_Flag::Global, true);
+
+									newPT->entries[P_i] = newPDE;
+								}
 							}
+							
+
 						}
-					
-						newPD->entries[level2] = newPDE;
+
 					}
-
-
-
 				}
-			
-				newPDP->entries[level3] = newPDE;
+							
 			}
-					
 		}
-
 	}
 }
 
