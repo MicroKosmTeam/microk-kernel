@@ -19,8 +19,6 @@ __attribute__((aligned(0x1000))) GDT gdt = {
 	{0xffff, 0, 0, 0x92, 0xcf, 0}, /* 32-bit data */
 	{0, 0, 0, 0x9a, 0xa0, 0}, /* 64-bit code */
 	{0, 0, 0, 0x92, 0xa0, 0}, /* 64-bit data */
-	{0, 0, 0, 0x00, 0x00, 0}, /* User NULL */
-	{0, 0, 0, 0x00, 0x00, 0}, /* User NULL */
 	{0, 0, 0, 0x9a, 0xa0, 0}, /* User code */
 	{0, 0, 0, 0x92, 0xa0, 0}, /* User data */
 	{0, 0, 0, 0x89, 0xa0, 0},  /* TSS low */

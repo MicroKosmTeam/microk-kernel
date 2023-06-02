@@ -19,6 +19,6 @@ FlushGDT:
 ; Function to load the TSS
 global FlushTSS
 FlushTSS:
-	mov ax, 0x58
+	mov ax, 0x48
 	ltr ax
 	ret

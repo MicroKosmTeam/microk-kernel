@@ -134,10 +134,6 @@ extern "C" CPUStatus *spuriousHandler(CPUStatus *context) {
 #include <sys/user.hpp>
 #include <sys/syscall.hpp>
 #include <init/kinfo.hpp>
-extern "C" void Test() {
-	PRINTK::PrintK("Officially returned to kernel.\r\n");
-}
-__attribute__((__aligned__((16)))) char testStack[8192];
 extern "C" CPUStatus *syscallHandler(CPUStatus *context) {
 	KInfo *info = GetInfo();
 

@@ -114,6 +114,9 @@ __attribute__((noreturn)) void KernelStart() {
 	/* Initializing multiprocessing */
 	PROC::SMP::Init();
 #endif
+	/* Printing banner to show off */
+	PrintBanner();
+
 	/* Initializing the scheduler framework */
 	PROC::Scheduler::Initialize();
 
@@ -132,9 +135,6 @@ __attribute__((noreturn)) void KernelStart() {
 }
 
 void RestInit(PROC::Thread *thread) {
-	/* Printing banner to show off */
-	PrintBanner();
-
 	/* We are done with the boot process */
 	PRINTK::PrintK("Kernel is now resting...\r\n");
 

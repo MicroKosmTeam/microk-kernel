@@ -10,7 +10,7 @@ void HandleSyscallDebugPrintK(char *string);
 void HandleSyscallProcReturn(size_t returnCode, uintptr_t stack);
 void HandleSyscallProcExit(size_t exitCode, uintptr_t stack);
 
-void HandleSyscall(size_t syscallNumber, size_t arg1, size_t arg2, size_t arg3, size_t arg4, size_t arg5) {
+extern "C" void HandleSyscall(size_t syscallNumber, size_t arg1, size_t arg2, size_t arg3, size_t arg4, size_t arg5) {
 	switch(syscallNumber) {
 		case SYSCALL_DEBUG_PRINTK:
 			HandleSyscallDebugPrintK(arg1);
