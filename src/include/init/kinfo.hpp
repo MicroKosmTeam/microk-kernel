@@ -7,6 +7,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <mm/vmm.hpp>
+#include <proc/process.hpp>
 
 #ifdef CONFIG_HW_UART
 #include <dev/uart/uart.hpp>
@@ -36,29 +37,6 @@ struct BootFile {
 };
 #endif
 
-#ifdef CONFIG_MP_SMP
-struct BootCPU;
-typedef void (*CPUGotoAddress)(BootCPU *);
-
-struct BootCPU {
-	uint32_t ProcessorID;
-
-	union {
-		struct {
-			uint32_t LApicID;
-		};
-		struct {
-			uint32_t GicIFaceNo;
-			uint64_t Mpidr;
-		};
-	};
-		
-	uint64_t Reserved;
-
-	CPUGotoAddress *GotoAddress;
-};
-#endif
-
 /*
    KInfo struct
     Contains some basic information to be passes between components of the kernel
@@ -76,6 +54,7 @@ struct KInfo {
 	uintptr_t kernelVirtualBase; /* Start of the kernel in virtual memory */
 
 	VMM::VirtualSpace *kernelVirtualSpace; /* Kernel virtual memory space */
+	PROC::Process *kernelProcess;
 
 #ifdef CONFIG_KERNEL_MODULES
 	/* Module information */
