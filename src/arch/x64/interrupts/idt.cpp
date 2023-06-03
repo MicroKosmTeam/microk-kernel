@@ -4,6 +4,7 @@
 
 #include <sys/panic.hpp>
 #include <sys/printk.hpp>
+#include <init/kinfo.hpp>
 #include <arch/x64/interrupts/idt.hpp>
 
 /* Setting the kernel offset in the GDT (5th entry) */
@@ -46,8 +47,8 @@ void IDTInit() {
 		IDTSetDescriptor(vector, isrStubTable[vector], 0x8F);
 	}
 		
-	IDTSetDescriptor(32, isrStubTable[32],   0b10001110);
-	IDTSetDescriptor(39, isrStubTable[39],   0b10001110);
+	IDTSetDescriptor(32, isrStubTable[32],   0b11101110);
+	IDTSetDescriptor(39, isrStubTable[39],   0b11101110);
 	IDTSetDescriptor(254, isrStubTable[254], 0b11101110);
 
 	/* Load the new IDT */
@@ -119,13 +120,10 @@ extern "C" CPUStatus *exceptionHandler(CPUStatus *context) {
 }
 
 #include <arch/x64/dev/apic.hpp>
+#include <mm/vmm.hpp>
 extern "C" CPUStatus *timerHandler(CPUStatus *context) {
-	/* We need to first make sure we are in the correct virtual space
-	 * where the APIC is mapped in memory
-	 *
-	 *   x86_64::SetAPICTimer();
-	 *   x86_64::SendAPICEOI();
-	 */
+	x86_64::SendAPICEOI();
+	x86_64::SetAPICTimer();
 
 	return context;
 }
@@ -137,7 +135,6 @@ extern "C" CPUStatus *spuriousHandler(CPUStatus *context) {
 }
 #include <sys/user.hpp>
 #include <sys/syscall.hpp>
-#include <init/kinfo.hpp>
 extern "C" CPUStatus *syscallHandler(CPUStatus *context) {
 	KInfo *info = GetInfo();
 

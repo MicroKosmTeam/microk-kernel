@@ -21,24 +21,6 @@ push r15
 %endmacro
 
 %macro exitisr 0
-	; We do this to check if we need to jump back to userspace
-	push rax
-
-	mov rax, [rsp + 16]
-	cmp rax, 0x28
-
-	pop rax
-
-	je .return
-
-	pop rdi
-	add rsp, 16
-	pop rsi
-	add rsp, 8
-
-	call EnterUserspace
-
-.return:
 	o64 iret
 %endmacro
 
@@ -139,7 +121,6 @@ exitisr
 
 %endmacro
 
-extern EnterUserspace
 %macro isr_syscall_stub 1
 isr_stub_%+%1:
 push 0

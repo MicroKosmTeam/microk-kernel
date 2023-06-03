@@ -16,7 +16,7 @@
   This program is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-  GNU General Public License for more details.
+  GNU General does return to userspacePublic License for more details.
 
   You should have received a copy of the GNU General Public License along
   with this program; if not, write to the Free Software Foundation, Inc.,
@@ -121,12 +121,11 @@ __attribute__((noreturn)) void KernelStart() {
 	/* Finishing kernel startup */
 	PROC::Scheduler::StartKernelThread(RestInit);
 
-	/* We enable the timer to start task-switching */
-	x86_64::SetAPICTimer();
-
 	/* Printing banner to show off */
 	PrintBanner();
 
+	/* We enable the timer to start task-switching */
+	//x86_64::SetAPICTimer();
 #ifdef CONFIG_KERNEL_MODULES
 	/* Starting the modules subsystem */
 	MODULE::Init();
