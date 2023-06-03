@@ -20,25 +20,37 @@ namespace PROC {
 		PT_VM,			/* A virtual machine process, managed by the kernel's VM manager*/
 	};
 
-	struct Process;
-	struct Thread;
+	class Process;
+	class Thread;
 
-	/* For kernel/user processes */
-	struct StandardProcess {
-	};
+	class Process {
+	public:
+		Process(ProcessType type, VMM::VirtualSpace *vms);
+		~Process();
 
-	/* For VM processes */
-	struct VMProcess {
+		size_t CreateThread(size_t stackSize);
+		Thread *GetThread(size_t TID);
+		size_t RequestTID();
+		void DestroyThread(Thread *thread);
 
-	};
+		void SetThreadState(size_t TID, ProcessState state);
+		ProcessState GetThreadState(size_t TID);
 
-	/* For realtime processes */
-	struct RTProcess {
+		void SetMainThread(size_t TID);
+		Thread *GetMainThread();
 
-	};
+		void SetPriority(uint8_t priority);
+		
+		ProcessState GetProcessState();
+		void SetProcessState(ProcessState state);
+		
+		size_t GetPID();
+		VMM::VirtualSpace *GetVirtualMemorySpace();
 
-	struct Process {
-		uint64_t PID;
+		size_t GetHighestFree();
+		void SetHighestFree(size_t highestFree);
+	private:
+		size_t PID;
 		ProcessState State;
 		ProcessType Type;
 		uint8_t Priority;
@@ -46,34 +58,32 @@ namespace PROC {
 		VMM::VirtualSpace *VirtualMemorySpace;
 		uintptr_t HighestFree;
 
-		uint64_t LastTID;
+		size_t LastTID;
 		size_t ThreadNumber;
-		Vector<Thread*> Threads;
+
 		Thread *MainThread;
-		
-		union {
-			StandardProcess ProcessInfo;
-			VMProcess VMProcessInfo;
-			RTProcess RTProcessInfo;
-		};
+		Vector<Thread*> Threads;
 	};
 
-	struct Thread {
-		uint64_t TID;
+	class Thread {
+	public:
+		Thread(Process *process, size_t stackSize, size_t *newTID);
+		~Thread();
+	
+		void SetState(ProcessState state);
+		ProcessState GetState();
+
+		size_t GetTID();
+		uintptr_t GetStack();
+		size_t GetStackSize();
+	private:
+		size_t TID;
 
 		uintptr_t Stack;
 		size_t StackSize;
 
-		uintptr_t Entrypoint;
 		ProcessState State;
 
 		Process *Owner;
 	};
-
-	Process *CreateProcess(ProcessType type, VMM::VirtualSpace *vms);
-	void DeleteProcess(Process *process);
-
-	Thread *CreateThread(Process *process, uintptr_t entrypoint);
-	void DeleteThread(Thread *thread);
-
 }

@@ -3,98 +3,190 @@
 #include <arch/x64/cpu/stack.hpp>
 
 #include <sys/printk.hpp>
+#include <sys/panic.hpp>
 #include <mm/pmm.hpp>
 
 namespace PROC {
-static uint64_t CurrentPID;
+static uint64_t CurrentPID = 0;
 
 static inline uint64_t RequestPID() {
-	CurrentPID++;
-
-	return CurrentPID;
+	return ++CurrentPID;
 }
 
-static inline uint64_t RequestTID(Process *process) {
-	process->LastTID++;
+Process::Process(ProcessType type, VMM::VirtualSpace *vms) {
+	PID = RequestPID();
+	State = P_PAUSED;
+	Type = type;
+	VirtualMemorySpace = vms;
 
-	return process->LastTID;
+	HighestFree = 0x00007FFFFFFFF000;
+
+	LastTID = 0;
+	ThreadNumber = 0;
+	MainThread = NULL;
+	Threads.Init();
+
 }
 
-Process *CreateProcess(ProcessType type, VMM::VirtualSpace *vms) {
-	Process *newProcess = new Process;
-	newProcess->PID = RequestPID();
-	newProcess->State = P_READY;
-	newProcess->Type = type;
-
-	newProcess->VirtualMemorySpace = vms;
-	newProcess->HighestFree = 0x00007FFFFFFFF000;
-
-	newProcess->LastTID = 0;
-	newProcess->ThreadNumber = 0;
-	newProcess->MainThread = NULL;
-
-	switch(type) {
-		case PT_KERNEL:
-			break;
-		case PT_USER:
-			break;
-		case PT_VM:
-			break;
-		case PT_REALTIME:
-			break;
+Process::~Process() {
+	if (State != P_DONE) {
+		/* The process hasn't been properly dismantled */
+		OOPS("Process not properly dismantled");
 	}
-
-	return newProcess;
 }
 
-void DeleteProcess(Process *process) {
-
-}
-
-Thread *CreateThread(Process *process, uintptr_t entrypoint) {
-	Thread *newThread = new Thread;
-
-	newThread->TID = RequestTID(process);
-	newThread->Owner = process;
-	newThread->Entrypoint = entrypoint;
-	newThread->State = P_READY;
-
-	size_t stackSize = (512 * 1024);
-	stackSize -= stackSize % 16;
-
-	/*
-	// This is obviously wrong, but it is the only thing that works
-	void *stackAddress = Malloc(stackSize) + stackSize;
-	stackAddress -= (uintptr_t)stackAddress % 16;
-	newThread->Stack = stackAddress;
-	*/
-	process->HighestFree -= process->HighestFree % 16;
-
-	for (uintptr_t i = process->HighestFree - stackSize; i < process->HighestFree; i+= 0x1000) {
-		process->VirtualMemorySpace->MapMemory((void*)PMM::RequestPage(), (void*)i, 0);
-	}
-
-	memset(process->HighestFree - stackSize, 0, stackSize);
-
-	/* We subtract so to leave some space for the first save context */
-	newThread->Stack = process->HighestFree - sizeof(SaveContext);
-	//newThread->Stack -= sizeof(SaveContext);
-	process->HighestFree = newThread->Stack - 0x1000;
-
-	//InitializeStack(newThread, entrypoint);
+size_t Process::CreateThread(size_t stackSize) {
+	size_t newTID;
 	
-	process->Threads.Push(newThread);
-	process->ThreadNumber++;
+	if(GetProcessState() != P_PAUSED) return 0;
 
-	if (process->MainThread == NULL) process->MainThread = newThread;
+	Thread *newThread = new Thread(this, stackSize, &newTID);
 
-	Thread *complete = process->Threads.Get(process->ThreadNumber - 1);
+	Threads.Push(newThread);
 
-	return complete;
+	return newTID;
 }
 
-void DeleteThread(Thread *thread) {
+Thread *Process::GetThread(size_t TID) {
+	Thread *thread = Threads.Get(TID - 1);
+
+	return thread;
+}
+
+size_t Process::RequestTID() {
+	return ++LastTID;
+}
+
+void Process::DestroyThread(Thread *thread) {
+	if(thread == NULL) return;
+
+}
+
+void Process::SetThreadState(size_t TID, ProcessState state) {
+	Thread *thread = Threads.Get(TID - 1);
+
 	if (thread == NULL) return;
 
+	switch(state) {
+		case P_DONE: {
+			DestroyThread(thread);
+			}
+			break;
+		default:
+			thread->SetState(state);
+			break;
+
+	}
 }
+
+ProcessState Process::GetThreadState(size_t TID) {
+	Thread *thread = Threads.Get(TID - 1);
+	if (thread == NULL) return P_DONE;
+
+	return thread->GetState();
+}
+
+void Process::SetMainThread(size_t TID) {
+	Thread *thread = Threads.Get(TID - 1);
+	if (thread == NULL) return;
+
+	if (thread->GetState() != P_DONE) MainThread = thread;	
+}
+
+Thread *Process::GetMainThread() {
+	return MainThread;
+}
+
+void Process::SetPriority(uint8_t priority) {
+	Priority = priority;
+}
+
+void Process::SetProcessState(ProcessState state) {
+	switch(state) {
+		case P_DONE: {
+			delete VirtualMemorySpace;
+			State = state;
+			}
+			break;
+		default:
+			State = state;
+			break;
+	}
+}
+
+size_t Process::GetPID() {
+	return PID;
+}
+
+ProcessState Process::GetProcessState() {
+	return State;
+}
+
+VMM::VirtualSpace *Process::GetVirtualMemorySpace() {
+	return VirtualMemorySpace;
+}
+
+size_t Process::GetHighestFree() {
+	return HighestFree;
+}
+
+void Process::SetHighestFree(size_t highestFree) {
+	HighestFree = highestFree;
+}
+
+
+Thread::Thread(Process *process, size_t stackSize, size_t *newTID) {
+	if (stackSize == 0) stackSize = (512 * 1024);
+
+	TID = process->RequestTID();
+	Owner = process;
+	State = P_PAUSED;
+
+	stackSize -= stackSize % 16;
+
+	if (newTID != NULL) *newTID = GetTID();
+	
+	size_t highestFree = process->GetHighestFree();
+	
+	VMM::VirtualSpace *space = process->GetVirtualMemorySpace();
+
+	for (uintptr_t i = highestFree - stackSize; i < highestFree; i+= 0x1000) {
+		space->MapMemory((void*)PMM::RequestPage(), (void*)i, 0);
+	}
+
+	Stack = highestFree;
+
+	process->SetHighestFree((highestFree - stackSize) - (highestFree - stackSize) % 16);
+}
+
+Thread::~Thread() {
+	if (State != P_DONE) {
+		OOPS("Thread properly dismantled");
+	}
+}
+
+void Thread::SetState(ProcessState state) {
+	switch(state) {
+		default:
+			State = state;
+			break;
+	}
+}
+
+ProcessState Thread::GetState() {
+	return State;
+}
+
+size_t Thread::GetTID() {
+	return TID;
+}
+
+uintptr_t Thread::GetStack() {
+	return Stack;
+}
+
+size_t Thread::GetStackSize() {
+	return StackSize;
+}
+
 }

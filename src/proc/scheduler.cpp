@@ -5,33 +5,20 @@
 #include <sys/queue.hpp>
 #include <mm/pmm.hpp>
 
+#include <sys/panic.hpp>
 namespace PROC {
 namespace Scheduler {
 
-Queue<Thread*> SchedulerQueue;
-Process *kernelProcess;
-Thread *currentThread;
-
-void InitStack( ) {
-
-}
-
 void Initialize() {
+	OOPS("Scheduler not implemented");
 	KInfo *info = GetInfo();
 
-	kernelProcess = CreateProcess(PT_KERNEL, info->kernelVirtualSpace);
-
-	SchedulerQueue.Init();
-
-	PRINTK::PrintK("Scheduler initialized.\r\n");
+	//info->kernelProcess = CreateProcess(PT_KERNEL, info->kernelVirtualSpace);
+	//info->kernelProcess->MainThread = CreateThread(info->kernelProcess, NULL);
 }
 
 void Yeild(Thread *thread) {
-	KInfo *info = GetInfo();
 
-	SwitchStack(&thread->Stack, &info->kernelStack);
-
-	return;
 }
 
 void Pause() {
@@ -39,30 +26,16 @@ void Pause() {
 }
 
 void AddCPU() {
-	while (true) {
-		Cycle();
-	}
+
 }
 
 void Cycle() {
-	KInfo *info = GetInfo();
 
-	SchedulerQueue.Pop(&currentThread);
-
-	if (currentThread == NULL) {
-		PRINTK::PrintK("Scheduler empty\r\n");
-		return;
-	}
-
-	SwitchStack(&info->kernelStack, &currentThread->Stack);
-
-	SchedulerQueue.Push(currentThread);
 }
 
 	
 void StartKernelThread(uintptr_t entrypoint) {
-	SchedulerQueue.Push(CreateThread(kernelProcess, entrypoint));
-	PRINTK::PrintK("Kernel thread created.\r\n");
+
 }
 
 }
