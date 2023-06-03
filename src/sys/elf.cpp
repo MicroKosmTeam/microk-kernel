@@ -61,9 +61,9 @@ void LoadELFCoreModule(uint8_t *data, size_t size) {
 	KInfo *info = GetInfo();
 
 	VMM::VirtualSpace *space = VMM::NewModuleVirtualSpace();
-	PROC::Process *module = PROC::CreateProcess(PROC::PT_USER, space);
+	PROC::Process *module = new PROC::Process(PROC::PT_USER, space);
 
-	VMM::LoadVirtualSpace(module->VirtualMemorySpace);
+	VMM::LoadVirtualSpace(module->GetVirtualMemorySpace());
 	
 	Elf64_Ehdr *elfHeader = (Elf64_Ehdr*)data;
 
@@ -98,10 +98,10 @@ void LoadProgramHeaders(uint8_t *data, size_t size, Elf64_Ehdr *elfHeader, PROC:
 				for (uint64_t addr = programHeader->p_vaddr;
 				     addr < programHeader->p_vaddr + programHeader->p_memsz;
 				     addr+=0x1000) {
-					VMM::MapMemory(proc->VirtualMemorySpace, PMM::RequestPage(), addr);
+					VMM::MapMemory(proc->GetVirtualMemorySpace(), PMM::RequestPage(), addr);
 				}
 
-				VMM::LoadVirtualSpace(proc->VirtualMemorySpace);
+				VMM::LoadVirtualSpace(proc->GetVirtualMemorySpace());
 
 				memset(programHeader->p_vaddr, 0, programHeader->p_memsz);
 				memcpy(programHeader->p_vaddr, data + programHeader->p_offset, programHeader->p_filesz);
@@ -168,28 +168,27 @@ void LinkSymbols(uint8_t *data, size_t size, Elf64_Ehdr *elfHeader, PROC::Proces
 
 	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
 	MODULE::Manager::RegisterModule(modinfo);
-	VMM::LoadVirtualSpace(proc->VirtualMemorySpace);
+	VMM::LoadVirtualSpace(proc->GetVirtualMemorySpace());
 }
 
 #include <arch/x64/cpu/stack.hpp>
 void LoadProcess(Elf64_Ehdr *elfHeader, PROC::Process *proc) {
 	KInfo *info = GetInfo();
+
 	PRINTK::PrintK("Creating thread..\r\n");
 	void *entry = elfHeader->e_entry;
 	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
-	PROC::Thread *mainThread = PROC::CreateThread(proc, entry);
-	VMM::LoadVirtualSpace(proc->VirtualMemorySpace);
-	
-	/*SaveContext *context = mainThread->Stack - sizeof(SaveContext);
-	PRINTK::PrintK("Save context: 0x%x\r\n"
-			"RBP: 0x%x\r\n"
-			"RBP2: 0x%x\r\n"
-			"ret: 0x%x\r\n", 
-			context,
-			context->RBP, context->RBP2, context->ret);*/
+
+	size_t tid = proc->CreateThread(0);
+	proc->SetMainThread(tid);
+	PROC::Thread *mainThread = proc->GetThread(tid);
+
+	PRINTK::PrintK("Created thread %d for process %d.\r\n", tid, proc->GetPID());
+	VMM::LoadVirtualSpace(proc->GetVirtualMemorySpace());
+
 	PRINTK::PrintK("Launching...\r\n");
 
-	void *stack = mainThread->Stack + sizeof(SaveContext);
+	void *stack = mainThread->GetStack();
 	PRINTK::PrintK("Switching to userspace.\r\n"
 	               " Function Address: 0x%x\r\n"
 		       " Stack Address:    0x%x\r\n",
@@ -197,9 +196,9 @@ void LoadProcess(Elf64_Ehdr *elfHeader, PROC::Process *proc) {
 		       (uint64_t)stack);
 	EnterUserspace(entry, stack);
 
-	//SwitchStack(&info->kernelStack, &mainThread->Stack);
+	/* We don't return here once the module has returned. */
 	
-	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
+
 	//MODULE::Manager::UnregisterModule(modinfo->ID);
 
 }
