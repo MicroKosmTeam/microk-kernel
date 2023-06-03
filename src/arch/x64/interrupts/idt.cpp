@@ -120,8 +120,12 @@ extern "C" CPUStatus *exceptionHandler(CPUStatus *context) {
 
 #include <arch/x64/dev/apic.hpp>
 extern "C" CPUStatus *timerHandler(CPUStatus *context) {
-	x86_64::SetAPICTimer();
-	x86_64::SendAPICEOI();
+	/* We need to first make sure we are in the correct virtual space
+	 * where the APIC is mapped in memory
+	 *
+	 *   x86_64::SetAPICTimer();
+	 *   x86_64::SendAPICEOI();
+	 */
 
 	return context;
 }

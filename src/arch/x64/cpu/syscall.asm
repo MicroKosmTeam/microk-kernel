@@ -20,11 +20,10 @@ SyscallEntry:
 	push r14
 	push r15
 
-	mov rbx, rsp
+	; TMP, we should switch to a kernel stackfor safety reasons	mov rbx, rsp
 
-	; TMP, we should switch to a kernel stackfor safety reasons
-	mov rsp, rbx
-	mov rbp, rsp
+	;mov rsp, rbx
+	;mov rbp, rsp
 
 	push rbx
 
@@ -32,7 +31,7 @@ SyscallEntry:
 
 	pop rbx
 
-	mov rsp, rbx
+	;mov rsp, rbx
 
 	pop r15
 	pop r14

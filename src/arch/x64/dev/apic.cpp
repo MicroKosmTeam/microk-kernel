@@ -64,7 +64,7 @@ void EnableAPIC() {
 }
 
 void SetAPICTimer() {
-	WaitAPIC(0x100000);
+	WaitAPIC(0x8000);
 }
 
 void SendAPICEOI() {
