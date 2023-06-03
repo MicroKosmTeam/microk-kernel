@@ -114,8 +114,6 @@ __attribute__((noreturn)) void KernelStart() {
 	/* Initializing multiprocessing */
 	PROC::SMP::Init();
 #endif
-	/* Printing banner to show off */
-	PrintBanner();
 
 	/* Initializing the scheduler framework */
 	PROC::Scheduler::Initialize();
@@ -123,12 +121,16 @@ __attribute__((noreturn)) void KernelStart() {
 	/* Finishing kernel startup */
 	PROC::Scheduler::StartKernelThread(RestInit);
 
+	/* We enable the timer to start task-switching */
+	x86_64::SetAPICTimer();
+
+	/* Printing banner to show off */
+	PrintBanner();
+
 #ifdef CONFIG_KERNEL_MODULES
 	/* Starting the modules subsystem */
 	MODULE::Init();
 #endif
-	/* We enable the timer to start task-switching */
-	x86_64::SetAPICTimer();
 
 	/* Starting the kernel scheduler by adding the root CPU */
 	PROC::Scheduler::AddCPU();
@@ -137,6 +139,7 @@ __attribute__((noreturn)) void KernelStart() {
 void RestInit(PROC::Thread *thread) {
 	/* We are done with the boot process */
 	PRINTK::PrintK("Kernel is now resting...\r\n");
+
 
 	while (true) CPUPause();
 }

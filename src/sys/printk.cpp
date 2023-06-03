@@ -14,25 +14,21 @@ UARTDevice *kernelPort;
 
 namespace PRINTK {
 void PutStr(char *str) {
-	asm ("cli");
 #ifdef CONFIG_HW_UART
 	kernelPort->PutStr(str);
 #endif
-	asm ("sti");
 }
 
 void PutChar(char ch) {
-	asm ("cli");
 #ifdef CONFIG_HW_UART
 	kernelPort->PutChar(ch);
 #endif
-	asm ("sti");
 }
 
 static SpinLock PrintKSpinlock;
 
 void PrintK(char *format, ...) {
-	PrintKSpinlock.Lock();
+	//PrintKSpinlock.Lock();
 
         va_list ap;
         va_start(ap, format);
@@ -40,7 +36,7 @@ void PrintK(char *format, ...) {
 	VPrintK(format, ap);
 
         va_end(ap);
-	PrintKSpinlock.Unlock();
+	//PrintKSpinlock.Unlock();
 }
 
 
