@@ -10,8 +10,6 @@
 #include <arch/x64/cpu/gdt.hpp>
 #include <arch/x64/interrupts/idt.hpp>
 
-__attribute__((__aligned__((0x10)))) volatile char InterruptStack[64 * 1024];
-
 namespace x86_64 {
 /* Function that initializes platform-specific features */
 void Init() {
@@ -19,7 +17,7 @@ void Init() {
 
 	/* We first of all get the position of the kernel stack and save it
 	   as we will use it to initialize the TSS */
-	info->kernelStack = &InterruptStack[64 * 1024 - 1];
+	info->kernelStack = PMM::RequestPages(8) + 8 * 4096 - 1;
 
 	/* Initialize the GDT and the TSS */
 	LoadGDT(info->kernelStack);
