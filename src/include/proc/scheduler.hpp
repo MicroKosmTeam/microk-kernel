@@ -1,20 +1,19 @@
 #pragma once
 #include <proc/process.hpp>
+#include <sys/vector.hpp>
 
 namespace PROC {
-namespace Scheduler {
-	void Initialize();
-	void Pause();
+	class Scheduler {
+	public:
+		Scheduler();
+		~Scheduler();
 
-	void AddCPU();
-	void RemoveCPU();
+		void AddProcess(Process *process);
+		void RemoveProcess(size_t PID);
+		Process *GetProcess(size_t PID);
 
-	void AddProcess(Process *process, uint8_t priority);
-	void RemoveProcess(uint64_t PID);
-
-	void Cycle();
-	void Yeild(Thread *thread);
-
-	void StartKernelThread(uintptr_t entrypoint);
-}
+		void SwitchToTask(size_t PID, size_t TID);
+	private:
+		Vector<Process*> Processes;
+	};
 }
