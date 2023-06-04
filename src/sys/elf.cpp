@@ -13,8 +13,8 @@
 #include <init/kinfo.hpp>
 #include <module/modulemanager.hpp>
 #include <module/buffer.hpp>
-#include <sys/user.hpp>
 #include <proc/process.hpp>
+#include <proc/scheduler.hpp>
 
 void LoadMKMI(uint8_t *data, size_t size);
 void LoadELFCoreModule(uint8_t *data, size_t size);
@@ -171,34 +171,22 @@ void LinkSymbols(uint8_t *data, size_t size, Elf64_Ehdr *elfHeader, PROC::Proces
 	VMM::LoadVirtualSpace(proc->GetVirtualMemorySpace());
 }
 
-#include <arch/x64/cpu/stack.hpp>
 void LoadProcess(Elf64_Ehdr *elfHeader, PROC::Process *proc) {
 	KInfo *info = GetInfo();
 
 	PRINTK::PrintK("Creating thread..\r\n");
-	void *entry = elfHeader->e_entry;
 	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
 
-	size_t tid = proc->CreateThread(0);
+	size_t pid = proc->GetPID();
+	size_t tid = proc->CreateThread(0, elfHeader->e_entry);
+
 	proc->SetMainThread(tid);
 	PROC::Thread *mainThread = proc->GetThread(tid);
 
-	PRINTK::PrintK("Created thread %d for process %d.\r\n", tid, proc->GetPID());
-	VMM::LoadVirtualSpace(proc->GetVirtualMemorySpace());
+	PRINTK::PrintK("Created thread %d for process %d.\r\n", tid, pid);
 
-	PRINTK::PrintK("Launching...\r\n");
-
-	void *stack = mainThread->GetStack();
-	PRINTK::PrintK("Switching to userspace.\r\n"
-	               " Function Address: 0x%x\r\n"
-		       " Stack Address:    0x%x\r\n",
-		       (uint64_t)entry,
-		       (uint64_t)stack);
-	EnterUserspace(entry, stack);
-
-	/* We don't return here once the module has returned. */
-	
-
+	info->kernelScheduler->AddProcess(proc);
+	PRINTK::PrintK("Switching to task...\r\n");
+	info->kernelScheduler->SwitchToTask(pid, 0);
 	//MODULE::Manager::UnregisterModule(modinfo->ID);
-
 }
