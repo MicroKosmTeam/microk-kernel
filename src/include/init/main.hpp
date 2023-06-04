@@ -1,4 +1,6 @@
 #pragma once
 
-__attribute__((noreturn)) void KernelStart();
 int EarlyKernelInit();
+__attribute__((noreturn)) void KernelStart();
+__attribute__((noreturn)) void RestInit();
+
