@@ -2,11 +2,14 @@
 
 extern HandleSyscall 
 
+extern StartSyscallStack
+
 global SyscallEntry
 SyscallEntry:
 	push rdi
 	push rsi
 
+	push rax
 	push rbx
 	push rcx
 	push rdx
@@ -19,11 +22,10 @@ SyscallEntry:
 	push r13
 	push r14
 	push r15
-
-	; TMP, we should switch to a kernel stackfor safety reasons	mov rbx, rsp
-
-	;mov rsp, rbx
-	;mov rbp, rsp
+	
+	mov rbx, rsp
+	mov rsp, [StartSyscallStack]; TODO FIX
+	mov rbp, rsp
 
 	push rbx
 
@@ -31,7 +33,7 @@ SyscallEntry:
 
 	pop rbx
 
-	;mov rsp, rbx
+	mov rsp, rbx
 
 	pop r15
 	pop r14
@@ -45,12 +47,9 @@ SyscallEntry:
 	pop rdx
 	pop rcx
 	pop rbx
+	pop rax
 
 	pop rsi
 	pop rdi
 
 	o64 sysret
-jmp $
-	;call HandleSyscall
-
-	;sysret

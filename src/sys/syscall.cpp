@@ -6,6 +6,10 @@
 #include <mm/pmm.hpp>
 #include <sys/printk.hpp>
 
+// TMP measure: do something better with SMP
+__attribute__((__aligned__((16)))) char SyscallStack[64 * 1024];
+extern "C" void *StartSyscallStack = &SyscallStack[64 * 1024 - 1];
+
 void HandleSyscallDebugPrintK(char *string);
 
 void HandleSyscallMemoryGetinfo(uintptr_t structbase);
@@ -39,7 +43,8 @@ void HandleSyscallDebugPrintK(char *string) {
 }
 
 void HandleSyscallMemoryGetinfo(uintptr_t structbase) {
-	/* TODO: Check if valid */
+	if (structbase <= 0x1000 || structbase >= 0x00007FFFFFFFFFFF)
+		return; /* Make sure it is in valid memory */
 
 	size_t *data = structbase;
 	data[0] = PMM::GetFreeMem() + PMM::GetUsedMem();  /* Total */
@@ -73,7 +78,6 @@ void HandleSyscallProcFork(size_t TODO) {
 }
 
 void HandleSyscallProcReturn(size_t returnCode, uintptr_t stack) {
-	KInfo *info = GetInfo();
 	PRINTK::PrintK("Returning: %d form 0x%x\r\n", returnCode, stack); 
 
 	PRINTK::PrintK("Back to the kernel.\r\n");
