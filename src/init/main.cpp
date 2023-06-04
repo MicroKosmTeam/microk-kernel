@@ -83,12 +83,13 @@ void PrintBanner() {
 			BOOTMEM::GetTotal() - BOOTMEM::GetFree());
 }
 
-#include <arch/x64/dev/apic.hpp>
-
 /*
    Main kernel function.
 */
+
 __attribute__((noreturn)) void KernelStart() {
+	KInfo *info = GetInfo();
+
 	PRINTK::PrintK("Kernel started.\r\n");
 
 	/* Enabling the page frame allocator */
@@ -116,29 +117,25 @@ __attribute__((noreturn)) void KernelStart() {
 #endif
 
 	/* Initializing the scheduler framework */
-	PROC::Scheduler::Initialize();
-
-	/* Finishing kernel startup */
-	PROC::Scheduler::StartKernelThread(RestInit);
+	info->kernelScheduler = new PROC::Scheduler();
 
 	/* Printing banner to show off */
 	PrintBanner();
 
 	/* We enable the timer to start task-switching */
-	//x86_64::SetAPICTimer();
+	OOPS("Timer not yet implemented");
+
 #ifdef CONFIG_KERNEL_MODULES
 	/* Starting the modules subsystem */
 	MODULE::Init();
 #endif
 
-	/* Starting the kernel scheduler by adding the root CPU */
-	PROC::Scheduler::AddCPU();
+	while (true) CPUPause();
 }
 
-void RestInit(PROC::Thread *thread) {
+__attribute__((noreturn)) void RestInit() {
 	/* We are done with the boot process */
 	PRINTK::PrintK("Kernel is now resting...\r\n");
-
-
+	
 	while (true) CPUPause();
 }
