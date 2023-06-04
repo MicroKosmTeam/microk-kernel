@@ -43,10 +43,27 @@ public:
 
 	bool Push(Type data, int index) {
 		if (index >= Capacity) {
-			return Push(data);
+			size_t ratio = 1;
+
+			while (index >= Capacity * ratio) ratio *= 2;
+
+			Type *TemporaryArray = new Type[Capacity * ratio];
+			if (TemporaryArray == NULL) return false;
+
+			for (size_t i = 0; i < CurrentElement; i++) {
+				TemporaryArray[i] = DataArray[i];
+			}
+
+			delete[] DataArray;
+
+			Capacity *= ratio;
+
+			DataArray = TemporaryArray;
 		}
 	
 		DataArray[index] = data;
+
+		if (index >= CurrentElement) CurrentElement += index - CurrentElement + 1;
 
 		return true;
 	}
