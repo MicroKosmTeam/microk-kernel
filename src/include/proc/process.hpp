@@ -28,7 +28,7 @@ namespace PROC {
 		Process(ProcessType type, VMM::VirtualSpace *vms);
 		~Process();
 
-		size_t CreateThread(size_t stackSize);
+		size_t CreateThread(size_t stackSize, uintptr_t entrypoint);
 		Thread *GetThread(size_t TID);
 		size_t RequestTID();
 		void DestroyThread(Thread *thread);
@@ -49,6 +49,8 @@ namespace PROC {
 
 		size_t GetHighestFree();
 		void SetHighestFree(size_t highestFree);
+
+		ProcessType GetType() { return Type; }
 	private:
 		size_t PID;
 		ProcessState State;
@@ -67,19 +69,25 @@ namespace PROC {
 
 	class Thread {
 	public:
-		Thread(Process *process, size_t stackSize, size_t *newTID);
+		Thread(Process *process, size_t stackSize, uintptr_t entrypoint, size_t *newTID);
 		~Thread();
 	
 		void SetState(ProcessState state);
+		void SetInstruction(uintptr_t instruction);
+		void SetStack(uintptr_t stack);
 		ProcessState GetState();
 
 		size_t GetTID();
 		uintptr_t GetStack();
+		uintptr_t GetStackBase();
 		size_t GetStackSize();
+		uintptr_t GetInstruction() { return Instruction; }
 	private:
 		size_t TID;
 
 		uintptr_t Stack;
+		uintptr_t StackBase;
+		uintptr_t Instruction;
 		size_t StackSize;
 
 		ProcessState State;

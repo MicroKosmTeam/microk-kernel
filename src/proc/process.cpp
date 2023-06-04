@@ -35,12 +35,12 @@ Process::~Process() {
 	}
 }
 
-size_t Process::CreateThread(size_t stackSize) {
+size_t Process::CreateThread(size_t stackSize, uintptr_t entrypoint) {
 	size_t newTID;
 	
 	if(GetProcessState() != P_PAUSED) return 0;
 
-	Thread *newThread = new Thread(this, stackSize, &newTID);
+	Thread *newThread = new Thread(this, stackSize, entrypoint, &newTID);
 
 	Threads.Push(newThread);
 
@@ -135,11 +135,12 @@ void Process::SetHighestFree(size_t highestFree) {
 }
 
 
-Thread::Thread(Process *process, size_t stackSize, size_t *newTID) {
+Thread::Thread(Process *process, size_t stackSize, uintptr_t entrypoint, size_t *newTID) {
 	if (stackSize == 0) stackSize = (512 * 1024);
 
 	TID = process->RequestTID();
 	Owner = process;
+	Instruction = entrypoint;
 	State = P_PAUSED;
 
 	stackSize -= stackSize % 16;
@@ -154,7 +155,7 @@ Thread::Thread(Process *process, size_t stackSize, size_t *newTID) {
 		space->MapMemory((void*)PMM::RequestPage(), (void*)i, 0);
 	}
 
-	Stack = highestFree;
+	StackBase = Stack = highestFree;
 
 	process->SetHighestFree((highestFree - stackSize) - (highestFree - stackSize) % 16);
 }
@@ -179,6 +180,18 @@ ProcessState Thread::GetState() {
 
 size_t Thread::GetTID() {
 	return TID;
+}
+
+void Thread::SetInstruction(uintptr_t instruction) {
+	Instruction = instruction;
+}
+
+void Thread::SetStack(uintptr_t stack) {
+	Stack = stack;
+}
+
+uintptr_t Thread::GetStackBase() {
+	return StackBase;
 }
 
 uintptr_t Thread::GetStack() {
