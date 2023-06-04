@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include <mm/vmm.hpp>
 #include <proc/process.hpp>
+#include <proc/scheduler.hpp>
 
 #ifdef CONFIG_HW_UART
 #include <dev/uart/uart.hpp>
@@ -55,6 +56,7 @@ struct KInfo {
 
 	VMM::VirtualSpace *kernelVirtualSpace; /* Kernel virtual memory space */
 	PROC::Process *kernelProcess;
+	PROC::Scheduler *kernelScheduler;
 
 #ifdef CONFIG_KERNEL_MODULES
 	/* Module information */
