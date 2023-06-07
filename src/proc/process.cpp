@@ -7,7 +7,7 @@
 #include <mm/pmm.hpp>
 
 namespace PROC {
-static uint64_t CurrentPID = 0;
+static uint64_t CurrentPID = -1; /* This may seem dumb, but it actually is absolutely fine */
 
 static inline uint64_t RequestPID() {
 	return ++CurrentPID;

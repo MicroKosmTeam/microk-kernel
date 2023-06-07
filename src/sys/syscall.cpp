@@ -10,7 +10,7 @@
 __attribute__((__aligned__((16)))) char SyscallStack[64 * 1024];
 extern "C" void *StartSyscallStack = &SyscallStack[64 * 1024 - 1];
 
-void HandleSyscallDebugPrintK(char *string);
+void HandleSyscallDebugPrintK(const char *string);
 
 void HandleSyscallMemoryGetinfo(uintptr_t structbase);
 void HandleSyscallMemoryVmalloc(uintptr_t base, size_t length, size_t flags);
@@ -38,8 +38,8 @@ extern "C" void HandleSyscall(size_t syscallNumber, size_t arg1, size_t arg2, si
 	}
 }
 
-void HandleSyscallDebugPrintK(char *string) {
-	PRINTK::PrintK("%s", string);
+void HandleSyscallDebugPrintK(const char *string) {
+	PRINTK::PrintK(string);
 }
 
 void HandleSyscallMemoryGetinfo(uintptr_t structbase) {
@@ -54,6 +54,24 @@ void HandleSyscallMemoryGetinfo(uintptr_t structbase) {
 }
 
 void HandleSyscallMemoryVmalloc(uintptr_t base, size_t length, size_t flags) {
+	if (base <= 0x1000 || base + length >= 0x00007FFFFFFFF000)
+		return; /* Make sure it is in valid memory */
+
+	KInfo *info = GetInfo();
+
+	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
+	
+	VMM::VirtualSpace *procSpace = info->kernelScheduler->GetRunningProcess()->GetVirtualMemorySpace();
+
+	if (base % 16) base -= base % 16;
+	if (length % PAGE_SIZE) length += PAGE_SIZE - length % PAGE_SIZE;
+
+	for (uintptr_t vaddr = base; vaddr < base + length; vaddr += PAGE_SIZE) {
+		void *paddr = PMM::RequestPage();
+		if (paddr != NULL) procSpace->MapMemory(paddr, vaddr, flags);
+	}
+
+	VMM::LoadVirtualSpace(procSpace);
 	/* Process: check if all arguments are valid, allocate and map */
 }
 

@@ -3,8 +3,6 @@
 #include <arch/x64/mm/vmm.hpp>
 #include <sys/printk.hpp>
 
-#define PAGE_SIZE 0x1000
-
 namespace VMM {
 void InitVMM() {
 	KInfo *info = GetInfo();

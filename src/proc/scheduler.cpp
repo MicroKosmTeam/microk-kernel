@@ -35,6 +35,10 @@ Process *Scheduler::GetProcess(size_t PID) {
 	return proc;
 }
 
+Process *Scheduler::GetRunningProcess() {
+	return CurrentProcess;
+}
+
 #include <sys/user.hpp>
 void Scheduler::SwitchToTask(size_t PID, size_t TID) {
 	Process *proc = GetProcess(PID);
@@ -51,9 +55,8 @@ void Scheduler::SwitchToTask(size_t PID, size_t TID) {
 	void *stack = thread->GetStack();
 	void *entry = thread->GetInstruction();
 
-	PRINTK::PrintK("Stack: 0x%x. Entry 0x%x\r\n", stack, entry);
+	CurrentProcess = proc;
 
-	PRINTK::PrintK("OK");
 	switch(proc->GetType()) {
 		case PT_USER:
 			EnterUserspace(entry, stack);

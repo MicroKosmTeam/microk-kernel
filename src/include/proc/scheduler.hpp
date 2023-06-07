@@ -11,9 +11,12 @@ namespace PROC {
 		void AddProcess(Process *process);
 		void RemoveProcess(size_t PID);
 		Process *GetProcess(size_t PID);
+		Process *GetRunningProcess();
 
 		void SwitchToTask(size_t PID, size_t TID);
 	private:
+		Process *CurrentProcess;
+
 		Vector<Process*> Processes;
 	};
 }

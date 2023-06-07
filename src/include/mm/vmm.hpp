@@ -1,6 +1,8 @@
 #pragma once
 #include <stdint.h>
 
+#define PAGE_SIZE 0x1000
+
 namespace VMM {
 	enum VirtualMemoryFlags {
 		VMM_READWRITE  = 0b00000001,
