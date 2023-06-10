@@ -50,14 +50,16 @@ void Scheduler::SwitchToTask(size_t PID, size_t TID) {
 
 	if (thread == NULL) return;
 
-	VMM::LoadVirtualSpace(proc->GetVirtualMemorySpace());
-	
 	void *stack = thread->GetStack();
 	void *entry = thread->GetInstruction();
 
 	CurrentProcess = proc;
 
-	switch(proc->GetType()) {
+	ProcessType type = proc->GetType();
+
+	VMM::LoadVirtualSpace(proc->GetVirtualMemorySpace());
+
+	switch(type) {
 		case PT_USER:
 			EnterUserspace(entry, stack);
 			break;

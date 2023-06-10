@@ -116,46 +116,48 @@ void InitPageFrameAllocator() {
 	PRINTK::PrintK("Bitmap allocator started: %dkb free out of %dkb\r\n", free_memory / 1024, memory_size / 1024);
 }
 
+#define MAX_TRIES 4 
 void *RequestPage() {
-	BitmapLock.Lock();
+	for (int i = 0; i < MAX_TRIES; ++i) {
+		BitmapLock.Lock();
 
-	for (; page_bitmap_index < page_bitmap.size * 8; page_bitmap_index++) {
-		if(page_bitmap[page_bitmap_index] == true) continue;
-		LockPage((void*)(page_bitmap_index * 4096));
+		for (; page_bitmap_index < page_bitmap.size * 8; page_bitmap_index++) {
+			if(page_bitmap[page_bitmap_index] == true) continue;
+			LockPage((void*)(page_bitmap_index * 4096));
 
-		BitmapLock.Unlock();
-		return (void*)(page_bitmap_index * 4096);
-	}
-
-	// Try again 
-	page_bitmap_index = 0;
-	BitmapLock.Unlock();
-
-	return RequestPage();
-}
-
-void *RequestPages(size_t pages) {
-	BitmapLock.Lock();
-
-	uint64_t old_page_index = page_bitmap_index;
-	for (; page_bitmap_index < (page_bitmap.size - pages)* 8; page_bitmap_index++) {
-		bool free = true;
-		for (size_t i; i < pages; i++) {
-			if(page_bitmap[page_bitmap_index + i]) { free = false; break; };
-		}
-
-		if (free) {
-			LockPages((void*)(page_bitmap_index * 4096), pages);
 			BitmapLock.Unlock();
-
 			return (void*)(page_bitmap_index * 4096);
 		}
 
+		// Try again 
+		page_bitmap_index = 0;
+		BitmapLock.Unlock();
 	}
+	
+	return NULL;
+}
 
-	page_bitmap_index = old_page_index;
+void *RequestPages(size_t pages) {
+	for (int i = 0; i < MAX_TRIES; ++i) {
+		BitmapLock.Lock();
 
-	BitmapLock.Unlock();
+		for (; page_bitmap_index < (page_bitmap.size - pages)* 8; page_bitmap_index++) {
+			bool free = true;
+			for (size_t i; i < pages; i++) {
+				if(page_bitmap[page_bitmap_index + i]) { free = false; break; };
+			}
+
+			if (free) {
+				LockPages((void*)(page_bitmap_index * 4096), pages);
+				BitmapLock.Unlock();
+
+				return (void*)(page_bitmap_index * 4096);
+			}
+
+		}
+
+		BitmapLock.Unlock();
+	}
 
 	// No more memory
 	return NULL;

@@ -1,8 +1,9 @@
 [bits 64]
 
 extern HandleSyscall 
-
 extern StartSyscallStack
+
+section .syscall.entrypoint
 
 global SyscallEntry
 SyscallEntry:
@@ -22,7 +23,7 @@ SyscallEntry:
 	push r13
 	push r14
 	push r15
-	
+
 	mov rbx, rsp
 	mov rsp, [StartSyscallStack]; TODO FIX
 	mov rbp, rsp

@@ -19,34 +19,31 @@ SECTIONS
 	/* We wanna be placed in the topmost 2GiB of the address space, for optimisations */
 	/* Any address in this region will do, but often 0xffffffff80000000 is chosen as */
 	/* that is the beginning of the region. */
+
 	. = 0xffffffff80000000;
 
-	kernel_start_addr = .;
-	text_start_addr = .;
+	syscall_start = .;
+
+	.syscall : {
+		KEEP(*(.syscall.entrypoint))
+		*(.syscall.*)
+	} :text
+
+	syscall_end = .;
 
 	.text : {
 		*(.text .text.*)
 	} :text
 
-	text_end_addr = .;
-
 	/* Move to the next memory page for .rodata */
 	. += 0x1000;
-
-	rodata_start_addr = .;
-
-	PROVIDE(symbol_table = 1);
 
 	.rodata : {
 		*(.rodata .rodata.*)
 	} :rodata
 
-	rodata_end_addr = .;
-
 	/* Move to the next memory page for .data */
 	. += 0x1000;
-
-	data_start_addr = .;
 
 	.data : {
 		*(.data .data.*)
@@ -57,8 +54,7 @@ SECTIONS
 		*(.bss .bss.*)
 	} :data
 
-	data_end_addr = .;
-	kernel_end_addr = .;
+
 
 	/* Discard .note.* and .eh_frame since they may cause issues on some hosts. */
 	/DISCARD/ : {

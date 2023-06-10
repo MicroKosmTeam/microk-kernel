@@ -20,8 +20,35 @@ VirtualSpace *NewModuleVirtualSpace() {
 
 	VirtualSpace *space = NewVirtualSpace();
 
-	info->kernelVirtualSpace->Fork(space, true);
+//	info->kernelVirtualSpace->Fork(space, true);
 
+	/* We go through every entry in the memory map and map it in virtual memory */
+	for (int i = 0; i < info->mMapEntryCount; i++) {
+		MMapEntry entry = info->mMap[i];
+
+		/* We will skip any memory that is not usable by our kernel, to make the process faster */
+		/* We also ignore ACPI, as our kernel is not interested by the information contained in those structures */
+		/* It is the responsibility of the modules to manage any ACPI related code, and also to free reclaimable areas */
+		if (entry.type != MEMMAP_KERNEL_AND_MODULES && entry.type != MEMMAP_BOOTLOADER_RECLAIMABLE) continue;
+
+		/* We find the base and the top by rounding to the closest page boundary */
+		uint64_t base = entry.base - (entry.base % PAGE_SIZE);
+		uint64_t top = base + entry.length + (entry.length % PAGE_SIZE);
+
+		/* If it's kernel code, we will map its special location, otherwise we do the lower half and higher half mappings. */
+		/* We use the kernel base to be sure we are not mapping module code over the kernel code. */
+		if (entry.type == MEMMAP_KERNEL_AND_MODULES && entry.base == info->kernelPhysicalBase) {
+			for (uint64_t t = base; t < top; t += PAGE_SIZE){
+				space->MapMemory(t, info->kernelVirtualBase + t - info->kernelPhysicalBase, 0);
+
+			}
+		} else {
+			for (uint64_t t = base; t < top; t += PAGE_SIZE) {
+				space->MapMemory(t, t, 0);
+				space->MapMemory(t, t + info->higherHalfMapping, 0);
+			}
+		}
+	}
 	return space;
 }
 

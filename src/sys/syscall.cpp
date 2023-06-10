@@ -5,10 +5,11 @@
 #include <init/kinfo.hpp>
 #include <mm/pmm.hpp>
 #include <sys/printk.hpp>
+#include <sys/panic.hpp>
 
 // TMP measure: do something better with SMP
-__attribute__((__aligned__((16)))) char SyscallStack[64 * 1024];
-extern "C" void *StartSyscallStack = &SyscallStack[64 * 1024 - 1];
+__attribute__((__aligned__((16)))) __attribute__((section(".syscall.stack"))) char SyscallStack[128 * 1024];
+__attribute__((section(".syscall.stack"))) __attribute__((__aligned__((16)))) extern "C" void *StartSyscallStack = &SyscallStack[128 * 1024 - 1];
 
 void HandleSyscallDebugPrintK(const char *string);
 
@@ -63,16 +64,17 @@ void HandleSyscallMemoryVmalloc(uintptr_t base, size_t length, size_t flags) {
 	
 	VMM::VirtualSpace *procSpace = info->kernelScheduler->GetRunningProcess()->GetVirtualMemorySpace();
 
-	if (base % 16) base -= base % 16;
+	if (base % PAGE_SIZE) base -= base % PAGE_SIZE;
 	if (length % PAGE_SIZE) length += PAGE_SIZE - length % PAGE_SIZE;
 
 	for (uintptr_t vaddr = base; vaddr < base + length; vaddr += PAGE_SIZE) {
 		void *paddr = PMM::RequestPage();
-		if (paddr != NULL) procSpace->MapMemory(paddr, vaddr, flags);
+		if (paddr == NULL) PANIC("Out of memory");
+
+		procSpace->MapMemory(paddr, vaddr, flags);
 	}
 
 	VMM::LoadVirtualSpace(procSpace);
-	/* Process: check if all arguments are valid, allocate and map */
 }
 
 void HandleSyscallMemoryVmfree(uintptr_t base, size_t length) {
@@ -80,7 +82,24 @@ void HandleSyscallMemoryVmfree(uintptr_t base, size_t length) {
 }
 
 void HandleSyscallMemoryMmap(uintptr_t src, uintptr_t dest, size_t length, size_t flags) {
-	/* Process: check if all arguments are valid, switch to kernel address space and map pages */
+	if (src <= 0x1000 || dest <= 0x1000 || src + length >= 0x00007FFFFFFFF000 || dest + length >= 0x00007FFFFFFFF000)
+		return; /* Make sure it is in valid memory */
+
+	KInfo *info = GetInfo();
+
+	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
+	
+	VMM::VirtualSpace *procSpace = info->kernelScheduler->GetRunningProcess()->GetVirtualMemorySpace();
+
+	if (src % PAGE_SIZE) src -= src % PAGE_SIZE;
+	if (dest % PAGE_SIZE) dest -= dest % PAGE_SIZE;
+	if (length % PAGE_SIZE) length += PAGE_SIZE - length % PAGE_SIZE;
+
+	for (uintptr_t end = src + dest; src < end; src += PAGE_SIZE, dest += PAGE_SIZE) {
+		procSpace->MapMemory(src, dest, flags);
+	}
+
+	VMM::LoadVirtualSpace(procSpace);
 }
 
 void HandleSyscallMemoryUnmap(uintptr_t base, size_t length) {
@@ -97,6 +116,10 @@ void HandleSyscallProcFork(size_t TODO) {
 
 void HandleSyscallProcReturn(size_t returnCode, uintptr_t stack) {
 	PRINTK::PrintK("Returning: %d form 0x%x\r\n", returnCode, stack); 
+
+	KInfo *info = GetInfo();
+
+	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
 
 	PRINTK::PrintK("Back to the kernel.\r\n");
 
