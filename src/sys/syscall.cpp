@@ -157,7 +157,7 @@ void HandleSyscallMemoryVmfree(uintptr_t base, size_t length) {
 void HandleSyscallMemoryMmap(uintptr_t src, uintptr_t dest, size_t length, size_t flags) {
 	KInfo *info = GetInfo();
 	
-	//if (src > info->higherHalfMapping) src -= info->higherHalfMapping;
+	if (src > info->higherHalfMapping) src -= info->higherHalfMapping;
 
 	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
 	
@@ -206,10 +206,8 @@ void HandleSyscallProcExec(uintptr_t executableBase, size_t executableSize) {
 	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
 	VMM::VirtualSpace *procSpace = info->kernelScheduler->GetRunningProcess()->GetVirtualMemorySpace();
 
-	PRINTK::PrintK("Allocating buffers...\r\n");
 	void *heapAddr = Malloc(executableSize);
 	
-	PRINTK::PrintK("Starting copy...\r\n");
 	for (size_t i = 0; i < executableSize; i += 1024) {
 		remaining = executableSize - i;
 
@@ -222,17 +220,26 @@ void HandleSyscallProcExec(uintptr_t executableBase, size_t executableSize) {
 
 	LoadELF(ELF_CORE_MODULE, heapAddr, executableSize);
 
-	while(true);
+	VMM::LoadVirtualSpace(procSpace);
 }
 
 void HandleSyscallProcFork(size_t TODO) {
 }
 
 void HandleSyscallProcReturn(size_t returnCode, uintptr_t stack) {
+	static size_t pid = 1;
+
 	KInfo *info = GetInfo();
 
 	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
 	PRINTK::PrintK("Returning: %d form 0x%x\r\n", returnCode, stack); 
+
+	/* TMP FIX */
+	size_t maxPID = info->kernelScheduler->GetMaxPID();
+
+	if (pid + 1 > maxPID) while(true);
+
+	info->kernelScheduler->SwitchToTask(++pid, 0);
 
 	while(true);
 }

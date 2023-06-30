@@ -16,12 +16,12 @@
 #include <proc/process.hpp>
 #include <proc/scheduler.hpp>
 
-void LoadMKMI(uint8_t *data, size_t size);
-void LoadELFCoreModule(uint8_t *data, size_t size);
+size_t LoadMKMI(uint8_t *data, size_t size);
+size_t LoadELFCoreModule(uint8_t *data, size_t size);
 
 void LoadProgramHeaders(uint8_t *data, size_t size, Elf64_Ehdr *elfHeader, PROC::Process *proc);
 void LinkSymbols(uint8_t *data, size_t size, Elf64_Ehdr *elfHeader, PROC::Process *proc);
-void LoadProcess(Elf64_Ehdr *elfHeader, PROC::Process *proc);
+size_t LoadProcess(Elf64_Ehdr *elfHeader, PROC::Process *proc);
 
 uint64_t LoadELF(ELFType type, uint8_t *data, size_t size) {
 	/* Checking for the correct signature */
@@ -32,19 +32,16 @@ uint64_t LoadELF(ELFType type, uint8_t *data, size_t size) {
 	switch (type) {
 		case ELF_MKMI:
 			PRINTK::PrintK("Loading MKMI...\r\n");
-			LoadMKMI(data, size);
-			break;
+			return LoadMKMI(data, size);
 
 		case ELF_CORE_MODULE:
 			PRINTK::PrintK("Loading core module...\r\n");
-			LoadELFCoreModule(data, size);
-			break;
+			return LoadELFCoreModule(data, size);
 	}
-
 	return 0;
 }
 
-void LoadMKMI(uint8_t *data, size_t size) {
+size_t LoadMKMI(uint8_t *data, size_t size) {
 	KInfo *info = GetInfo();
 	
 	Elf64_Ehdr *elfHeader = (Elf64_Ehdr*)data;
@@ -57,7 +54,7 @@ void LoadMKMI(uint8_t *data, size_t size) {
 	// Do dynamic loading stuff
 }
 
-void LoadELFCoreModule(uint8_t *data, size_t size) {
+size_t LoadELFCoreModule(uint8_t *data, size_t size) {
 	KInfo *info = GetInfo();
 
 	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
@@ -69,12 +66,12 @@ void LoadELFCoreModule(uint8_t *data, size_t size) {
 
 	/* Checking if the file is valid for the current architecture */
 	if(elfHeader->e_ident[EI_CLASS] != ELFCLASS64) {
-		return NULL;
+		return 0;
 	}
 
 	LoadProgramHeaders(data, size, elfHeader, module);
 	LinkSymbols(data, size, elfHeader, module);
-	LoadProcess(elfHeader, module);
+	return LoadProcess(elfHeader, module);
 }
 
 void LoadProgramHeaders(uint8_t *data, size_t size, Elf64_Ehdr *elfHeader, PROC::Process *proc) {
@@ -143,8 +140,6 @@ void LoadProgramHeaders(uint8_t *data, size_t size, Elf64_Ehdr *elfHeader, PROC:
 void LinkSymbols(uint8_t *data, size_t size, Elf64_Ehdr *elfHeader, PROC::Process *proc) {
 	KInfo *info = GetInfo();
 				
-	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
-
 	uint64_t sectionHeaderSize = elfHeader->e_shentsize;
 	uint64_t sectionHeaderOffset = elfHeader->e_shoff;
 	uint64_t sectionHeaderNumber = elfHeader->e_shnum;
@@ -192,18 +187,14 @@ void LinkSymbols(uint8_t *data, size_t size, Elf64_Ehdr *elfHeader, PROC::Proces
 		}
 	}
 
-	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
 	MODULE::Manager::RegisterModule(modinfo, proc);
 	VMM::LoadVirtualSpace(proc->GetVirtualMemorySpace());
 }
 
-void LoadProcess(Elf64_Ehdr *elfHeader, PROC::Process *proc) {
+size_t LoadProcess(Elf64_Ehdr *elfHeader, PROC::Process *proc) {
 	KInfo *info = GetInfo();
 
-	PRINTK::PrintK("Creating thread..\r\n");
 	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
-
-	if(elfHeader > CONFIG_HEAP_BASE) Free(elfHeader);
 
 	size_t pid = proc->GetPID();
 	size_t tid = proc->CreateThread(0, elfHeader->e_entry);
@@ -211,11 +202,11 @@ void LoadProcess(Elf64_Ehdr *elfHeader, PROC::Process *proc) {
 	proc->SetMainThread(tid);
 	PROC::Thread *mainThread = proc->GetThread(tid);
 
-	PRINTK::PrintK("Created thread %d for process %d.\r\n", tid, pid);
-
 	info->kernelScheduler->AddProcess(proc);
-	PRINTK::PrintK("Switching to task...\r\n");
-	info->kernelScheduler->SwitchToTask(pid, 0);
+	
+	/* Cleaning up */
+	if(elfHeader > CONFIG_HEAP_BASE) Free(elfHeader);
 
+	return pid;
 	//MODULE::Manager::UnregisterModule(modinfo->ID);
 }

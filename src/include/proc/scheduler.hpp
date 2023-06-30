@@ -13,8 +13,11 @@ namespace PROC {
 		Process *GetProcess(size_t PID);
 		Process *GetRunningProcess();
 
+		size_t GetMaxPID() { return MaxPID; }
+			
 		void SwitchToTask(size_t PID, size_t TID);
 	private:
+		uintmax_t MaxPID;
 		Process *CurrentProcess;
 
 		Vector<Process*> Processes;

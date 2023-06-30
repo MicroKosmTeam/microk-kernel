@@ -139,7 +139,8 @@ __attribute__((noreturn)) void KernelStart() {
 	/* Launch the core user core module */
 	if (addr != 0) {
 		PRINTK::PrintK("Loading user module from 0x%x\r\n", addr);
-		LoadELF(ELF_CORE_MODULE, addr, moduleSize);
+		size_t pid = LoadELF(ELF_CORE_MODULE, addr, moduleSize);
+		info->kernelScheduler->SwitchToTask(pid, 0);
 	} else PANIC("Could not find User Module");
 #endif
 

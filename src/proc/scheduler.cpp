@@ -29,10 +29,16 @@ Scheduler::Scheduler() {
 void Scheduler::AddProcess(Process *process) {
 	if (process == NULL) return;
 
-	Processes.Push(process, process->GetPID());
+	size_t pid = process->GetPID();
+
+	Processes.Push(process, pid);
+
+	if (pid > MaxPID) MaxPID = pid;
 }
 
 Process *Scheduler::GetProcess(size_t PID) {
+	if(PID > MaxPID) return NULL;
+
 	Process *proc = Processes.Get(PID);
 	
 	return proc;
