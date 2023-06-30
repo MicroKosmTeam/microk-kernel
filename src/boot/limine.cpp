@@ -61,8 +61,15 @@ static volatile limine_kernel_address_request kaddrRequest {
 	.revision = 0
 };
 
+/* RSDP request */
 static volatile limine_rsdp_request rsdpRequest {
 	.id = LIMINE_RSDP_REQUEST,
+	.revision = 0
+};
+
+/* Framebuffer request */
+static volatile limine_framebuffer_request framebufferRequest {
+	.id = LIMINE_FRAMEBUFFER_REQUEST,
 	.revision = 0
 };
 
@@ -90,7 +97,7 @@ __attribute__((noreturn)) extern "C" void LimineEntry() {
 
 	uint64_t mMapEntryCount = mMapRequest.response->entry_count;
 	info->mMapEntryCount = mMapEntryCount;
-	info->mMap = (MMapEntry*)BOOTMEM::Malloc(sizeof(MMapEntry) * mMapEntryCount + 1);
+	info->mMap = (MEM::MMapEntry*)BOOTMEM::Malloc(sizeof(MEM::MMapEntry) * mMapEntryCount + 1);
 
 	PRINTK::PrintK("Allocating for %d memory map entries.\r\n", mMapEntryCount);
 	for (int i = 0; i < mMapEntryCount; i++) {
@@ -99,28 +106,48 @@ __attribute__((noreturn)) extern "C" void LimineEntry() {
 		info->mMap[i].type = mMapRequest.response->entries[i]->type;
 	}
 
-	/* Transporting modules */
+	/* Transporting files */
 	uint64_t moduleCount = moduleRequest.response->module_count;
-	info->moduleCount = moduleCount;
-	info->modules = (BootFile*)BOOTMEM::Malloc(sizeof(BootFile) * moduleCount + 1);
+	info->fileCount = moduleCount;
+	info->bootFiles = (FILE::BootFile*)BOOTMEM::Malloc(sizeof(FILE::BootFile) * moduleCount + 1);
 
 	PRINTK::PrintK("Allocating for %d modules.\r\n", moduleCount);
 	for (int i = 0; i < moduleCount; i++) {
-		info->modules[i].address = moduleRequest.response->modules[i]->address;
-		info->modules[i].size = moduleRequest.response->modules[i]->size;
-		info->modules[i].path = moduleRequest.response->modules[i]->path;
-		info->modules[i].cmdline = moduleRequest.response->modules[i]->cmdline;
+		info->bootFiles[i].Address = moduleRequest.response->modules[i]->address;
+		info->bootFiles[i].Size = moduleRequest.response->modules[i]->size;
+		info->bootFiles[i].Path = moduleRequest.response->modules[i]->path;
+		info->bootFiles[i].Cmdline = moduleRequest.response->modules[i]->cmdline;
 	}
 
 	if (rsdpRequest.response == NULL) {
+		info->RSDP = NULL;
 	} else {
 		info->RSDP = rsdpRequest.response->address;
+	}
+
+	if (framebufferRequest.response == NULL) {
+
+	} else {
+		size_t framebufferCount = framebufferRequest.response->framebuffer_count;
+		info->framebufferCount = framebufferCount;
+		info->framebuffers = (Framebuffer*)BOOTMEM::Malloc(sizeof(Framebuffer) * framebufferCount + 1);
+
+		for (int i = 0; i < framebufferCount; i++) {
+			info->framebuffers[i].Address = framebufferRequest.response->framebuffers[i]->address;
+			info->framebuffers[i].Width = framebufferRequest.response->framebuffers[i]->width;
+			info->framebuffers[i].Height = framebufferRequest.response->framebuffers[i]->height;
+			info->framebuffers[i].BPP = framebufferRequest.response->framebuffers[i]->bpp;
+			info->framebuffers[i].RedShift = framebufferRequest.response->framebuffers[i]->red_mask_shift;
+			info->framebuffers[i].GreenShift = framebufferRequest.response->framebuffers[i]->green_mask_shift;
+			info->framebuffers[i].BlueShift = framebufferRequest.response->framebuffers[i]->blue_mask_shift;
+		}
+
+
 	}
 
 	info->higherHalfMapping = hhdmRequest.response->offset;
 	info->kernelPhysicalBase = kaddrRequest.response->physical_base;
 	info->kernelVirtualBase = kaddrRequest.response->virtual_base;
-
 
 	PRINTK::PrintK("Welcome from MicroK.\r\n"
 		       "The kernel is booted by %s %s at %d\r\n",

@@ -20,11 +20,9 @@ VirtualSpace *NewModuleVirtualSpace() {
 
 	VirtualSpace *space = NewVirtualSpace();
 
-//	info->kernelVirtualSpace->Fork(space, true);
-
 	/* We go through every entry in the memory map and map it in virtual memory */
 	for (int i = 0; i < info->mMapEntryCount; i++) {
-		MMapEntry entry = info->mMap[i];
+		MEM::MMapEntry entry = info->mMap[i];
 
 		/* We will skip any memory that is not usable by our kernel, to make the process faster */
 		/* We also ignore ACPI, as our kernel is not interested by the information contained in those structures */
@@ -44,11 +42,17 @@ VirtualSpace *NewModuleVirtualSpace() {
 			}
 		} else {
 			for (uint64_t t = base; t < top; t += PAGE_SIZE) {
-				space->MapMemory(t, t, 0);
 				space->MapMemory(t, t + info->higherHalfMapping, 0);
 			}
 		}
 	}
+
+#ifdef CONFIG_ARCH_x86_64
+	for (uintptr_t t = PAGE_SIZE; t < info->kernelStack; t+=PAGE_SIZE) {
+		space->MapMemory(t, t, 0);
+	}
+#endif
+
 	return space;
 }
 
@@ -59,7 +63,7 @@ VirtualSpace *NewKernelVirtualSpace() {
 	
 	/* We go through every entry in the memory map and map it in virtual memory */
 	for (int i = 0; i < info->mMapEntryCount; i++) {
-		MMapEntry entry = info->mMap[i];
+		MEM::MMapEntry entry = info->mMap[i];
 
 		/* We will skip any memory that is not usable by our kernel, to make the process faster */
 		/* We also ignore ACPI, as our kernel is not interested by the information contained in those structures */
@@ -84,6 +88,12 @@ VirtualSpace *NewKernelVirtualSpace() {
 				space->MapMemory(t, t + info->higherHalfMapping, 0);
 			}
 		}
+	}
+
+	/* TODO: fix */
+	/* Map interrupt stack */
+	for (uintptr_t t = info->kernelStack; t < info->kernelStack - 8 * PAGE_SIZE; t+=PAGE_SIZE) {
+		space->MapMemory(t - info->higherHalfMapping, t, 0);
 	}
 
 	return space;

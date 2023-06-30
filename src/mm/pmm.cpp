@@ -73,7 +73,7 @@ void InitPageFrameAllocator() {
 
 	uint64_t memory_size = 0;
 	for (int i = 0; i < info->mMapEntryCount; i++) {
-		MMapEntry desc = info->mMap[i];
+		MEM::MMapEntry desc = info->mMap[i];
 		if (desc.type == MEMMAP_USABLE) {
 			if(desc.length > largestFreeSize) {
 				largestFree = (void*)desc.base;
@@ -98,7 +98,7 @@ void InitPageFrameAllocator() {
 
 	// Unreserve usable pages (we do it because the mmap can have holes in it)
 	for (int i = 0; i < info->mMapEntryCount; i++){
-		MMapEntry desc = info->mMap[i];
+		MEM::MMapEntry desc = info->mMap[i];
 		if (desc.type == MEMMAP_USABLE) {
 			UnreservePages((void*)desc.base, desc.length / 4096);
 

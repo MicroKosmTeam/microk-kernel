@@ -7,16 +7,19 @@ void Panic(const char *message, const char *file, const char *function, unsigned
         asm volatile ("cli"); // We don't want interrupts while we are panicking
 
         // Printing the panic message
-	PRINTK::PrintK("\r\n\r\n KERNEL PANIC!! \r\n");
-	PRINTK::PrintK("Irrecoverable error in the kernel.\r\n\r\n");
-	PRINTK::PrintK("%s in function %s at line %d\r\n", file, function, line);
-	PRINTK::PrintK("Cause: %s\r\n", message);
-	UnwindStack(8);
-	PRINTK::PrintK("[Hanging now...]\r\n");
+	PRINTK::PrintK("\r\n\r\n [PANIC] -> KERNEL PANIC!! \r\n"
+			" [PANIC] Irrecoverable error in the kernel.\r\n"
+			" [PANIC] %s in function %s at line %d\r\n"
+			" [PANIC] Cause: %s\r\n\r\n",
+			file, function, line, message);
+
+	UnwindStack(32);
+
+	PRINTK::PrintK("\r\n [Hanging now...]\r\n\r\n");
 
         while (true) {
                 // Halting forever
-                asm volatile ("hlt");
+                asm volatile ("cli; hlt");
         }
 
 }
@@ -25,9 +28,13 @@ void Oops(const char *message, const char *file, const char *function, unsigned 
         asm volatile ("cli"); // We don't want interrupts while we are panicking
 
         // Printing the panic message
-	PRINTK::PrintK("\r\n\r\n KERNEL OOPS!! \r\n");
-	PRINTK::PrintK("Error in the kernel.\r\n\r\n");
-	PRINTK::PrintK("%s in function %s at line %d\r\n", file, function, line);
-	PRINTK::PrintK("Cause: %s\r\n", message);
-	UnwindStack(8);
+	PRINTK::PrintK("\r\n\r\n [OOPS] -> KERNEL OOPS!! \r\n"
+			" [OOPS] Error in the kernel.\r\n"
+			" [OOPS] %s in function %s at line %d\r\n"
+			" [OOPS] Cause: %s\r\n\r\n",
+			file, function, line, message);
+
+	UnwindStack(32);
+
+	PRINTK::PrintK("\r\n [Continuing execution...]\r\n\r\n");
 }

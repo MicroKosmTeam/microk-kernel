@@ -94,41 +94,46 @@ void InitializeHeap(void *heapAddress, size_t pageCount) {
 	isHeapActive = true;
 }
 
+#define MAX_TRIES 4
+
 void *Malloc(size_t size) {
-	HeapLock.Lock();
 
         if (size % 0x10 > 0){ // Not multiple of 0x10
                 size -= (size % 0x10);
                 size += 0x10;
         }
 
-        if (size == 0) { HeapLock.Unlock(); return NULL; }
+        if (size == 0) return NULL;
 
-        HeapSegHeader *currSeg = (HeapSegHeader*)heapStart;
-        while (true) {
-                if (currSeg-> free) {
-                        if (currSeg->length > size) {
-                                currSeg->Split(size);
-                                currSeg->free = false;
-				freeMem -= size;
-				HeapLock.Unlock();
-                                return (void*)((uint64_t)currSeg + sizeof(HeapSegHeader));
-                        } else if (currSeg->length == size) {
-                                currSeg->free = false;
-				freeMem -= size;
-				HeapLock.Unlock();
-                                return (void*)((uint64_t)currSeg + sizeof(HeapSegHeader));
-                        }
-                }
+	for (int i = 0; i < MAX_TRIES; i++) {
+		HeapLock.Lock();
+		HeapSegHeader *currSeg = (HeapSegHeader*)heapStart;
 
-                if (currSeg->next == NULL) break;
-                currSeg = currSeg->next;
-        }
+		while(true) {
+			if (currSeg-> free) {
+				if (currSeg->length > size) {
+					currSeg->Split(size);
+					currSeg->free = false;
+					freeMem -= size;
+					HeapLock.Unlock();
+					return (void*)((uint64_t)currSeg + sizeof(HeapSegHeader));
+				} else if (currSeg->length == size) {
+					currSeg->free = false;
+					freeMem -= size;
+					HeapLock.Unlock();
+					return (void*)((uint64_t)currSeg + sizeof(HeapSegHeader));
+				}
+			}
 
-        ExpandHeap(size);
+			if (currSeg->next == NULL) break;
+			currSeg = currSeg->next;
+		}
 
-	HeapLock.Unlock();
-        return HEAP::Malloc(size);
+		ExpandHeap(size);
+
+		HeapLock.Unlock();
+
+	}
 }
 
 void Free(void *address) {

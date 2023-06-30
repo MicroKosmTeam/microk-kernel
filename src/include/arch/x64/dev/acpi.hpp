@@ -9,5 +9,23 @@ namespace x86_64 {
 		char EntriesBegin[];
         }__attribute__((packed));
 
+	struct MADTEntryHeader {
+		uint8_t Type;
+		uint8_t Length;
+	}__attribute__((packed));
+
+	struct PLAPICEntry {
+		uint8_t ACPIProcessorID;
+		uint8_t APICID;
+		uint32_t Flags;
+	}__attribute__((packed));
+
+	struct IOAPICEntry {
+		uint8_t IOAPICID;
+		uint8_t Reserved;
+		uint32_t IOAPICAddress;
+		uint32_t GlobalSystemInterruptBase;
+	}__attribute__((packed));
+
 	void LoadMADT();
 }

@@ -1,10 +1,8 @@
 #pragma once
-#include <mkmi.h>
 
 namespace MODULE {
 namespace Buffer {
-	MKMI_Buffer *Create(uint64_t code, MKMI_BufferType type, size_t size);
-	uint64_t IO(MKMI_Buffer *buffer, MKMI_BufferOperation operation, ...);
-	uint64_t Delete(MKMI_Buffer *buffer);
+//void *Create(MKMI_ModuleID moduleID, uintptr_t virtualBase, size_t length, size_t type);
+//uint64_t Delete(MKMI_ModuleID moduleID, size_t bufferID);
 }
 }

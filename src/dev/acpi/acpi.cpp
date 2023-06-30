@@ -21,7 +21,7 @@ void Init() {
 	PRINTK::PrintK("Loading the XSDT table from 0x%x.\r\n", rsdp->XSDTAddress);
 	xsdt = (SDTHeader*)(rsdp->XSDTAddress);
 
-	x86_64::LoadMADT();
+	//x86_64::LoadMADT();
 }
 
 /* Function that finds a table given the XSDT and the signature */

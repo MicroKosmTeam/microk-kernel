@@ -11,13 +11,20 @@
 #include <arch/x64/interrupts/idt.hpp>
 
 namespace x86_64 {
-/* Function that initializes platform-specific features */
 void Init() {
 	KInfo *info = GetInfo();
 
-	/* We first of all get the position of the kernel stack and save it
-	   as we will use it to initialize the TSS */
-	info->kernelStack = PMM::RequestPages(8) + 8 * 4096 - 1;
+	/* We first of all get the position of the kernel interrupt stack and save it
+	 * as we will use it to initialize the TSS
+	 *
+	 * We use 0x800000 because it's a low memory address that is
+	 * the highest that is always (hopefully) free. No interferance with userspace.
+	 *
+	 * Just know that if it grows until around 0x8000 (where the SMP startup
+	 * code should be situated), we will be in trouble. However, that shouldn't
+	 * be a thing.
+	 */
+	info->kernelStack = 0x800000;
 
 	/* Initialize the GDT and the TSS */
 	LoadGDT(info->kernelStack);

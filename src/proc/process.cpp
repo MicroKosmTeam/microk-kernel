@@ -146,18 +146,26 @@ Thread::Thread(Process *process, size_t stackSize, uintptr_t entrypoint, size_t 
 	stackSize -= stackSize % 16;
 
 	if (newTID != NULL) *newTID = GetTID();
-	
-	size_t highestFree = process->GetHighestFree();
-	
-	VMM::VirtualSpace *space = process->GetVirtualMemorySpace();
 
-	for (uintptr_t i = highestFree - stackSize; i < highestFree; i+= 0x1000) {
-		space->MapMemory((void*)PMM::RequestPage(), (void*)i, 0);
+	switch(process->GetType()) {
+		case PT_USER: {
+			size_t highestFree = process->GetHighestFree();
+
+			VMM::VirtualSpace *space = process->GetVirtualMemorySpace();
+
+			for (uintptr_t i = highestFree - stackSize; i < highestFree; i+= 0x1000) {
+				space->MapMemory((void*)PMM::RequestPage(), (void*)i, 0);
+			}
+
+			StackBase = Stack = highestFree;
+
+			process->SetHighestFree((highestFree - stackSize) - (highestFree - stackSize) % 16);
+			}
+			break;
+		case PT_KERNEL: {
+			}
+			break;
 	}
-
-	StackBase = Stack = highestFree;
-
-	process->SetHighestFree((highestFree - stackSize) - (highestFree - stackSize) % 16);
 }
 
 Thread::~Thread() {

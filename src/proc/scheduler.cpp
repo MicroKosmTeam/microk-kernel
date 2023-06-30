@@ -5,6 +5,7 @@
 #include <mm/pmm.hpp>
 #include <sys/panic.hpp>
 #include <init/main.hpp>
+#include <sys/user.hpp>
 
 namespace PROC {
 Scheduler::Scheduler() {
@@ -21,6 +22,8 @@ Scheduler::Scheduler() {
 	info->kernelProcess->SetProcessState(PROC::P_READY);
 
 	AddProcess(info->kernelProcess);
+
+	CurrentProcess = info->kernelProcess;
 }
 
 void Scheduler::AddProcess(Process *process) {
@@ -39,7 +42,6 @@ Process *Scheduler::GetRunningProcess() {
 	return CurrentProcess;
 }
 
-#include <sys/user.hpp>
 void Scheduler::SwitchToTask(size_t PID, size_t TID) {
 	Process *proc = GetProcess(PID);
 	if (proc == NULL) return;
@@ -56,7 +58,7 @@ void Scheduler::SwitchToTask(size_t PID, size_t TID) {
 	CurrentProcess = proc;
 
 	ProcessType type = proc->GetType();
-
+	
 	VMM::LoadVirtualSpace(proc->GetVirtualMemorySpace());
 
 	switch(type) {
@@ -64,9 +66,11 @@ void Scheduler::SwitchToTask(size_t PID, size_t TID) {
 			EnterUserspace(entry, stack);
 			break;
 		case PT_KERNEL:
-			OOPS("Kernel task switching not yet implemented");
 			break;
 	}
+
+	OOPS("Failed to task switch");
+	while(true);
 }
 
 }

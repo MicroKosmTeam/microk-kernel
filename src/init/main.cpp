@@ -28,6 +28,7 @@
 #include <stddef.h>
 #include <mm/pmm.hpp>
 #include <mm/heap.hpp>
+#include <sys/elf.hpp>
 #include <proc/smp.hpp>
 #include <init/main.hpp>
 #include <sys/panic.hpp>
@@ -36,10 +37,10 @@
 #include <init/kinfo.hpp>
 #include <sys/atomic.hpp>
 #include <sys/printk.hpp>
-#include <init/modules.hpp>
 #include <dev/acpi/acpi.hpp>
 #include <arch/x64/main.hpp>
 #include <proc/scheduler.hpp>
+#include <module/modulemanager.hpp>
 
 /*
    Function that is started by the scheduler once kernel startup is complete.
@@ -122,19 +123,31 @@ __attribute__((noreturn)) void KernelStart() {
 	/* Printing banner to show off */
 	PrintBanner();
 
-	/* We enable the timer to start task-switching */
-	OOPS("Timer not yet implemented");
-
 #ifdef CONFIG_KERNEL_MODULES
-	/* Starting the modules subsystem */
-	MODULE::Init();
+	/* Initialize the kernel's module manager */
+	MODULE::Manager::Init();
+
+	PRINTK::PrintK("Module managment initialized.\r\n");
+	
+	/* Load all the files we are told to load */
+	size_t moduleSize;
+	void *addr;
+
+	/* Ge the core module's file */
+	addr = FILE::Open("FILE:/user.elf", &moduleSize);
+	
+	/* Launch the core user core module */
+	if (addr != 0) {
+		PRINTK::PrintK("Loading user module from 0x%x\r\n", addr);
+		LoadELF(ELF_CORE_MODULE, addr, moduleSize);
+	} else PANIC("Could not find User Module");
 #endif
 
+	/* We are done */
 	while (true) CPUPause();
 }
 
 __attribute__((noreturn)) void RestInit() {
-	/* We are done with the boot process */
 	PRINTK::PrintK("Kernel is now resting...\r\n");
 	
 	while (true) CPUPause();

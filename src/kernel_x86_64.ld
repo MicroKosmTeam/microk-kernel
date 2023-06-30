@@ -31,6 +31,9 @@ SECTIONS
 
 	syscall_end = .;
 
+	/* Move to the next memory page for .text */
+	. += 0x1000;
+
 	.text : {
 		*(.text .text.*)
 	} :text

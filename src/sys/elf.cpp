@@ -60,10 +60,10 @@ void LoadMKMI(uint8_t *data, size_t size) {
 void LoadELFCoreModule(uint8_t *data, size_t size) {
 	KInfo *info = GetInfo();
 
+	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
+
 	VMM::VirtualSpace *space = VMM::NewModuleVirtualSpace();
 	PROC::Process *module = new PROC::Process(PROC::PT_USER, space);
-
-	VMM::LoadVirtualSpace(module->GetVirtualMemorySpace());
 	
 	Elf64_Ehdr *elfHeader = (Elf64_Ehdr*)data;
 
@@ -80,6 +80,8 @@ void LoadELFCoreModule(uint8_t *data, size_t size) {
 void LoadProgramHeaders(uint8_t *data, size_t size, Elf64_Ehdr *elfHeader, PROC::Process *proc) {
 	KInfo *info = GetInfo();
 
+	VMM::VirtualSpace *space = proc->GetVirtualMemorySpace();
+
 	uint64_t programHeaderSize = elfHeader->e_phentsize;
 	uint64_t programHeaderOffset = elfHeader->e_phoff;
 	uint64_t programHeaderNumber = elfHeader->e_phnum;
@@ -93,6 +95,11 @@ void LoadProgramHeaders(uint8_t *data, size_t size, Elf64_Ehdr *elfHeader, PROC:
 
 		switch (programHeader->p_type) {
 			case PT_LOAD: {
+				char buffer[1024];
+				size_t fileRemaining = programHeader->p_filesz;
+				uintptr_t virtualAddr = programHeader->p_vaddr;
+				size_t memorySize = programHeader->p_memsz;
+				size_t fileSize = programHeader->p_filesz;
 				VMM::LoadVirtualSpace(info->kernelVirtualSpace);
 
 				for (uint64_t addr = programHeader->p_vaddr;
@@ -101,10 +108,27 @@ void LoadProgramHeaders(uint8_t *data, size_t size, Elf64_Ehdr *elfHeader, PROC:
 					VMM::MapMemory(proc->GetVirtualMemorySpace(), PMM::RequestPage(), addr);
 				}
 
-				VMM::LoadVirtualSpace(proc->GetVirtualMemorySpace());
+				
+				PRINTK::PrintK("Create data...\r\n");
 
-				memset(programHeader->p_vaddr, 0, programHeader->p_memsz);
-				memcpy(programHeader->p_vaddr, data + programHeader->p_offset, programHeader->p_filesz);
+				VMM::LoadVirtualSpace(space);
+				memset(virtualAddr, 0, memorySize);
+				
+				for (size_t i = 0; i < fileSize; i += 1024) {
+					if(fileRemaining == 0) break;
+
+					VMM::LoadVirtualSpace(info->kernelVirtualSpace);
+					memcpy(buffer, data + programHeader->p_offset + i, fileRemaining > 1024 ? 1024 : fileRemaining);
+					
+					fileRemaining = programHeader->p_filesz - i;
+
+					VMM::LoadVirtualSpace(space);
+					memcpy(virtualAddr + i, buffer, fileRemaining > 1024 ? 1024 : fileRemaining);
+				}
+					
+
+				VMM::LoadVirtualSpace(info->kernelVirtualSpace);
+
 				}
 				break;
 
@@ -118,6 +142,8 @@ void LoadProgramHeaders(uint8_t *data, size_t size, Elf64_Ehdr *elfHeader, PROC:
 
 void LinkSymbols(uint8_t *data, size_t size, Elf64_Ehdr *elfHeader, PROC::Process *proc) {
 	KInfo *info = GetInfo();
+				
+	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
 
 	uint64_t sectionHeaderSize = elfHeader->e_shentsize;
 	uint64_t sectionHeaderOffset = elfHeader->e_shoff;
@@ -167,7 +193,7 @@ void LinkSymbols(uint8_t *data, size_t size, Elf64_Ehdr *elfHeader, PROC::Proces
 	}
 
 	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
-	MODULE::Manager::RegisterModule(modinfo);
+	MODULE::Manager::RegisterModule(modinfo, proc);
 	VMM::LoadVirtualSpace(proc->GetVirtualMemorySpace());
 }
 
@@ -176,6 +202,8 @@ void LoadProcess(Elf64_Ehdr *elfHeader, PROC::Process *proc) {
 
 	PRINTK::PrintK("Creating thread..\r\n");
 	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
+
+	if(elfHeader > CONFIG_HEAP_BASE) Free(elfHeader);
 
 	size_t pid = proc->GetPID();
 	size_t tid = proc->CreateThread(0, elfHeader->e_entry);
@@ -188,5 +216,6 @@ void LoadProcess(Elf64_Ehdr *elfHeader, PROC::Process *proc) {
 	info->kernelScheduler->AddProcess(proc);
 	PRINTK::PrintK("Switching to task...\r\n");
 	info->kernelScheduler->SwitchToTask(pid, 0);
+
 	//MODULE::Manager::UnregisterModule(modinfo->ID);
 }

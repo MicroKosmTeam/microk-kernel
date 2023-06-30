@@ -44,7 +44,7 @@ void IDTInit() {
 
 	/* Fill in the 32 exception handlers */
 	for (uint8_t vector = 0; vector < 32; vector++) {
-		IDTSetDescriptor(vector, isrStubTable[vector], 0x8F);
+		IDTSetDescriptor(vector, isrStubTable[vector],  0x8F);
 	}
 		
 	IDTSetDescriptor(32, isrStubTable[32],   0b11101110);
@@ -122,9 +122,17 @@ extern "C" CPUStatus *exceptionHandler(CPUStatus *context) {
 #include <arch/x64/dev/apic.hpp>
 #include <mm/vmm.hpp>
 extern "C" CPUStatus *timerHandler(CPUStatus *context) {
-	x86_64::SendAPICEOI();
-	x86_64::SetAPICTimer();
+	KInfo *info = GetInfo();
 
+	//VMM::LoadVirtualSpace(info->kernelVirtualSpace);	
+	
+	//VMM::VirtualSpace *procSpace = info->kernelScheduler->GetRunningProcess()->GetVirtualMemorySpace();
+	
+	x86_64::SetAPICTimer();
+	x86_64::SendAPICEOI();
+
+	//VMM::LoadVirtualSpace(procSpace);
+	
 	return context;
 }
 
@@ -138,7 +146,8 @@ extern "C" CPUStatus *spuriousHandler(CPUStatus *context) {
 extern "C" CPUStatus *syscallHandler(CPUStatus *context) {
 	KInfo *info = GetInfo();
 
-	HandleSyscall(context->RDI, context->RSI, context->RDX, context->RCX, context->R8, context->R9);
+	// OUTDATED: Might not work
+	HandleSyscall(context->RAX, context->RDI, context->RSI, context->RDX, context->RCX, context->R8, context->R9);
 
 	/*
 	context->IretRIP = HandleSyscall;

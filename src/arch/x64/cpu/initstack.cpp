@@ -1,11 +1,9 @@
 #include <arch/x64/cpu/stack.hpp>
 
 #include <sys/panic.hpp>
-void InitializeStack(PROC::Thread *thread, uintptr_t function) {
-	OOPS("Stack initializing not implemented");
-	SaveContext *newStack/* = thread->Stack*/;
+void InitializeStack(void *stack, uintptr_t function) {
+	SaveContext *newStack = stack - sizeof(SaveContext);
 
 	newStack->RBP = (uint64_t)&newStack->RBP2;
-	newStack->RDI = (uint64_t)thread;
 	newStack->ret = (uint64_t)function;
 }

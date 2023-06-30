@@ -3,58 +3,66 @@
 #include <mm/memory.hpp>
 
 struct ModuleNode {
-	MKMI_Module *module;
+	MKMI_Module *Module;
+	PROC::Process *Process;
 
-	ModuleNode *previous;
-	ModuleNode *next;
+	
+
+	ModuleNode *Previous;
+	ModuleNode *Next;
 };
 
-ModuleNode *first;
-ModuleNode *last;
+ModuleNode *First;
+ModuleNode *Last;
 
 namespace MODULE {
 namespace Manager {
 ModuleNode *FindModule(MKMI_ModuleID id) {
-	ModuleNode *node = last;
+	ModuleNode *node = Last;
 
-	while (node->previous) {
-		if (node->module->ID.Codename == id.Codename &&
-		    node->module->ID.Writer == id.Writer) {
+	while (node->Previous) {
+		if (node->Module->ID.Codename == id.Codename &&
+		    node->Module->ID.Writer == id.Writer) {
 			break;
 		}
 
-		node = node->previous;
+		node = node->Previous;
 	}
 
 	return node;
 }
 
-uint64_t RegisterModule(MKMI_Module module) {
-	ModuleNode *newNode = last->next;
-	newNode = new ModuleNode;
-	newNode->module = new MKMI_Module;
-	memcpy(newNode->module, &module, sizeof(MKMI_Module));
-	newNode->previous = last;
-	newNode->next = NULL;
-	last = newNode;
+uint64_t RegisterModule(MKMI_Module module, PROC::Process *mainProcess) {
+	ModuleNode *newNode = new ModuleNode;
+
+	newNode->Module = new MKMI_Module;
+	newNode->Process = mainProcess;
+
+	memcpy(newNode->Module, &module, sizeof(MKMI_Module));
+
+	newNode->Previous = Last;
+	newNode->Next = NULL;
+
+	Last->Next = newNode;
+	Last = Last->Next;
 
 	PRINTK::PrintK("Module 0x%x by 0x%x registered.\r\n",
-			newNode->module->ID.Codename,
-			newNode->module->ID.Writer);
+			newNode->Module->ID.Codename,
+			newNode->Module->ID.Writer);
 
 	return 0;
 }
 
 uint64_t UnregisterModule(MKMI_ModuleID id) {
 	ModuleNode *node = FindModule(id);
-	if (node == NULL || node->module == NULL) return 1;
+	if (node == NULL || node->Module == NULL) return 1;
 
-	uint64_t codename = node->module->ID.Codename;
-	uint64_t writer = node->module->ID.Writer;
+	uint64_t codename = node->Module->ID.Codename;
+	uint64_t writer = node->Module->ID.Writer;
 
-	delete node->module;
-	node->previous->next = node->next;
-	if (node->next != NULL) node->next->previous = node->previous;
+	delete node->Module;
+	node->Previous->Next = node->Next;
+	if (node->Next != NULL) node->Next->Previous = node->Previous;
 
 	delete node;
 
@@ -65,19 +73,26 @@ uint64_t UnregisterModule(MKMI_ModuleID id) {
 	return 0;
 }
 
-MKMI_Module *GetModule(MKMI_ModuleID id) {
+MKMI_Module *GetModuleData(MKMI_ModuleID id) {
 	ModuleNode *node = FindModule(id);
-	if (node == NULL || node->module == NULL) return NULL;
+	if (node == NULL || node->Module == NULL) return NULL;
 
-	return node->module;
+	return node->Module;
+}
+
+PROC::Process *GetModuleProcess(MKMI_ModuleID id) {
+	ModuleNode *node = FindModule(id);
+	if (node == NULL || node->Process == NULL) return NULL;
+
+	return node->Process;
 }
 
 void Init() {
-	first = new ModuleNode;
-	first->module = NULL;
-	first->next = NULL;
-	first->previous = NULL;
-	last = first;
+	First = new ModuleNode;
+	First->Module = NULL;
+	First->Next = NULL;
+	First->Previous = NULL;
+	Last = First;
 }
 
 }

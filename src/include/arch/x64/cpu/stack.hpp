@@ -28,4 +28,4 @@ struct SaveContext {
 }__attribute__((packed));
 
 extern "C" void SwitchStack(void *oldStack, void *newStack);
-void InitializeStack(PROC::Thread *thread, uintptr_t function);
+void InitializeStack(void *stack, uintptr_t function);

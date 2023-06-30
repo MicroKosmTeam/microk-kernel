@@ -26,11 +26,23 @@ SyscallEntry:
 
 	mov rbx, rsp
 	mov rsp, [StartSyscallStack]; TODO FIX
-	mov rbp, rsp
 
 	push rbx
 
+	mov rbp, rsp
+
+	push r9
+
+	mov r9, r8
+	mov r8, rcx
+	mov rcx, rdx
+	mov rdx, rsi
+	mov rsi, rdi
+	mov rdi, rax
+
 	call HandleSyscall
+
+	mov rsp, rbp
 
 	pop rbx
 
