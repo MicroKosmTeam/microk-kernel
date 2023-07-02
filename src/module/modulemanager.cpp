@@ -2,93 +2,99 @@
 #include <sys/printk.hpp>
 #include <mm/memory.hpp>
 
-struct ModuleNode {
-	MKMI_Module Module;
-	PROC::Process *Process;
-
-	ModuleNode *Previous;
-	ModuleNode *Next;
-};
-
-ModuleNode *First;
-ModuleNode *Last;
-
 namespace MODULE {
-namespace Manager {
-ModuleNode *FindModule(MKMI_ModuleID id) {
-	ModuleNode *node = Last;
-
-	while (node->Previous) {
-		if (node->Module.ID.Codename == id.Codename &&
-		    node->Module.ID.Writer == id.Writer) {
-			break;
-		}
-
-		node = node->Previous;
-	}
-
-	return node;
+Manager::Manager() {
+	BaseNode = new ModuleNode;
+	BaseNode->Next = NULL;
+	BaseNode->ModuleData = NULL;
 }
 
-uint64_t RegisterModule(MKMI_Module module, PROC::Process *mainProcess) {
+ModuleNode *Manager::AddNode(uint32_t vendorID, uint32_t productID) {
+	bool found = false;
+	ModuleNode *node, *prev;
+
+	node = FindNode(vendorID, productID, &prev, &found);
+
+	/* Already present, return this one */
+	if(found) return node;
+
+	/* If not, prev is now our last node. */
 	ModuleNode *newNode = new ModuleNode;
-
-	newNode->Process = mainProcess;
-
-	newNode->Module = module;
-
-	newNode->Previous = Last;
+	newNode->ModuleData = NULL;
 	newNode->Next = NULL;
 
-	Last->Next = newNode;
-	Last = Last->Next;
-
-	PRINTK::PrintK("Module 0x%x by 0x%x registered.\r\n",
-			newNode->Module.ID.Codename,
-			newNode->Module.ID.Writer);
-
-	return 0;
+	prev->Next = newNode;
+	
+	return prev->Next;
 }
 
-uint64_t UnregisterModule(MKMI_ModuleID id) {
-	ModuleNode *node = FindModule(id);
-	if (node == NULL) return 1;
+void Manager::RemoveNode(uint32_t vendorID, uint32_t productID) {
+	bool found = false;
+	ModuleNode *previous; 
+	ModuleNode *node = FindNode(vendorID, productID, &previous, &found);
 
-	uint64_t codename = node->Module.ID.Codename;
-	uint64_t writer = node->Module.ID.Writer;
+	/* This issue shall be reported */
+	if(!found) return;
 
-	node->Previous->Next = node->Next;
-	if (node->Next != NULL) node->Next->Previous = node->Previous;
+	previous->Next = node->Next;
 
+	delete node->ModuleData;
 	delete node;
+}
 
-	PRINTK::PrintK("Module 0x%x by 0x%x unregistered.\r\n",
-			codename,
-			writer);
+ModuleNode *Manager::FindNode(uint32_t vendorID, uint32_t productID, ModuleNode **previous, bool *found) {
+	ModuleNode *node = BaseNode->Next, *prev = BaseNode;
+
+	if (node == NULL) {
+		*previous = prev;
+		*found = false;
+		return NULL;
+	}
+
+	while(true) {
+		if (node->ModuleData->GetVendor() == vendorID &&
+		    node->ModuleData->GetProduct() == productID) {
+			*found = true;
+			*previous = prev;
+			return node;
+		}
+
+		if (node->Next == NULL) break;
+		prev = node;
+		node = node->Next;
+	}
+
+	PRINTK::PrintK("Not found.\r\n");
+
+	*previous = prev;
+	*found = false;
+	return NULL;
+}
+
+int Manager::RegisterModule(PROC::Process *process, uint32_t vendorID, uint32_t productID) {
+	ModuleNode *node = AddNode(vendorID, productID);
+
+	if(node->ModuleData != NULL) return -1;
+
+	node->ModuleData = new Module(vendorID, productID, process);
+
+	PRINTK::PrintK("Registered module (VID: %x, PID: %x)\r\n",
+			node->ModuleData->GetVendor(),
+			node->ModuleData->GetProduct());
 
 	return 0;
 }
 
-MKMI_Module *GetModuleData(MKMI_ModuleID id) {
-	ModuleNode *node = FindModule(id);
-	if (node == NULL) return NULL;
+Module *Manager::GetModule(uint32_t vendorID, uint32_t productID) {
+	ModuleNode *node, *prev;
+	bool found;
+	node = FindNode(vendorID, productID, &prev, &found);
 
-	return &node->Module;
+	if (!found) return NULL;
+	return node->ModuleData;
 }
 
-PROC::Process *GetModuleProcess(MKMI_ModuleID id) {
-	ModuleNode *node = FindModule(id);
-	if (node == NULL || node->Process == NULL) return NULL;
-
-	return node->Process;
-}
-
-void Init() {
-	First = new ModuleNode;
-	First->Next = NULL;
-	First->Previous = NULL;
-	Last = First;
-}
-
+void Manager::UnregisterModule(uint32_t vendorID, uint32_t productID) {
+	RemoveNode(vendorID, productID);
 }
 }

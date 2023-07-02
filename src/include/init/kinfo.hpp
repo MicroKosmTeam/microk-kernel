@@ -11,6 +11,7 @@
 #include <mm/vmm.hpp>
 #include <proc/process.hpp>
 #include <proc/scheduler.hpp>
+#include <module/modulemanager.hpp>
 
 #ifdef CONFIG_HW_UART
 #include <dev/uart/uart.hpp>
@@ -50,6 +51,8 @@ struct KInfo {
 	/* Module information */
 	FILE::BootFile *bootFiles; /* Pointer to the Limine modules */
 	uint64_t fileCount; /* Number of modules provided */
+
+	MODULE::Manager *KernelModuleManager;
 #endif
 
 #ifdef CONFIG_HW_UART
@@ -62,6 +65,8 @@ struct KInfo {
 	size_t framebufferCount;
 	Framebuffer *framebuffers;
 };
+
+struct KInfo;
 
 void InitInfo();
 KInfo *GetInfo();

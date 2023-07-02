@@ -31,8 +31,11 @@ void HandleSyscallProcExit(size_t exitCode, uintptr_t stack);
 void HandleSyscallProcWait(size_t TODO);
 void HandleSyscallProcKill(size_t TODO);
 
-void HandleSyscallModuleRegister(size_t TODO);
-void HandleSyscallModuleUnregister(size_t TODO);
+void HandleSyscallModuleRegister(size_t vendorID, size_t productID);
+void HandleSyscallModuleUnregister(size_t vendorID, size_t productID);
+
+void HandleSyscallModuleBufferRegister(size_t vendorID, size_t productID, uintptr_t virtualBase, size_t size, size_t type, uint32_t *id);
+void HandleSyscallModuleBufferUnregister(size_t vendorID, size_t productID, uint32_t id);
 
 void HandleSyscallFileOpen(char *filename, uintptr_t *address, size_t *length);
 void HandleSyscallFileRead(size_t TODO);
@@ -73,8 +76,10 @@ extern "C" void HandleSyscall(size_t syscallNumber, size_t arg1, size_t arg2, si
 		case SYSCALL_PROC_WAIT: return HandleSyscallProcWait(0);
 		case SYSCALL_PROC_KILL: return HandleSyscallProcKill(0);
 
-		case SYSCALL_MODULE_REGISTER: return HandleSyscallModuleRegister(0);
-		case SYSCALL_MODULE_UNREGISTER: return HandleSyscallModuleUnregister(0);
+		case SYSCALL_MODULE_REGISTER: return HandleSyscallModuleRegister(arg1, arg2);
+		case SYSCALL_MODULE_UNREGISTER: return HandleSyscallModuleUnregister(arg1, arg2);
+		case SYSCALL_MODULE_BUFFER_REGISTER: return HandleSyscallModuleBufferRegister(arg1, arg2, arg3, arg4, arg5, arg6);
+		case SYSCALL_MODULE_BUFFER_UNREGISTER: return HandleSyscallModuleBufferUnregister(arg1, arg2, arg3);
 
 		case SYSCALL_FILE_OPEN: return HandleSyscallFileOpen(arg1, arg2, arg3);
 		case SYSCALL_FILE_READ: return HandleSyscallFileRead(0);
@@ -195,7 +200,7 @@ void HandleSyscallMemoryUnmap(uintptr_t base, size_t length) {
 	VMM::LoadVirtualSpace(procSpace);
 }
 
-#include <sys/elf.hpp>
+#include <sys/loader.hpp>
 #include <sys/printk.hpp>
 void HandleSyscallProcExec(uintptr_t executableBase, size_t executableSize) {
 	KInfo *info = GetInfo();
@@ -218,7 +223,7 @@ void HandleSyscallProcExec(uintptr_t executableBase, size_t executableSize) {
 		memcpy(heapAddr + i, buffer, remaining > 1024 ? 1024 : remaining);
 	}
 
-	LoadELF(ELF_CORE_MODULE, heapAddr, executableSize);
+	LoadExecutableFile(heapAddr, executableSize);
 
 	VMM::LoadVirtualSpace(procSpace);
 }
@@ -259,10 +264,66 @@ void HandleSyscallProcWait(size_t TODO) {
 void HandleSyscallProcKill(size_t TODO) {
 }
 
-void HandleSyscallModuleRegister(size_t TODO) {
+#include <module/modulemanager.hpp>
+void HandleSyscallModuleRegister(size_t vendorID, size_t productID) {
+	KInfo *info = GetInfo();
+
+	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
+
+	PROC::Process *proc = info->kernelScheduler->GetRunningProcess();
+	VMM::VirtualSpace *procSpace = proc->GetVirtualMemorySpace();
+
+	info->KernelModuleManager->RegisterModule(proc, vendorID, productID);
+	
+	VMM::LoadVirtualSpace(procSpace);
 }
 
-void HandleSyscallModuleUnregister(size_t TODO) {
+void HandleSyscallModuleUnregister(size_t vendorID, size_t productID) {
+	KInfo *info = GetInfo();
+
+	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
+	
+	VMM::VirtualSpace *procSpace = info->kernelScheduler->GetRunningProcess()->GetVirtualMemorySpace();
+	
+	info->KernelModuleManager->UnregisterModule(vendorID, productID);
+	
+	VMM::LoadVirtualSpace(procSpace);
+}
+
+#include <module/module.hpp>
+#include <module/buffer.hpp>
+void HandleSyscallModuleBufferRegister(size_t vendorID, size_t productID, uintptr_t virtualBase, size_t size, size_t type, uint32_t *id) {
+	KInfo *info = GetInfo();
+
+	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
+
+	PROC::Process *proc = info->kernelScheduler->GetRunningProcess();
+	VMM::VirtualSpace *procSpace = proc->GetVirtualMemorySpace();
+
+	MODULE::Module *mod = info->KernelModuleManager->GetModule(vendorID, productID);
+	if (mod == NULL) return;
+	uint32_t tmpID;
+	mod->RegisterBuffer(virtualBase, type, size, &tmpID);
+	
+	VMM::LoadVirtualSpace(procSpace);
+
+	*id = tmpID;
+}
+
+void HandleSyscallModuleBufferUnregister(size_t vendorID, size_t productID, uint32_t id) {
+	KInfo *info = GetInfo();
+
+	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
+
+	PROC::Process *proc = info->kernelScheduler->GetRunningProcess();
+	VMM::VirtualSpace *procSpace = proc->GetVirtualMemorySpace();
+
+	MODULE::Module *mod = info->KernelModuleManager->GetModule(vendorID, productID);
+	if (mod == NULL) return;
+
+	mod->UnregisterBuffer(id);
+	
+	VMM::LoadVirtualSpace(procSpace);
 }
 
 #include <sys/file.hpp>

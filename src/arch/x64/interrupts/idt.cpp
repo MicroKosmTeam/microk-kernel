@@ -124,14 +124,14 @@ extern "C" CPUStatus *exceptionHandler(CPUStatus *context) {
 extern "C" CPUStatus *timerHandler(CPUStatus *context) {
 	KInfo *info = GetInfo();
 
-	//VMM::LoadVirtualSpace(info->kernelVirtualSpace);	
+	VMM::LoadVirtualSpace(info->kernelVirtualSpace);	
 	
-	//VMM::VirtualSpace *procSpace = info->kernelScheduler->GetRunningProcess()->GetVirtualMemorySpace();
-	
-	x86_64::SetAPICTimer();
+	VMM::VirtualSpace *procSpace = info->kernelScheduler->GetRunningProcess()->GetVirtualMemorySpace();
+
+	x86_64::WaitAPIC(0x10000);
 	x86_64::SendAPICEOI();
 
-	//VMM::LoadVirtualSpace(procSpace);
+	VMM::LoadVirtualSpace(procSpace);
 	
 	return context;
 }
@@ -146,7 +146,6 @@ extern "C" CPUStatus *spuriousHandler(CPUStatus *context) {
 extern "C" CPUStatus *syscallHandler(CPUStatus *context) {
 	KInfo *info = GetInfo();
 
-	// OUTDATED: Might not work
 	HandleSyscall(context->RAX, context->RDI, context->RSI, context->RDX, context->RCX, context->R8, context->R9);
 
 	/*

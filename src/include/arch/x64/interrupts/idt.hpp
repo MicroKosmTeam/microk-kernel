@@ -45,5 +45,15 @@ struct CPUStatus {
 } __attribute__((packed));
 
 namespace x86_64 {
+	static inline uintmax_t IRQDisable() {
+		uintmax_t flags;
+		asm volatile ("pushf\n\tcli\n\tpop %0" : "=r"(flags) : : "memory");
+		return flags;
+	}
+
+	static inline void IRQRestore(uintmax_t flags) {
+		asm ("push %0\n\tpopf" : : "rm"(flags) : "memory","cc");
+	}
+
 	void IDTInit();
 }

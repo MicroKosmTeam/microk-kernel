@@ -97,17 +97,12 @@ push %1
 
 pushall
 
-;mov rbx, cr3
-;push rbx
-
 mov rdi, rsp
 call timerHandler 
 mov rsp, rax
 
-;pop rbx
-;mov cr3, rbx
-
 popall
+
 exitisr
 
 %endmacro

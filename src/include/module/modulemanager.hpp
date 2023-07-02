@@ -1,12 +1,27 @@
 #pragma once
-#include <mkmi_module.h>
+#include <stdint.h>
 #include <proc/process.hpp>
+#include <module/module.hpp>
 
 namespace MODULE {
-namespace Manager {
-	void Init();
-	uint64_t RegisterModule(MKMI_Module module, PROC::Process *mainProcess);
-	uint64_t UnregisterModule(MKMI_ModuleID id);
-	MKMI_Module *GetModule(MKMI_ModuleID id);
-}
+	struct ModuleNode {
+		Module *ModuleData;
+
+		ModuleNode *Next;
+	};
+
+	class Manager {
+	public:
+		Manager();
+
+		int RegisterModule(PROC::Process *process, uint32_t vendorID, uint32_t productID);
+		void UnregisterModule(uint32_t vendorID, uint32_t productID);
+		Module *GetModule(uint32_t vendorID, uint32_t productID);
+	private:
+		ModuleNode *BaseNode;
+
+		ModuleNode *AddNode(uint32_t vendorID, uint32_t productID);
+		void RemoveNode(uint32_t vendorID, uint32_t productID);
+		ModuleNode *FindNode(uint32_t vendorID, uint32_t productID, ModuleNode **previous, bool *found);
+	};
 }

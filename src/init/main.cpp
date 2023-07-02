@@ -28,7 +28,6 @@
 #include <stddef.h>
 #include <mm/pmm.hpp>
 #include <mm/heap.hpp>
-#include <sys/elf.hpp>
 #include <proc/smp.hpp>
 #include <init/main.hpp>
 #include <sys/panic.hpp>
@@ -37,15 +36,18 @@
 #include <init/kinfo.hpp>
 #include <sys/atomic.hpp>
 #include <sys/printk.hpp>
+#include <sys/loader.hpp>
 #include <dev/acpi/acpi.hpp>
 #include <arch/x64/main.hpp>
 #include <proc/scheduler.hpp>
 #include <module/modulemanager.hpp>
 
+#include <sys/user.hpp>
 /*
    Function that is started by the scheduler once kernel startup is complete.
 */
-void RestInit(PROC::Thread *thread);
+void RestInit();
+__attribute__((__aligned__((16)))) char RestStack[4096];
 
 int EarlyKernelInit() {
 	/* Allocating memory for the info struct */
@@ -122,10 +124,10 @@ __attribute__((noreturn)) void KernelStart() {
 
 	/* Printing banner to show off */
 	PrintBanner();
-
+	
 #ifdef CONFIG_KERNEL_MODULES
 	/* Initialize the kernel's module manager */
-	MODULE::Manager::Init();
+	info->KernelModuleManager = new MODULE::Manager();
 
 	PRINTK::PrintK("Module managment initialized.\r\n");
 	
@@ -139,7 +141,7 @@ __attribute__((noreturn)) void KernelStart() {
 	/* Launch the core user core module */
 	if (addr != 0) {
 		PRINTK::PrintK("Loading user module from 0x%x\r\n", addr);
-		size_t pid = LoadELF(ELF_CORE_MODULE, addr, moduleSize);
+		size_t pid = LoadExecutableFile(addr, moduleSize);
 		info->kernelScheduler->SwitchToTask(pid, 0);
 	} else PANIC("Could not find User Module");
 #endif
@@ -149,7 +151,7 @@ __attribute__((noreturn)) void KernelStart() {
 }
 
 __attribute__((noreturn)) void RestInit() {
-	PRINTK::PrintK("Kernel is now resting...\r\n");
+//	PRINTK::PrintK("Kernel is now resting...\r\n");
 	
 	while (true) CPUPause();
 }

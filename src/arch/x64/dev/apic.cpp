@@ -63,10 +63,6 @@ void EnableAPIC() {
 	PRINTK::PrintK("APIC enabled.\r\n");
 }
 
-void SetAPICTimer() {
-	WaitAPIC(0x10000);
-}
-
 void SendAPICEOI() {
 	WriteAPICRegister(0xB0, 0x0);
 	
