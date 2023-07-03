@@ -41,8 +41,14 @@ void *Open(char *path, size_t *size) {
 			return NULL;
 		}
 
-		*size = 1;
-		return &info->framebuffers[num];
+		Framebuffer *fbData = &info->framebuffers[num];
+
+		memcpy(fbData->Address, fbData, sizeof(Framebuffer));
+		PRINTK::PrintK("Data copied.\r\n");
+
+		*size = fbData->Width * fbData->Height * fbData->BPP;
+		PRINTK::PrintK("Size assigned.\r\n");
+		return fbData->Address;
 
 	}
 	

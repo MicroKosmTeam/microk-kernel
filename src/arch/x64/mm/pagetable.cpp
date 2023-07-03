@@ -12,7 +12,6 @@ PageTableManager::PageTableManager(PageTable *PML4Address){
 	this->PML4 = PML4Address;
 }
 
-#include <sys/printk.hpp>
 void PageTableManager::Fork(VMM::VirtualSpace *space, bool higherHalf) {
 	PageTable *newPML4 = space->GetTopAddress();
 
@@ -147,14 +146,19 @@ void PageTableManager::MapMemory(void *physicalMemory, void *virtualMemory, uint
 
 	PDE = PT->entries[indexer.P_i];
 	PDE.SetAddress((uint64_t)physicalMemory >> 12);
-	PDE.SetFlag(PT_Flag::Present, true);
-	PDE.SetFlag(PT_Flag::ReadWrite, true);
-	PDE.SetFlag(PT_Flag::UserSuper, true);
-	PDE.SetFlag(PT_Flag::Global, true);
+	
+	if (flags & VMM::VMM_PRESENT) PDE.SetFlag(PT_Flag::Present, true);
+	else PDE.SetFlag(PT_Flag::Present, false);
+	if (flags & VMM::VMM_READWRITE) PDE.SetFlag(PT_Flag::ReadWrite, true);
+	else PDE.SetFlag(PT_Flag::ReadWrite, false);
+	if (flags & VMM::VMM_USER) PDE.SetFlag(PT_Flag::UserSuper, true);
+	else PDE.SetFlag(PT_Flag::UserSuper, false);
+	if (flags & VMM::VMM_GLOBAL) PDE.SetFlag(PT_Flag::Global, true);
+	else PDE.SetFlag(PT_Flag::Global, false);
 
 	PT->entries[indexer.P_i] = PDE;
 
-	//asm ("invlpg (%0)" ::"r" (virtualMemory) : "memory");
+	asm ("invlpg (%0)" ::"r" (virtualMemory) : "memory");
 }
 	
 void PageTableManager::UnmapMemory(void *virtualMemory) {

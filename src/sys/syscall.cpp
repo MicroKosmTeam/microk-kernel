@@ -129,7 +129,8 @@ void HandleSyscallMemoryVmalloc(uintptr_t base, size_t length, size_t flags) {
 		size_t *paddr = PMM::RequestPage();
 		if (paddr == NULL) PANIC("Out of memory");
 
-		procSpace->MapMemory(paddr, vaddr, flags);
+		if (flags == 0) VMM::MapMemory(procSpace, paddr, vaddr);
+		else VMM::MapMemory(procSpace, paddr, vaddr, flags);
 	}
 
 	VMM::LoadVirtualSpace(procSpace);
@@ -174,7 +175,8 @@ void HandleSyscallMemoryMmap(uintptr_t src, uintptr_t dest, size_t length, size_
 
 	uintptr_t end = src + length;
 	for (; src < end; src += PAGE_SIZE, dest += PAGE_SIZE) {
-		procSpace->MapMemory(src, dest, flags);
+		if (true) VMM::MapMemory(procSpace, src, dest);
+		else VMM::MapMemory(procSpace, src, dest, flags);
 	}
 
 	VMM::LoadVirtualSpace(procSpace);

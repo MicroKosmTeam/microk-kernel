@@ -154,7 +154,7 @@ Thread::Thread(Process *process, size_t stackSize, uintptr_t entrypoint, size_t 
 			VMM::VirtualSpace *space = process->GetVirtualMemorySpace();
 
 			for (uintptr_t i = highestFree - stackSize; i < highestFree; i+= 0x1000) {
-				space->MapMemory((void*)PMM::RequestPage(), (void*)i, 0);
+				VMM::MapMemory(space, (void*)PMM::RequestPage(), (void*)i);
 			}
 
 			StackBase = Stack = highestFree;

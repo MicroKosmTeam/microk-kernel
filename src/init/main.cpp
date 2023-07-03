@@ -142,6 +142,7 @@ __attribute__((noreturn)) void KernelStart() {
 	if (addr != 0) {
 		PRINTK::PrintK("Loading user module from 0x%x\r\n", addr);
 		size_t pid = LoadExecutableFile(addr, moduleSize);
+		PRINTK::PrintK("Switching to user module.\r\n");
 		info->kernelScheduler->SwitchToTask(pid, 0);
 	} else PANIC("Could not find User Module");
 #endif

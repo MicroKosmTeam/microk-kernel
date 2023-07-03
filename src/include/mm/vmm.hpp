@@ -5,10 +5,11 @@
 
 namespace VMM {
 	enum VirtualMemoryFlags {
-		VMM_READWRITE  = 0b00000001,
-		VMM_NOEXECUTE  = 0b00000010,
-		VMM_LARGEPAGE  = 0b00000100,
-		VMM_LARGERPAGE = 0b00001000,
+		VMM_PRESENT    = 0b00000001,
+		VMM_READWRITE  = 0b00000010,
+		VMM_USER       = 0b00000100,
+		VMM_NOEXECUTE  = 0b00001000,
+		VMM_GLOBAL     = 0b00010000,
 	};
 
 	class VirtualSpace {
@@ -27,4 +28,5 @@ namespace VMM {
 	VirtualSpace *NewModuleVirtualSpace();
 	void LoadVirtualSpace(VMM::VirtualSpace *space);
 	void MapMemory(VirtualSpace *space, void *physicalMemory, void *virtualMemory);
+	void MapMemory(VirtualSpace *space, void *physicalMemory, void *virtualMemory, uint64_t flags);
 }

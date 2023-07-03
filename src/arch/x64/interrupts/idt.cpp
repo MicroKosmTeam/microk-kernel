@@ -109,13 +109,24 @@ extern "C" CPUStatus *exceptionHandler(CPUStatus *context) {
 
 	PrintRegs(context);
 
-	PANIC("Exception");
+	if (context->IretCS == GDT_OFFSET_KERNEL_CODE) PANIC("Exception");
+	else OOPS("User exception");
 
-	/* Completely hangs the computer */
-	while (true) {
-		asm volatile ("hlt");
+	switch(context->VectorNumber) {
+		case 13:
+			PRINTK::PrintK("General protection fault\r\n");
+			break;
+		case 14: {
+			uintptr_t page;
+			asm("mov %%cr2,%0" : "=r"(page));
+			PRINTK::PrintK("Page fault in page 0x%x\r\n", page);
+			}
+			break;
+		default:
+			PRINTK::PrintK("Unhandled exception\r\n");
+			break;
 	}
-
+	
 	return context;
 }
 
