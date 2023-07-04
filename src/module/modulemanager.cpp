@@ -64,8 +64,6 @@ ModuleNode *Manager::FindNode(uint32_t vendorID, uint32_t productID, ModuleNode 
 		node = node->Next;
 	}
 
-	PRINTK::PrintK("Not found.\r\n");
-
 	*previous = prev;
 	*found = false;
 	return NULL;

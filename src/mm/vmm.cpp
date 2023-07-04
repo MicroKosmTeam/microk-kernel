@@ -24,12 +24,6 @@ VirtualSpace *NewModuleVirtualSpace() {
 	for (int i = 0; i < info->mMapEntryCount; i++) {
 		MEM::MMapEntry entry = info->mMap[i];
 
-		/*if (entry.type == MEMMAP_BAD_MEMORY ||
-		    entry.type == MEMMAP_RESERVED ||
-		    entry.type == MEMMAP_ACPI_NVS ||
-		    entry.type == MEMMAP_ACPI_RECLAIMABLE ||
-		    entry.type == MEMMAP_FRAMEBUFFER) continue;*/
-
 		if (entry.type != MEMMAP_KERNEL_AND_MODULES && entry.type != MEMMAP_BOOTLOADER_RECLAIMABLE) continue;
 
 		/* We find the base and the top by rounding to the closest page boundary */

@@ -12,6 +12,7 @@
 #include <proc/process.hpp>
 #include <proc/scheduler.hpp>
 #include <module/modulemanager.hpp>
+#include <dev/bus.hpp>
 
 #ifdef CONFIG_HW_UART
 #include <dev/uart/uart.hpp>
@@ -53,6 +54,8 @@ struct KInfo {
 	uint64_t fileCount; /* Number of modules provided */
 
 	MODULE::Manager *KernelModuleManager;
+
+	DEV::BusManager *KernelBusManager;
 #endif
 
 #ifdef CONFIG_HW_UART

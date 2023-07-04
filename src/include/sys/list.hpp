@@ -1,7 +1,7 @@
 #pragma once
 #include <stddef.h>
 #include <mm/memory.hpp>
-
+/*
 template <typename Type> class List {
 public:
 	List() {
@@ -104,4 +104,4 @@ private:
 
 		Length = 0;
 	}
-};
+};*/

@@ -37,6 +37,10 @@ void HandleSyscallModuleUnregister(size_t vendorID, size_t productID);
 void HandleSyscallModuleBufferRegister(size_t vendorID, size_t productID, uintptr_t virtualBase, size_t size, size_t type, uint32_t *id);
 void HandleSyscallModuleBufferUnregister(size_t vendorID, size_t productID, uint32_t id);
 
+void HandleSyscallModuleBusRegister(const char *busName, size_t vendorID, size_t productID);
+void HandleSyscallModuleBusGet(const char *busName, uint32_t *vendorID, uint32_t *productID);
+void HandleSyscallModuleBusUnregister(const char *busName, size_t vendorID, size_t productID);
+
 void HandleSyscallFileOpen(char *filename, uintptr_t *address, size_t *length);
 void HandleSyscallFileRead(size_t TODO);
 void HandleSyscallFileWrite(size_t TODO);
@@ -80,6 +84,9 @@ extern "C" void HandleSyscall(size_t syscallNumber, size_t arg1, size_t arg2, si
 		case SYSCALL_MODULE_UNREGISTER: return HandleSyscallModuleUnregister(arg1, arg2);
 		case SYSCALL_MODULE_BUFFER_REGISTER: return HandleSyscallModuleBufferRegister(arg1, arg2, arg3, arg4, arg5, arg6);
 		case SYSCALL_MODULE_BUFFER_UNREGISTER: return HandleSyscallModuleBufferUnregister(arg1, arg2, arg3);
+		case SYSCALL_MODULE_BUS_REGISTER: return HandleSyscallModuleBusRegister(arg1, arg2, arg3);
+		case SYSCALL_MODULE_BUS_GET: return HandleSyscallModuleBusGet(arg1, arg2, arg3);
+		case SYSCALL_MODULE_BUS_UNREGISTER: return HandleSyscallModuleBusUnregister(arg1, arg2, arg3);
 
 		case SYSCALL_FILE_OPEN: return HandleSyscallFileOpen(arg1, arg2, arg3);
 		case SYSCALL_FILE_READ: return HandleSyscallFileRead(0);
@@ -328,16 +335,75 @@ void HandleSyscallModuleBufferUnregister(size_t vendorID, size_t productID, uint
 	VMM::LoadVirtualSpace(procSpace);
 }
 
+#include <mm/string.hpp>
+void HandleSyscallModuleBusRegister(const char *busName, size_t vendorID, size_t productID) {
+	KInfo *info = GetInfo();
+
+	size_t busLength = strlen(busName);
+	busLength = busLength > 256 ? 256 : busLength;
+
+	char newBusName[256] = { 0 };
+	memcpy(newBusName, busName, busLength);
+
+	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
+	
+	VMM::VirtualSpace *procSpace = info->kernelScheduler->GetRunningProcess()->GetVirtualMemorySpace();
+
+	info->KernelBusManager->RegisterBusDriver(newBusName, vendorID, productID);
+	
+	VMM::LoadVirtualSpace(procSpace);
+}
+
+void HandleSyscallModuleBusGet(const char *busName, uint32_t *vendorID, uint32_t *productID) {
+	KInfo *info = GetInfo();
+
+	size_t busLength = strlen(busName);
+	busLength = busLength > 256 ? 256 : busLength;
+
+	char newBusName[256];
+	memcpy(newBusName, busName, busLength);
+	uint32_t newVendor, newProduct;
+
+	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
+	
+	VMM::VirtualSpace *procSpace = info->kernelScheduler->GetRunningProcess()->GetVirtualMemorySpace();
+
+	info->KernelBusManager->GetBusDriver(newBusName, &newVendor, &newProduct);
+	
+	VMM::LoadVirtualSpace(procSpace);
+
+	*vendorID = newVendor;
+	*productID = newProduct;
+}
+
+void HandleSyscallModuleBusUnregister(const char *busName, size_t vendorID, size_t productID) {
+	KInfo *info = GetInfo();
+
+	size_t busLength = strlen(busName);
+	busLength = busLength > 256 ? 256 : busLength;
+
+	char newBusName[256];
+	memcpy(newBusName, busName, busLength);
+
+	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
+	
+	VMM::VirtualSpace *procSpace = info->kernelScheduler->GetRunningProcess()->GetVirtualMemorySpace();
+
+	info->KernelBusManager->UnregisterBusDriver(newBusName, vendorID, productID);
+	
+	VMM::LoadVirtualSpace(procSpace);
+}
+
 #include <sys/file.hpp>
 #include <mm/string.hpp>
 void HandleSyscallFileOpen(char *filename, uintptr_t *address, size_t *length) {
 	KInfo *info = GetInfo();
 
-	//size_t filenameLength = strlen(filename);
-	//filenameLength = filenameLength > 512 ? 512 : filenameLength;
+	size_t filenameLength = strlen(filename);
+	filenameLength = filenameLength > 512 ? 512 : filenameLength;
 
-	char newFilename[256];
-	strcpy(newFilename, filename);
+	char newFilename[512];
+	memcpy(newFilename, filename, filenameLength);
 	size_t newLength;
 	void *newAddr;
 

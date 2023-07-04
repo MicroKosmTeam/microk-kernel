@@ -41,8 +41,8 @@
 #include <arch/x64/main.hpp>
 #include <proc/scheduler.hpp>
 #include <module/modulemanager.hpp>
+#include <dev/bus.hpp>
 
-#include <sys/user.hpp>
 /*
    Function that is started by the scheduler once kernel startup is complete.
 */
@@ -128,6 +128,7 @@ __attribute__((noreturn)) void KernelStart() {
 #ifdef CONFIG_KERNEL_MODULES
 	/* Initialize the kernel's module manager */
 	info->KernelModuleManager = new MODULE::Manager();
+	info->KernelBusManager = new DEV::BusManager();
 
 	PRINTK::PrintK("Module managment initialized.\r\n");
 	
