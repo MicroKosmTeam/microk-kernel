@@ -13,42 +13,42 @@ __attribute__((section(".syscall.stack"))) __attribute__((__aligned__((16)))) ex
 
 void AddOverride(size_t syscallNumber);
 size_t CheckOverride(size_t syscallNumber);
-void RunOverride(size_t syscallNumber);
+size_t RunOverride(size_t syscallNumber);
 
 /* Kernel syscall handlers */
-void HandleSyscallDebugPrintK(const char *string);
+size_t HandleSyscallDebugPrintK(const char *string);
 
-void HandleSyscallMemoryGetinfo(uintptr_t structbase);
-void HandleSyscallMemoryVmalloc(uintptr_t base, size_t length, size_t flags);
-void HandleSyscallMemoryVmfree(uintptr_t base, size_t length);
-void HandleSyscallMemoryMmap(uintptr_t src, uintptr_t dest, size_t length, size_t flags);
-void HandleSyscallMemoryUnmap(uintptr_t base, size_t length);
+size_t HandleSyscallMemoryGetinfo(uintptr_t structbase);
+size_t HandleSyscallMemoryVmalloc(uintptr_t base, size_t length, size_t flags);
+size_t HandleSyscallMemoryVmfree(uintptr_t base, size_t length);
+size_t HandleSyscallMemoryMmap(uintptr_t src, uintptr_t dest, size_t length, size_t flags);
+size_t HandleSyscallMemoryUnmap(uintptr_t base, size_t length);
 
-void HandleSyscallProcExec(uintptr_t executableBase, size_t executableSize);
-void HandleSyscallProcFork(size_t TODO);
-void HandleSyscallProcReturn(size_t returnCode, uintptr_t stack);
-void HandleSyscallProcExit(size_t exitCode, uintptr_t stack);
-void HandleSyscallProcWait(size_t TODO);
-void HandleSyscallProcKill(size_t TODO);
+size_t HandleSyscallProcExec(uintptr_t executableBase, size_t executableSize);
+size_t HandleSyscallProcFork(size_t TODO);
+size_t HandleSyscallProcReturn(size_t returnCode, uintptr_t stack);
+size_t HandleSyscallProcExit(size_t exitCode, uintptr_t stack);
+size_t HandleSyscallProcWait(size_t TODO);
+size_t HandleSyscallProcKill(size_t TODO);
 
-void HandleSyscallModuleRegister(size_t vendorID, size_t productID);
-void HandleSyscallModuleUnregister(size_t vendorID, size_t productID);
+size_t HandleSyscallModuleRegister(size_t vendorID, size_t productID);
+size_t HandleSyscallModuleUnregister();
+size_t HandleSyscallModuleBufferRegister(uintptr_t virtualBase, size_t size, size_t type);
+size_t HandleSyscallModuleBufferUnregister(uint32_t id);
+//size_t HandleSyscallModuleMessageSend(uint32_t bufferID);
+//size_t HandleSyscallModuleMessageReceive();
+size_t HandleSyscallModuleBusRegister(const char *busName);
+size_t HandleSyscallModuleBusGet(const char *busName, uint32_t *vendorID, uint32_t *productID);
+size_t HandleSyscallModuleBusUnregister(const char *busName);
 
-void HandleSyscallModuleBufferRegister(size_t vendorID, size_t productID, uintptr_t virtualBase, size_t size, size_t type, uint32_t *id);
-void HandleSyscallModuleBufferUnregister(size_t vendorID, size_t productID, uint32_t id);
+size_t HandleSyscallFileOpen(char *filename, uintptr_t *address, size_t *length);
+size_t HandleSyscallFileRead(size_t TODO);
+size_t HandleSyscallFileWrite(size_t TODO);
+size_t HandleSyscallFileClose(size_t TODO);
 
-void HandleSyscallModuleBusRegister(const char *busName, size_t vendorID, size_t productID);
-void HandleSyscallModuleBusGet(const char *busName, uint32_t *vendorID, uint32_t *productID);
-void HandleSyscallModuleBusUnregister(const char *busName, size_t vendorID, size_t productID);
+size_t HandleSyscallKernOverride(size_t TODO);
 
-void HandleSyscallFileOpen(char *filename, uintptr_t *address, size_t *length);
-void HandleSyscallFileRead(size_t TODO);
-void HandleSyscallFileWrite(size_t TODO);
-void HandleSyscallFileClose(size_t TODO);
-
-void HandleSyscallKernOverride(size_t TODO);
-
-extern "C" void HandleSyscall(size_t syscallNumber, size_t arg1, size_t arg2, size_t arg3, size_t arg4, size_t arg5, size_t arg6) {
+extern "C" size_t HandleSyscall(size_t syscallNumber, size_t arg1, size_t arg2, size_t arg3, size_t arg4, size_t arg5, size_t arg6) {
 /*	PRINTK::PrintK("\r\n!!! SYSCALL !!!\r\n"
 			"RAX: 0x%x\r\n"
 			"RDI: 0x%x\r\n"
@@ -81,12 +81,14 @@ extern "C" void HandleSyscall(size_t syscallNumber, size_t arg1, size_t arg2, si
 		case SYSCALL_PROC_KILL: return HandleSyscallProcKill(0);
 
 		case SYSCALL_MODULE_REGISTER: return HandleSyscallModuleRegister(arg1, arg2);
-		case SYSCALL_MODULE_UNREGISTER: return HandleSyscallModuleUnregister(arg1, arg2);
-		case SYSCALL_MODULE_BUFFER_REGISTER: return HandleSyscallModuleBufferRegister(arg1, arg2, arg3, arg4, arg5, arg6);
-		case SYSCALL_MODULE_BUFFER_UNREGISTER: return HandleSyscallModuleBufferUnregister(arg1, arg2, arg3);
-		case SYSCALL_MODULE_BUS_REGISTER: return HandleSyscallModuleBusRegister(arg1, arg2, arg3);
+		case SYSCALL_MODULE_UNREGISTER: return HandleSyscallModuleUnregister();
+		case SYSCALL_MODULE_BUFFER_REGISTER: return HandleSyscallModuleBufferRegister(arg1, arg2, arg3);
+		case SYSCALL_MODULE_BUFFER_UNREGISTER: return HandleSyscallModuleBufferUnregister(arg1);
+//		case SYSCALL_MODULE_MESSAGE_SEND: return HandleSyscallModuleMessageSend();
+//		case SYSCALL_MODULE_MESSAGE_RECEIVE: return HandleSyscallModuleMessageReceive();
+		case SYSCALL_MODULE_BUS_REGISTER: return HandleSyscallModuleBusRegister(arg1);
 		case SYSCALL_MODULE_BUS_GET: return HandleSyscallModuleBusGet(arg1, arg2, arg3);
-		case SYSCALL_MODULE_BUS_UNREGISTER: return HandleSyscallModuleBusUnregister(arg1, arg2, arg3);
+		case SYSCALL_MODULE_BUS_UNREGISTER: return HandleSyscallModuleBusUnregister(arg1);
 
 		case SYSCALL_FILE_OPEN: return HandleSyscallFileOpen(arg1, arg2, arg3);
 		case SYSCALL_FILE_READ: return HandleSyscallFileRead(0);
@@ -99,16 +101,18 @@ extern "C" void HandleSyscall(size_t syscallNumber, size_t arg1, size_t arg2, si
 	}
 }
 
-void AddOverride(size_t syscallNumber) { return 0; }
+void AddOverride(size_t syscallNumber) { return; }
 size_t CheckOverride(size_t syscallNumber) { return 0; }
-void RunOverride(size_t syscallNumber) { return 0; }
+size_t RunOverride(size_t syscallNumber) { return 0; }
 
 
-void HandleSyscallDebugPrintK(const char *string) {
+size_t HandleSyscallDebugPrintK(const char *string) {
 	PRINTK::PrintK("%s", string);
+
+	return 0;
 }
 
-void HandleSyscallMemoryGetinfo(uintptr_t structbase) {
+size_t HandleSyscallMemoryGetinfo(uintptr_t structbase) {
 	if (structbase <= 0x1000 || structbase >= 0x00007FFFFFFFFFFF)
 		return; /* Make sure it is in valid memory */
 
@@ -117,9 +121,11 @@ void HandleSyscallMemoryGetinfo(uintptr_t structbase) {
 	data[1] = PMM::GetFreeMem(); /* Free */
 	data[2] = PMM::GetUsedMem(); /* Reserved (todo, get correct amount) */
 	data[3] = 0; /* Buffers */
+
+	return 0;
 }
 
-void HandleSyscallMemoryVmalloc(uintptr_t base, size_t length, size_t flags) {
+size_t HandleSyscallMemoryVmalloc(uintptr_t base, size_t length, size_t flags) {
 	if (base <= 0x1000 || base + length >= 0x00007FFFFFFFF000)
 		return;
 
@@ -141,9 +147,11 @@ void HandleSyscallMemoryVmalloc(uintptr_t base, size_t length, size_t flags) {
 	}
 
 	VMM::LoadVirtualSpace(procSpace);
+
+	return 0;
 }
 
-void HandleSyscallMemoryVmfree(uintptr_t base, size_t length) {
+size_t HandleSyscallMemoryVmfree(uintptr_t base, size_t length) {
 	if (base <= 0x1000 || base + length >= 0x00007FFFFFFFF000)
 		return;
 
@@ -165,9 +173,11 @@ void HandleSyscallMemoryVmfree(uintptr_t base, size_t length) {
 	}
 
 	VMM::LoadVirtualSpace(procSpace);
+
+	return 0;
 }
 
-void HandleSyscallMemoryMmap(uintptr_t src, uintptr_t dest, size_t length, size_t flags) {
+size_t HandleSyscallMemoryMmap(uintptr_t src, uintptr_t dest, size_t length, size_t flags) {
 	KInfo *info = GetInfo();
 	
 	if (src > info->higherHalfMapping) src -= info->higherHalfMapping;
@@ -187,9 +197,11 @@ void HandleSyscallMemoryMmap(uintptr_t src, uintptr_t dest, size_t length, size_
 	}
 
 	VMM::LoadVirtualSpace(procSpace);
+
+	return 0;
 }
 
-void HandleSyscallMemoryUnmap(uintptr_t base, size_t length) {
+size_t HandleSyscallMemoryUnmap(uintptr_t base, size_t length) {
 	if (base <= 0x1000 || base + length >= 0x00007FFFFFFFF000)
 		return; /* Make sure it is in valid memory */
 
@@ -207,11 +219,13 @@ void HandleSyscallMemoryUnmap(uintptr_t base, size_t length) {
 	}
 
 	VMM::LoadVirtualSpace(procSpace);
+
+	return 0;
 }
 
 #include <sys/loader.hpp>
 #include <sys/printk.hpp>
-void HandleSyscallProcExec(uintptr_t executableBase, size_t executableSize) {
+size_t HandleSyscallProcExec(uintptr_t executableBase, size_t executableSize) {
 	KInfo *info = GetInfo();
 
 	char buffer[1024];
@@ -235,12 +249,15 @@ void HandleSyscallProcExec(uintptr_t executableBase, size_t executableSize) {
 	LoadExecutableFile(heapAddr, executableSize);
 
 	VMM::LoadVirtualSpace(procSpace);
+
+	return 0;
 }
 
-void HandleSyscallProcFork(size_t TODO) {
+size_t HandleSyscallProcFork(size_t TODO) {
+	return 0;
 }
 
-void HandleSyscallProcReturn(size_t returnCode, uintptr_t stack) {
+size_t HandleSyscallProcReturn(size_t returnCode, uintptr_t stack) {
 	static size_t pid = 1;
 
 	KInfo *info = GetInfo();
@@ -256,25 +273,31 @@ void HandleSyscallProcReturn(size_t returnCode, uintptr_t stack) {
 	info->kernelScheduler->SwitchToTask(++pid, 0);
 
 	while(true);
+	
+	return 0;
 }
 
-void HandleSyscallProcExit(size_t exitCode, uintptr_t stack) {
+size_t HandleSyscallProcExit(size_t exitCode, uintptr_t stack) {
 	KInfo *info = GetInfo();
 
 	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
 	PRINTK::PrintK("Exiting: %d form 0x%x\r\n", exitCode, stack); 
 	
 	while(true);
+
+	return 0;
 }
 
-void HandleSyscallProcWait(size_t TODO) {
+size_t HandleSyscallProcWait(size_t TODO) {
+	return 0;
 }
 
-void HandleSyscallProcKill(size_t TODO) {
+size_t HandleSyscallProcKill(size_t TODO) {
+	return 0;
 }
 
 #include <module/modulemanager.hpp>
-void HandleSyscallModuleRegister(size_t vendorID, size_t productID) {
+size_t HandleSyscallModuleRegister(size_t vendorID, size_t productID) {
 	KInfo *info = GetInfo();
 
 	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
@@ -285,41 +308,59 @@ void HandleSyscallModuleRegister(size_t vendorID, size_t productID) {
 	info->KernelModuleManager->RegisterModule(proc, vendorID, productID);
 	
 	VMM::LoadVirtualSpace(procSpace);
+
+	return 0;
 }
 
-void HandleSyscallModuleUnregister(size_t vendorID, size_t productID) {
+size_t HandleSyscallModuleUnregister() {
 	KInfo *info = GetInfo();
 
 	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
-	
-	VMM::VirtualSpace *procSpace = info->kernelScheduler->GetRunningProcess()->GetVirtualMemorySpace();
-	
-	info->KernelModuleManager->UnregisterModule(vendorID, productID);
+
+	PROC::Process *proc = info->kernelScheduler->GetRunningProcess();
+	VMM::VirtualSpace *procSpace = proc->GetVirtualMemorySpace();
+
+	MODULE::Module *mod = info->KernelModuleManager->GetModule(proc->GetPID());
+	if (mod != NULL) info->KernelModuleManager->UnregisterModule(mod->GetVendor(), mod->GetProduct());
 	
 	VMM::LoadVirtualSpace(procSpace);
+
+	return 0;
 }
 
 #include <module/module.hpp>
 #include <module/buffer.hpp>
-void HandleSyscallModuleBufferRegister(size_t vendorID, size_t productID, uintptr_t virtualBase, size_t size, size_t type, uint32_t *id) {
+size_t HandleSyscallModuleBufferRegister(uintptr_t virtualBase, size_t size, size_t type) {
 	KInfo *info = GetInfo();
+	uint32_t tmpID = 0;
 
 	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
 
 	PROC::Process *proc = info->kernelScheduler->GetRunningProcess();
 	VMM::VirtualSpace *procSpace = proc->GetVirtualMemorySpace();
 
-	MODULE::Module *mod = info->KernelModuleManager->GetModule(vendorID, productID);
-	if (mod == NULL) return;
-	uint32_t tmpID;
+	size_t pid = proc->GetPID();
+	if (pid == 0) {
+		VMM::LoadVirtualSpace(procSpace);
+
+		return tmpID;
+	}
+
+	MODULE::Module *mod = info->KernelModuleManager->GetModule(pid);
+	if (mod == NULL) {
+		VMM::LoadVirtualSpace(procSpace);
+
+		return tmpID;
+	}
+
 	mod->RegisterBuffer(virtualBase, type, size, &tmpID);
-	
+
 	VMM::LoadVirtualSpace(procSpace);
 
-	*id = tmpID;
+	return tmpID;
 }
 
-void HandleSyscallModuleBufferUnregister(size_t vendorID, size_t productID, uint32_t id) {
+size_t HandleSyscallModuleBufferUnregister(uint32_t id) {
 	KInfo *info = GetInfo();
 
 	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
@@ -327,16 +368,18 @@ void HandleSyscallModuleBufferUnregister(size_t vendorID, size_t productID, uint
 	PROC::Process *proc = info->kernelScheduler->GetRunningProcess();
 	VMM::VirtualSpace *procSpace = proc->GetVirtualMemorySpace();
 
-	MODULE::Module *mod = info->KernelModuleManager->GetModule(vendorID, productID);
+	MODULE::Module *mod = info->KernelModuleManager->GetModule(proc->GetPID());
 	if (mod == NULL) return;
 
 	mod->UnregisterBuffer(id);
 	
 	VMM::LoadVirtualSpace(procSpace);
+
+	return 0;
 }
 
 #include <mm/string.hpp>
-void HandleSyscallModuleBusRegister(const char *busName, size_t vendorID, size_t productID) {
+size_t HandleSyscallModuleBusRegister(const char *busName) {
 	KInfo *info = GetInfo();
 
 	size_t busLength = strlen(busName);
@@ -347,14 +390,20 @@ void HandleSyscallModuleBusRegister(const char *busName, size_t vendorID, size_t
 
 	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
 	
-	VMM::VirtualSpace *procSpace = info->kernelScheduler->GetRunningProcess()->GetVirtualMemorySpace();
+	PROC::Process *proc = info->kernelScheduler->GetRunningProcess();
+	VMM::VirtualSpace *procSpace = proc->GetVirtualMemorySpace();
 
-	info->KernelBusManager->RegisterBusDriver(newBusName, vendorID, productID);
+	MODULE::Module *mod = info->KernelModuleManager->GetModule(proc->GetPID());
+	if (mod == NULL) return;
+
+	info->KernelBusManager->RegisterBusDriver(newBusName, mod->GetVendor(), mod->GetProduct());
 	
 	VMM::LoadVirtualSpace(procSpace);
+
+	return 0;
 }
 
-void HandleSyscallModuleBusGet(const char *busName, uint32_t *vendorID, uint32_t *productID) {
+size_t HandleSyscallModuleBusGet(const char *busName, uint32_t *vendorID, uint32_t *productID) {
 	KInfo *info = GetInfo();
 
 	size_t busLength = strlen(busName);
@@ -374,9 +423,11 @@ void HandleSyscallModuleBusGet(const char *busName, uint32_t *vendorID, uint32_t
 
 	*vendorID = newVendor;
 	*productID = newProduct;
+
+	return 0;
 }
 
-void HandleSyscallModuleBusUnregister(const char *busName, size_t vendorID, size_t productID) {
+size_t HandleSyscallModuleBusUnregister(const char *busName) {
 	KInfo *info = GetInfo();
 
 	size_t busLength = strlen(busName);
@@ -387,16 +438,22 @@ void HandleSyscallModuleBusUnregister(const char *busName, size_t vendorID, size
 
 	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
 	
-	VMM::VirtualSpace *procSpace = info->kernelScheduler->GetRunningProcess()->GetVirtualMemorySpace();
+	PROC::Process *proc = info->kernelScheduler->GetRunningProcess();
+	VMM::VirtualSpace *procSpace = proc->GetVirtualMemorySpace();
 
-	info->KernelBusManager->UnregisterBusDriver(newBusName, vendorID, productID);
+	MODULE::Module *mod = info->KernelModuleManager->GetModule(proc->GetPID());
+	if (mod == NULL) return;
+
+	info->KernelBusManager->UnregisterBusDriver(newBusName, mod->GetVendor(), mod->GetProduct());
 	
 	VMM::LoadVirtualSpace(procSpace);
+
+	return 0;
 }
 
 #include <sys/file.hpp>
 #include <mm/string.hpp>
-void HandleSyscallFileOpen(char *filename, uintptr_t *address, size_t *length) {
+size_t HandleSyscallFileOpen(char *filename, uintptr_t *address, size_t *length) {
 	KInfo *info = GetInfo();
 
 	size_t filenameLength = strlen(filename);
@@ -405,7 +462,7 @@ void HandleSyscallFileOpen(char *filename, uintptr_t *address, size_t *length) {
 	char newFilename[512];
 	memcpy(newFilename, filename, filenameLength);
 	size_t newLength;
-	void *newAddr;
+	size_t *newAddr;
 
 	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
 	
@@ -417,16 +474,22 @@ void HandleSyscallFileOpen(char *filename, uintptr_t *address, size_t *length) {
 
 	*address = newAddr;
 	*length = newLength;
+
+	return 0;
 }
 
-void HandleSyscallFileRead(size_t TODO) {
+size_t HandleSyscallFileRead(size_t TODO) {
+	return 0;
 }
 
-void HandleSyscallFileWrite(size_t TODO) {
+size_t HandleSyscallFileWrite(size_t TODO) {
+	return 0;
 }
 
-void HandleSyscallFileClose(size_t TODO) {
+size_t HandleSyscallFileClose(size_t TODO) {
+	return 0;
 }
 
-void HandleSyscallKernOverride(size_t TODO) {
+size_t HandleSyscallKernOverride(size_t TODO) {
+	return 0;
 }
