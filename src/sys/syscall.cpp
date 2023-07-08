@@ -6,6 +6,13 @@
 #include <mm/pmm.hpp>
 #include <sys/printk.hpp>
 #include <sys/panic.hpp>
+#include <module/modulemanager.hpp>
+#include <sys/loader.hpp>
+#include <module/module.hpp>
+#include <module/buffer.hpp>
+#include <module/message.hpp>
+#include <mm/string.hpp>
+#include <sys/file.hpp>
 
 // TMP measure: do something better with SMP
 __attribute__((__aligned__((16)))) __attribute__((section(".syscall.stack"))) volatile char SyscallStack[128 * 1024];
@@ -35,8 +42,8 @@ size_t HandleSyscallModuleRegister(size_t vendorID, size_t productID);
 size_t HandleSyscallModuleUnregister();
 size_t HandleSyscallModuleBufferRegister(uintptr_t virtualBase, size_t size, size_t type);
 size_t HandleSyscallModuleBufferUnregister(uint32_t id);
-//size_t HandleSyscallModuleMessageSend(uint32_t bufferID);
-//size_t HandleSyscallModuleMessageReceive();
+size_t HandleSyscallModuleMessageSend(uint32_t vendorID, uint32_t productID, uint32_t senderBufferID, size_t method, uint32_t receiverBufferID, size_t size);
+size_t HandleSyscallModuleMessageReceive(uint32_t bufferID);
 size_t HandleSyscallModuleBusRegister(const char *busName);
 size_t HandleSyscallModuleBusGet(const char *busName, uint32_t *vendorID, uint32_t *productID);
 size_t HandleSyscallModuleBusUnregister(const char *busName);
@@ -49,7 +56,8 @@ size_t HandleSyscallFileClose(size_t TODO);
 size_t HandleSyscallKernOverride(size_t TODO);
 
 extern "C" size_t HandleSyscall(size_t syscallNumber, size_t arg1, size_t arg2, size_t arg3, size_t arg4, size_t arg5, size_t arg6) {
-/*	PRINTK::PrintK("\r\n!!! SYSCALL !!!\r\n"
+/*	if (syscallNumber != SYSCALL_DEBUG_PRINTK && syscallNumber != SYSCALL_MEMORY_MMAP)
+	PRINTK::PrintK("\r\n!!! SYSCALL !!!\r\n"
 			"RAX: 0x%x\r\n"
 			"RDI: 0x%x\r\n"
 			"RSI: 0x%x\r\n"
@@ -84,8 +92,8 @@ extern "C" size_t HandleSyscall(size_t syscallNumber, size_t arg1, size_t arg2, 
 		case SYSCALL_MODULE_UNREGISTER: return HandleSyscallModuleUnregister();
 		case SYSCALL_MODULE_BUFFER_REGISTER: return HandleSyscallModuleBufferRegister(arg1, arg2, arg3);
 		case SYSCALL_MODULE_BUFFER_UNREGISTER: return HandleSyscallModuleBufferUnregister(arg1);
-//		case SYSCALL_MODULE_MESSAGE_SEND: return HandleSyscallModuleMessageSend();
-//		case SYSCALL_MODULE_MESSAGE_RECEIVE: return HandleSyscallModuleMessageReceive();
+		case SYSCALL_MODULE_MESSAGE_SEND: return HandleSyscallModuleMessageSend(arg1, arg2, arg3, arg4, arg5, arg6);
+		case SYSCALL_MODULE_MESSAGE_RECEIVE: return HandleSyscallModuleMessageReceive(arg1);
 		case SYSCALL_MODULE_BUS_REGISTER: return HandleSyscallModuleBusRegister(arg1);
 		case SYSCALL_MODULE_BUS_GET: return HandleSyscallModuleBusGet(arg1, arg2, arg3);
 		case SYSCALL_MODULE_BUS_UNREGISTER: return HandleSyscallModuleBusUnregister(arg1);
@@ -223,8 +231,7 @@ size_t HandleSyscallMemoryUnmap(uintptr_t base, size_t length) {
 	return 0;
 }
 
-#include <sys/loader.hpp>
-#include <sys/printk.hpp>
+
 size_t HandleSyscallProcExec(uintptr_t executableBase, size_t executableSize) {
 	KInfo *info = GetInfo();
 
@@ -268,7 +275,24 @@ size_t HandleSyscallProcReturn(size_t returnCode, uintptr_t stack) {
 	/* TMP FIX */
 	size_t maxPID = info->kernelScheduler->GetMaxPID();
 
-	if (pid + 1 > maxPID) while(true);
+	if (pid + 1 > maxPID) {
+		MODULE::Module *mod = info->KernelModuleManager->GetModule(0xCAFEBABE, 0xDEADBEEF);
+		if (mod == NULL) {
+			PRINTK::PrintK("Module not found.\r\n");
+			while(true);
+		}
+
+		MODULE::Buffer *buf = mod->GetBuffer(1);
+		if (buf == NULL) while(true);
+
+		MODULE::Message *msg = buf->Address;
+		PRINTK::PrintK("Message:\r\n"
+				" From: %x %x\r\n"
+				" Size: %d\r\n"
+				" Data: %s\r\n",
+				msg->SenderVendorID, msg->SenderProductID, msg->MessageSize, buf->Address + 128);
+		while(true);
+	}
 
 	info->kernelScheduler->SwitchToTask(++pid, 0);
 
@@ -296,7 +320,6 @@ size_t HandleSyscallProcKill(size_t TODO) {
 	return 0;
 }
 
-#include <module/modulemanager.hpp>
 size_t HandleSyscallModuleRegister(size_t vendorID, size_t productID) {
 	KInfo *info = GetInfo();
 
@@ -328,8 +351,6 @@ size_t HandleSyscallModuleUnregister() {
 	return 0;
 }
 
-#include <module/module.hpp>
-#include <module/buffer.hpp>
 size_t HandleSyscallModuleBufferRegister(uintptr_t virtualBase, size_t size, size_t type) {
 	KInfo *info = GetInfo();
 	uint32_t tmpID = 0;
@@ -339,14 +360,7 @@ size_t HandleSyscallModuleBufferRegister(uintptr_t virtualBase, size_t size, siz
 	PROC::Process *proc = info->kernelScheduler->GetRunningProcess();
 	VMM::VirtualSpace *procSpace = proc->GetVirtualMemorySpace();
 
-	size_t pid = proc->GetPID();
-	if (pid == 0) {
-		VMM::LoadVirtualSpace(procSpace);
-
-		return tmpID;
-	}
-
-	MODULE::Module *mod = info->KernelModuleManager->GetModule(pid);
+	MODULE::Module *mod = info->KernelModuleManager->GetModule(proc->GetPID());
 	if (mod == NULL) {
 		VMM::LoadVirtualSpace(procSpace);
 
@@ -369,7 +383,7 @@ size_t HandleSyscallModuleBufferUnregister(uint32_t id) {
 	VMM::VirtualSpace *procSpace = proc->GetVirtualMemorySpace();
 
 	MODULE::Module *mod = info->KernelModuleManager->GetModule(proc->GetPID());
-	if (mod == NULL) return;
+	if (mod == NULL) return -1;
 
 	mod->UnregisterBuffer(id);
 	
@@ -378,7 +392,53 @@ size_t HandleSyscallModuleBufferUnregister(uint32_t id) {
 	return 0;
 }
 
-#include <mm/string.hpp>
+size_t HandleSyscallModuleMessageSend(uint32_t vendorID, uint32_t productID, uint32_t senderBufferID, size_t method, uint32_t receiverBufferID, size_t size) {
+	(void)method; /* Not yet used */
+
+	KInfo *info = GetInfo();
+
+	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
+
+	PROC::Process *proc = info->kernelScheduler->GetRunningProcess();
+	VMM::VirtualSpace *procSpace = proc->GetVirtualMemorySpace();
+
+	MODULE::Module *mod = info->KernelModuleManager->GetModule(proc->GetPID());
+	if (mod == NULL) return -1;
+
+	MODULE::Buffer *buf = mod->GetBuffer(senderBufferID);
+	if (buf == 0) return -1;
+	
+	if(MODULE::LockBuffer(buf) != 0) return -1;
+
+	MODULE::Message *msg = buf->Address;
+	MODULE::ComposeMessage(msg, mod->GetVendor(), mod->GetProduct(), size);
+	MODULE::SendMailboxMessage(vendorID, productID, receiverBufferID, msg);
+
+	if(MODULE::UnlockBuffer(buf) != 0) return -1;
+	
+	VMM::LoadVirtualSpace(procSpace);
+
+	return 0;
+}
+
+size_t HandleSyscallModuleMessageReceive(uint32_t bufferID) {
+	KInfo *info = GetInfo();
+
+	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
+
+	PROC::Process *proc = info->kernelScheduler->GetRunningProcess();
+	VMM::VirtualSpace *procSpace = proc->GetVirtualMemorySpace();
+
+	MODULE::Module *mod = info->KernelModuleManager->GetModule(proc->GetPID());
+	if (mod == NULL) return -1;
+
+
+	
+	VMM::LoadVirtualSpace(procSpace);
+
+	return 0;
+}
+
 size_t HandleSyscallModuleBusRegister(const char *busName) {
 	KInfo *info = GetInfo();
 
@@ -451,8 +511,6 @@ size_t HandleSyscallModuleBusUnregister(const char *busName) {
 	return 0;
 }
 
-#include <sys/file.hpp>
-#include <mm/string.hpp>
 size_t HandleSyscallFileOpen(char *filename, uintptr_t *address, size_t *length) {
 	KInfo *info = GetInfo();
 

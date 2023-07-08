@@ -65,8 +65,8 @@ BufferNode *Module::FindNode(uint32_t id, BufferNode **previous, bool *found) {
 			return node;
 		}
 
-		if (node->Next == NULL) break;
 		prev = node;
+		if (node->Next == NULL) break;
 		node = node->Next;
 	}
 

@@ -59,8 +59,8 @@ ModuleNode *Manager::FindNode(uint32_t vendorID, uint32_t productID, ModuleNode 
 			return node;
 		}
 
-		if (node->Next == NULL) break;
 		prev = node;
+		if (node->Next == NULL) break;
 		node = node->Next;
 	}
 
@@ -107,6 +107,8 @@ Module *Manager::GetModule(size_t PID) {
 		if (node->Next == NULL) break;
 		node = node->Next;
 	}
+
+	return NULL;
 }
 
 void Manager::UnregisterModule(uint32_t vendorID, uint32_t productID) {
