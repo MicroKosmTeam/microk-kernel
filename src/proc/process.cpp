@@ -19,7 +19,7 @@ Process::Process(ProcessType type, VMM::VirtualSpace *vms) {
 	Type = type;
 	VirtualMemorySpace = vms;
 
-	HighestFree = 0x00007FFFFFFFF000;
+	HighestFree = 0x0000800000000000;
 
 	LastTID = 0;
 	ThreadNumber = 0;
