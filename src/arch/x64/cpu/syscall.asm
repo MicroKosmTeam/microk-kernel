@@ -10,7 +10,6 @@ SyscallEntry:
 	push rdi
 	push rsi
 
-	push rax
 	push rbx
 	push rcx
 	push rdx
@@ -60,7 +59,6 @@ SyscallEntry:
 	pop rdx
 	pop rcx
 	pop rbx
-	pop rax
 
 	pop rsi
 	pop rdi
