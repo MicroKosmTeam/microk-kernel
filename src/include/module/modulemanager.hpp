@@ -17,6 +17,7 @@ namespace MODULE {
 		int RegisterModule(PROC::Process *process, uint32_t vendorID, uint32_t productID);
 		void UnregisterModule(uint32_t vendorID, uint32_t productID);
 		Module *GetModule(uint32_t vendorID, uint32_t productID);
+		Module *GetModule(size_t PID);
 	private:
 		ModuleNode *BaseNode;
 

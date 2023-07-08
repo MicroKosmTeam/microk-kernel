@@ -92,6 +92,23 @@ Module *Manager::GetModule(uint32_t vendorID, uint32_t productID) {
 	return node->ModuleData;
 }
 
+Module *Manager::GetModule(size_t PID) {
+	ModuleNode *node = BaseNode->Next;
+
+	if (node == NULL) {
+		return NULL;
+	}
+
+	while(true) {
+		if (node->ModuleData->GetProcess()->GetPID() == PID) {
+			return node->ModuleData;
+		}
+
+		if (node->Next == NULL) break;
+		node = node->Next;
+	}
+}
+
 void Manager::UnregisterModule(uint32_t vendorID, uint32_t productID) {
 	RemoveNode(vendorID, productID);
 }

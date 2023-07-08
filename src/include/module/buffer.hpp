@@ -5,7 +5,7 @@
 namespace MODULE {
 	enum BufferType {
 		BT_INTERRUPT = 0x01,
-		BT_MESSAGE = 0x02,
+		BT_MAILBOX = 0x02,
 	};
 
 	struct Buffer {

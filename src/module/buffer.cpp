@@ -8,8 +8,10 @@ namespace MODULE {
 Buffer *CreateBuffer(uint32_t vendorID, uint32_t productID, uint32_t ID, BufferType type, size_t size) {
 	Buffer *buf = new Buffer;
 
+	void *pages = PMM::RequestPages(size / PAGE_SIZE + 1);
+
 	buf->ID = ID;
-	buf->Address = PMM::RequestPages(size / PAGE_SIZE + 1);
+	buf->Address = pages;
 	buf->Size = size;
 	buf->Type = type;
 

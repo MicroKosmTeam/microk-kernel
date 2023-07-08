@@ -112,6 +112,6 @@ Buffer *Module::GetBuffer(uint32_t bufferID) {
 void Module::UnregisterBuffer(uint32_t id) {
 	RemoveNode(id);
 
-	PRINTK::PrintK("Unregistered buffer (ID: %x)\r\n", id);
+	PRINTK::PrintK("Unregistered buffer (ID: %d)\r\n", id);
 }
 }
