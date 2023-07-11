@@ -7,29 +7,24 @@ section .syscall.entrypoint
 
 global SyscallEntry
 SyscallEntry:
-	push rdi
-	push rsi
-
-	push rbx
+	; Save for later sysret 
 	push rcx
-	push rdx
-
-	push r8
-	push r9
-	push r10
 	push r11
+
+	; Get the correct rcx and r11 parameters
+	mov rcx, [rsp - 32]
+	mov r11, [rsp - 24]
+
+	; Switch stack and save the stack pointer
+	mov r12, rsp
+	mov r13, rbp
+	mov rsp, [StartSyscallStack]; TODO FIX
 	push r12
 	push r13
-	push r14
-	push r15
-
-	mov rbx, rsp
-	mov rsp, [StartSyscallStack]; TODO FIX
-
-	push rbx
 
 	mov rbp, rsp
 
+	; Get arguments in the correct order
 	push r9
 
 	mov r9, r8
@@ -39,28 +34,21 @@ SyscallEntry:
 	mov rsi, rdi
 	mov rdi, rax
 
+	; Handle system call
 	call HandleSyscall
 
+	; Return to base
 	mov rsp, rbp
 
-	pop rbx
-
-	mov rsp, rbx
-
-	pop r15
-	pop r14
+	; Restore stack pointer
 	pop r13
 	pop r12
+
+	mov rsp, r12
+	mov rbp, r13
+
+	; Restore for sysret
 	pop r11
-	pop r10
-	pop r9
-	pop r8
-
-	pop rdx
 	pop rcx
-	pop rbx
-
-	pop rsi
-	pop rdi
 
 	o64 sysret
