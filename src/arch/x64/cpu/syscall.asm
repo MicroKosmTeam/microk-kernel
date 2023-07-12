@@ -11,10 +11,6 @@ SyscallEntry:
 	push rcx
 	push r11
 
-	; Get the correct rcx and r11 parameters
-	mov rcx, [rsp - 32]
-	mov r11, [rsp - 24]
-
 	; Switch stack and save the stack pointer
 	mov r12, rsp
 	mov r13, rbp
@@ -25,10 +21,9 @@ SyscallEntry:
 	mov rbp, rsp
 
 	; Get arguments in the correct order
-	push r9
 
-	mov r9, r8
-	mov r8, rcx
+	push r10
+
 	mov rcx, rdx
 	mov rdx, rsi
 	mov rsi, rdi
