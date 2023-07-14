@@ -19,9 +19,27 @@ void *Open(char *path, size_t *size) {
 			}
 		}
 	} else if (strcmp(id, "ACPI") == 0) {
-		if (strcmp(name, "RSDP") == 0) {
+		char tableName[5];
+		memcpy(tableName, name, 4);
+		tableName[4] = '\0';
+
+		if (strcmp(tableName, "RSDP") == 0) {
 			*size = ((ACPI::RSDP2*)info->RSDP)->Length;
 			return info->RSDP;
+		} else if (strcmp(tableName, "DSDT") == 0) {
+			void *addr = ACPI::GetXSDT();
+			if (addr == NULL) {
+				*size = 0;
+				return NULL;
+			}
+
+			ACPI::FADT *fadt = ACPI::FindTable(addr, "FACP");
+
+			addr = fadt->Dsdt;
+
+			*size = (addr == NULL) ? 0 : ((ACPI::SDTHeader*)addr)->Length;
+			return addr;
+			
 		} else {
 			void *addr = ACPI::GetXSDT();
 			if (addr == NULL) {
@@ -29,7 +47,7 @@ void *Open(char *path, size_t *size) {
 				return NULL;
 			}
 
-			addr = ACPI::FindTable(addr, name);
+			addr = ACPI::FindTable(addr, tableName);
 			*size = (addr == NULL) ? 0 : ((ACPI::SDTHeader*)addr)->Length;
 			return addr;
 		}

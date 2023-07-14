@@ -13,10 +13,7 @@
 #include <proc/scheduler.hpp>
 #include <module/modulemanager.hpp>
 #include <dev/bus.hpp>
-
-#ifdef CONFIG_HW_UART
 #include <dev/uart/uart.hpp>
-#endif
 
 struct Framebuffer {
 	void *Address;

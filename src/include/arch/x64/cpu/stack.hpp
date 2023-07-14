@@ -1,8 +1,6 @@
 #pragma once
 #include <stdint.h>
 #include <stddef.h>
-#include <proc/process.hpp>
-
 struct SaveContext {
 	uint64_t RBP;
 
@@ -24,8 +22,7 @@ struct SaveContext {
 	uint64_t RSI;
 	
 	uint64_t RBP2;
-	uint64_t ret;
 }__attribute__((packed));
 
 extern "C" void SwitchStack(void *oldStack, void *newStack);
-void InitializeStack(void *stack, uintptr_t function);
+void InitializeStack(void *stack,uintptr_t function);

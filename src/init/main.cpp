@@ -28,7 +28,6 @@
 #include <stddef.h>
 #include <mm/pmm.hpp>
 #include <mm/heap.hpp>
-#include <proc/smp.hpp>
 #include <init/main.hpp>
 #include <sys/panic.hpp>
 #include <mm/memory.hpp>
@@ -113,11 +112,6 @@ __attribute__((noreturn)) void KernelStart() {
 
 	/* Initialize the ACPI subsystem */
 	ACPI::Init();
-
-#ifdef CONFIG_MP_SMP
-	/* Initializing multiprocessing */
-	PROC::SMP::Init();
-#endif
 
 	/* Initializing the scheduler framework */
 	info->kernelScheduler = new PROC::Scheduler();

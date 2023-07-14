@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include <mm/vmm.hpp>
 #include <sys/vector.hpp>
+#include <arch/x64/cpu/stack.hpp>
 
 namespace PROC {
 	enum ProcessState {
@@ -85,10 +86,16 @@ namespace PROC {
 	private:
 		size_t TID;
 
+
 		uintptr_t Stack;
 		uintptr_t StackBase;
-		uintptr_t Instruction;
 		size_t StackSize;
+
+		uintptr_t KernelStackBase;
+		size_t KernelStackSize;
+
+		SaveContext *Context;
+		uintptr_t Instruction;
 
 		ProcessState State;
 

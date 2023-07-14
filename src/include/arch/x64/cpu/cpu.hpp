@@ -25,10 +25,6 @@ namespace x86_64 {
 		/* Function that returns the CPU vendor string */
 		void GetVendor(char *string);
 	private:
-		/* Member function that checks for SSE */
-		int CheckSSE(int version);
-		bool CheckAVX();
-		bool CheckMSR();
 		/* Wether SSE is actually active */
 		bool sseStatus = false;
 	};

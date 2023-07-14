@@ -40,6 +40,7 @@ VirtualSpace *NewModuleVirtualSpace() {
 		} else {
 			for (uint64_t t = base; t < top; t += PAGE_SIZE) {
 				space->MapMemory(t, t + info->higherHalfMapping, VMM_PRESENT | VMM_READWRITE | VMM_GLOBAL);
+				space->MapMemory(t, t, VMM_PRESENT | VMM_READWRITE | VMM_USER | VMM_GLOBAL);
 			}
 		}
 	}

@@ -1,7 +1,7 @@
 #include <proc/process.hpp>
 #include <mm/memory.hpp>
 #include <arch/x64/cpu/stack.hpp>
-
+#include <init/kinfo.hpp>
 #include <sys/printk.hpp>
 #include <sys/panic.hpp>
 #include <mm/pmm.hpp>
@@ -136,6 +136,7 @@ void Process::SetHighestFree(size_t highestFree) {
 
 
 Thread::Thread(Process *process, size_t stackSize, uintptr_t entrypoint, size_t *newTID) {
+	KInfo *info = GetInfo();
 	if (stackSize == 0) stackSize = (512 * 1024);
 
 	TID = process->RequestTID();
@@ -160,12 +161,26 @@ Thread::Thread(Process *process, size_t stackSize, uintptr_t entrypoint, size_t 
 			StackBase = Stack = highestFree;
 
 			process->SetHighestFree((highestFree - stackSize) - (highestFree - stackSize) % 16);
+
+			Context = StackBase - sizeof(SaveContext);
+			Stack -= sizeof(SaveContext);
+			void *addr = Context;
+
+/*			VMM::LoadVirtualSpace(space);
+
+			memset(addr, 0, sizeof(SaveContext));
+			
+			InitializeStack(addr);
+
+			VMM::LoadVirtualSpace(info->kernelVirtualSpace);*/
 			}
 			break;
 		case PT_KERNEL: {
 			}
 			break;
 	}
+
+
 }
 
 Thread::~Thread() {

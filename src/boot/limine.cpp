@@ -106,6 +106,10 @@ __attribute__((noreturn)) extern "C" void LimineEntry() {
 		info->mMap[i].type = mMapRequest.response->entries[i]->type;
 	}
 
+	info->higherHalfMapping = hhdmRequest.response->offset;
+	info->kernelPhysicalBase = kaddrRequest.response->physical_base;
+	info->kernelVirtualBase = kaddrRequest.response->virtual_base;
+
 	/* Transporting files */
 	uint64_t moduleCount = moduleRequest.response->module_count;
 	info->fileCount = moduleCount;
@@ -126,7 +130,8 @@ __attribute__((noreturn)) extern "C" void LimineEntry() {
 	}
 
 	if (framebufferRequest.response == NULL) {
-
+		info->framebufferCount = 0;
+		info->framebuffers = NULL;
 	} else {
 		size_t framebufferCount = framebufferRequest.response->framebuffer_count;
 		info->framebufferCount = framebufferCount;
@@ -141,13 +146,7 @@ __attribute__((noreturn)) extern "C" void LimineEntry() {
 			info->framebuffers[i].GreenShift = framebufferRequest.response->framebuffers[i]->green_mask_shift;
 			info->framebuffers[i].BlueShift = framebufferRequest.response->framebuffers[i]->blue_mask_shift;
 		}
-
-
 	}
-
-	info->higherHalfMapping = hhdmRequest.response->offset;
-	info->kernelPhysicalBase = kaddrRequest.response->physical_base;
-	info->kernelVirtualBase = kaddrRequest.response->virtual_base;
 
 	PRINTK::PrintK("Welcome from MicroK.\r\n"
 		       "The kernel is booted by %s %s at %d\r\n",

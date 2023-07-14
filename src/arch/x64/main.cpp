@@ -18,7 +18,7 @@ void Init() {
 	 * as we will use it to initialize the TSS
 	 *
 	 * We use 0x800000 because it's a low memory address that is
-	 * the highest that is always (hopefully) free. No interferance with userspace.
+	 * the highest that is always (hopefully) free. No interferance anything.
 	 *
 	 * Just know that if it grows until around 0x8000 (where the SMP startup
 	 * code should be situated), we will be in trouble. However, that shouldn't
@@ -35,18 +35,8 @@ void Init() {
 	IDTInit();
 	PRINTK::PrintK("IDT Loaded.\r\n");
 
-	asm volatile ("push %rax\n\t"
-			"push %rbx\n\t"
-			"pushfq\n\t"
-			"pop %rax\n\t"
-			"mov $0xFFFFFFFFFFFFCFFF, %rbx\n\t"
-			"and %rbx, %rax\n\t"
-			"push %rax\n\t"
-			"popfq\n\t"
-			"pop %rbx\n\t"
-			"pop %rax");
-
 	/* x86 CPU initialization */
+	PRINTK::PrintK("Setting up CPU features\r\n");
 	x86CPU *defaultCPU = new x86CPU; /* Allocated by BOOTMEM, do not free */
 
 	/* We get the CPU vendor */
