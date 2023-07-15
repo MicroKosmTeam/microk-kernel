@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SYMBOLDIR="src"
+SYMBOLDIR="src/generic"
 
 #Extract the symbol table information
 nm microk.elf -n > symbols.txt
