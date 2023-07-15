@@ -92,11 +92,15 @@ VirtualSpace *NewKernelVirtualSpace() {
 }
 
 VirtualSpace *NewVirtualSpace() {
+#if defined(ARCH_x64)
 	return x86_64::NewVirtualSpace();
+#endif
 }
 
 void LoadVirtualSpace(VMM::VirtualSpace *space) {
+#if defined(ARCH_x64)
 	x86_64::LoadVirtualSpace(space);
+#endif
 }
 
 void MapMemory(VirtualSpace *space, void *physicalMemory, void *virtualMemory) {

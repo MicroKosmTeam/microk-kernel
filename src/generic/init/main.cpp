@@ -37,10 +37,18 @@
 #include <sys/printk.hpp>
 #include <sys/loader.hpp>
 #include <dev/acpi/acpi.hpp>
-#include <arch/x64/main.hpp>
 #include <proc/scheduler.hpp>
 #include <module/modulemanager.hpp>
 #include <dev/bus.hpp>
+
+#if defined(ARCH_x64)
+#include <arch/x64/main.hpp>
+#elif defined(ARCH_aarch64)
+#include <arch/aarch64/main.hpp>
+extern "C" void __aarch64_cas1_sync() {}
+extern "C" void CPUPause() {}
+extern "C" void EnterUserspace() {}
+#endif
 
 /*
    Function that is started by the scheduler once kernel startup is complete.
@@ -92,14 +100,15 @@ void PrintBanner() {
 __attribute__((noreturn)) void KernelStart() {
 	KInfo *info = GetInfo();
 
-	PRINTK::PrintK("Kernel started.\r\n");
-
 	/* Enabling the page frame allocator */
 	PMM::InitPageFrameAllocator();
 
-#ifdef CONFIG_ARCH_x86_64
+#if defined(ARCH_x64)
 	/* Starting x86_64 specific instructions */
 	x86_64::Init();
+#elif defined(ARCH_aarch64)
+	/* Starting AArch64 specific instructions */
+	AArch64::Init();
 #endif
 	/* Starting the memory subsystem */
 	MEM::Init();

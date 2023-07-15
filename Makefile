@@ -11,9 +11,6 @@ COMMON_CFLAGS = -ffreestanding             \
 	 -fno-omit-frame-pointer    \
 	 -fno-builtin-g             \
 	 -I $(SRCDIR)/include       \
-	 -m64                       \
-	 -mabi=sysv                 \
-	 -mcmodel=kernel            \
 	 -Wall                      \
 	 -Wextra                    \
 	 -Wno-write-strings         \
@@ -24,7 +21,12 @@ COMMON_CFLAGS = -ffreestanding             \
 	 -fno-lto                   \
 	 -fno-pie                   \
 	 -fno-pic                   \
+	 -fpermissive \
 	 -ggdb
+
+LDFLAGS = -nostdlib                 \
+	  -static                   \
+	  -z max-page-size=0x1000
 
 COMMON_CPPSRC = $(call rwildcard,$(COMMON_SOURCES),*.cpp)
 COMMON_OBJS = $(patsubst $(COMMON_SOURCES)/%.cpp, $(COMMON_SOURCES)/%.o, $(COMMON_CPPSRC))
@@ -40,20 +42,27 @@ ifeq ($(ARCH), x86_64)
          -mno-sse                   \
          -mno-sse2                  \
 	 -mno-red-zone              \
+	 -m64                       \
+	 -mabi=sysv                 \
+	 -mcmodel=kernel            \
 	 -march=x86-64 \
-	 -fpermissive
+	 -mcmodel=kernel
+
+	LDFLAGS += -m elf_x86_64
 
 	ASMFLAGS = -f elf64
 else ifeq ($(ARCH), aarch64)
-	CFLAGS = $(COMMON_CFLAGS) -march=armv8-a
+	CFLAGS = $(COMMON_CFLAGS) -march=armv8-a \
+         -mabi=lp64     \
+	 -mcmodel=large
+
+	LDFLAGS += -m aarch64elf
+	ASMFLAGS = 
 else
 	$(error Unsupported ARCH: $(ARCH))
 endif
 
-LDFLAGS = -nostdlib                 \
-	  -static                   \
-	  -m elf_$(ARCH)            \
-	  -z max-page-size=0x1000
+
 
 .PHONY: kernel link clean
 

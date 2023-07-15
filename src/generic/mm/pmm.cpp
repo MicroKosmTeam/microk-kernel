@@ -101,7 +101,6 @@ void InitPageFrameAllocator() {
 		MEM::MMapEntry desc = info->mMap[i];
 		if (desc.type == MEMMAP_USABLE) {
 			UnreservePages((void*)desc.base, desc.length / 4096);
-
 		}
 	}
 
@@ -113,7 +112,7 @@ void InitPageFrameAllocator() {
 
 	BitmapLock.Unlock();
 	
-	PRINTK::PrintK("Bitmap allocator started: %dkb free out of %dkb\r\n", free_memory / 1024, memory_size / 1024);
+	PRINTK::PrintK("Bitmap allocator started: %dkb of memory in total.\r\n", memory_size / 1024);
 }
 
 #define MAX_TRIES 4 

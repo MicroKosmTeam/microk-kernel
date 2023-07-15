@@ -1,6 +1,14 @@
 #pragma once
 #include <autoconf.h>
 
+#if defined(__x86_64__)
+#define ARCH_x64
+#elif defined(__aarch64__)
+#define ARCH_aarch64
+#else
+#error Unsupported architecture
+#endif
+
 #define SYSCALL_DEBUG_PRINTK      0x0001
 
 #define SYSCALL_MEMORY_GETINFO    0x1000

@@ -2,7 +2,7 @@
 #ifdef CONFIG_HW_UART
 #include <stdarg.h>
 
-#ifdef CONFIG_ARCH_x86_64
+#if defined(ARCH_x64)
 #include <arch/x64/io/io.hpp>
 
 inline void OutB(uint16_t port, uint8_t value) {
@@ -12,6 +12,19 @@ inline void OutB(uint16_t port, uint8_t value) {
 inline uint8_t InB(uint16_t port) {
 	return x86_64::InB(port);
 }
+
+#elif defined(ARCH_aarch64)
+
+inline void OutB(uintptr_t port, uint8_t value) {
+	volatile uint8_t *data = (volatile uint8_t*)port;
+	*data = value;
+}
+
+inline uint8_t InB(uintptr_t port) {
+	return 0;
+}
+
+
 
 #endif
 
@@ -39,9 +52,9 @@ uint64_t UARTDevice::Ioctl(uint64_t request, va_list ap){
 
 	return result;
 }
-
+#if defined(ARCH_x64)
 uint64_t UARTDevice::Init(SerialPorts serialPort) {
-	port = (int)serialPort;
+	port = (uintptr_t)serialPort;
 
         OutB(port + 1, 0x00);    // Disable all interrupts
         OutB(port + 3, 0x80);    // Enable DLAB (set baud rate divisor)
@@ -66,6 +79,14 @@ uint64_t UARTDevice::Init(SerialPorts serialPort) {
 	active = true;
         return 0;
 }
+
+#elif defined(ARCH_aarch64)
+uint64_t UARTDevice::Init(uintptr_t address) {
+	port = address;
+	active = true;
+}
+#endif
+
 
 void UARTDevice::PutStr(const char* str) {
 	if (!active) return;
@@ -95,10 +116,18 @@ int UARTDevice::GetChar() {
 }
 
 int UARTDevice::isTransmitEmpty() {
+#if defined(ARCH_x64)
 	return InB(port + 5) & 0x20;
+#else
+	return 1;
+#endif
 }
 
 int UARTDevice::serialReceived() {
+#if defined(ARCH_x64)
 	return InB(port + 5) & 1;
+#else
+	return 0;
+#endif
 }
 #endif

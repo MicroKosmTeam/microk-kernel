@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <dev/dev.hpp>
 
+#if defined(ARCH_x64)
 enum SerialPorts {
 	COM1 = 0x3f8,
 	COM2 = 0x2f8,
@@ -15,6 +16,7 @@ enum SerialPorts {
 	COM7 = 0x5e8,
 	COM8 = 0x4e8
 };
+#endif
 
 class UARTDevice : public Device {
 public:
@@ -22,12 +24,16 @@ public:
 
 	uint64_t Ioctl(uint64_t request, va_list ap);
 
+	#if defined(ARCH_x64)
 	uint64_t Init(SerialPorts serialPort);
+	#elif defined(ARCH_aarch64)
+	uint64_t Init(uintptr_t address);
+	#endif
 	void PutStr(const char* str);
 	void PutChar(const char ch);
 	int GetChar();
 private:
-	int port;
+	uintptr_t port;
 
 	bool active;
 

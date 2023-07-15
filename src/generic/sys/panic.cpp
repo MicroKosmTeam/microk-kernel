@@ -4,8 +4,6 @@
 
 __attribute__((noreturn))
 void Panic(const char *message, const char *file, const char *function, unsigned int line) {
-        asm volatile ("cli"); // We don't want interrupts while we are panicking
-
         // Printing the panic message
 	PRINTK::PrintK("\r\n\r\n [PANIC] -> KERNEL PANIC!! \r\n"
 			" [PANIC] Irrecoverable error in the kernel.\r\n"
@@ -17,16 +15,10 @@ void Panic(const char *message, const char *file, const char *function, unsigned
 
 	PRINTK::PrintK("\r\n [Hanging now...]\r\n\r\n");
 
-        while (true) {
-                // Halting forever
-                asm volatile ("cli; hlt");
-        }
-
+        while (true);
 }
 
 void Oops(const char *message, const char *file, const char *function, unsigned int line) {
-        asm volatile ("cli"); // We don't want interrupts while we are panicking
-
         // Printing the panic message
 	PRINTK::PrintK("\r\n\r\n [OOPS] -> KERNEL OOPS!! \r\n"
 			" [OOPS] Error in the kernel.\r\n"

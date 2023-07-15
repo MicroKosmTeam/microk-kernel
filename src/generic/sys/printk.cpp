@@ -79,7 +79,11 @@ void EarlyInit() {
 
 #ifdef CONFIG_HW_UART
 	info->kernelPort = (UARTDevice*)BOOTMEM::Malloc(sizeof(UARTDevice) + 1);
+#if defined(ARCH_x64)
 	info->kernelPort->Init(COM1);
+#elif defined(ARCH_aarch64)
+	info->kernelPort->Init(0x09000000);
+#endif
 	info->kernelPort->PutStr("Serial PrintK started.\n");
 	kernelPort = info->kernelPort;
 #endif

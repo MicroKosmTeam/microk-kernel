@@ -73,6 +73,8 @@ static volatile limine_framebuffer_request framebufferRequest {
 	.revision = 0
 };
 
+#define PREFIX "Limine: "
+
 /* Main Limine initialization function */
 __attribute__((noreturn)) extern "C" void LimineEntry() {
 	/* Startup basic kernel runtime services */
@@ -93,13 +95,13 @@ __attribute__((noreturn)) extern "C" void LimineEntry() {
 		PANIC("Requests not answered by Limine");
 
 	/* Transporting the MMAP */
-	PRINTK::PrintK("Getting the memory map from Limine...\r\n");
+	PRINTK::PrintK(PREFIX "Getting the memory map from Limine...\r\n");
 
 	uint64_t mMapEntryCount = mMapRequest.response->entry_count;
 	info->mMapEntryCount = mMapEntryCount;
 	info->mMap = (MEM::MMapEntry*)BOOTMEM::Malloc(sizeof(MEM::MMapEntry) * mMapEntryCount + 1);
 
-	PRINTK::PrintK("Allocating for %d memory map entries.\r\n", mMapEntryCount);
+	PRINTK::PrintK(PREFIX "Allocating for %d memory map entries.\r\n", mMapEntryCount);
 	for (int i = 0; i < mMapEntryCount; i++) {
 		info->mMap[i].base = mMapRequest.response->entries[i]->base;
 		info->mMap[i].length = mMapRequest.response->entries[i]->length;
@@ -115,7 +117,7 @@ __attribute__((noreturn)) extern "C" void LimineEntry() {
 	info->fileCount = moduleCount;
 	info->bootFiles = (FILE::BootFile*)BOOTMEM::Malloc(sizeof(FILE::BootFile) * moduleCount + 1);
 
-	PRINTK::PrintK("Allocating for %d modules.\r\n", moduleCount);
+	PRINTK::PrintK(PREFIX "Allocating for %d modules.\r\n", moduleCount);
 	for (int i = 0; i < moduleCount; i++) {
 		info->bootFiles[i].Address = moduleRequest.response->modules[i]->address;
 		info->bootFiles[i].Size = moduleRequest.response->modules[i]->size;
@@ -148,8 +150,7 @@ __attribute__((noreturn)) extern "C" void LimineEntry() {
 		}
 	}
 
-	PRINTK::PrintK("Welcome from MicroK.\r\n"
-		       "The kernel is booted by %s %s at %d\r\n",
+	PRINTK::PrintK("MicroKosm is booted by %s %s at %d\r\n",
 		       bootloaderRequest.response->name,
 		       bootloaderRequest.response->version,
 		       timeRequest.response->boot_time);

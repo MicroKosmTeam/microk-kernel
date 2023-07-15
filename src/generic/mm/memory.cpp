@@ -76,17 +76,15 @@ namespace MEM {
 void Init() {
 	KInfo *info = GetInfo();
 
-	PRINTK::PrintK("Memory map:\r\n");
+	PRINTK::PrintK("Provided physical RAM map:\r\n");
 
 	for (int i = 0; i < info->mMapEntryCount; i++) {
-		PRINTK::PrintK("[0x%x - 0x%x] -> %s\r\n",
+		PRINTK::PrintK(" [0x%x - 0x%x] -> %s\r\n",
 				info->mMap[i].base,
 				info->mMap[i].base + info->mMap[i].length,
 				memTypeStrings[info->mMap[i].type]);
 	}
 
 	VMM::InitVMM();
-
-	PRINTK::PrintK("Done.\r\n");
 }
 }
