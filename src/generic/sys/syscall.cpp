@@ -253,7 +253,8 @@ size_t HandleSyscallProcExec(uintptr_t executableBase, size_t executableSize) {
 		memcpy(heapAddr + i, buffer, remaining > 1024 ? 1024 : remaining);
 	}
 
-	LoadExecutableFile(heapAddr, executableSize);
+	size_t pid = LoadExecutableFile(heapAddr, executableSize);
+	info->kernelScheduler->SetProcessState(pid, PROC::P_READY);
 
 	VMM::LoadVirtualSpace(procSpace);
 
@@ -272,32 +273,13 @@ size_t HandleSyscallProcReturn(size_t returnCode, uintptr_t stack) {
 	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
 	PRINTK::PrintK("Returning: %d form 0x%x\r\n", returnCode, stack); 
 
-	/* TMP FIX */
-	size_t maxPID = info->kernelScheduler->GetMaxPID();
+	PROC::Process *proc = info->kernelScheduler->GetRunningProcess();
+	info->kernelScheduler->SetProcessState(proc->GetPID(), PROC::P_WAITING);
 
-	if (pid + 1 > maxPID) {
-		MODULE::Module *mod = info->KernelModuleManager->GetModule(0xCAFEBABE, 0xDEADBEEF);
-		if (mod == NULL) {
-			PRINTK::PrintK("Module not found.\r\n");
-			while(true);
-		}
-
-		MODULE::Buffer *buf = mod->GetBuffer(1);
-		if (buf == NULL) while(true);
-
-		MODULE::Message *msg = buf->Address;
-		PRINTK::PrintK("Message:\r\n"
-				" From: %x %x\r\n"
-				" Size: %d\r\n"
-				" Data: %s\r\n",
-				msg->SenderVendorID, msg->SenderProductID, msg->MessageSize, buf->Address + 128);
-		while(true);
+	while(true) {
+		info->kernelScheduler->RecalculateScheduler();
 	}
 
-	info->kernelScheduler->SwitchToTask(++pid, 0);
-
-	while(true);
-	
 	return 0;
 }
 

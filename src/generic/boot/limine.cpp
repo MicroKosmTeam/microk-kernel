@@ -73,6 +73,31 @@ static volatile limine_framebuffer_request framebufferRequest {
 	.revision = 0
 };
 
+/* SMP Request (temporarily disabled */
+/*
+#if defined(ARCH_x64) 
+struct volatile limine_smp_request smpRequest {
+	.id = LIMINE_SMP_REQUEST,
+	.revision = 0,
+	.flags = 1
+};
+#elif defined(ARCH_aarch64)
+struct volatile limine_smp_request smpRequest {
+	.id = LIMINE_SMP_REQUEST,
+	.revision = 0
+};
+#endif
+*/
+
+/* For AArch64 only: DTB Request */
+#if defined(ARCH_aarch64)
+static volatile limine_dtb_request dtbRequest {
+	.id = LIMINE_DTB_REQUEST,
+	.revision = 0
+};
+
+#endif
+
 #define PREFIX "Limine: "
 
 /* Main Limine initialization function */
@@ -82,8 +107,8 @@ __attribute__((noreturn)) extern "C" void LimineEntry() {
 
 	KInfo *info = GetInfo();
 
-	/* Checking if vital requests have been answered by Limine */
-	/* If not, give up and shut down */
+	/* Checking if vital requests have been answered by Limine
+	 * If not, give up and shut down */
 	if(timeRequest.response == NULL ||
 	   stackRequest.response == NULL ||
 	   bootloaderRequest.response == NULL ||
@@ -149,6 +174,14 @@ __attribute__((noreturn)) extern "C" void LimineEntry() {
 			info->framebuffers[i].BlueShift = framebufferRequest.response->framebuffers[i]->blue_mask_shift;
 		}
 	}
+
+#if defined(ARCH_aarch64)
+	if (dtbRequest.response == NULL) {
+		PRINTK::PrintK(PREFIX "WARNING: Not DTB found.\r\n");
+	} else {
+		PRINTK::PrintK(PREFIX "Device Tree blob found at 0x%x\r\n", dtbRequest.response->dtb_ptr);
+	}
+#endif
 
 	PRINTK::PrintK("MicroKosm is booted by %s %s at %d\r\n",
 		       bootloaderRequest.response->name,

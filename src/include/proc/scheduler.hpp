@@ -3,6 +3,11 @@
 #include <sys/vector.hpp>
 
 namespace PROC {
+	struct ProcessNode {
+		Process *Proc;
+		ProcessNode *Next;
+	};
+
 	class Scheduler {
 	public:
 		Scheduler();
@@ -13,13 +18,24 @@ namespace PROC {
 		Process *GetProcess(size_t PID);
 		Process *GetRunningProcess();
 
+		int SetProcessState(size_t PID, ProcessState state);
+
 		size_t GetMaxPID() { return MaxPID; }
 			
-		void SwitchToTask(size_t PID, size_t TID);
+		void RecalculateScheduler();
 	private:
+		ProcessNode *Scheduler::AddNode(ProcessNode *queue, Process *proc);
+		Process *PopFirstNode(ProcessNode *queue);
+		Process *RemoveNode(ProcessNode *queue, size_t pid);
+		ProcessNode *FindNode(ProcessNode *queue, size_t pid, ProcessNode **previous, bool *found);
+		
+		Process *GetProcess(size_t PID, ProcessNode *queue);
+		void SwitchToTask(Process *proc, size_t TID);
+
 		uintmax_t MaxPID;
 		Process *CurrentProcess;
 
-		Vector<Process*> Processes;
+		ProcessNode *RunQueueBaseNode;
+		ProcessNode *BlockedQueueBaseNode;
 	};
 }

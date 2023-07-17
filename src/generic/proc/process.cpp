@@ -15,7 +15,7 @@ static inline uint64_t RequestPID() {
 
 Process::Process(ProcessType type, VMM::VirtualSpace *vms) {
 	PID = RequestPID();
-	State = P_PAUSED;
+	State = P_WAITING;
 	Type = type;
 	VirtualMemorySpace = vms;
 
@@ -38,7 +38,7 @@ Process::~Process() {
 size_t Process::CreateThread(size_t stackSize, uintptr_t entrypoint) {
 	size_t newTID;
 	
-	if(GetProcessState() != P_PAUSED) return 0;
+	if(GetProcessState() != P_WAITING) return 0;
 
 	Thread *newThread = new Thread(this, stackSize, entrypoint, &newTID);
 
@@ -142,7 +142,7 @@ Thread::Thread(Process *process, size_t stackSize, uintptr_t entrypoint, size_t 
 	TID = process->RequestTID();
 	Owner = process;
 	Instruction = entrypoint;
-	State = P_PAUSED;
+	State = P_WAITING;
 
 	stackSize -= stackSize % 16;
 

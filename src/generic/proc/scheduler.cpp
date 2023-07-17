@@ -8,11 +8,97 @@
 #include <sys/user.hpp>
 
 namespace PROC {
+
+ProcessNode *Scheduler::AddNode(ProcessNode *queue, Process *proc) {
+	bool found = false;
+	ProcessNode *node, *prev;
+
+	node = FindNode(queue, proc->GetPID(), &prev, &found);
+
+	/* Already present, return this one */
+	if(found) return node;
+
+	/* If not, prev is now our last node. */
+	ProcessNode *newNode = new ProcessNode;
+	newNode->Proc = proc;
+	newNode->Next = NULL;
+
+	prev->Next = newNode;
+	
+	return prev->Next;
+}
+
+Process *Scheduler::PopFirstNode(ProcessNode *queue) {
+	ProcessNode *node = queue->Next;
+
+	if (node == NULL) {
+		return NULL;
+	}
+
+	queue->Next = node->Next;
+
+	Process *proc = node->Proc;
+	delete node;
+
+	return proc;
+}
+
+Process *Scheduler::RemoveNode(ProcessNode *queue, size_t pid) {
+	bool found = false;
+	ProcessNode *previous; 
+	ProcessNode *node = FindNode(queue, pid, &previous, &found);
+
+	/* This issue shall be reported */
+	if(!found) return NULL;
+
+	previous->Next = node->Next;
+	Process *proc = node->Proc;
+	delete node;
+
+	return proc;
+}
+
+ProcessNode *Scheduler::FindNode(ProcessNode *queue, size_t pid, ProcessNode **previous, bool *found) {
+	ProcessNode *node = queue->Next, *prev = queue;
+
+	if (node == NULL) {
+		*previous = prev;
+		*found = false;
+		return NULL;
+	}
+
+	while(true) {
+		if (node->Proc->GetPID() == pid) {
+			*found = true;
+			*previous = prev;
+			return node;
+		}
+
+		prev = node;
+		if (node->Next == NULL) break;
+		node = node->Next;
+	}
+
+	*previous = prev;
+	*found = false;
+	return NULL;
+}
+
 Scheduler::Scheduler() {
 	KInfo *info = GetInfo();
 	
-	Processes.Init();
+	RunQueueBaseNode = new ProcessNode;
+	BlockedQueueBaseNode = new ProcessNode;
 
+	RunQueueBaseNode->Proc = NULL;
+	RunQueueBaseNode->Next = NULL;
+
+	BlockedQueueBaseNode->Proc = NULL;
+	BlockedQueueBaseNode->Next = NULL;
+
+	info->kernelProcess = NULL;
+
+	/*
 	info->kernelProcess = new Process(PT_KERNEL, info->kernelVirtualSpace);
 	size_t mainTID = info->kernelProcess->CreateThread(128 * 1024, RestInit);
 
@@ -21,7 +107,7 @@ Scheduler::Scheduler() {
 
 	info->kernelProcess->SetProcessState(PROC::P_READY);
 
-	AddProcess(info->kernelProcess);
+	AddProcess(info->kernelProcess);*/
 
 	CurrentProcess = info->kernelProcess;
 }
@@ -29,27 +115,98 @@ Scheduler::Scheduler() {
 void Scheduler::AddProcess(Process *process) {
 	if (process == NULL) return;
 
-	size_t pid = process->GetPID();
+	AddNode(BlockedQueueBaseNode, process);
 
-	Processes.Push(process, pid);
+	if (process->GetPID() > MaxPID) MaxPID = process->GetPID();
+}
 
-	if (pid > MaxPID) MaxPID = pid;
+int Scheduler::SetProcessState(size_t PID, ProcessState state) {
+	Process *proc;
+
+	switch(state) {
+		case P_READY:
+			proc = GetProcess(PID, BlockedQueueBaseNode);
+			if (proc == NULL) return -1;
+
+			RemoveNode(BlockedQueueBaseNode, PID);
+			AddNode(RunQueueBaseNode, proc);
+
+			break;
+		case P_RUNNING:
+			proc = GetProcess(PID, RunQueueBaseNode);
+			if (proc == NULL) return -1;
+
+			CurrentProcess = proc;
+
+			break;
+		case P_WAITING:
+			proc = GetProcess(PID, RunQueueBaseNode);
+			if (proc == NULL) return -1;
+
+			RemoveNode(RunQueueBaseNode, PID);
+			AddNode(BlockedQueueBaseNode, proc);
+
+			break;
+		case P_DONE:
+			proc = GetProcess(PID);
+			if (proc == NULL) return -1;
+
+			if(RemoveNode(RunQueueBaseNode, PID) == NULL)
+				if (RemoveNode(BlockedQueueBaseNode, PID) == NULL)
+					return -1;
+
+			break;
+	}
+
+	proc->SetProcessState(state);
+
+	return 0;
+}
+
+Process *Scheduler::GetProcess(size_t PID, ProcessNode *queue) {
+	if(PID > MaxPID) return NULL;
+
+	bool found = false;
+	ProcessNode *previous; 
+	ProcessNode *node = FindNode(queue, PID, &previous, &found);
+
+	if(found) return node->Proc;
+	
+	return NULL;
 }
 
 Process *Scheduler::GetProcess(size_t PID) {
 	if(PID > MaxPID) return NULL;
 
-	Process *proc = Processes.Get(PID);
+	bool found = false;
+	ProcessNode *previous; 
+	ProcessNode *node = FindNode(RunQueueBaseNode, PID, &previous, &found);
+
+	if(found) return node->Proc;
 	
-	return proc;
+	node = FindNode(BlockedQueueBaseNode, PID, &previous, &found);
+
+	if (found) return node->Proc;
+	
+	return NULL;
 }
 
 Process *Scheduler::GetRunningProcess() {
 	return CurrentProcess;
 }
+		
+void Scheduler::RecalculateScheduler() {
+	PROC::Process *proc = PopFirstNode(RunQueueBaseNode);
+	if (proc == NULL) return;
 
-void Scheduler::SwitchToTask(size_t PID, size_t TID) {
-	Process *proc = GetProcess(PID);
+	AddNode(RunQueueBaseNode, proc);
+
+	if (RunQueueBaseNode->Next == NULL) return;
+
+	SwitchToTask(RunQueueBaseNode->Next->Proc, 0);
+}
+
+void Scheduler::SwitchToTask(Process *proc, size_t TID) {
 	if (proc == NULL) return;
 
 	Thread *thread;
@@ -76,7 +233,6 @@ void Scheduler::SwitchToTask(size_t PID, size_t TID) {
 	}
 
 	OOPS("Failed to task switch");
-	while(true);
 }
 
 }

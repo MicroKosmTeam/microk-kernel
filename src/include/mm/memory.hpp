@@ -33,4 +33,5 @@ namespace MEM {
 	};
 
 	void Init();
+	void DisplayRam();
 }

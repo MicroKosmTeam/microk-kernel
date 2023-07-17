@@ -9,8 +9,7 @@ namespace PROC {
 	enum ProcessState {
 		P_READY,		/* Process is ready to run */
 		P_RUNNING,		/* Process is currently running */
-		P_WAITING,		/* Process is currently waiting for I/O */
-		P_PAUSED,		/* Process is not currently running */
+		P_WAITING,		/* Process is currently waiting */
 		P_DONE,			/* Process is no longer alive */
 	};
 

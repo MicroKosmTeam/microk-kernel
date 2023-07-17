@@ -100,6 +100,8 @@ void PrintBanner() {
 __attribute__((noreturn)) void KernelStart() {
 	KInfo *info = GetInfo();
 
+	MEM::DisplayRam();
+
 	/* Enabling the page frame allocator */
 	PMM::InitPageFrameAllocator();
 
@@ -146,8 +148,9 @@ __attribute__((noreturn)) void KernelStart() {
 	if (addr != 0) {
 		PRINTK::PrintK("Loading user module from 0x%x\r\n", addr);
 		size_t pid = LoadExecutableFile(addr, moduleSize);
+		info->kernelScheduler->SetProcessState(pid, PROC::P_READY);
 		PRINTK::PrintK("Switching to user module.\r\n");
-		info->kernelScheduler->SwitchToTask(pid, 0);
+		info->kernelScheduler->RecalculateScheduler();
 	} else PANIC("Could not find User Module");
 #endif
 

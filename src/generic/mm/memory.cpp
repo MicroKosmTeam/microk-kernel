@@ -73,7 +73,8 @@ void operator delete[](void* p, size_t size) {
 }
 
 namespace MEM {
-void Init() {
+
+void DisplayRam() {
 	KInfo *info = GetInfo();
 
 	PRINTK::PrintK("Provided physical RAM map:\r\n");
@@ -84,6 +85,12 @@ void Init() {
 				info->mMap[i].base + info->mMap[i].length,
 				memTypeStrings[info->mMap[i].type]);
 	}
+
+}
+
+
+void Init() {
+	KInfo *info = GetInfo();
 
 	VMM::InitVMM();
 }
