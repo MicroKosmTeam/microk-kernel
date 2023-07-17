@@ -27,12 +27,12 @@ void Process::Init(ProcessType type, VMM::VirtualSpace *vms, void* messageHandle
 	Threads.Init();
 
 	if (messageHandler != NULL) {
-		CreateThread(64 * 1024, messageHandler);
-	}
+		MessageThread = GetThread(CreateThread(64 * 1024, messageHandler));
+	} else MessageThread = NULL;
 
 	if (signalHandler != NULL) {
-		CreateThread(64 * 1024, messageHandler);
-	}
+		SignalThread = GetThread(CreateThread(64 * 1024, signalHandler));
+	} else SignalThread = NULL;
 }
 
 Process::Process(ProcessType type, VMM::VirtualSpace *vms) {
@@ -111,6 +111,14 @@ void Process::SetMainThread(size_t TID) {
 
 Thread *Process::GetMainThread() {
 	return MainThread;
+}
+
+Thread *Process::GetMessageThread() {
+	return MessageThread;
+}
+
+Thread *Process::GetSignalThread() {
+	return SignalThread;
 }
 
 void Process::SetPriority(uint8_t priority) {

@@ -147,6 +147,14 @@ int Scheduler::SetProcessState(size_t PID, ProcessState state) {
 			AddNode(BlockedQueueBaseNode, proc);
 
 			break;
+		case P_MESSAGE:
+			proc = GetProcess(PID, BlockedQueueBaseNode);
+			if (proc == NULL) return -1;
+
+			RemoveNode(BlockedQueueBaseNode, PID);
+			AddNode(RunQueueBaseNode, proc);
+
+			break;
 		case P_DONE:
 			proc = GetProcess(PID);
 			if (proc == NULL) return -1;
@@ -210,10 +218,16 @@ void Scheduler::SwitchToTask(Process *proc, size_t TID) {
 	if (proc == NULL) return;
 
 	Thread *thread;
+
 	if (TID == 0) thread = proc->GetMainThread();
 	else thread = proc->GetThread(TID);
-
+	
 	if (thread == NULL) return;
+	
+	if(proc->GetProcessState() == P_MESSAGE) {
+		Thread *msg = proc->GetMessageThread();
+		if (msg != NULL) thread = msg;
+	}
 
 	void *stack = thread->GetStack();
 	void *entry = thread->GetInstruction();

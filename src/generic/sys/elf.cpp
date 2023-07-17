@@ -115,7 +115,7 @@ void LinkSymbols(uint8_t *data, size_t size, Elf64_Ehdr *elfHeader, void **messa
 	for (int i = 0; i < sectionHeaderNumber; i++) {
 		sectionHeader = (Elf64_Shdr*)(data + sectionHeaderOffset + sectionHeaderSize * i);
 
-		PRINTK::PrintK("Section: %s\r\n", &sectionStrtabData[sectionHeader->sh_name]);
+		//PRINTK::PrintK("Section: %s\r\n", &sectionStrtabData[sectionHeader->sh_name]);
 
 		switch(sectionHeader->sh_type) {
 			case SHT_SYMTAB: {
@@ -133,15 +133,16 @@ void LinkSymbols(uint8_t *data, size_t size, Elf64_Ehdr *elfHeader, void **messa
 	size_t symbolNumber = symtab->sh_size / symtab->sh_entsize;
 	const char *strtabData = (const char*)(data + strtab->sh_offset);
 
-	PRINTK::PrintK("Symbol table: 0x%x\r\n", symtab);
-	PRINTK::PrintK("There are %d symbols.\r\n", symbolNumber);
+	//PRINTK::PrintK("Symbol table: 0x%x\r\n", symtab);
+	//PRINTK::PrintK("There are %d symbols.\r\n", symbolNumber);
 
 	Elf64_Sym *symbol;
 
+	PRINTK::PrintK("OK.\r\n");
 	for (int i = 0; i < symbolNumber; i++) {
 		symbol = (Elf64_Sym*)(data + symtab->sh_offset + symtab->sh_entsize * i);
 		const char *name = &strtabData[symbol->st_name];
-		
+
 		if (strcmp(name, "__message_handler") == 0) {
 			*messageHandler = symbol->st_value;
 		} else if (strcmp(name, "__signal_handler") == 0) {
@@ -152,6 +153,7 @@ void LinkSymbols(uint8_t *data, size_t size, Elf64_Ehdr *elfHeader, void **messa
 
 size_t LoadProcess(Elf64_Ehdr *elfHeader, VMM::VirtualSpace *space, void *messageHandler, void *signalHandler) {
 	KInfo *info = GetInfo();
+
 
 	PROC::Process *proc = new PROC::Process(PROC::PT_USER, space, messageHandler, signalHandler);
 

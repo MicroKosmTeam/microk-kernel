@@ -11,6 +11,7 @@ namespace PROC {
 		P_RUNNING,		/* Process is currently running */
 		P_WAITING,		/* Process is currently waiting */
 		P_DONE,			/* Process is no longer alive */
+		P_MESSAGE,
 	};
 
 	enum ProcessType {
@@ -39,6 +40,8 @@ namespace PROC {
 
 		void SetMainThread(size_t TID);
 		Thread *GetMainThread();
+		Thread *GetMessageThread();
+		Thread *GetSignalThread();
 
 		void SetPriority(uint8_t priority);
 		
@@ -59,6 +62,9 @@ namespace PROC {
 		ProcessState State;
 		ProcessType Type;
 		uint8_t Priority;
+
+		Thread *MessageThread;
+		Thread *SignalThread;
 		
 		VMM::VirtualSpace *VirtualMemorySpace;
 		uintptr_t HighestFree;

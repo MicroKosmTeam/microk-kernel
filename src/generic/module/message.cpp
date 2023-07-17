@@ -1,4 +1,5 @@
 #include <init/kinfo.hpp>
+#include <proc/scheduler.hpp>
 #include <module/message.hpp>
 #include <module/buffer.hpp>
 #include <module/modulemanager.hpp>
@@ -29,6 +30,9 @@ int SendMailboxMessage(uint32_t vendorID, uint32_t productID, uint32_t bufferID,
 	memcpy(buf->Address, message, sizeofMessage);
 
 	if(UnlockBuffer(buf) != 0) return -1;
+
+	size_t pid = mod->GetProcess()->GetPID();
+	info->kernelScheduler->SetProcessState(pid, PROC::P_MESSAGE);
 
 	return 0;
 }
