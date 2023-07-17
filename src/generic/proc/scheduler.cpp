@@ -211,6 +211,8 @@ void Scheduler::RecalculateScheduler() {
 
 	if (RunQueueBaseNode->Next == NULL) return;
 
+	CurrentProcess = proc;
+
 	SwitchToTask(RunQueueBaseNode->Next->Proc, 0);
 }
 

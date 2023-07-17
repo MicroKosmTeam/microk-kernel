@@ -266,8 +266,6 @@ size_t HandleSyscallProcFork(size_t TODO) {
 }
 
 size_t HandleSyscallProcReturn(size_t returnCode, uintptr_t stack) {
-	static size_t pid = 1;
-
 	KInfo *info = GetInfo();
 
 	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
@@ -375,21 +373,19 @@ size_t HandleSyscallModuleBufferUnregister(uint32_t id) {
 }
 
 size_t HandleSyscallModuleMessageSend(uint32_t vendorID, uint32_t productID, uint32_t senderBufferID, size_t method, uint32_t receiverBufferID, size_t size) {
-	(void)method; /* Not yet used */
-
 	KInfo *info = GetInfo();
 
 	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
 
 	PROC::Process *proc = info->kernelScheduler->GetRunningProcess();
 	VMM::VirtualSpace *procSpace = proc->GetVirtualMemorySpace();
-
+	
 	MODULE::Module *mod = info->KernelModuleManager->GetModule(proc->GetPID());
 	if (mod == NULL) return -1;
 
 	MODULE::Buffer *buf = mod->GetBuffer(senderBufferID);
 	if (buf == 0) return -1;
-	
+
 	if(MODULE::LockBuffer(buf) != 0) return -1;
 
 	MODULE::Message *msg = buf->Address;
