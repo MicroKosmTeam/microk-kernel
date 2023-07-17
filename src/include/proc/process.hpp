@@ -26,6 +26,7 @@ namespace PROC {
 	class Process {
 	public:
 		Process(ProcessType type, VMM::VirtualSpace *vms);
+		Process(ProcessType type, VMM::VirtualSpace *vms, void* messageHandler, void *signalHandler);
 		~Process();
 
 		size_t CreateThread(size_t stackSize, uintptr_t entrypoint);
@@ -52,6 +53,8 @@ namespace PROC {
 
 		ProcessType GetType() { return Type; }
 	private:
+		void Init(ProcessType type, VMM::VirtualSpace *vms, void* messageHandler, void *signalHandler);
+
 		size_t PID;
 		ProcessState State;
 		ProcessType Type;
@@ -95,6 +98,9 @@ namespace PROC {
 
 		SaveContext *Context;
 		uintptr_t Instruction;
+
+		uintptr_t MessageHandler;
+		uintptr_t SignalHandler;
 
 		ProcessState State;
 

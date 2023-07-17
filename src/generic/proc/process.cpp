@@ -13,7 +13,7 @@ static inline uint64_t RequestPID() {
 	return ++CurrentPID;
 }
 
-Process::Process(ProcessType type, VMM::VirtualSpace *vms) {
+void Process::Init(ProcessType type, VMM::VirtualSpace *vms, void* messageHandler, void *signalHandler) {
 	PID = RequestPID();
 	State = P_WAITING;
 	Type = type;
@@ -26,7 +26,23 @@ Process::Process(ProcessType type, VMM::VirtualSpace *vms) {
 	MainThread = NULL;
 	Threads.Init();
 
+	if (messageHandler != NULL) {
+		CreateThread(64 * 1024, messageHandler);
+	}
+
+	if (signalHandler != NULL) {
+		CreateThread(64 * 1024, messageHandler);
+	}
 }
+
+Process::Process(ProcessType type, VMM::VirtualSpace *vms) {
+	Init(type, vms, NULL, NULL);
+}
+		
+Process::Process(ProcessType type, VMM::VirtualSpace *vms, void* messageHandler, void *signalHandler) {
+	Init(type, vms, messageHandler, signalHandler);
+}
+		
 
 Process::~Process() {
 	if (State != P_DONE) {
