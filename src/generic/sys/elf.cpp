@@ -158,7 +158,7 @@ size_t LoadProcess(Elf64_Ehdr *elfHeader, VMM::VirtualSpace *space, void *messag
 	PROC::Process *proc = new PROC::Process(PROC::PT_USER, space, messageHandler, signalHandler);
 
 	size_t pid = proc->GetPID();
-	size_t tid = proc->CreateThread(0, elfHeader->e_entry);
+	size_t tid = proc->CreateThread(64 * 1024, elfHeader->e_entry);
 
 	proc->SetMainThread(tid);
 	PROC::Thread *mainThread = proc->GetThread(tid);
