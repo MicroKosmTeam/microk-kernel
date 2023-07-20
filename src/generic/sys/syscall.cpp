@@ -40,13 +40,13 @@ size_t HandleSyscallProcKill(size_t TODO);
 
 size_t HandleSyscallModuleRegister(size_t vendorID, size_t productID);
 size_t HandleSyscallModuleUnregister();
-size_t HandleSyscallModuleBufferRegister(uintptr_t virtualBase, size_t size, size_t type);
-size_t HandleSyscallModuleBufferUnregister(uint32_t id);
-size_t HandleSyscallModuleMessageSend(uint32_t vendorID, uint32_t productID, uint32_t senderBufferID, size_t method, uint32_t receiverBufferID, size_t size);
-size_t HandleSyscallModuleMessageReceive(uint32_t bufferID);
-size_t HandleSyscallModuleBusRegister(const char *busName);
-size_t HandleSyscallModuleBusGet(const char *busName, uint32_t *vendorID, uint32_t *productID);
-size_t HandleSyscallModuleBusUnregister(const char *busName);
+size_t HandleSyscallModuleBufferCreate(size_t size, size_t type, uint32_t *id);
+size_t HandleSyscallModuleBufferMap(uintptr_t address, uint32_t id);
+size_t HandleSyscallModuleBufferUnmap(uintptr_t address, uint32_t id);
+size_t HandleSyscallModuleBufferDelete(uint32_t id);
+size_t HandleSyscallModuleSectionRegister(const char *sectionName);
+size_t HandleSyscallModuleSectionGet(const char *sectionName, uint32_t *vendorID, uint32_t *productID);
+size_t HandleSyscallModuleSectionUnregister(const char *sectionName);
 
 size_t HandleSyscallFileOpen(char *filename, uintptr_t *address, size_t *length);
 size_t HandleSyscallFileRead(size_t TODO);
@@ -90,13 +90,12 @@ extern "C" size_t HandleSyscall(size_t syscallNumber, size_t arg1, size_t arg2, 
 
 		case SYSCALL_MODULE_REGISTER: return HandleSyscallModuleRegister(arg1, arg2);
 		case SYSCALL_MODULE_UNREGISTER: return HandleSyscallModuleUnregister();
-		case SYSCALL_MODULE_BUFFER_REGISTER: return HandleSyscallModuleBufferRegister(arg1, arg2, arg3);
-		case SYSCALL_MODULE_BUFFER_UNREGISTER: return HandleSyscallModuleBufferUnregister(arg1);
-		case SYSCALL_MODULE_MESSAGE_SEND: return HandleSyscallModuleMessageSend(arg1, arg2, arg3, arg4, arg5, arg6);
-		case SYSCALL_MODULE_MESSAGE_RECEIVE: return HandleSyscallModuleMessageReceive(arg1);
-		case SYSCALL_MODULE_BUS_REGISTER: return HandleSyscallModuleBusRegister(arg1);
-		case SYSCALL_MODULE_BUS_GET: return HandleSyscallModuleBusGet(arg1, arg2, arg3);
-		case SYSCALL_MODULE_BUS_UNREGISTER: return HandleSyscallModuleBusUnregister(arg1);
+		case SYSCALL_MODULE_BUFFER_CREATE: return HandleSyscallModuleBufferCreate(arg1, arg2, arg3);
+		case SYSCALL_MODULE_BUFFER_MAP: return HandleSyscallModuleBufferMap(arg1, arg2);
+		case SYSCALL_MODULE_BUFFER_UNMAP: return HandleSyscallModuleBufferUnmap(arg1, arg2);
+		case SYSCALL_MODULE_SECTION_REGISTER: return HandleSyscallModuleSectionRegister(arg1);
+		case SYSCALL_MODULE_SECTION_GET: return HandleSyscallModuleSectionGet(arg1, arg2, arg3);
+		case SYSCALL_MODULE_SECTION_UNREGISTER: return HandleSyscallModuleSectionUnregister(arg1);
 
 		case SYSCALL_FILE_OPEN: return HandleSyscallFileOpen(arg1, arg2, arg3);
 		case SYSCALL_FILE_READ: return HandleSyscallFileRead(0);
@@ -331,9 +330,8 @@ size_t HandleSyscallModuleUnregister() {
 	return 0;
 }
 
-size_t HandleSyscallModuleBufferRegister(uintptr_t virtualBase, size_t size, size_t type) {
+size_t HandleSyscallModuleBufferCreate(size_t size, size_t type, uint32_t *id) {
 	KInfo *info = GetInfo();
-	uint32_t tmpID = 0;
 
 	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
 
@@ -344,17 +342,20 @@ size_t HandleSyscallModuleBufferRegister(uintptr_t virtualBase, size_t size, siz
 	if (mod == NULL) {
 		VMM::LoadVirtualSpace(procSpace);
 
-		return tmpID;
+		return 0;
 	}
 
-	mod->RegisterBuffer(virtualBase, type, size, &tmpID);
+	MODULE::Buffer *buf = info->KernelBufferManager->CreateBuffer(mod->GetVendor(), mod->GetProduct(), type, size);
+	uint32_t tmpID = buf->ID;
 
 	VMM::LoadVirtualSpace(procSpace);
 
-	return tmpID;
+	*id = tmpID;
+
+	return 0;
 }
 
-size_t HandleSyscallModuleBufferUnregister(uint32_t id) {
+size_t HandleSyscallModuleBufferMap(uintptr_t address, uint32_t id) {
 	KInfo *info = GetInfo();
 
 	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
@@ -363,68 +364,35 @@ size_t HandleSyscallModuleBufferUnregister(uint32_t id) {
 	VMM::VirtualSpace *procSpace = proc->GetVirtualMemorySpace();
 
 	MODULE::Module *mod = info->KernelModuleManager->GetModule(proc->GetPID());
-	if (mod == NULL) return -1;
+	if (mod == NULL) {
+		VMM::LoadVirtualSpace(procSpace);
 
-	mod->UnregisterBuffer(id);
-	
+		return 0;
+	}
+
+	int result = info->KernelBufferManager->MapBuffer(mod->GetVendor(), mod->GetProduct(), id, procSpace, address);
+
 	VMM::LoadVirtualSpace(procSpace);
 
+	return result;
+}
+
+size_t HandleSyscallModuleBufferUnmap(uintptr_t address, uint32_t id) {
 	return 0;
 }
 
-size_t HandleSyscallModuleMessageSend(uint32_t vendorID, uint32_t productID, uint32_t senderBufferID, size_t method, uint32_t receiverBufferID, size_t size) {
-	KInfo *info = GetInfo();
-
-	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
-
-	PROC::Process *proc = info->kernelScheduler->GetRunningProcess();
-	VMM::VirtualSpace *procSpace = proc->GetVirtualMemorySpace();
-	
-	MODULE::Module *mod = info->KernelModuleManager->GetModule(proc->GetPID());
-	if (mod == NULL) return -1;
-
-	MODULE::Buffer *buf = mod->GetBuffer(senderBufferID);
-	if (buf == 0) return -1;
-
-	if(MODULE::LockBuffer(buf) != 0) return -1;
-
-	MODULE::Message *msg = buf->Address;
-	MODULE::ComposeMessage(msg, mod->GetVendor(), mod->GetProduct(), size);
-	MODULE::SendMailboxMessage(vendorID, productID, receiverBufferID, msg);
-
-	if(MODULE::UnlockBuffer(buf) != 0) return -1;
-	
-	VMM::LoadVirtualSpace(procSpace);
-
+size_t HandleSyscallModuleBufferDelete(uint32_t id) {
 	return 0;
 }
 
-size_t HandleSyscallModuleMessageReceive(uint32_t bufferID) {
+size_t HandleSyscallModuleSectionRegister(const char *sectionName) {
 	KInfo *info = GetInfo();
 
-	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
+	size_t sectionLength = strlen(sectionName);
+	sectionLength = sectionLength > 256 ? 256 : sectionLength;
 
-	PROC::Process *proc = info->kernelScheduler->GetRunningProcess();
-	VMM::VirtualSpace *procSpace = proc->GetVirtualMemorySpace();
-
-	MODULE::Module *mod = info->KernelModuleManager->GetModule(proc->GetPID());
-	if (mod == NULL) return -1;
-
-
-	
-	VMM::LoadVirtualSpace(procSpace);
-
-	return 0;
-}
-
-size_t HandleSyscallModuleBusRegister(const char *busName) {
-	KInfo *info = GetInfo();
-
-	size_t busLength = strlen(busName);
-	busLength = busLength > 256 ? 256 : busLength;
-
-	char newBusName[256] = { 0 };
-	memcpy(newBusName, busName, busLength);
+	char newSectionName[256] = { 0 };
+	memcpy(newSectionName, sectionName, sectionLength);
 
 	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
 	
@@ -434,28 +402,25 @@ size_t HandleSyscallModuleBusRegister(const char *busName) {
 	MODULE::Module *mod = info->KernelModuleManager->GetModule(proc->GetPID());
 	if (mod == NULL) return;
 
-	info->KernelBusManager->RegisterBusDriver(newBusName, mod->GetVendor(), mod->GetProduct());
+	info->KernelSectionManager->RegisterSectionDriver(newSectionName, mod->GetVendor(), mod->GetProduct());
 	
 	VMM::LoadVirtualSpace(procSpace);
 
 	return 0;
 }
 
-size_t HandleSyscallModuleBusGet(const char *busName, uint32_t *vendorID, uint32_t *productID) {
+size_t HandleSyscallModuleSectionGet(const char *sectionName, uint32_t *vendorID, uint32_t *productID) {
 	KInfo *info = GetInfo();
 
-	size_t busLength = strlen(busName);
-	busLength = busLength > 256 ? 256 : busLength;
-
-	char newBusName[256];
-	memcpy(newBusName, busName, busLength);
+	char newSectionName[256];
+	strcpy(newSectionName, sectionName);
 	uint32_t newVendor, newProduct;
 
 	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
 	
 	VMM::VirtualSpace *procSpace = info->kernelScheduler->GetRunningProcess()->GetVirtualMemorySpace();
 
-	info->KernelBusManager->GetBusDriver(newBusName, &newVendor, &newProduct);
+	info->KernelSectionManager->GetSectionDriver(newSectionName, &newVendor, &newProduct);
 	
 	VMM::LoadVirtualSpace(procSpace);
 
@@ -465,14 +430,14 @@ size_t HandleSyscallModuleBusGet(const char *busName, uint32_t *vendorID, uint32
 	return 0;
 }
 
-size_t HandleSyscallModuleBusUnregister(const char *busName) {
+size_t HandleSyscallModuleSectionUnregister(const char *sectionName) {
 	KInfo *info = GetInfo();
 
-	size_t busLength = strlen(busName);
-	busLength = busLength > 256 ? 256 : busLength;
+	size_t sectionLength = strlen(sectionName);
+	sectionLength = sectionLength > 256 ? 256 : sectionLength;
 
-	char newBusName[256];
-	memcpy(newBusName, busName, busLength);
+	char newSectionName[256];
+	memcpy(newSectionName, sectionName, sectionLength);
 
 	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
 	
@@ -482,7 +447,7 @@ size_t HandleSyscallModuleBusUnregister(const char *busName) {
 	MODULE::Module *mod = info->KernelModuleManager->GetModule(proc->GetPID());
 	if (mod == NULL) return;
 
-	info->KernelBusManager->UnregisterBusDriver(newBusName, mod->GetVendor(), mod->GetProduct());
+	info->KernelSectionManager->UnregisterSectionDriver(newSectionName, mod->GetVendor(), mod->GetProduct());
 	
 	VMM::LoadVirtualSpace(procSpace);
 

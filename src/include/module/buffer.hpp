@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include <stddef.h>
+#include <mm/vmm.hpp>
 
 namespace MODULE {
 	enum BufferType {
@@ -33,8 +34,33 @@ namespace MODULE {
 		bool Pending;
 	};
 
-	Buffer *CreateBuffer(uint32_t vendorID, uint32_t productID, uint32_t ID, BufferType type, size_t size);
-	int LockBuffer(Buffer *buf);
-	int UnlockBuffer(Buffer *buf);
-	int DeleteBuffer(Buffer *buf);
+	struct BufferNode {
+		Buffer *BufferData;
+
+		BufferNode *Next;
+	};
+
+	class BufferManager {
+	public:
+		BufferManager();
+
+		Buffer *CreateBuffer(uint32_t vendorID, uint32_t productID, BufferType type, size_t size);
+		Buffer *GetBuffer(uint32_t id);
+		int MapBuffer(uint32_t vendorID, uint32_t productID, uint32_t id, VMM::VirtualSpace *vms, uintptr_t address);
+		int DeleteBuffer(Buffer *buf);
+
+		int LockBuffer(Buffer *buf);
+		int UnlockBuffer(Buffer *buf);
+
+	private:
+		BufferNode *BaseNode;
+
+		BufferNode *AddNode(Buffer *buf);
+		void RemoveNode(uint32_t id);
+		BufferNode *FindNode(uint32_t id, BufferNode **previous, bool *found);
+
+		uint32_t MaxID;
+		uint32_t GetBufferID() { return ++MaxID; }
+	};
+
 }

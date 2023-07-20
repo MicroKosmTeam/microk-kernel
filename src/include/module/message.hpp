@@ -8,9 +8,11 @@ namespace MODULE {
 		uint32_t SenderVendorID : 32;
 		uint32_t SenderProductID : 32;
 
+		uint32_t ReceiverVendorID : 32;
+		uint32_t ReceiverProductID : 32;
+
 		size_t MessageSize : 64;
 	}__attribute__((packed));
 
 	void ComposeMessage(Message *msg, uint32_t senderVendorID, uint32_t senderProductID, size_t dataSize);
-	int SendMailboxMessage(uint32_t vendorID, uint32_t productID, uint32_t bufferID, Message *message);
 };

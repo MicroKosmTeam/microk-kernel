@@ -12,7 +12,8 @@
 #include <proc/process.hpp>
 #include <proc/scheduler.hpp>
 #include <module/modulemanager.hpp>
-#include <dev/bus.hpp>
+#include <module/buffer.hpp>
+#include <module/section.hpp>
 #include <dev/uart/uart.hpp>
 
 struct Framebuffer {
@@ -51,8 +52,8 @@ struct KInfo {
 	uint64_t fileCount; /* Number of modules provided */
 
 	MODULE::Manager *KernelModuleManager;
-
-	DEV::BusManager *KernelBusManager;
+	MODULE::BufferManager *KernelBufferManager;
+	MODULE::SectionManager *KernelSectionManager;
 #endif
 
 #ifdef CONFIG_HW_UART

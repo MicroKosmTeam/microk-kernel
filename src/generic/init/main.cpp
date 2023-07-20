@@ -39,7 +39,8 @@
 #include <dev/acpi/acpi.hpp>
 #include <proc/scheduler.hpp>
 #include <module/modulemanager.hpp>
-#include <dev/bus.hpp>
+#include <module/buffer.hpp>
+#include <module/section.hpp>
 
 #if defined(ARCH_x64)
 #include <arch/x64/main.hpp>
@@ -133,7 +134,8 @@ __attribute__((noreturn)) void KernelStart() {
 #ifdef CONFIG_KERNEL_MODULES
 	/* Initialize the kernel's module manager */
 	info->KernelModuleManager = new MODULE::Manager();
-	info->KernelBusManager = new DEV::BusManager();
+	info->KernelBufferManager = new MODULE::BufferManager();
+	info->KernelSectionManager = new MODULE::SectionManager();
 
 	PRINTK::PrintK("Module managment initialized.\r\n");
 	

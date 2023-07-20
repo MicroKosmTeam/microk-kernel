@@ -158,7 +158,7 @@ void PageTableManager::MapMemory(void *physicalMemory, void *virtualMemory, uint
 
 	PT->entries[indexer.P_i] = PDE;
 
-	asm ("invlpg (%0)" ::"r" (virtualMemory) : "memory");
+	asm ("invlpg (%0)" ::"r" ((uintptr_t)physicalMemory >> 12) : "memory");
 }
 	
 void PageTableManager::UnmapMemory(void *virtualMemory) {
