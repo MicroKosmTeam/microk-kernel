@@ -8,9 +8,6 @@ namespace MODULE {
 		uint32_t SenderVendorID : 32;
 		uint32_t SenderProductID : 32;
 
-		uint32_t ReceiverVendorID : 32;
-		uint32_t ReceiverProductID : 32;
-
 		size_t MessageSize : 64;
 	}__attribute__((packed));
 

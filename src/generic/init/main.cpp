@@ -130,7 +130,7 @@ __attribute__((noreturn)) void KernelStart() {
 
 	/* Printing banner to show off */
 	PrintBanner();
-	
+
 #ifdef CONFIG_KERNEL_MODULES
 	/* Initialize the kernel's module manager */
 	info->KernelModuleManager = new MODULE::Manager();
@@ -161,7 +161,11 @@ __attribute__((noreturn)) void KernelStart() {
 }
 
 __attribute__((noreturn)) void RestInit() {
-//	PRINTK::PrintK("Kernel is now resting...\r\n");
-	
-	while (true) CPUPause();
+	KInfo *info = GetInfo();
+
+	PRINTK::PrintK("Working...\r\n");
+
+	info->kernelScheduler->RecalculateScheduler();
+
+	while(true);
 }

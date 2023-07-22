@@ -2,8 +2,6 @@
 
 global SwitchStack 
 SwitchStack:
-;	cli
-
 	push rbp
 	mov rbp, rsp
 
@@ -49,7 +47,5 @@ SwitchStack:
 	pop rsi
 
 	o64 leave
-;	sti
-
 	ret
 

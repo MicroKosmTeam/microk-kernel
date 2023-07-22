@@ -44,6 +44,8 @@ size_t HandleSyscallModuleBufferCreate(size_t size, size_t type, uint32_t *id);
 size_t HandleSyscallModuleBufferMap(uintptr_t address, uint32_t id);
 size_t HandleSyscallModuleBufferUnmap(uintptr_t address, uint32_t id);
 size_t HandleSyscallModuleBufferDelete(uint32_t id);
+size_t HandleSyscallModuleMessageHandler(uintptr_t entry);
+size_t HandleSyscallModuleMessageSend(uint32_t vendorID, uint32_t productID, void *data, size_t size);
 size_t HandleSyscallModuleSectionRegister(const char *sectionName);
 size_t HandleSyscallModuleSectionGet(const char *sectionName, uint32_t *vendorID, uint32_t *productID);
 size_t HandleSyscallModuleSectionUnregister(const char *sectionName);
@@ -56,17 +58,6 @@ size_t HandleSyscallFileClose(size_t TODO);
 size_t HandleSyscallKernOverride(size_t TODO);
 
 extern "C" size_t HandleSyscall(size_t syscallNumber, size_t arg1, size_t arg2, size_t arg3, size_t arg4, size_t arg5, size_t arg6) {
-/*	if (syscallNumber != SYSCALL_DEBUG_PRINTK && syscallNumber != SYSCALL_MEMORY_MMAP)
-	PRINTK::PrintK("\r\n!!! SYSCALL !!!\r\n"
-			"RAX: 0x%x\r\n"
-			"RDI: 0x%x\r\n"
-			"RSI: 0x%x\r\n"
-			"RDX: 0x%x\r\n"
-			"RCX: 0x%x\r\n"
-			"R8:  0x%x\r\n"
-			"R9:  0x%x\r\n",
-			syscallNumber, arg1, arg2, arg3, arg4, arg5, arg6);*/
-
 	/* Check first if the syscall has been overridden. */
 	size_t override = CheckOverride(syscallNumber);
 	if(override != 0) return RunOverride(override);
@@ -93,6 +84,8 @@ extern "C" size_t HandleSyscall(size_t syscallNumber, size_t arg1, size_t arg2, 
 		case SYSCALL_MODULE_BUFFER_CREATE: return HandleSyscallModuleBufferCreate(arg1, arg2, arg3);
 		case SYSCALL_MODULE_BUFFER_MAP: return HandleSyscallModuleBufferMap(arg1, arg2);
 		case SYSCALL_MODULE_BUFFER_UNMAP: return HandleSyscallModuleBufferUnmap(arg1, arg2);
+		case SYSCALL_MODULE_MESSAGE_HANDLER: return HandleSyscallModuleMessageHandler(arg1);
+		case SYSCALL_MODULE_MESSAGE_SEND: return HandleSyscallModuleMessageSend(arg1, arg2, arg3, arg4);
 		case SYSCALL_MODULE_SECTION_REGISTER: return HandleSyscallModuleSectionRegister(arg1);
 		case SYSCALL_MODULE_SECTION_GET: return HandleSyscallModuleSectionGet(arg1, arg2, arg3);
 		case SYSCALL_MODULE_SECTION_UNREGISTER: return HandleSyscallModuleSectionUnregister(arg1);
@@ -146,7 +139,7 @@ size_t HandleSyscallMemoryVmalloc(uintptr_t base, size_t length, size_t flags) {
 	if (length % PAGE_SIZE) length += PAGE_SIZE - length % PAGE_SIZE;
 
 	for (uintptr_t vaddr = base; vaddr < base + length; vaddr += PAGE_SIZE) {
-		size_t *paddr = PMM::RequestPage();
+		size_t paddr = PMM::RequestPage();
 		if (paddr == NULL) PANIC("Out of memory");
 
 		if (flags == 0) VMM::MapMemory(procSpace, paddr, vaddr);
@@ -172,7 +165,7 @@ size_t HandleSyscallMemoryVmfree(uintptr_t base, size_t length) {
 	if (length % PAGE_SIZE) length += PAGE_SIZE - length % PAGE_SIZE;
 
 	for (uintptr_t vaddr = base; vaddr < base + length; vaddr += PAGE_SIZE) {
-		size_t *paddr = procSpace->GetPhysicalAddress(vaddr);
+		size_t paddr = procSpace->GetPhysicalAddress(vaddr);
 		procSpace->UnmapMemory(vaddr);
 		if (paddr == NULL) return;
 
@@ -382,6 +375,77 @@ size_t HandleSyscallModuleBufferUnmap(uintptr_t address, uint32_t id) {
 }
 
 size_t HandleSyscallModuleBufferDelete(uint32_t id) {
+	return 0;
+}
+
+size_t HandleSyscallModuleMessageHandler(uintptr_t entry) {
+	KInfo *info = GetInfo();
+
+	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
+
+	PROC::Process *proc = info->kernelScheduler->GetRunningProcess();
+	VMM::VirtualSpace *procSpace = proc->GetVirtualMemorySpace();
+
+	proc->SetMessageThread(entry);
+
+	VMM::LoadVirtualSpace(procSpace);
+
+	return 0;
+}
+
+size_t HandleSyscallModuleMessageSend(uint32_t vendorID, uint32_t productID, void *data, size_t size) {
+	if(size == 0) return -1;
+	
+	KInfo *info = GetInfo();
+	const size_t bufferSize = 4096;
+	char buffer[bufferSize];
+
+	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
+	
+	PROC::Process *proc = info->kernelScheduler->GetRunningProcess();
+	VMM::VirtualSpace *procSpace = proc->GetVirtualMemorySpace();
+
+	MODULE::Module *sendMod = info->KernelModuleManager->GetModule(proc->GetPID());
+	MODULE::Module *receiverMod = info->KernelModuleManager->GetModule(vendorID, productID);
+	if (sendMod == NULL || receiverMod == NULL) {
+		VMM::LoadVirtualSpace(procSpace);
+		return -1;
+	}
+
+	PROC::Process *receiverProc = receiverMod->GetProcess();
+	VMM::VirtualSpace *receiverProcSpace = receiverProc->GetVirtualMemorySpace();
+
+	size_t remaining;
+	void *baseAddr = 0x700000000000;
+	
+	for (size_t i = 0; i < size; i += bufferSize) {
+		remaining = size - i;
+
+		VMM::LoadVirtualSpace(info->kernelVirtualSpace);
+		size_t *paddr = PMM::RequestPage();
+		if (paddr == NULL) PANIC("Out of memory");
+
+		VMM::MapMemory(receiverProcSpace, paddr, baseAddr + i);
+
+		VMM::LoadVirtualSpace(procSpace);
+		memcpy(buffer, data + i, remaining > bufferSize ? bufferSize : remaining);
+
+		VMM::LoadVirtualSpace(info->kernelVirtualSpace);
+		VMM::LoadVirtualSpace(receiverProcSpace);
+
+		memcpy(baseAddr + i, buffer, remaining > bufferSize ? bufferSize : remaining);
+	}
+	
+	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
+
+	size_t paddr = receiverProcSpace->GetPhysicalAddress(baseAddr);
+
+	MODULE::ComposeMessage(paddr, sendMod->GetVendor(), sendMod->GetProduct(), size);
+
+	info->kernelScheduler->SetProcessState(receiverProc->GetPID(), PROC::P_MESSAGE);
+
+	VMM::LoadVirtualSpace(procSpace);
+
 	return 0;
 }
 

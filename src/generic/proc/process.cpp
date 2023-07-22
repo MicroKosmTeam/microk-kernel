@@ -13,36 +13,21 @@ static inline uint64_t RequestPID() {
 	return ++CurrentPID;
 }
 
-void Process::Init(ProcessType type, VMM::VirtualSpace *vms, void* messageHandler, void *signalHandler) {
+Process::Process(ProcessType type, VMM::VirtualSpace *vms) {
 	PID = RequestPID();
 	State = P_WAITING;
 	Type = type;
 	VirtualMemorySpace = vms;
 
-	HighestFree = 0x0000800000000000;
+	HighestFree = 0x800000000000;
 
 	LastTID = 0;
 	ThreadNumber = 0;
 	MainThread = NULL;
 	Threads.Init();
 
-	if (messageHandler != NULL) {
-		MessageThread = GetThread(CreateThread(64 * 1024, messageHandler));
-	} else MessageThread = NULL;
-
-	if (signalHandler != NULL) {
-		SignalThread = GetThread(CreateThread(64 * 1024, signalHandler));
-	} else SignalThread = NULL;
+	MessageThread = GetThread(CreateThread(64 * 1024, NULL));
 }
-
-Process::Process(ProcessType type, VMM::VirtualSpace *vms) {
-	Init(type, vms, NULL, NULL);
-}
-		
-Process::Process(ProcessType type, VMM::VirtualSpace *vms, void* messageHandler, void *signalHandler) {
-	Init(type, vms, messageHandler, signalHandler);
-}
-		
 
 Process::~Process() {
 	if (State != P_DONE) {
@@ -113,12 +98,12 @@ Thread *Process::GetMainThread() {
 	return MainThread;
 }
 
-Thread *Process::GetMessageThread() {
-	return MessageThread;
+void Process::SetMessageThread(void *entry) {
+	MessageThread->SetInstruction(entry);
 }
 
-Thread *Process::GetSignalThread() {
-	return SignalThread;
+Thread *Process::GetMessageThread() {
+	return MessageThread;
 }
 
 void Process::SetPriority(uint8_t priority) {
@@ -182,24 +167,29 @@ Thread::Thread(Process *process, size_t stackSize, uintptr_t entrypoint, size_t 
 				VMM::MapMemory(space, (void*)PMM::RequestPage(), (void*)i);
 			}
 
-			StackBase = Stack = highestFree;
+			Context = StackBase = Stack = highestFree - sizeof(SaveContext);
 
 			process->SetHighestFree((highestFree - stackSize) - (highestFree - stackSize) % 16);
 
-			Context = StackBase - sizeof(SaveContext);
-			Stack -= sizeof(SaveContext);
-			void *addr = Context;
+			volatile void *addr = Context;
 
-/*			VMM::LoadVirtualSpace(space);
+			VMM::LoadVirtualSpace(space);
 
 			memset(addr, 0, sizeof(SaveContext));
 			
-			InitializeStack(addr);
+			InitializeStack(addr, entrypoint);
 
-			VMM::LoadVirtualSpace(info->kernelVirtualSpace);*/
+			VMM::LoadVirtualSpace(info->kernelVirtualSpace);
 			}
 			break;
 		case PT_KERNEL: {
+			uintptr_t base = Malloc(stackSize) + stackSize - 1;
+			base -= base % 16;
+			base -= sizeof(SaveContext);
+			Context = StackBase = Stack = base;
+
+			memset(base, 0, sizeof(SaveContext));
+			InitializeStack(base, entrypoint);
 			}
 			break;
 	}

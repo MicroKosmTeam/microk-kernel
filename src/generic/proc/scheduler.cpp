@@ -96,20 +96,12 @@ Scheduler::Scheduler() {
 	BlockedQueueBaseNode->Proc = NULL;
 	BlockedQueueBaseNode->Next = NULL;
 
-	info->kernelProcess = NULL;
-
-	/*
 	info->kernelProcess = new Process(PT_KERNEL, info->kernelVirtualSpace);
 	size_t mainTID = info->kernelProcess->CreateThread(128 * 1024, RestInit);
 
 	info->kernelProcess->SetMainThread(mainTID);
-	info->kernelProcess->GetMainThread()->SetState(PROC::P_READY);
 
-	info->kernelProcess->SetProcessState(PROC::P_READY);
-
-	AddProcess(info->kernelProcess);*/
-
-	CurrentProcess = info->kernelProcess;
+	AddProcess(info->kernelProcess);
 }
 
 void Scheduler::AddProcess(Process *process) {
@@ -245,6 +237,10 @@ void Scheduler::SwitchToTask(Process *proc, size_t TID) {
 			EnterUserspace(entry, stack);
 			break;
 		case PT_KERNEL:
+			uint64_t old;
+			SaveContext *context = stack;
+			context->ret = entry;
+			SwitchStack(&old, &stack);
 			break;
 	}
 

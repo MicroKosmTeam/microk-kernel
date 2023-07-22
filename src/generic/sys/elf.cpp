@@ -18,8 +18,8 @@
 size_t LoadELFCoreModule(uint8_t *data, size_t size);
 
 void LoadProgramHeaders(uint8_t *data, size_t size, Elf64_Ehdr *elfHeader, VMM::VirtualSpace *space);
-void LinkSymbols(uint8_t *data, size_t size, Elf64_Ehdr *elfHeader, void **messageHandler, void **signalHandler);
-size_t LoadProcess(Elf64_Ehdr *elfHeader, VMM::VirtualSpace *space, void *messageHandler, void *signalHandler);
+void LinkSymbols(uint8_t *data, size_t size, Elf64_Ehdr *elfHeader);
+size_t LoadProcess(Elf64_Ehdr *elfHeader, VMM::VirtualSpace *space);
 
 uint64_t LoadELF(uint8_t *data, size_t size) {
 	KInfo *info = GetInfo();
@@ -30,11 +30,9 @@ uint64_t LoadELF(uint8_t *data, size_t size) {
 	
 	Elf64_Ehdr *elfHeader = (Elf64_Ehdr*)data;
 	
-	void *messageHandler = NULL, *signalHandler = NULL;
-
 	LoadProgramHeaders(data, size, elfHeader, space);
-	LinkSymbols(data, size, elfHeader, &messageHandler, &signalHandler);
-	return LoadProcess(elfHeader, space, messageHandler, signalHandler);
+	LinkSymbols(data, size, elfHeader);
+	return LoadProcess(elfHeader, space);
 }
 
 void LoadProgramHeaders(uint8_t *data, size_t size, Elf64_Ehdr *elfHeader, VMM::VirtualSpace *space) {
@@ -98,7 +96,7 @@ void LoadProgramHeaders(uint8_t *data, size_t size, Elf64_Ehdr *elfHeader, VMM::
 	PRINTK::PrintK("Loading Complete. Program is %d bytes.\r\n", progSize);
 }
 
-void LinkSymbols(uint8_t *data, size_t size, Elf64_Ehdr *elfHeader, void **messageHandler, void **signalHandler) {
+void LinkSymbols(uint8_t *data, size_t size, Elf64_Ehdr *elfHeader) {
 	KInfo *info = GetInfo();
 				
 	uint64_t sectionHeaderSize = elfHeader->e_shentsize;
@@ -142,20 +140,13 @@ void LinkSymbols(uint8_t *data, size_t size, Elf64_Ehdr *elfHeader, void **messa
 	for (int i = 0; i < symbolNumber; i++) {
 		symbol = (Elf64_Sym*)(data + symtab->sh_offset + symtab->sh_entsize * i);
 		const char *name = &strtabData[symbol->st_name];
-
-		if (strcmp(name, "__message_handler") == 0) {
-			*messageHandler = symbol->st_value;
-		} else if (strcmp(name, "__signal_handler") == 0) {
-			*signalHandler = symbol->st_value;
-		}
 	}
 }
 
-size_t LoadProcess(Elf64_Ehdr *elfHeader, VMM::VirtualSpace *space, void *messageHandler, void *signalHandler) {
+size_t LoadProcess(Elf64_Ehdr *elfHeader, VMM::VirtualSpace *space) {
 	KInfo *info = GetInfo();
 
-
-	PROC::Process *proc = new PROC::Process(PROC::PT_USER, space, messageHandler, signalHandler);
+	PROC::Process *proc = new PROC::Process(PROC::PT_USER, space);
 
 	size_t pid = proc->GetPID();
 	size_t tid = proc->CreateThread(64 * 1024, elfHeader->e_entry);

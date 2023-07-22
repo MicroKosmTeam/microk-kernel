@@ -27,7 +27,6 @@ namespace PROC {
 	class Process {
 	public:
 		Process(ProcessType type, VMM::VirtualSpace *vms);
-		Process(ProcessType type, VMM::VirtualSpace *vms, void* messageHandler, void *signalHandler);
 		~Process();
 
 		size_t CreateThread(size_t stackSize, uintptr_t entrypoint);
@@ -40,8 +39,8 @@ namespace PROC {
 
 		void SetMainThread(size_t TID);
 		Thread *GetMainThread();
+		void SetMessageThread(void *entry);
 		Thread *GetMessageThread();
-		Thread *GetSignalThread();
 
 		void SetPriority(uint8_t priority);
 		
@@ -56,15 +55,12 @@ namespace PROC {
 
 		ProcessType GetType() { return Type; }
 	private:
-		void Init(ProcessType type, VMM::VirtualSpace *vms, void* messageHandler, void *signalHandler);
-
 		size_t PID;
 		ProcessState State;
 		ProcessType Type;
 		uint8_t Priority;
 
 		Thread *MessageThread;
-		Thread *SignalThread;
 		
 		VMM::VirtualSpace *VirtualMemorySpace;
 		uintptr_t HighestFree;
