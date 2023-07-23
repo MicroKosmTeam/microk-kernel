@@ -100,6 +100,8 @@ void PrintBanner() {
 
 __attribute__((noreturn)) void KernelStart() {
 	KInfo *info = GetInfo();
+	
+	PRINTK::PrintK("MicroKosm is booted. Cmdline: %s\r\n", info->KernelArgs);
 
 	MEM::DisplayRam();
 

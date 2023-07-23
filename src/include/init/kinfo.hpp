@@ -32,6 +32,9 @@ struct Framebuffer {
     Sould only be allocated once by the respective bootloader function.
 */
 struct KInfo {
+	/* Kernel args */
+	const char *KernelArgs;
+
 	/* Memory information */
 	MEM::MMapEntry *mMap; /* Pointer to the memory map */
 	uint64_t mMapEntryCount; /* Number of memory map regions */

@@ -7,6 +7,13 @@ section .syscall.entrypoint
 
 global SyscallEntry
 SyscallEntry:
+	; Save mandatory registers
+	push rbx
+	push r12
+	push r13
+	push r14
+	push r15
+
 	; Save for later sysret 
 	push rcx
 	push r11
@@ -45,5 +52,12 @@ SyscallEntry:
 	; Restore for sysret
 	pop r11
 	pop rcx
+
+	; Restore mandatory registers
+	pop r15
+	pop r14
+	pop r13
+	pop r12
+	pop rbx
 
 	o64 sysret

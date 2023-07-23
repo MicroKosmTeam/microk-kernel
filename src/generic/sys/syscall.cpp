@@ -51,7 +51,7 @@ size_t HandleSyscallModuleSectionGet(const char *sectionName, uint32_t *vendorID
 size_t HandleSyscallModuleSectionUnregister(const char *sectionName);
 
 size_t HandleSyscallFileOpen(char *filename, uintptr_t *address, size_t *length);
-size_t HandleSyscallFileRead(size_t TODO);
+size_t HandleSyscallFileRead(char *filename, uintptr_t address, size_t length);
 size_t HandleSyscallFileWrite(size_t TODO);
 size_t HandleSyscallFileClose(size_t TODO);
 
@@ -91,7 +91,7 @@ extern "C" size_t HandleSyscall(size_t syscallNumber, size_t arg1, size_t arg2, 
 		case SYSCALL_MODULE_SECTION_UNREGISTER: return HandleSyscallModuleSectionUnregister(arg1);
 
 		case SYSCALL_FILE_OPEN: return HandleSyscallFileOpen(arg1, arg2, arg3);
-		case SYSCALL_FILE_READ: return HandleSyscallFileRead(0);
+		case SYSCALL_FILE_READ: return HandleSyscallFileRead(arg1, arg2, arg3);
 		case SYSCALL_FILE_WRITE: return HandleSyscallFileWrite(0);
 		case SYSCALL_FILE_CLOSE: return HandleSyscallFileClose(0);
 
@@ -529,13 +529,13 @@ size_t HandleSyscallFileOpen(char *filename, uintptr_t *address, size_t *length)
 	size_t newLength;
 	size_t *newAddr;
 
-	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
+//	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
 	
-	VMM::VirtualSpace *procSpace = info->kernelScheduler->GetRunningProcess()->GetVirtualMemorySpace();
+//	VMM::VirtualSpace *procSpace = info->kernelScheduler->GetRunningProcess()->GetVirtualMemorySpace();
 
 	newAddr = FILE::Open(newFilename, &newLength);
 	
-	VMM::LoadVirtualSpace(procSpace);
+//	VMM::LoadVirtualSpace(procSpace);
 
 	*address = newAddr;
 	*length = newLength;
@@ -543,7 +543,21 @@ size_t HandleSyscallFileOpen(char *filename, uintptr_t *address, size_t *length)
 	return 0;
 }
 
-size_t HandleSyscallFileRead(size_t TODO) {
+size_t HandleSyscallFileRead(char *filename, uintptr_t address, size_t length) {
+	KInfo *info = GetInfo();
+
+	size_t filenameLength = strlen(filename);
+	filenameLength = filenameLength > 512 ? 512 : filenameLength;
+
+	char newFilename[512];
+	memcpy(newFilename, filename, filenameLength);
+
+	size_t newLength;
+	size_t *newAddr;
+	newAddr = FILE::Open(newFilename, &newLength);
+
+	memcpy(address, newAddr, length > newLength ? newLength : length);
+	
 	return 0;
 }
 

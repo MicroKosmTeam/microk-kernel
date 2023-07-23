@@ -11,34 +11,56 @@
 UARTDevice *kernelPort;
 #endif
 
-
 namespace PRINTK {
-void PutStr(char *str) {
+
+#define TERMINAL_SIZE 240
+
+static SpinLock PrintKSpinlock;
+static char TerminalColumn[TERMINAL_SIZE + 1];
+static size_t TerminalPosition;
+
+void FlushBuffer() {
 #ifdef CONFIG_HW_UART
-	kernelPort->PutStr(str);
+	kernelPort->PutStr("[KLOG] ");
+	kernelPort->PutStr(TerminalColumn);
 #endif
+	memset(TerminalColumn, 0, TERMINAL_SIZE + 1);
 }
 
 void PutChar(char ch) {
-#ifdef CONFIG_HW_UART
-	kernelPort->PutChar(ch);
-#endif
+
+	bool justNewline = false;
+
+	if (TerminalPosition + 1 > TERMINAL_SIZE) {
+		FlushBuffer();
+		TerminalPosition = 0;
+		justNewline = true;
+	}
+
+	TerminalColumn[TerminalPosition++] = ch;
+
+	if (ch == '\n' && !justNewline) {
+		FlushBuffer();
+		TerminalPosition = 0;
+		justNewline = true;
+	}
+	
 }
 
-static SpinLock PrintKSpinlock;
+void PutStr(char *str) {
+	while(*str) PutChar(*str++);
+}
 
 void PrintK(char *format, ...) {
-	//PrintKSpinlock.Lock();
-
         va_list ap;
         va_start(ap, format);
 
+	PrintKSpinlock.Lock();
 	VPrintK(format, ap);
+	PrintKSpinlock.Unlock();
 
         va_end(ap);
-	//PrintKSpinlock.Unlock();
 }
-
 
 void VPrintK(char *format, va_list ap) {
         char *ptr = format;
@@ -76,6 +98,8 @@ void VPrintK(char *format, va_list ap) {
 
 void EarlyInit() {
 	KInfo *info = GetInfo();
+
+	memset(TerminalColumn, 0, 81);
 
 #ifdef CONFIG_HW_UART
 	info->kernelPort = (UARTDevice*)BOOTMEM::Malloc(sizeof(UARTDevice) + 1);

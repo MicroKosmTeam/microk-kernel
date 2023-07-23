@@ -24,7 +24,9 @@ VirtualSpace *NewModuleVirtualSpace() {
 	for (int i = 0; i < info->mMapEntryCount; i++) {
 		MEM::MMapEntry entry = info->mMap[i];
 
-		if (entry.type != MEMMAP_KERNEL_AND_MODULES && entry.type != MEMMAP_BOOTLOADER_RECLAIMABLE) continue;
+		if (entry.type == MEMMAP_BAD_MEMORY ||
+		    entry.type == MEMMAP_RESERVED ||
+		    entry.type == MEMMAP_USABLE) continue;
 
 		/* We find the base and the top by rounding to the closest page boundary */
 		uint64_t base = entry.base - (entry.base % PAGE_SIZE);
@@ -36,6 +38,10 @@ VirtualSpace *NewModuleVirtualSpace() {
 			for (uint64_t t = base; t < top; t += PAGE_SIZE){
 				space->MapMemory(t, info->kernelVirtualBase + t - info->kernelPhysicalBase, VMM_PRESENT | VMM_READWRITE | VMM_GLOBAL);
 
+			}
+		} else if (entry.type == MEMMAP_ACPI_RECLAIMABLE || entry.type == MEMMAP_ACPI_NVS) {
+			for (uint64_t t = base; t < top; t += PAGE_SIZE) {
+				space->MapMemory(t, t + info->higherHalfMapping, VMM_PRESENT | VMM_USER);
 			}
 		} else {
 			for (uint64_t t = base; t < top; t += PAGE_SIZE) {

@@ -9,6 +9,8 @@
 #error Unsupported architecture
 #endif
 
+#define HIGHER_HALF 0xFFFF800000000000
+
 #define SYSCALL_DEBUG_PRINTK      0x0001
 
 #define SYSCALL_MEMORY_GETINFO    0x1000

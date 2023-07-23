@@ -5,6 +5,7 @@
 #include <boot/boot.hpp>
 #include <init/kinfo.hpp>
 #include <mm/bootmem.hpp>
+#include <mm/string.hpp>
 #include <sys/printk.hpp>
 
 /* Function called by Limine at bootup through the entry point */
@@ -15,18 +16,6 @@ static volatile limine_entry_point_request entryPointRequest {
 	.id = LIMINE_ENTRY_POINT_REQUEST,
 	.revision = 0,
 	.entry = &LimineEntry
-};
-
-/* System time request */
-static volatile limine_boot_time_request timeRequest {
-	.id = LIMINE_BOOT_TIME_REQUEST,
-	.revision = 0
-};
-
-/* Bootloader info request */
-static volatile limine_bootloader_info_request bootloaderRequest {
-	.id = LIMINE_BOOTLOADER_INFO_REQUEST,
-	.revision = 0
 };
 
 /* Stack request */
@@ -73,6 +62,11 @@ static volatile limine_framebuffer_request framebufferRequest {
 	.revision = 0
 };
 
+static volatile limine_kernel_file_request kernelFileRequest {
+	.id = LIMINE_KERNEL_FILE_REQUEST,
+	.revision = 0
+};
+
 /* SMP Request (temporarily disabled */
 /*
 #if defined(ARCH_x64) 
@@ -109,13 +103,12 @@ __attribute__((noreturn)) extern "C" void LimineEntry() {
 
 	/* Checking if vital requests have been answered by Limine
 	 * If not, give up and shut down */
-	if(timeRequest.response == NULL ||
-	   stackRequest.response == NULL ||
-	   bootloaderRequest.response == NULL ||
+	if(stackRequest.response == NULL ||
 	   moduleRequest.response == NULL ||
 	   mMapRequest.response == NULL ||
 	   hhdmRequest.response == NULL ||
-	   kaddrRequest.response == NULL
+	   kaddrRequest.response == NULL ||
+	   kernelFileRequest.response == NULL
 	   )
 		PANIC("Requests not answered by Limine");
 
@@ -136,6 +129,12 @@ __attribute__((noreturn)) extern "C" void LimineEntry() {
 	info->higherHalfMapping = hhdmRequest.response->offset;
 	info->kernelPhysicalBase = kaddrRequest.response->physical_base;
 	info->kernelVirtualBase = kaddrRequest.response->virtual_base;
+
+	const char *cmdline = kernelFileRequest.response->kernel_file->cmdline;
+	size_t len = strlen(cmdline);
+	info->KernelArgs = (const char*)BOOTMEM::Malloc(len + 1);
+	memcpy(info->KernelArgs, cmdline, len);
+	*(char*)&info->KernelArgs[len] = '\0';
 
 	/* Transporting files */
 	uint64_t moduleCount = moduleRequest.response->module_count;
@@ -182,11 +181,6 @@ __attribute__((noreturn)) extern "C" void LimineEntry() {
 		PRINTK::PrintK(PREFIX "Device Tree blob found at 0x%x\r\n", dtbRequest.response->dtb_ptr);
 	}
 #endif
-
-	PRINTK::PrintK("MicroKosm is booted by %s %s at %d\r\n",
-		       bootloaderRequest.response->name,
-		       bootloaderRequest.response->version,
-		       timeRequest.response->boot_time);
 
 	/* Launch the kernel proper */
 	KernelStart();
