@@ -30,6 +30,7 @@ size_t HandleSyscallMemoryVmalloc(uintptr_t base, size_t length, size_t flags);
 size_t HandleSyscallMemoryVmfree(uintptr_t base, size_t length);
 size_t HandleSyscallMemoryMmap(uintptr_t src, uintptr_t dest, size_t length, size_t flags);
 size_t HandleSyscallMemoryUnmap(uintptr_t base, size_t length);
+size_t HandleSyscallMemoryInOut(uintptr_t port, bool out, size_t outData, size_t *inData, uint8_t size);
 
 size_t HandleSyscallProcExec(uintptr_t executableBase, size_t executableSize);
 size_t HandleSyscallProcFork(size_t TODO);
@@ -71,6 +72,7 @@ extern "C" size_t HandleSyscall(size_t syscallNumber, size_t arg1, size_t arg2, 
 		case SYSCALL_MEMORY_VMFREE: return HandleSyscallMemoryVmfree(arg1, arg2);
 		case SYSCALL_MEMORY_MMAP: return HandleSyscallMemoryMmap(arg1, arg2, arg3, arg4);
 		case SYSCALL_MEMORY_UNMAP: return HandleSyscallMemoryUnmap(arg1, arg2);
+		case SYSCALL_MEMORY_INOUT: return HandleSyscallMemoryInOut(arg1, arg2, arg3, arg4, arg5);
 
 		case SYSCALL_PROC_EXEC: return HandleSyscallProcExec(arg1, arg2);
 		case SYSCALL_PROC_FORK: return HandleSyscallProcFork(0);
@@ -219,6 +221,38 @@ size_t HandleSyscallMemoryUnmap(uintptr_t base, size_t length) {
 	}
 
 	VMM::LoadVirtualSpace(procSpace);
+
+	return 0;
+}
+
+#include <arch/x64/io/io.hpp>
+size_t HandleSyscallMemoryInOut(uintptr_t port, bool out, size_t outData, size_t *inData, uint8_t size) {
+	using namespace x86_64;
+
+	size_t tmpInData;
+	
+	if(!out && inData == NULL) return -1;
+
+	KInfo *info = GetInfo();
+
+	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
+	
+	VMM::VirtualSpace *procSpace = info->kernelScheduler->GetRunningProcess()->GetVirtualMemorySpace();
+
+	switch(size) {
+		case 8:
+			if(out) OutB(port, outData);
+			else tmpInData = InB(port);
+			break;
+		case 16:
+			if(out) OutW(port, outData);
+			else tmpInData = InW(port);
+			break;
+	}
+	
+	VMM::LoadVirtualSpace(procSpace);
+
+	if(!out) *inData = tmpInData;
 
 	return 0;
 }
