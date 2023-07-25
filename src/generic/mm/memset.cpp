@@ -1,7 +1,7 @@
 #include <mm/memory.hpp>
 #include <arch/x64/cpu/cpu.hpp>
 
-void memset(void *start, uint8_t value, uint64_t num) {
+void *memset(void *start, uint8_t value, uint64_t num) {
 	if(false) {
 		int d0, d1;
 	        __asm__ __volatile__(
@@ -15,4 +15,6 @@ void memset(void *start, uint8_t value, uint64_t num) {
 		        *(uint8_t*)((uint64_t)start + i) = value;
 	        }
 	}
+
+	return start;
 }

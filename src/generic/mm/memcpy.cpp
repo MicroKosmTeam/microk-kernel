@@ -1,7 +1,7 @@
 #include <mm/memory.hpp>
 #include <arch/x64/cpu/cpu.hpp>
 
-void memcpy(void *dest, void *src, size_t n) {
+void *memcpy(void *dest, void *src, size_t n) {
 	if (false) {
 		int i;
 	        for(i=0; i<n/16; i++) {
@@ -38,4 +38,6 @@ void memcpy(void *dest, void *src, size_t n) {
 
 		for (int i=0; i<n; i++) cdest[i] = csrc[i];
 	}
+
+	return dest;
 }
