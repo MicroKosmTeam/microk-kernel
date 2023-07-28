@@ -54,6 +54,8 @@ struct KInfo {
 	FILE::BootFile *bootFiles; /* Pointer to the Limine modules */
 	uint64_t fileCount; /* Number of modules provided */
 
+	char UserModuleName[256];
+
 	MODULE::Manager *KernelModuleManager;
 	MODULE::BufferManager *KernelBufferManager;
 	MODULE::SectionManager *KernelSectionManager;

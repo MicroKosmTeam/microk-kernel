@@ -29,6 +29,7 @@
 #include <mm/pmm.hpp>
 #include <mm/heap.hpp>
 #include <init/main.hpp>
+#include <init/kargs.hpp>
 #include <sys/panic.hpp>
 #include <mm/memory.hpp>
 #include <mm/bootmem.hpp>
@@ -103,6 +104,8 @@ __attribute__((noreturn)) void KernelStart() {
 	
 	PRINTK::PrintK("MicroKosm is booted. Cmdline: %s\r\n", info->KernelArgs);
 
+	ParseArgs();
+
 	MEM::DisplayRam();
 
 	/* Enabling the page frame allocator */
@@ -146,7 +149,7 @@ __attribute__((noreturn)) void KernelStart() {
 	void *addr;
 
 	/* Ge the core module's file */
-	addr = FILE::Open("FILE:/user.elf", &moduleSize);
+	addr = FILE::Open(info->UserModuleName, &moduleSize);
 	
 	/* Launch the core user core module */
 	if (addr != 0) {
