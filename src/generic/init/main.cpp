@@ -37,7 +37,6 @@
 #include <sys/atomic.hpp>
 #include <sys/printk.hpp>
 #include <sys/loader.hpp>
-#include <dev/acpi/acpi.hpp>
 #include <proc/scheduler.hpp>
 #include <module/modulemanager.hpp>
 #include <module/buffer.hpp>
@@ -126,9 +125,6 @@ __attribute__((noreturn)) void KernelStart() {
 
 	/* With the heap initialized, disable new bootmem allocations */
 	BOOTMEM::DeactivateBootmem();
-
-	/* Initialize the ACPI subsystem */
-	ACPI::Init();
 
 	/* Initializing the scheduler framework */
 	info->kernelScheduler = new PROC::Scheduler();

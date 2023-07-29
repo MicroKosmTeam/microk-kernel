@@ -1,8 +1,19 @@
 #include <sys/file.hpp>
 #include <init/kinfo.hpp>
 #include <mm/string.hpp>
-#include <dev/acpi/acpi.hpp>
 #include <sys/printk.hpp>
+
+struct RSDP2 {
+	unsigned char Signature[8];
+	uint8_t Checksum;
+	uint8_t OEMID[6];
+	uint8_t Revision;
+	uint32_t RSDTAddress;
+	uint32_t Length;
+	uint64_t XSDTAddress;
+	uint8_t ExtendedChecksum;
+	uint8_t Reserved[3];
+}__attribute__((packed));
 
 namespace FILE {
 void *Open(char *path, size_t *size) {
@@ -24,8 +35,11 @@ void *Open(char *path, size_t *size) {
 		tableName[4] = '\0';
 
 		if (strcmp(tableName, "RSDP") == 0) {
-			*size = ((ACPI::RSDP2*)info->RSDP)->Length;
+			*size = ((RSDP2*)info->RSDP)->Length;
 			return info->RSDP;
+		} else {
+			*size = 0;
+			return NULL;
 		}
 	} else if (strcmp(id, "FB") == 0) {
 		size_t num = atoi(name);
