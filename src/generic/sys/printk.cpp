@@ -21,10 +21,10 @@ static size_t TerminalPosition;
 
 void FlushBuffer() {
 #ifdef CONFIG_HW_UART
-	kernelPort->PutStr("[KLOG] ");
 	kernelPort->PutStr(TerminalColumn);
 #endif
 	memset(TerminalColumn, 0, TERMINAL_SIZE + 1);
+	TerminalPosition = 0;
 }
 
 void PutChar(char ch) {
@@ -33,7 +33,6 @@ void PutChar(char ch) {
 
 	if (TerminalPosition + 1 > TERMINAL_SIZE) {
 		FlushBuffer();
-		TerminalPosition = 0;
 		justNewline = true;
 	}
 
@@ -41,7 +40,6 @@ void PutChar(char ch) {
 
 	if (ch == '\n' && !justNewline) {
 		FlushBuffer();
-		TerminalPosition = 0;
 		justNewline = true;
 	}
 	
@@ -99,7 +97,7 @@ void VPrintK(char *format, va_list ap) {
 void EarlyInit() {
 	KInfo *info = GetInfo();
 
-	memset(TerminalColumn, 0, 81);
+	memset(TerminalColumn, 0, TERMINAL_SIZE + 1);
 
 #ifdef CONFIG_HW_UART
 	info->kernelPort = (UARTDevice*)BOOTMEM::Malloc(sizeof(UARTDevice) + 1);
@@ -108,8 +106,9 @@ void EarlyInit() {
 #elif defined(ARCH_aarch64)
 	info->kernelPort->Init(0x09000000);
 #endif
-	info->kernelPort->PutStr("Serial PrintK started.\n");
 	kernelPort = info->kernelPort;
+
+	PrintK("Serial PrintK started.\n");
 #endif
 }
 }

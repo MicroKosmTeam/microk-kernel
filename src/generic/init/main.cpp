@@ -97,7 +97,6 @@ void PrintBanner() {
 /*
    Main kernel function.
 */
-
 __attribute__((noreturn)) void KernelStart() {
 	KInfo *info = GetInfo();
 	

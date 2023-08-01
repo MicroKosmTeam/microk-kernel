@@ -1,4 +1,4 @@
-#include <dev/uart/uart.hpp>
+#include <dev/uart.hpp>
 #ifdef CONFIG_HW_UART
 #include <stdarg.h>
 

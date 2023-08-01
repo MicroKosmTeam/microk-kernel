@@ -14,7 +14,7 @@
 #include <module/modulemanager.hpp>
 #include <module/buffer.hpp>
 #include <module/section.hpp>
-#include <dev/uart/uart.hpp>
+#include <dev/uart.hpp>
 
 struct Framebuffer {
 	void *Address;
