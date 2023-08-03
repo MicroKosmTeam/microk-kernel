@@ -21,8 +21,9 @@ enum SerialPorts {
 class UARTDevice : public Device {
 public:
 	UARTDevice() { active = false; }
+	~UARTDevice() { }
 
-	uint64_t Ioctl(uint64_t request, va_list ap);
+	uintmax_t Ioctl(uintmax_t request, ...);
 
 	#if defined(ARCH_x64)
 	uint64_t Init(SerialPorts serialPort);

@@ -12,7 +12,7 @@ void ParseArgs() {
 	const char *val = strtok(NULL, " ");
 	if (val == NULL) return ;
 
-	do {
+	while(true) {
 		if(strcmp(id, "user") == 0) {
 			strcpy(info->UserModuleName, "FILE:/");
 			strcpy(info->UserModuleName + 6, val);
@@ -24,6 +24,6 @@ void ParseArgs() {
 		if(id == NULL) break;
 		val = strtok(NULL, " ");
 		if (val == NULL) break;
-	} while(true);
+	}
 
 }

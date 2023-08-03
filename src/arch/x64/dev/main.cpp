@@ -2,6 +2,11 @@
 #include <init/kinfo.hpp>
 #include <sys/printk.hpp>
 
+#include <arch/x64/dev/apic.hpp>
+#include <arch/x64/dev/hpet.hpp>
+#include <arch/x64/dev/pit.hpp>
+#include <arch/x64/dev/ioapic.hpp>
+
 struct RSDP2 {
 	unsigned char Signature[8];
 	uint8_t Checksum;

@@ -116,6 +116,7 @@ __attribute__((noreturn)) void KernelStart() {
 	/* Starting AArch64 specific instructions */
 	AArch64::Init();
 #endif
+
 	/* Starting the memory subsystem */
 	MEM::Init();
 

@@ -28,8 +28,11 @@ inline uint8_t InB(uintptr_t port) {
 
 #endif
 
-uint64_t UARTDevice::Ioctl(uint64_t request, va_list ap){
-	uint64_t result;
+uintmax_t UARTDevice::Ioctl(uintmax_t request, ...) {
+	va_list ap;
+	va_start(ap, request);
+
+	uintmax_t result;
 
 	switch (request) {
 		case 0: // Init();
@@ -50,8 +53,11 @@ uint64_t UARTDevice::Ioctl(uint64_t request, va_list ap){
 			result = 0;
 	}
 
+	va_end(ap);
+
 	return result;
 }
+
 #if defined(ARCH_x64)
 uint64_t UARTDevice::Init(SerialPorts serialPort) {
 	port = (uintptr_t)serialPort;
