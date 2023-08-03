@@ -7,8 +7,6 @@
 size_t LoadExecutableFile(uint8_t *data, size_t size) {
 	/* Checking for the correct signature */
 	
-	PRINTK::PrintK("%s\r\n", data);
-
 	if (data[0] == ELFMAG0 && data[1] == ELFMAG1 && data[2] == ELFMAG2 && data[3] == ELFMAG3)
 		return LoadELF(data, size);
 	else if (data[0] == '#' && data[1] == '!')

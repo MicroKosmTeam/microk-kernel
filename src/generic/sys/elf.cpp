@@ -64,9 +64,6 @@ void LoadProgramHeaders(uint8_t *data, size_t size, Elf64_Ehdr *elfHeader, VMM::
 					VMM::MapMemory(space, PMM::RequestPage(), addr);
 				}
 
-				
-				PRINTK::PrintK("Create data...\r\n");
-
 				VMM::LoadVirtualSpace(space);
 				memset(virtualAddr, 0, memorySize);
 				
@@ -136,7 +133,6 @@ void LinkSymbols(uint8_t *data, size_t size, Elf64_Ehdr *elfHeader) {
 
 	Elf64_Sym *symbol;
 
-	PRINTK::PrintK("OK.\r\n");
 	for (int i = 0; i < symbolNumber; i++) {
 		symbol = (Elf64_Sym*)(data + symtab->sh_offset + symtab->sh_entsize * i);
 		const char *name = &strtabData[symbol->st_name];
