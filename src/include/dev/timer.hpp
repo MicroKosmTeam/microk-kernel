@@ -16,7 +16,7 @@ public:
 	}
 
 	void InitTimer() override {
-		CalibrateTSCWith(0, &TSCCyclesPerMicroseconds);
+		CalibrateTSCWithHPET(0, &TSCCyclesPerMicroseconds);
 	}
 
 	void Wait(uint64_t microseconds, uint16_t method) override {
