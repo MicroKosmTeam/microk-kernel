@@ -137,7 +137,6 @@ namespace x86_64 {
 int HandleMADT(MADTHeader *madt);
 int HandleSRAT(SDTHeader *srat);
 int HandleHPET(HPETHeader *hpet);
-
 int InitDevices() {
 	KInfo *info = GetInfo();
 
@@ -279,7 +278,11 @@ int HandleHPET(HPETHeader *hpet) {
 			" - Page Protection: %d\r\n",
 			hpet->HardwareRevisionID, hpet->ComparatorCount, hpet->CounterSize, hpet->LegacyReplacement,
 			hpet->PCIVendorID, hpet->Address.Address, hpet->HPETNumber, hpet->MinimumTick, hpet->PageProtection);
-	
+
+	uint64_t tscPerMicrosecond = 0;
+	CalibrateTSCWithHPET(hpet->Address.Address, &tscPerMicrosecond);
+	PRINTK::PrintK("CPU is running at %dHz\r\n", tscPerMicrosecond);
+
 	return 0;
 }
 }

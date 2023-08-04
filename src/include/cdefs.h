@@ -46,7 +46,6 @@
 
 #define SYSCALL_KERN_OVERRIDE     0x5000
 
-
 #define BUFFER_TYPE_COMMUNICATION_MODULE_KERNEL 0xA000
 #define BUFFER_TYPE_LOG_PRINTK                  0xA001
 #define BUFFER_TYPE_DATA_MODULE_GENERIC         0xA002
@@ -55,3 +54,14 @@
 #define BUFFER_OPERATION_READDATA_SYNC          0xB000
 #define BUFFER_OPERATION_WRITEDATA_SYNC         0xB001
 
+#define EAGAIN      1
+#define EBADREQUEST  2
+#define EBUSY       3
+#define EFAULT      4
+#define EINVALID    5
+#define ENOSECTION  6
+#define ENODRIVER   7
+#define ENODEVICE   8
+#define ENOMEMORY   9
+#define EPERMISSION 10
+#define ENOTPRESENT 11

@@ -105,27 +105,49 @@ static inline void PrintRegs(CPUStatus *context) {
 
 /* Stub exception handler */
 extern "C" CPUStatus *exceptionHandler(CPUStatus *context) {
-	PRINTK::PrintK("\r\n\r\n\r\n EXCEPTION!!\r\n");
+	PRINTK::PrintK("\r\n\r\n--[cut here]--\r\n"
+			"Exception in CPU.\r\n");
 
 	PrintRegs(context);
 
-	if (context->IretCS == GDT_OFFSET_KERNEL_CODE) PANIC("Exception");
-	else OOPS("User exception");
-
 	switch(context->VectorNumber) {
-		case 13:
-			PRINTK::PrintK("General protection fault\r\n");
+		case 0:
+			PRINTK::PrintK("Division by zero.\r\n");
 			break;
+		case 6:
+			PRINTK::PrintK("Invalid opcode.\r\n");
+			break;
+		case 8:
+			PANIC("Double fault");
+			break;
+		case 13: {
+			PRINTK::PrintK("General protection fault.\r\n");
+			break;
+			}
 		case 14: {
 			uintptr_t page;
+			bool protectionViolation = context->ErrorCode & 0b1;
+			bool writeAccess = (context->ErrorCode & 0b10) >> 1;
+			bool byUser = (context->ErrorCode & 0b100) >> 2;
+			bool wasInstructionFetch = (context->ErrorCode & 0b1000) >> 4;
 			asm("mov %%cr2,%0" : "=r"(page));
-			PRINTK::PrintK("Page fault in page 0x%x\r\n", page);
+			PRINTK::PrintK("Page fault in page 0x%x because of a %s.\r\nIt was caused by a %s from %s.\r\nIt %s because of an instruction fetch.\r\n",
+					page,
+					protectionViolation ? "page protection violation" : "non-present page",
+					writeAccess ? "write" : "read",
+					byUser ? "userspace" : "kernelspace",
+					wasInstructionFetch ? "was" : "wasn't"
+					);
+
 			}
 			break;
 		default:
-			PRINTK::PrintK("Unhandled exception\r\n");
+			PRINTK::PrintK("Unhandled exception: %d\r\n", context->VectorNumber);
 			break;
 	}
+
+	if(context->IretCS == GDT_OFFSET_KERNEL_CODE)
+		PANIC("Kernel mode exception");
 	
 	return context;
 }

@@ -1,8 +1,11 @@
 #include <arch/x64/dev/hpet.hpp>
 #include <sys/printk.hpp>
 
+#define TSC_CORRECTION_COEFFICENT 0x10000
+#define FRACTIONAL_TIME_TO_WAIT 0x100
+
 /* Function to calibrate the TSC using HPET */
-int CalibrateTSCWithHPET(uintptr_t hpetAddress, uint64_t *tscCyclesPerMicrosecond) {
+int CalibrateTSCWithHPET(uintptr_t hpetAddress, uint64_t *tscTicksPerSecond) {
 	hpetAddress = 0xFED00000;
 	PRINTK::PrintK("HPET address: 0x%x\r\n", hpetAddress);
 
@@ -19,20 +22,15 @@ int CalibrateTSCWithHPET(uintptr_t hpetAddress, uint64_t *tscCyclesPerMicrosecon
 	// Enable HPET (set bit 0 of the configuration register)
 	*configuration |= 0x1;
 
-	PRINTK::PrintK("Configuration: 0x%x\r\n", *configuration);
-
 	// Calculate the desired HPET timer resolution (e.g., 1 millisecond)
 	uint64_t counterClkPeriod = *capabilities >> 32;
 	if (counterClkPeriod > 0x05F5E100) {
 		PRINTK::PrintK("Invalid clk period\r\n");
-	} else {
-		PRINTK::PrintK("Clk period 0x%x\r\n", counterClkPeriod);
+		return 0;
 	}
 	
 	uint64_t hpetTimerFrequency = 1000000000000000 / counterClkPeriod;
-	uint64_t hpetTimeToPass = hpetTimerFrequency / 10000;
-	PRINTK::PrintK("Frequency: %dMHz\r\n", hpetTimerFrequency / 1000000);
-	PRINTK::PrintK("Ticks for 1/10 of a ms: %d\r\n", hpetTimeToPass);
+	uint64_t hpetTimeToPass = hpetTimerFrequency / FRACTIONAL_TIME_TO_WAIT;
 
 	// Set the main HPET counter to 0 for starting the calibration
 	*counter = 0;
@@ -50,14 +48,14 @@ int CalibrateTSCWithHPET(uintptr_t hpetAddress, uint64_t *tscCyclesPerMicrosecon
 	// Disable HPET (clear bit 0 of the configuration register)
 	*configuration &= ~0x1;
 
+	tscStart -= tscStart % TSC_CORRECTION_COEFFICENT;
+	tscEnd += TSC_CORRECTION_COEFFICENT - tscEnd % TSC_CORRECTION_COEFFICENT;
+
 	// Calculate the TSC frequency in cycles per nanosecond
-	uint64_t elapsedTSCCcycles = tscEnd - tscStart;
+	uint64_t elapsedTSCCcycles = (tscEnd - tscStart) * FRACTIONAL_TIME_TO_WAIT;
 
 	// Convert HPET time to microseconds and calculate the TSC frequency
-	*tscCyclesPerMicrosecond = elapsedTSCCcycles;
-
-	PRINTK::PrintK("Cycles per second: %dMHz\r\n", *tscCyclesPerMicrosecond * 10000 / 1000000);
-	
+	*tscTicksPerSecond = elapsedTSCCcycles;
 
 	return 1; // Calibration successful
 }
