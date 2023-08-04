@@ -5,10 +5,15 @@
 #include <sys/panic.hpp>
 #include <sys/printk.hpp>
 #include <init/kinfo.hpp>
+#include <mm/vmm.hpp>
+#include <sys/user.hpp>
+#include <sys/syscall.hpp>
 #include <arch/x64/interrupts/idt.hpp>
 
 /* Setting the kernel offset in the GDT (5th entry) */
 #define GDT_OFFSET_KERNEL_CODE (0x08 * 5)
+#define GDT_OFFSET_USER_CODE (0x08 * 7)
+
 /* Max number of interrupts in x86_64 is 256 */
 #define IDT_MAX_DESCRIPTORS 256
 
@@ -43,12 +48,10 @@ void IDTInit() {
 	idtr.limit = (uint16_t)sizeof(IDTEntry) * IDT_MAX_DESCRIPTORS - 1;
 
 	/* Fill in the 32 exception handlers */
-	for (uint8_t vector = 0; vector < 32; vector++) {
+	for (uint8_t vector = 0; vector < 255; vector++) {
 		IDTSetDescriptor(vector, isrStubTable[vector],  0x8F);
 	}
 		
-	IDTSetDescriptor(32, isrStubTable[32],   0b11101110);
-	IDTSetDescriptor(39, isrStubTable[39],   0b11101110);
 	IDTSetDescriptor(254, isrStubTable[254], 0b11101110);
 
 	/* Load the new IDT */
@@ -104,7 +107,21 @@ static inline void PrintRegs(CPUStatus *context) {
 }
 
 /* Stub exception handler */
-extern "C" CPUStatus *exceptionHandler(CPUStatus *context) {
+extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
+	KInfo *info = GetInfo();
+	bool isFatal = false;
+
+	uintptr_t cr3;
+	asm volatile("mov %%cr3, %0" : "=r"(cr3) :: "memory");
+	bool switchAddressSpace = cr3 != info->kernelVirtualSpace->GetTopAddress() ? true : false;
+
+	if(switchAddressSpace) {
+		VMM::LoadVirtualSpace(info->kernelVirtualSpace);	
+	}
+	
+	PROC::Process *proc = info->kernelScheduler->GetRunningProcess();
+	VMM::VirtualSpace *procSpace = proc->GetVirtualMemorySpace();
+
 	PRINTK::PrintK("\r\n\r\n--[cut here]--\r\n"
 			"Exception in CPU.\r\n");
 
@@ -121,10 +138,12 @@ extern "C" CPUStatus *exceptionHandler(CPUStatus *context) {
 			PANIC("Double fault");
 			break;
 		case 13: {
+			isFatal = true;
 			PRINTK::PrintK("General protection fault.\r\n");
 			break;
 			}
 		case 14: {
+			isFatal = true;
 			uintptr_t page;
 			bool protectionViolation = context->ErrorCode & 0b1;
 			bool writeAccess = (context->ErrorCode & 0b10) >> 1;
@@ -141,51 +160,25 @@ extern "C" CPUStatus *exceptionHandler(CPUStatus *context) {
 
 			}
 			break;
+		case 254:
+			HandleSyscall(context->RAX, context->RDI, context->RSI, context->RDX, context->RCX, context->R8, context->R9);
+			break;
 		default:
+			isFatal = true;
 			PRINTK::PrintK("Unhandled exception: %d\r\n", context->VectorNumber);
 			break;
 	}
 
-	if(context->IretCS == GDT_OFFSET_KERNEL_CODE)
+	if(context->IretCS == GDT_OFFSET_KERNEL_CODE && isFatal) {
 		PANIC("Kernel mode exception");
+	} else {
+		context->IretCS = GDT_OFFSET_USER_CODE;
+		context->IretSS = GDT_OFFSET_USER_CODE + 0x08;
+	}
+
+	if(switchAddressSpace) {
+		VMM::LoadVirtualSpace(procSpace);
+	}
 	
-	return context;
-}
-
-#include <arch/x64/dev/apic.hpp>
-#include <mm/vmm.hpp>
-extern "C" CPUStatus *timerHandler(CPUStatus *context) {
-	KInfo *info = GetInfo();
-
-	VMM::LoadVirtualSpace(info->kernelVirtualSpace);	
-	
-	VMM::VirtualSpace *procSpace = info->kernelScheduler->GetRunningProcess()->GetVirtualMemorySpace();
-
-	x86_64::WaitAPIC(0x10000);
-	x86_64::SendAPICEOI();
-
-	VMM::LoadVirtualSpace(procSpace);
-	
-	return context;
-}
-
-extern "C" CPUStatus *spuriousHandler(CPUStatus *context) {
-	PRINTK::PrintK("Spurious.\r\n");
-
-	return context;
-}
-#include <sys/user.hpp>
-#include <sys/syscall.hpp>
-extern "C" CPUStatus *syscallHandler(CPUStatus *context) {
-	KInfo *info = GetInfo();
-
-	HandleSyscall(context->RAX, context->RDI, context->RSI, context->RDX, context->RCX, context->R8, context->R9);
-
-	/*
-	context->IretRIP = HandleSyscall;
-	context->IretCS = GDT_OFFSET_KERNEL_CODE;
-	context->IretRSP = &testStack[8191];
-	context->IretSS = GDT_OFFSET_KERNEL_CODE + 0x8;*/
-
 	return context;
 }

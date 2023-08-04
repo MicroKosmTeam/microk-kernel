@@ -109,14 +109,6 @@ __attribute__((noreturn)) void KernelStart() {
 	/* Enabling the page frame allocator */
 	PMM::InitPageFrameAllocator();
 
-#if defined(ARCH_x64)
-	/* Starting x86_64 specific instructions */
-	x86_64::Init();
-#elif defined(ARCH_aarch64)
-	/* Starting AArch64 specific instructions */
-	AArch64::Init();
-#endif
-
 	/* Starting the memory subsystem */
 	MEM::Init();
 
@@ -128,6 +120,14 @@ __attribute__((noreturn)) void KernelStart() {
 
 	/* Initializing the scheduler framework */
 	info->kernelScheduler = new PROC::Scheduler();
+
+#if defined(ARCH_x64)
+	/* Starting x86_64 specific instructions */
+	x86_64::Init();
+#elif defined(ARCH_aarch64)
+	/* Starting AArch64 specific instructions */
+	AArch64::Init();
+#endif
 
 	/* Printing banner to show off */
 	PrintBanner();

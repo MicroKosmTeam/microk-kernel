@@ -279,9 +279,9 @@ int HandleHPET(HPETHeader *hpet) {
 			hpet->HardwareRevisionID, hpet->ComparatorCount, hpet->CounterSize, hpet->LegacyReplacement,
 			hpet->PCIVendorID, hpet->Address.Address, hpet->HPETNumber, hpet->MinimumTick, hpet->PageProtection);
 
-	uint64_t tscPerMicrosecond = 0;
-	CalibrateTSCWithHPET(hpet->Address.Address, &tscPerMicrosecond);
-	PRINTK::PrintK("CPU is running at %dHz\r\n", tscPerMicrosecond);
+	uint64_t tscPerSecond = 0;
+	CalibrateTSCWithHPET(hpet->Address.Address, &tscPerSecond);
+	PRINTK::PrintK("CPU is running at %dMHz\r\n", tscPerSecond / 1000000);
 
 	return 0;
 }

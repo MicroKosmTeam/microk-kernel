@@ -1,12 +1,16 @@
 #include <arch/x64/dev/hpet.hpp>
 #include <sys/printk.hpp>
+#include <init/kinfo.hpp>
+#include <mm/vmm.hpp>
 
 #define TSC_CORRECTION_COEFFICENT 0x10000
 #define FRACTIONAL_TIME_TO_WAIT 0x100
 
 /* Function to calibrate the TSC using HPET */
 int CalibrateTSCWithHPET(uintptr_t hpetAddress, uint64_t *tscTicksPerSecond) {
-	hpetAddress = 0xFED00000;
+	KInfo *info = GetInfo();
+
+	VMM::MapMemory(info->kernelVirtualSpace, hpetAddress, hpetAddress);
 	PRINTK::PrintK("HPET address: 0x%x\r\n", hpetAddress);
 
 	// Typecast the HPET address to access the registers
@@ -39,8 +43,7 @@ int CalibrateTSCWithHPET(uintptr_t hpetAddress, uint64_t *tscTicksPerSecond) {
 	uint64_t tscStart = __builtin_ia32_rdtsc();
 
 	// Wait for the desired HPET timer resolution to elapse
-	while (*counter < hpetTimeToPass) {
-	}
+	while (*counter < hpetTimeToPass);
 
 	// Read the final value of the TSC after the specified interval has passed
 	uint64_t tscEnd = __builtin_ia32_rdtsc();
