@@ -3,7 +3,6 @@
 #include <init/kinfo.hpp>
 #include <mm/vmm.hpp>
 
-#define TSC_CORRECTION_COEFFICENT 0x10000
 #define FRACTIONAL_TIME_TO_WAIT 0x100
 
 /* Function to calibrate the TSC using HPET */
@@ -50,9 +49,6 @@ int CalibrateTSCWithHPET(uintptr_t hpetAddress, uint64_t *tscTicksPerSecond) {
 
 	// Disable HPET (clear bit 0 of the configuration register)
 	*configuration &= ~0x1;
-
-	tscStart -= tscStart % TSC_CORRECTION_COEFFICENT;
-	tscEnd += TSC_CORRECTION_COEFFICENT - tscEnd % TSC_CORRECTION_COEFFICENT;
 
 	// Calculate the TSC frequency in cycles per nanosecond
 	uint64_t elapsedTSCCcycles = (tscEnd - tscStart) * FRACTIONAL_TIME_TO_WAIT;
