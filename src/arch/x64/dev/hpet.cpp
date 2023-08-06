@@ -10,7 +10,6 @@ int CalibrateTSCWithHPET(uintptr_t hpetAddress, uint64_t *tscTicksPerSecond) {
 	KInfo *info = GetInfo();
 
 	VMM::MapMemory(info->kernelVirtualSpace, hpetAddress, hpetAddress);
-	PRINTK::PrintK("HPET address: 0x%x\r\n", hpetAddress);
 
 	// Typecast the HPET address to access the registers
 	volatile uint64_t *capabilities = hpetAddress;

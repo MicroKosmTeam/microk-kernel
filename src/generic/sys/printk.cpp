@@ -38,7 +38,7 @@ void PutChar(char ch) {
 
 	TerminalColumn[TerminalPosition++] = ch;
 
-	if (ch == '\n' && !justNewline) {
+	if ((ch == '\n' || ch == '\r') && !justNewline) {
 		FlushBuffer();
 		justNewline = true;
 	}

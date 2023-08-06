@@ -50,11 +50,8 @@ void *Open(char *path, size_t *size) {
 		}
 
 		Framebuffer *fbData = &info->framebuffers[num];
-
-		memcpy(fbData->Address, fbData, sizeof(Framebuffer));
-
 		*size = fbData->Width * fbData->Height * fbData->BPP;
-		return fbData->Address;
+		return fbData;
 
 	}
 	
