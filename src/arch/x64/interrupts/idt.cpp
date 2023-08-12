@@ -132,6 +132,7 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 			PRINTK::PrintK("Division by zero.\r\n");
 			break;
 		case 6:
+			isFatal = true;
 			PRINTK::PrintK("Invalid opcode.\r\n");
 			break;
 		case 8:
@@ -171,6 +172,12 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 
 	if(context->IretCS == GDT_OFFSET_KERNEL_CODE && isFatal) {
 		PANIC("Kernel mode exception");
+	} else if (isFatal) {
+		info->kernelScheduler->SetProcessState(proc->GetPID(), PROC::P_WAITING);
+
+		while(true) {
+			info->kernelScheduler->RecalculateScheduler();
+		}
 	} else {
 		context->IretCS = GDT_OFFSET_USER_CODE;
 		context->IretSS = GDT_OFFSET_USER_CODE + 0x08;

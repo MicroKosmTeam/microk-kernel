@@ -27,6 +27,7 @@ size_t HandleSyscallDebugPrintK(const char *string);
 
 size_t HandleSyscallMemoryGetinfo(uintptr_t structbase);
 size_t HandleSyscallMemoryVmalloc(uintptr_t base, size_t length, size_t flags);
+size_t HandleSyscallMemoryPalloc(uintptr_t *base, size_t length);
 size_t HandleSyscallMemoryVmfree(uintptr_t base, size_t length);
 size_t HandleSyscallMemoryMmap(uintptr_t src, uintptr_t dest, size_t length, size_t flags);
 size_t HandleSyscallMemoryUnmap(uintptr_t base, size_t length);
@@ -69,6 +70,7 @@ extern "C" size_t HandleSyscall(size_t syscallNumber, size_t arg1, size_t arg2, 
 
 		case SYSCALL_MEMORY_GETINFO: return HandleSyscallMemoryGetinfo(arg1);
 		case SYSCALL_MEMORY_VMALLOC: return HandleSyscallMemoryVmalloc(arg1, arg2, arg3);
+		case SYSCALL_MEMORY_PALLOC: return HandleSyscallMemoryPalloc(arg1, arg2);
 		case SYSCALL_MEMORY_VMFREE: return HandleSyscallMemoryVmfree(arg1, arg2);
 		case SYSCALL_MEMORY_MMAP: return HandleSyscallMemoryMmap(arg1, arg2, arg3, arg4);
 		case SYSCALL_MEMORY_UNMAP: return HandleSyscallMemoryUnmap(arg1, arg2);
@@ -149,6 +151,25 @@ size_t HandleSyscallMemoryVmalloc(uintptr_t base, size_t length, size_t flags) {
 	}
 
 	VMM::LoadVirtualSpace(procSpace);
+
+	return 0;
+}
+
+size_t HandleSyscallMemoryPalloc(uintptr_t *base, size_t length) {
+	KInfo *info = GetInfo();
+
+	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
+	
+	VMM::VirtualSpace *procSpace = info->kernelScheduler->GetRunningProcess()->GetVirtualMemorySpace();
+
+	uintptr_t newBase = 0;
+
+	if (length % PAGE_SIZE == 0) newBase = PMM::RequestPage();
+	else newBase = PMM::RequestPages(length % PAGE_SIZE + 1);
+
+	VMM::LoadVirtualSpace(procSpace);
+
+	*base = newBase;
 
 	return 0;
 }
