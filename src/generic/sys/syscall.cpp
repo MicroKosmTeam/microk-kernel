@@ -274,6 +274,15 @@ size_t HandleSyscallMemoryInOut(uintptr_t port, bool out, size_t outData, size_t
 			if(out) OutD(port, outData);
 			else tmpInData = InD(port);
 			break;
+		case 64:
+			if(out) {
+				OutD(port, outData && 0xFFFFFFFF);
+				OutD(port + 4, outData >> 32);
+			} else {
+				tmpInData = InD(port);
+				tmpInData |= InD(port + 4) >> 32;
+			}
+			break;
 		default:
 			if(!out) tmpInData = -1;
 			break;
