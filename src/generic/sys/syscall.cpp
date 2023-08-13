@@ -164,8 +164,9 @@ size_t HandleSyscallMemoryPalloc(uintptr_t *base, size_t length) {
 
 	uintptr_t newBase = 0;
 
+	size_t roundedLength = length / PAGE_SIZE + 1;
 	if (length % PAGE_SIZE == 0) newBase = PMM::RequestPage();
-	else newBase = PMM::RequestPages(length % PAGE_SIZE + 1);
+	else newBase = PMM::RequestPages(roundedLength);
 
 	VMM::LoadVirtualSpace(procSpace);
 
@@ -268,6 +269,13 @@ size_t HandleSyscallMemoryInOut(uintptr_t port, bool out, size_t outData, size_t
 		case 16:
 			if(out) OutW(port, outData);
 			else tmpInData = InW(port);
+			break;
+		case 32:
+			if(out) OutD(port, outData);
+			else tmpInData = InD(port);
+			break;
+		default:
+			if(!out) tmpInData = -1;
 			break;
 	}
 	
