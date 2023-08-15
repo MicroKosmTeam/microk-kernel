@@ -18,9 +18,9 @@
 #define IDT_MAX_DESCRIPTORS 256
 
 /* Create the IDT, aligned for maximum performance */
-__attribute__((aligned(0x10))) IDTEntry idt[IDT_MAX_DESCRIPTORS];
+volatile __attribute__((aligned(0x10))) IDTEntry idt[IDT_MAX_DESCRIPTORS];
 /* Create the IDTR */
-IDTR idtr;
+volatile __attribute__((aligned(0x10))) IDTR idtr;
 
 /* Function to set a descriptor in the GDT */
 static void IDTSetDescriptor(uint8_t vector, void* isr, uint8_t flags) {
@@ -28,13 +28,13 @@ static void IDTSetDescriptor(uint8_t vector, void* isr, uint8_t flags) {
 	IDTEntry* descriptor = &idt[vector];
 
 	/* Setting parameters */
-	descriptor->isrLow = (uint64_t)isr & 0xFFFF;
-	descriptor->kernelCs = GDT_OFFSET_KERNEL_CODE;
-	descriptor->ist = 0;
-	descriptor->attributes = flags;
-	descriptor->isrMid = ((uint64_t)isr >> 16) & 0xFFFF;
-	descriptor->isrHigh = ((uint64_t)isr >> 32) & 0xFFFFFFFF;
-	descriptor->reserved = 0;
+	descriptor->ISRLow = (uint64_t)isr & 0xFFFF;
+	descriptor->KernelCs = GDT_OFFSET_KERNEL_CODE;
+	descriptor->IST = 0;
+	descriptor->Attributes = flags;
+	descriptor->ISRMid = ((uint64_t)isr >> 16) & 0xFFFF;
+	descriptor->ISRHigh = ((uint64_t)isr >> 32) & 0xFFFFFFFF;
+	descriptor->Reserved0 = 0;
 }
 
 /* ISR stub table, declared in assembly code */
@@ -44,8 +44,8 @@ namespace x86_64 {
 /* Function to initialize the IDT */
 void IDTInit() {
 	/* Set base and size in the pointer */
-	idtr.base = (uintptr_t)&idt[0];
-	idtr.limit = (uint16_t)sizeof(IDTEntry) * IDT_MAX_DESCRIPTORS - 1;
+	idtr.Base = (uintptr_t)&idt[0];
+	idtr.Limit = (uint16_t)sizeof(IDTEntry) * IDT_MAX_DESCRIPTORS - 1;
 
 	/* Fill in the 32 exception handlers */
 	for (uint8_t vector = 0; vector < 32; vector++) {
@@ -163,7 +163,6 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 			}
 			break;
 		case 32:
-			PRINTK::PrintK("UWU\r\n");
 			x86_64::SendAPICEOI();
 			x86_64::WaitAPIC();
 			/* TODO:
