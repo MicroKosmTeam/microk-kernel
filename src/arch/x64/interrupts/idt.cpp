@@ -48,11 +48,12 @@ void IDTInit() {
 	idtr.limit = (uint16_t)sizeof(IDTEntry) * IDT_MAX_DESCRIPTORS - 1;
 
 	/* Fill in the 32 exception handlers */
-	for (uint8_t vector = 0; vector < 255; vector++) {
+	for (uint8_t vector = 0; vector < 32; vector++) {
 		IDTSetDescriptor(vector, isrStubTable[vector],  0x8F);
 	}
 		
-	IDTSetDescriptor(254, isrStubTable[254], 0b11101110);
+	IDTSetDescriptor(32, isrStubTable[32], 0x8E);
+	IDTSetDescriptor(254, isrStubTable[254], 0xEE);
 
 	/* Load the new IDT */
 	asm volatile ("lidt %0" : : "m"(idtr));
@@ -106,6 +107,7 @@ static inline void PrintRegs(CPUStatus *context) {
 			context->IretSS);
 }
 
+#include <arch/x64/dev/apic.hpp>
 /* Stub exception handler */
 extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 	KInfo *info = GetInfo();
@@ -115,17 +117,16 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 	asm volatile("mov %%cr3, %0" : "=r"(cr3) :: "memory");
 	bool switchAddressSpace = cr3 != info->kernelVirtualSpace->GetTopAddress() ? true : false;
 
+	PROC::Process *proc;
+	VMM::VirtualSpace *procSpace;
+
 	if(switchAddressSpace) {
-		VMM::LoadVirtualSpace(info->kernelVirtualSpace);	
+		VMM::LoadVirtualSpace(info->kernelVirtualSpace);
+
+		proc = info->kernelScheduler->GetRunningProcess();
+		if(proc != NULL) procSpace = proc->GetVirtualMemorySpace();
+		else PANIC("Null proc");
 	}
-	
-	PROC::Process *proc = info->kernelScheduler->GetRunningProcess();
-	VMM::VirtualSpace *procSpace = proc->GetVirtualMemorySpace();
-
-	PRINTK::PrintK("\r\n\r\n--[cut here]--\r\n"
-			"Exception in CPU.\r\n");
-
-	PrintRegs(context);
 
 	switch(context->VectorNumber) {
 		case 0:
@@ -161,6 +162,15 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 
 			}
 			break;
+		case 32:
+			PRINTK::PrintK("UWU\r\n");
+			x86_64::SendAPICEOI();
+			x86_64::WaitAPIC();
+			/* TODO:
+			if(info->kernelScheduler != NULL)
+				info->kernelScheduler->RecalculateScheduler();
+			*/
+			break;
 		case 254:
 			HandleSyscall(context->RAX, context->RDI, context->RSI, context->RDX, context->RCX, context->R8, context->R9);
 			break;
@@ -170,17 +180,32 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 			break;
 	}
 
-	if(context->IretCS == GDT_OFFSET_KERNEL_CODE && isFatal) {
-		PANIC("Kernel mode exception");
-	} else if (isFatal) {
-		info->kernelScheduler->SetProcessState(proc->GetPID(), PROC::P_WAITING);
+	if(context->IretCS == GDT_OFFSET_KERNEL_CODE) {
+		if (isFatal) {
+			PRINTK::PrintK("\r\n\r\n--[cut here]--\r\n"
+					"Exception in CPU.\r\n");
 
-		while(true) {
-			info->kernelScheduler->RecalculateScheduler();
+			PrintRegs(context);
+			PANIC("Kernel mode exception");
+		} else {
+			/* Do nothing */
 		}
 	} else {
-		context->IretCS = GDT_OFFSET_USER_CODE;
-		context->IretSS = GDT_OFFSET_USER_CODE + 0x08;
+		if (isFatal) {
+			PRINTK::PrintK("\r\n\r\n--[cut here]--\r\n"
+					"Exception in CPU.\r\n");
+
+			PrintRegs(context);
+
+			info->kernelScheduler->SetProcessState(proc->GetPID(), PROC::P_WAITING);
+
+			while(true) {
+				info->kernelScheduler->RecalculateScheduler();
+			}
+		} else {
+			context->IretCS = GDT_OFFSET_USER_CODE;
+			context->IretSS = GDT_OFFSET_USER_CODE + 0x08;
+		}
 	}
 
 	if(switchAddressSpace) {

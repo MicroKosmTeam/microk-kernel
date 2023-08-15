@@ -21,7 +21,7 @@ push r15
 %endmacro
 
 %macro exitisr 0
-	o64 iret
+o64 iret
 %endmacro
 
 %macro popall 0

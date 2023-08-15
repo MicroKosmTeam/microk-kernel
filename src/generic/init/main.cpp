@@ -61,6 +61,12 @@ int EarlyKernelInit() {
 	/* Allocating memory for the info struct */
 	InitInfo();
 
+#if defined(ARCH_x64)
+	x86_64::EarlyInit();
+#elif defined(ARCH_aarch64)
+	AArch64::EarlyInit();
+#endif
+
 	/* Loading early serial printk */
 	PRINTK::EarlyInit();
 
@@ -99,7 +105,7 @@ void PrintBanner() {
 */
 __attribute__((noreturn)) void KernelStart() {
 	KInfo *info = GetInfo();
-	
+
 	PRINTK::PrintK("MicroKosm is booted. Cmdline: %s\r\n", info->KernelArgs);
 
 	ParseArgs();
@@ -118,9 +124,6 @@ __attribute__((noreturn)) void KernelStart() {
 	/* With the heap initialized, disable new bootmem allocations */
 	BOOTMEM::DeactivateBootmem();
 
-	/* Initializing the scheduler framework */
-	info->kernelScheduler = new PROC::Scheduler();
-
 #if defined(ARCH_x64)
 	/* Starting x86_64 specific instructions */
 	x86_64::Init();
@@ -133,6 +136,9 @@ __attribute__((noreturn)) void KernelStart() {
 	PrintBanner();
 
 #ifdef CONFIG_KERNEL_MODULES
+	/* Initializing the scheduler framework */
+	info->kernelScheduler = new PROC::Scheduler();
+
 	/* Initialize the kernel's module manager */
 	info->KernelModuleManager = new MODULE::Manager();
 	info->KernelBufferManager = new MODULE::BufferManager();
@@ -144,14 +150,16 @@ __attribute__((noreturn)) void KernelStart() {
 	size_t moduleSize;
 	void *addr;
 
-	/* Ge the core module's file */
+	/* Get the core module's file memory location */
 	addr = FILE::Open(info->UserModuleName, &moduleSize);
 	
 	/* Launch the core user core module */
-	if (addr != 0) {
+	if (addr != NULL) {
 		PRINTK::PrintK("Loading user module from 0x%x\r\n", addr);
+
 		size_t pid = LoadExecutableFile(addr, moduleSize);
 		info->kernelScheduler->SetProcessState(pid, PROC::P_READY);
+
 		PRINTK::PrintK("Switching to user module.\r\n");
 		info->kernelScheduler->RecalculateScheduler();
 	} else PANIC("Could not find User Module");

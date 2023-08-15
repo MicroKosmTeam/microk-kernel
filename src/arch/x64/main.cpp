@@ -12,7 +12,7 @@
 #include <arch/x64/interrupts/idt.hpp>
 
 namespace x86_64 {
-void Init() {
+void EarlyInit() {
 	KInfo *info = GetInfo();
 
 	/* We first of all get the position of the kernel interrupt stack and save it
@@ -35,7 +35,9 @@ void Init() {
 	PRINTK::PrintK("Loading x86_64 IDT\r\n");
 	IDTInit();
 	PRINTK::PrintK("IDT Loaded.\r\n");
+}
 
+void Init() {
 	/* x86 CPU initialization */
 	PRINTK::PrintK("Setting up CPU features\r\n");
 	x86CPU *defaultCPU = new x86CPU; /* Allocated by BOOTMEM, do not free */

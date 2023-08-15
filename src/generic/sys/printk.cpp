@@ -8,7 +8,7 @@
 #include <init/kinfo.hpp>
 
 #ifdef CONFIG_HW_UART
-UARTDevice *kernelPort;
+UARTDevice *kernelPort = NULL;
 #endif
 
 namespace PRINTK {
@@ -21,7 +21,7 @@ static size_t TerminalPosition;
 
 void FlushBuffer() {
 #ifdef CONFIG_HW_UART
-	kernelPort->PutStr(TerminalColumn);
+	if(kernelPort != NULL) kernelPort->PutStr(TerminalColumn);
 #endif
 	memset(TerminalColumn, 0, TERMINAL_SIZE + 1);
 	TerminalPosition = 0;
@@ -53,9 +53,9 @@ void PrintK(char *format, ...) {
         va_list ap;
         va_start(ap, format);
 
-	PrintKSpinlock.Lock();
+//	PrintKSpinlock.Lock();
 	VPrintK(format, ap);
-	PrintKSpinlock.Unlock();
+//	PrintKSpinlock.Unlock();
 
         va_end(ap);
 }
