@@ -283,9 +283,11 @@ int HandleHPET(HPETHeader *hpet) {
 	CalibrateTSCWithHPET(hpet->Address.Address, &tscPerSecond);
 	PRINTK::PrintK("CPU is running at %d.%dMHz\r\n", tscPerSecond / 1000000, tscPerSecond  % 1000000 / 1000);
 
+	/*
 	EnableAPIC();
 	SetAPICTimer(tscPerSecond / 1000);
 	WaitAPIC();
+	*/
 
 	return 0;
 }

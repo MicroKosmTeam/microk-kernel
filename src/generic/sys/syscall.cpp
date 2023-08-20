@@ -60,6 +60,9 @@ size_t HandleSyscallFileClose(size_t TODO);
 size_t HandleSyscallKernOverride(size_t TODO);
 
 extern "C" size_t HandleSyscall(size_t syscallNumber, size_t arg1, size_t arg2, size_t arg3, size_t arg4, size_t arg5, size_t arg6) {
+	if(syscallNumber != SYSCALL_DEBUG_PRINTK)
+		PRINTK::PrintK("Syscall %x: %x %x %x %x %x %x\r\n", syscallNumber, arg1, arg2, arg3, arg4, arg5, arg6);
+
 	/* Check first if the syscall has been overridden. */
 	size_t override = CheckOverride(syscallNumber);
 	if(override != 0) return RunOverride(override);
@@ -299,26 +302,31 @@ size_t HandleSyscallMemoryInOut(uintptr_t port, bool out, size_t outData, size_t
 size_t HandleSyscallProcExec(uintptr_t executableBase, size_t executableSize) {
 	KInfo *info = GetInfo();
 
-	char buffer[1024];
-	size_t remaining;
-
 	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
 	VMM::VirtualSpace *procSpace = info->kernelScheduler->GetRunningProcess()->GetVirtualMemorySpace();
 
-	void *heapAddr = Malloc(executableSize);
+	uint8_t buffer[PAGE_SIZE];
+	size_t remaining = 0;
+
+	size_t heapSize = (executableSize / PAGE_SIZE + 1) * PAGE_SIZE;
+	void *heapAddr = Malloc(heapSize);
+	memset(heapAddr, 0, heapSize);
 	
-	for (size_t i = 0; i < executableSize; i += 1024) {
+	for (size_t i = 0; i < executableSize; i += PAGE_SIZE) {
 		remaining = executableSize - i;
 
 		VMM::LoadVirtualSpace(procSpace);
-		memcpy(buffer, executableBase + i, remaining > 1024 ? 1024 : remaining);
+		memcpy(buffer, executableBase + i, remaining > PAGE_SIZE ? PAGE_SIZE : remaining);
 
 		VMM::LoadVirtualSpace(info->kernelVirtualSpace);
-		memcpy(heapAddr + i, buffer, remaining > 1024 ? 1024 : remaining);
+		memcpy(heapAddr + i, buffer, remaining > PAGE_SIZE ? PAGE_SIZE : remaining);
 	}
 
 	size_t pid = LoadExecutableFile(heapAddr, executableSize);
+	Free(heapAddr);
+
 	info->kernelScheduler->SetProcessState(pid, PROC::P_READY);
+	PRINTK::PrintK("Our process: %d (0x%x)\r\n", pid, info->kernelScheduler->GetProcess(pid));
 
 	VMM::LoadVirtualSpace(procSpace);
 
@@ -536,7 +544,7 @@ size_t HandleSyscallModuleSectionRegister(const char *sectionName) {
 	VMM::VirtualSpace *procSpace = proc->GetVirtualMemorySpace();
 
 	MODULE::Module *mod = info->KernelModuleManager->GetModule(proc->GetPID());
-	if (mod == NULL) return;
+	if (mod == NULL) { PRINTK::PrintK("NULLMODULE\r\n"); while(true); }
 
 	info->KernelSectionManager->RegisterSectionDriver(newSectionName, mod->GetVendor(), mod->GetProduct());
 	

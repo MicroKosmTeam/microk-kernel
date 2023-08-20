@@ -86,6 +86,8 @@ ProcessNode *Scheduler::FindNode(ProcessNode *queue, size_t pid, ProcessNode **p
 
 Scheduler::Scheduler() {
 	KInfo *info = GetInfo();
+
+	CurrentProcess = NULL;
 	
 	RunQueueBaseNode = new ProcessNode;
 	BlockedQueueBaseNode = new ProcessNode;
