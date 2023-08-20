@@ -24,6 +24,9 @@ size_t LoadProcess(Elf64_Ehdr *elfHeader, VMM::VirtualSpace *space);
 uint64_t LoadELF(uint8_t *data, size_t size) {
 	KInfo *info = GetInfo();
 
+	asm volatile ("cli");
+	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
+
 	VMM::VirtualSpace *space = VMM::NewModuleVirtualSpace();
 	
 	Elf64_Ehdr *elfHeader = (Elf64_Ehdr*)data;
@@ -31,6 +34,7 @@ uint64_t LoadELF(uint8_t *data, size_t size) {
 	LoadProgramHeaders(data, size, elfHeader, space);
 	LinkSymbols(data, size, elfHeader);
 	size_t pid  = LoadProcess(elfHeader, space);
+	asm volatile ("sti");
 
 	return pid;
 }
@@ -45,41 +49,43 @@ void LoadProgramHeaders(uint8_t *data, size_t size, Elf64_Ehdr *elfHeader, VMM::
 	uint64_t progSize = 0;
 
 	Elf64_Phdr *programHeader;
-	for (int currentHeader = 0; currentHeader < programHeaderNumber; currentHeader++) {
-		programHeader = (Elf64_Phdr*)(data + programHeaderOffset + programHeaderSize * currentHeader);
+	for (int i = 0; i < programHeaderNumber; i++) {
+		programHeader = (Elf64_Phdr*)(data + programHeaderOffset + programHeaderSize * i);
 		if(programHeader->p_memsz == 0) continue;
 
 		switch (programHeader->p_type) {
 			case PT_LOAD: {
-				size_t pageAmount = programHeader->p_memsz / PAGE_SIZE + 1;
-				uintptr_t *pages = new uintptr_t[pageAmount];
-				memset(pages, 0, pageAmount * sizeof(uintptr_t));
-
+				char buffer[1024];
 				size_t fileRemaining = programHeader->p_filesz;
+				uintptr_t virtualAddr = programHeader->p_vaddr;
+				size_t memorySize = programHeader->p_memsz;
+				size_t fileSize = programHeader->p_filesz;
+				VMM::LoadVirtualSpace(info->kernelVirtualSpace);
 
-				for (size_t page = 0; page < pageAmount; ++page) {
-					uintptr_t virtualAddr = programHeader->p_vaddr + page * PAGE_SIZE;
-
-					uintptr_t addr = space->GetPhysicalAddress((void*)virtualAddr);
-					PRINTK::PrintK("Addr: 0x%x -> 0x%x\r\n", virtualAddr, addr);
-					if (addr == NULL || addr == virtualAddr) {
-						pages[page] = PMM::RequestPage();
-
-						VMM::MapMemory(space, pages[page], virtualAddr);
-						memset(pages[page], 0, PAGE_SIZE);
-					} else pages[page] = addr;
+				for (uint64_t addr = programHeader->p_vaddr;
+				     addr < programHeader->p_vaddr + programHeader->p_memsz;
+				     addr+=0x1000) {
+					VMM::MapMemory(space, PMM::RequestPage(), addr);
 				}
 
-				for (size_t page = 0; page * PAGE_SIZE < programHeader->p_filesz; ++page) {
-					size_t offset = page * PAGE_SIZE;
+				VMM::LoadVirtualSpace(space);
+				memset(virtualAddr, 0, memorySize);
+				
+				for (size_t i = 0; i < fileSize; i += 1024) {
+					if(fileRemaining == 0) break;
 
-					PRINTK::PrintK("Page address: 0x%x\r\n", pages[page]);
-					memcpy(pages[page], data + programHeader->p_offset + offset, fileRemaining > PAGE_SIZE ? PAGE_SIZE : fileRemaining);
+					VMM::LoadVirtualSpace(info->kernelVirtualSpace);
+					memcpy(buffer, data + programHeader->p_offset + i, fileRemaining > 1024 ? 1024 : fileRemaining);
 					
-					fileRemaining = programHeader->p_filesz - offset;
+					fileRemaining = programHeader->p_filesz - i;
+
+					VMM::LoadVirtualSpace(space);
+					memcpy(virtualAddr + i, buffer, fileRemaining > 1024 ? 1024 : fileRemaining);
 				}
 					
-				delete[] pages;
+
+				VMM::LoadVirtualSpace(info->kernelVirtualSpace);
+
 				}
 				break;
 
@@ -143,12 +149,15 @@ size_t LoadProcess(Elf64_Ehdr *elfHeader, VMM::VirtualSpace *space) {
 	PROC::Process *proc = new PROC::Process(PROC::PT_USER, space);
 
 	size_t pid = proc->GetPID();
-	size_t tid = proc->CreateThread(65536, elfHeader->e_entry);
+	size_t tid = proc->CreateThread(64 * 1024, elfHeader->e_entry);
 
 	proc->SetMainThread(tid);
 	PROC::Thread *mainThread = proc->GetThread(tid);
 
 	info->kernelScheduler->AddProcess(proc);
+	
+	/* Cleaning up */
+	if(elfHeader > CONFIG_HEAP_BASE) Free(elfHeader);
 
 	return pid;
 }
