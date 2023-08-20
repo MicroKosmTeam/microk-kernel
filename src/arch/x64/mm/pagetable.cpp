@@ -158,7 +158,7 @@ void PageTableManager::MapMemory(void *physicalMemory, void *virtualMemory, uint
 
 	PT->entries[indexer.P_i] = PDE;
 
-	asm ("invlpg (%0)" ::"r" ((uintptr_t)physicalMemory >> 12) : "memory");
+	asm ("invlpg (%0)" ::"r" (virtualMemory) : "memory");
 }
 	
 void PageTableManager::UnmapMemory(void *virtualMemory) {
@@ -191,25 +191,29 @@ void PageTableManager::UnmapMemory(void *virtualMemory) {
 	asm volatile("invlpg (%0)" ::"r" (virtualMemory) : "memory");
 }
 
+/* This workn't */
 void *PageTableManager::GetPhysicalAddress(void *virtualMemory) {
-	PageMapIndexer indexer = PageMapIndexer((uint64_t)virtualMemory);
+	/* TODO: FIX FIX FIX FIX FIX */
+	return NULL;
+
+	PageMapIndexer indexer = PageMapIndexer((uintptr_t)virtualMemory - (uintptr_t)virtualMemory % PAGE_SIZE);
 	PageDirectoryEntry PDE;
-	void *address;
+	void *address = 0;
 
 	PDE = PML4->entries[indexer.PDP_i];
-	PageTable* PDP;
+	PageTable *PDP;
 	if (PDE.GetFlag(PT_Flag::Present)) {
 		PDP = (PageTable*)((uint64_t)PDE.GetAddress() << 12);
 	} else return NULL;
 
 	PDE = PDP->entries[indexer.PD_i];
-	PageTable* PD;
+	PageTable *PD;
 	if (PDE.GetFlag(PT_Flag::Present)) {
 		PD = (PageTable*)((uint64_t)PDE.GetAddress() << 12);
 	} else return NULL;
 
 	PDE = PD->entries[indexer.PT_i];
-	PageTable* PT;
+	PageTable *PT;
 	if (PDE.GetFlag(PT_Flag::Present)) {
 		PT = (PageTable*)((uint64_t)PDE.GetAddress() << 12);
 	} else return NULL;
@@ -218,6 +222,8 @@ void *PageTableManager::GetPhysicalAddress(void *virtualMemory) {
 	if (PDE.GetFlag(PT_Flag::Present)) {
 		address = (void*)((uint64_t)PDE.GetAddress() << 12);
 	} else return NULL;
+
+	address += (uintptr_t)virtualMemory % PAGE_SIZE;
 
 	return address;
 }

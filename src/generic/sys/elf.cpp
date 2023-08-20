@@ -53,17 +53,21 @@ void LoadProgramHeaders(uint8_t *data, size_t size, Elf64_Ehdr *elfHeader, VMM::
 			case PT_LOAD: {
 				size_t pageAmount = programHeader->p_memsz / PAGE_SIZE + 1;
 				uintptr_t *pages = new uintptr_t[pageAmount];
-				memset(pages, 0, pageAmount);
+				memset(pages, 0, pageAmount * sizeof(uintptr_t));
 
 				size_t fileRemaining = programHeader->p_filesz;
 
 				for (size_t page = 0; page < pageAmount; ++page) {
 					uintptr_t virtualAddr = programHeader->p_vaddr + page * PAGE_SIZE;
 
-					pages[page] = PMM::RequestPage();
+					uintptr_t addr = space->GetPhysicalAddress((void*)virtualAddr);
+					PRINTK::PrintK("Addr: 0x%x -> 0x%x\r\n", virtualAddr, addr);
+					if (addr == NULL || addr == virtualAddr) {
+						pages[page] = PMM::RequestPage();
 
-					VMM::MapMemory(space, pages[page], virtualAddr);
-					memset(pages[page], 0, PAGE_SIZE);
+						VMM::MapMemory(space, pages[page], virtualAddr);
+						memset(pages[page], 0, PAGE_SIZE);
+					} else pages[page] = addr;
 				}
 
 				for (size_t page = 0; page * PAGE_SIZE < programHeader->p_filesz; ++page) {

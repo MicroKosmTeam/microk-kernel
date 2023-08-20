@@ -60,9 +60,6 @@ size_t HandleSyscallFileClose(size_t TODO);
 size_t HandleSyscallKernOverride(size_t TODO);
 
 extern "C" size_t HandleSyscall(size_t syscallNumber, size_t arg1, size_t arg2, size_t arg3, size_t arg4, size_t arg5, size_t arg6) {
-	if(syscallNumber != SYSCALL_DEBUG_PRINTK)
-		PRINTK::PrintK("Syscall %x: %x %x %x %x %x %x\r\n", syscallNumber, arg1, arg2, arg3, arg4, arg5, arg6);
-
 	/* Check first if the syscall has been overridden. */
 	size_t override = CheckOverride(syscallNumber);
 	if(override != 0) return RunOverride(override);
