@@ -338,9 +338,11 @@ size_t HandleSyscallProcReturn(size_t returnCode, uintptr_t stack) {
 	KInfo *info = GetInfo();
 
 	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
+
 	PRINTK::PrintK("Returning: %d form 0x%x\r\n", returnCode, stack); 
 
 	PROC::Process *proc = info->kernelScheduler->GetRunningProcess();
+
 	info->kernelScheduler->SetProcessState(proc->GetPID(), PROC::P_WAITING);
 
 	while(true) {
@@ -474,7 +476,7 @@ size_t HandleSyscallModuleMessageSend(uint32_t vendorID, uint32_t productID, voi
 	if(size == 0) return -1;
 	
 	KInfo *info = GetInfo();
-	const size_t bufferSize = 4096;
+	const size_t bufferSize = PAGE_SIZE;
 	char buffer[bufferSize];
 
 	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
@@ -492,14 +494,14 @@ size_t HandleSyscallModuleMessageSend(uint32_t vendorID, uint32_t productID, voi
 	PROC::Process *receiverProc = receiverMod->GetProcess();
 	VMM::VirtualSpace *receiverProcSpace = receiverProc->GetVirtualMemorySpace();
 
-	size_t remaining;
+	size_t remaining = 0;
 	void *baseAddr = 0x700000000000;
 	
 	for (size_t i = 0; i < size; i += bufferSize) {
 		remaining = size - i;
 
 		VMM::LoadVirtualSpace(info->kernelVirtualSpace);
-		size_t *paddr = PMM::RequestPage();
+		void *paddr = PMM::RequestPage();
 		if (paddr == NULL) PANIC("Out of memory");
 
 		VMM::MapMemory(receiverProcSpace, paddr, baseAddr + i);
@@ -512,7 +514,7 @@ size_t HandleSyscallModuleMessageSend(uint32_t vendorID, uint32_t productID, voi
 
 		memcpy(baseAddr + i, buffer, remaining > bufferSize ? bufferSize : remaining);
 	}
-	
+
 	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
 
 	size_t paddr = receiverProcSpace->GetPhysicalAddress(baseAddr);

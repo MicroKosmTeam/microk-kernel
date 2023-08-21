@@ -194,8 +194,6 @@ void PageTableManager::UnmapMemory(void *virtualMemory) {
 /* This workn't */
 void *PageTableManager::GetPhysicalAddress(void *virtualMemory) {
 	/* TODO: FIX FIX FIX FIX FIX */
-	return NULL;
-
 	PageMapIndexer indexer = PageMapIndexer((uintptr_t)virtualMemory - (uintptr_t)virtualMemory % PAGE_SIZE);
 	PageDirectoryEntry PDE;
 	void *address = 0;

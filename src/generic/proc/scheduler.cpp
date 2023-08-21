@@ -196,7 +196,7 @@ Process *Scheduler::GetProcess(size_t PID) {
 Process *Scheduler::GetRunningProcess() {
 	return CurrentProcess;
 }
-		
+
 void Scheduler::RecalculateScheduler() {
 	PROC::Process *proc = PopFirstNode(RunQueueBaseNode);
 	if (proc == NULL) return;
@@ -231,7 +231,7 @@ void Scheduler::SwitchToTask(Process *proc, size_t TID) {
 	CurrentProcess = proc;
 
 	ProcessType type = proc->GetType();
-	
+
 	VMM::LoadVirtualSpace(proc->GetVirtualMemorySpace());
 
 	switch(type) {
