@@ -109,7 +109,7 @@ static inline void PrintRegs(CPUStatus *context) {
 
 #include <arch/x64/dev/apic.hpp>
 /* Stub exception handler */
-extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
+extern "C" CPUStatus *InterruptHandler(volatile CPUStatus *context) {
 	KInfo *info = GetInfo();
 	bool isFatal = false;
 
@@ -163,12 +163,42 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 			}
 			break;
 		case 32:
+			if(context->IretCS != GDT_OFFSET_KERNEL_CODE && info->kernelScheduler != NULL) {
+				volatile CPUStatus *newCurrentProcess = NULL;
+
+				info->kernelScheduler->SaveProcessContext(context);
+				info->kernelScheduler->RecalculateScheduler();
+				
+				proc = info->kernelScheduler->GetRunningProcess();
+				if(proc != NULL) procSpace = proc->GetVirtualMemorySpace();
+				else PANIC("Null proc");
+
+				if(proc->GetProcessState() == PROC::P_MESSAGE) {
+					newCurrentProcess = proc->GetMessageThread()->GetContext();
+				} else {
+					newCurrentProcess = proc->GetMainThread()->GetContext();
+				}
+
+				PrintRegs(context);
+				uint64_t flags = context->IretRFLAGS;
+
+				PRINTK::PrintK("Flags: %d\r\n", flags);
+				memcpy(context, newCurrentProcess, sizeof(CPUStatus));
+
+				context->IretRFLAGS = flags;
+				context->IretCS = GDT_OFFSET_USER_CODE;
+				context->IretSS = GDT_OFFSET_USER_CODE + 0x08;
+
+				switchAddressSpace = true;
+				proc = info->kernelScheduler->GetRunningProcess();
+				if(proc != NULL) procSpace = proc->GetVirtualMemorySpace();
+				else PANIC("Null proc");
+				
+				PrintRegs(context);
+			}
+
 			x86_64::SendAPICEOI();
 			x86_64::WaitAPIC();
-			/* TODO:
-			if(info->kernelScheduler != NULL)
-				info->kernelScheduler->RecalculateScheduler();
-			*/
 			break;
 		case 254:
 			HandleSyscall(context->RAX, context->RDI, context->RSI, context->RDX, context->RCX, context->R8, context->R9);

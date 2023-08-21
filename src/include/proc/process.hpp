@@ -3,7 +3,7 @@
 #include <stddef.h>
 #include <mm/vmm.hpp>
 #include <sys/vector.hpp>
-#include <arch/x64/cpu/stack.hpp>
+#include <arch/x64/interrupts/idt.hpp>
 
 namespace PROC {
 	enum ProcessState {
@@ -82,6 +82,14 @@ namespace PROC {
 		void SetStack(uintptr_t stack);
 		ProcessState GetState();
 
+		void SaveContext(CPUStatus *context) {
+			Context = context;
+		}
+
+		CPUStatus *GetContext() {
+			return Context;
+		}
+
 		size_t GetTID();
 		uintptr_t GetStack();
 		uintptr_t GetStackBase();
@@ -90,7 +98,6 @@ namespace PROC {
 	private:
 		size_t TID;
 
-
 		uintptr_t Stack;
 		uintptr_t StackBase;
 		size_t StackSize;
@@ -98,7 +105,7 @@ namespace PROC {
 		uintptr_t KernelStackBase;
 		size_t KernelStackSize;
 
-		SaveContext *Context;
+		CPUStatus *Context;
 		uintptr_t Instruction;
 
 		uintptr_t MessageHandler;

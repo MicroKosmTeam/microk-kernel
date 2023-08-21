@@ -103,6 +103,7 @@ void PrintBanner() {
 /*
    Main kernel function.
 */
+#include <arch/x64/dev/apic.hpp>
 __attribute__((noreturn)) void KernelStart() {
 	KInfo *info = GetInfo();
 
@@ -162,6 +163,9 @@ __attribute__((noreturn)) void KernelStart() {
 
 		PRINTK::PrintK("Switching to user module.\r\n");
 		info->kernelScheduler->RecalculateScheduler();
+		info->kernelScheduler->SwitchToTask(info->kernelScheduler->GetRunningProcess(),info->kernelScheduler->GetRunningProcess()->GetMainThread());
+		x86_64::EnableAPIC();
+		x86_64::WaitAPIC();
 	} else PANIC("Could not find User Module");
 #endif
 

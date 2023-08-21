@@ -347,6 +347,10 @@ size_t HandleSyscallProcReturn(size_t returnCode, uintptr_t stack) {
 
 	while(true) {
 		info->kernelScheduler->RecalculateScheduler();
+		PROC::Process *newProc = info->kernelScheduler->GetRunningProcess();
+		if(newProc == NULL) continue;
+		
+		info->kernelScheduler->SwitchToTask(newProc, newProc->GetMainThread());
 	}
 
 	return 0;

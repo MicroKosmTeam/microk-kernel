@@ -167,18 +167,17 @@ Thread::Thread(Process *process, size_t stackSize, uintptr_t entrypoint, size_t 
 				VMM::MapMemory(space, (void*)PMM::RequestPage(), (void*)i);
 			}
 
-			Context = StackBase = Stack = highestFree - sizeof(SaveContext);
+			Context = new CPUStatus;
+			memset(Context, 0, sizeof(CPUStatus));
+			Context->IretRIP = entrypoint;
+			Context->IretRSP = highestFree;
 
+			StackBase = Stack = highestFree;
 			process->SetHighestFree((highestFree - stackSize) - (highestFree - stackSize) % 16);
-
-			volatile void *addr = Context;
+			volatile void *stackBase = StackBase - stackSize;
 
 			VMM::LoadVirtualSpace(space);
-
-			memset(addr, 0, sizeof(SaveContext));
-			
-			InitializeStack(addr, entrypoint);
-
+			memset(stackBase, 0, stackSize);
 			VMM::LoadVirtualSpace(info->kernelVirtualSpace);
 			}
 			break;

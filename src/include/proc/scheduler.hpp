@@ -18,11 +18,15 @@ namespace PROC {
 		Process *GetProcess(size_t PID);
 		Process *GetRunningProcess();
 
+		void SaveProcessContext(CPUStatus *status);
+		CPUStatus *GetProcessContext();
 		int SetProcessState(size_t PID, ProcessState state);
 
 		size_t GetMaxPID() { return MaxPID; }
+		
 			
 		void RecalculateScheduler();
+		void SwitchToTask(Process *proc, Thread *thread);
 	private:
 		ProcessNode *Scheduler::AddNode(ProcessNode *queue, Process *proc);
 		Process *PopFirstNode(ProcessNode *queue);
@@ -30,7 +34,6 @@ namespace PROC {
 		ProcessNode *FindNode(ProcessNode *queue, size_t pid, ProcessNode **previous, bool *found);
 		
 		Process *GetProcess(size_t PID, ProcessNode *queue);
-		void SwitchToTask(Process *proc, size_t TID);
 
 		uintmax_t MaxPID;
 		Process *CurrentProcess;

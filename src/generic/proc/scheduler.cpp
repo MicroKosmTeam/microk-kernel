@@ -196,8 +196,18 @@ Process *Scheduler::GetProcess(size_t PID) {
 Process *Scheduler::GetRunningProcess() {
 	return CurrentProcess;
 }
+		
+void Scheduler::SaveProcessContext(CPUStatus *status) {
+	CurrentProcess->GetMainThread()->SaveContext(status);
+}
+		
+CPUStatus *Scheduler::GetProcessContext() {
+	return CurrentProcess->GetMainThread()->GetContext();
+}
 
 void Scheduler::RecalculateScheduler() {
+	CurrentProcess = NULL;
+
 	PROC::Process *proc = PopFirstNode(RunQueueBaseNode);
 	if (proc == NULL) return;
 
@@ -205,15 +215,11 @@ void Scheduler::RecalculateScheduler() {
 
 	if (RunQueueBaseNode->Next == NULL) return;
 
-	CurrentProcess = proc;
-
-	SwitchToTask(RunQueueBaseNode->Next->Proc, 0);
-}
-
-void Scheduler::SwitchToTask(Process *proc, size_t TID) {
+	proc = RunQueueBaseNode->Next->Proc;
 	if (proc == NULL) return;
 
 	Thread *thread;
+	size_t TID = 0;
 
 	if (TID == 0) thread = proc->GetMainThread();
 	else thread = proc->GetThread(TID);
@@ -223,14 +229,24 @@ void Scheduler::SwitchToTask(Process *proc, size_t TID) {
 	if(proc->GetProcessState() == P_MESSAGE) {
 		Thread *msg = proc->GetMessageThread();
 		if (msg != NULL) thread = msg;
+		SwitchToTask(proc, msg);
 	}
-
-	void *stack = thread->GetStack();
-	void *entry = thread->GetInstruction();
 
 	CurrentProcess = proc;
 
+//	SwitchToTask(CurrentProcess, thread);
+}
+
+void Scheduler::SwitchToTask(Process *proc, Thread *thread) {
+	if (proc == NULL) return;
+	if (thread == NULL) return;
+
+	volatile void *stack = thread->GetStack();
+	volatile void *entry = thread->GetInstruction();
+
 	ProcessType type = proc->GetType();
+		
+	CurrentProcess = proc;
 
 	VMM::LoadVirtualSpace(proc->GetVirtualMemorySpace());
 
