@@ -345,12 +345,9 @@ size_t HandleSyscallProcReturn(size_t returnCode, uintptr_t stack) {
 
 	info->kernelScheduler->SetProcessState(proc->GetPID(), PROC::P_WAITING);
 
+	asm volatile("sti");
 	while(true) {
-		info->kernelScheduler->RecalculateScheduler();
-		PROC::Process *newProc = info->kernelScheduler->GetRunningProcess();
-		if(newProc == NULL) continue;
-		
-		info->kernelScheduler->SwitchToTask(newProc, newProc->GetMainThread());
+		asm volatile("pause");
 	}
 
 	return 0;

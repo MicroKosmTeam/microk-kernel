@@ -52,7 +52,7 @@ void IDTInit() {
 		IDTSetDescriptor(vector, isrStubTable[vector],  0x8F);
 	}
 		
-	IDTSetDescriptor(32, isrStubTable[32], 0x8E);
+	IDTSetDescriptor(32, isrStubTable[32], 0xEE);
 	IDTSetDescriptor(254, isrStubTable[254], 0xEE);
 
 	/* Load the new IDT */
@@ -163,13 +163,17 @@ extern "C" CPUStatus *InterruptHandler(volatile CPUStatus *context) {
 			}
 			break;
 		case 32:
-			if(context->IretCS != GDT_OFFSET_KERNEL_CODE && info->kernelScheduler != NULL) {
-				volatile CPUStatus *newCurrentProcess = NULL;
-
+			if(context->IretRIP < 0xFFFFFFFF80000000) 
+			if(info->kernelScheduler != NULL) {
+				CPUStatus *newCurrentProcess = NULL;
+				
+//				PrintRegs(context);
+				
 				info->kernelScheduler->SaveProcessContext(context);
 				info->kernelScheduler->RecalculateScheduler();
 				
 				proc = info->kernelScheduler->GetRunningProcess();
+
 				if(proc != NULL) procSpace = proc->GetVirtualMemorySpace();
 				else PANIC("Null proc");
 
@@ -179,22 +183,23 @@ extern "C" CPUStatus *InterruptHandler(volatile CPUStatus *context) {
 					newCurrentProcess = proc->GetMainThread()->GetContext();
 				}
 
-				PrintRegs(context);
 				uint64_t flags = context->IretRFLAGS;
 
-				PRINTK::PrintK("Flags: %d\r\n", flags);
 				memcpy(context, newCurrentProcess, sizeof(CPUStatus));
 
-				context->IretRFLAGS = flags;
-				context->IretCS = GDT_OFFSET_USER_CODE;
-				context->IretSS = GDT_OFFSET_USER_CODE + 0x08;
-
-				switchAddressSpace = true;
-				proc = info->kernelScheduler->GetRunningProcess();
-				if(proc != NULL) procSpace = proc->GetVirtualMemorySpace();
-				else PANIC("Null proc");
+				if(context->IretCS != GDT_OFFSET_KERNEL_CODE) { 
+					context->IretCS = GDT_OFFSET_USER_CODE;
+					context->IretSS = GDT_OFFSET_USER_CODE + 0x08;
 				
-				PrintRegs(context);
+					switchAddressSpace = true;
+				} else {
+					context->IretCS = GDT_OFFSET_KERNEL_CODE;
+					context->IretSS = GDT_OFFSET_KERNEL_CODE + 0x08;
+
+					switchAddressSpace = false;
+				}
+
+//				PrintRegs(context);
 			}
 
 			x86_64::SendAPICEOI();

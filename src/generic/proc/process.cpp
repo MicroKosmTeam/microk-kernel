@@ -171,6 +171,7 @@ Thread::Thread(Process *process, size_t stackSize, uintptr_t entrypoint, size_t 
 			memset(Context, 0, sizeof(CPUStatus));
 			Context->IretRIP = entrypoint;
 			Context->IretRSP = highestFree;
+			Context->IretRFLAGS = 0x0202;
 
 			StackBase = Stack = highestFree;
 			process->SetHighestFree((highestFree - stackSize) - (highestFree - stackSize) % 16);
