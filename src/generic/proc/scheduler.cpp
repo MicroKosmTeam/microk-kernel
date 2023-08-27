@@ -4,7 +4,6 @@
 #include <init/kinfo.hpp>
 #include <mm/pmm.hpp>
 #include <sys/panic.hpp>
-#include <init/main.hpp>
 #include <sys/user.hpp>
 
 namespace PROC {
@@ -99,10 +98,6 @@ Scheduler::Scheduler() {
 	BlockedQueueBaseNode->Next = NULL;
 
 	info->kernelProcess = new Process(PT_KERNEL, info->kernelVirtualSpace);
-	size_t mainTID = info->kernelProcess->CreateThread(128 * 1024, RestInit);
-
-	info->kernelProcess->SetMainThread(mainTID);
-
 	AddProcess(info->kernelProcess);
 }
 

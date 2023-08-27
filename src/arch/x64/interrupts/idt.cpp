@@ -115,7 +115,7 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 
 	uintptr_t cr3;
 	asm volatile("mov %%cr3, %0" : "=r"(cr3) :: "memory");
-	bool switchAddressSpace = cr3 != info->kernelVirtualSpace->GetTopAddress() ? true : false;
+	bool switchAddressSpace = (cr3 != info->kernelVirtualSpace->GetTopAddress()) ? true : false;
 
 	PROC::Process *proc;
 	VMM::VirtualSpace *procSpace;

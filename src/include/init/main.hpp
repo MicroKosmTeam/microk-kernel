@@ -56,6 +56,6 @@ void PrintBanner();
  * initialized.
  * 
  * arguments: void 
- * return: none
+ * return: never 
  */
 __attribute__((noreturn)) void KernelStart();

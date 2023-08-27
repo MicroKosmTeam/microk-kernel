@@ -12,6 +12,7 @@
 #include <module/buffer.hpp>
 #include <module/message.hpp>
 #include <mm/string.hpp>
+#include <mm/memory.hpp>
 #include <sys/file.hpp>
 
 // TMP measure: do something better with SMP
