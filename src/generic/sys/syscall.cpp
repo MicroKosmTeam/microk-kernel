@@ -604,21 +604,10 @@ size_t HandleSyscallFileOpen(char *filename, uintptr_t *address, size_t *length)
 	size_t filenameLength = strlen(filename);
 	filenameLength = filenameLength > 512 ? 512 : filenameLength;
 
-	char newFilename[512];
+	char newFilename[512] = {0};
 	memcpy(newFilename, filename, filenameLength);
-	size_t newLength;
-	size_t *newAddr;
 
-//	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
-	
-//	VMM::VirtualSpace *procSpace = info->kernelScheduler->GetRunningProcess()->GetVirtualMemorySpace();
-
-	newAddr = FILE::Open(newFilename, &newLength);
-	
-//	VMM::LoadVirtualSpace(procSpace);
-
-	*address = newAddr;
-	*length = newLength;
+	*address = FILE::Open(newFilename, length);
 
 	return 0;
 }
@@ -629,14 +618,15 @@ size_t HandleSyscallFileRead(char *filename, uintptr_t address, size_t length) {
 	size_t filenameLength = strlen(filename);
 	filenameLength = filenameLength > 512 ? 512 : filenameLength;
 
-	char newFilename[512];
+	char newFilename[512] = {0};
 	memcpy(newFilename, filename, filenameLength);
 
-	size_t newLength;
-	size_t *newAddr;
-	newAddr = FILE::Open(newFilename, &newLength);
+	size_t fileLength;
+	uintptr_t fileAddr;
 
-	memcpy(address, newAddr, length > newLength ? newLength : length);
+	fileAddr = FILE::Open(newFilename, &fileLength);
+
+	memcpy(address, fileAddr, length > fileLength ? fileLength : length);
 	
 	return 0;
 }
