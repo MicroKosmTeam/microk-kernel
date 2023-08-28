@@ -8,7 +8,7 @@ uint32_t lastPosition = 0;
 bool bootmemStatus = true;
 
 namespace BOOTMEM {
-	bool DeactivateBootmem() {
+	void DeactivateBootmem() {
 		bootmemStatus = false;
 	}
 
