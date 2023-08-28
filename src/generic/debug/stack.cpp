@@ -5,18 +5,11 @@
 #include <sys/symbol.hpp>
 #include <sys/printk.hpp>
 
-#if UINT32_MAX == UINTPTR_MAX
-	#define STACK_CHK_GUARD 0xe2dee396
-#else
-	#define STACK_CHK_GUARD 0x595e9fbd94fda766
-#endif
-
-uintptr_t __stack_chk_guard = STACK_CHK_GUARD;
+uintptr_t __stack_chk_guard = 0;
 
 __attribute__((noreturn))
 extern "C" void __stack_chk_fail() {
-	PRINTK::PrintK("\r\nWarning!! Stack smashing in the kernel has been detected.\r\n");
-	PANIC("Stack smashing detected");
+	OOPS("Stack smashing detected in the kernel");
 }
 
 /* Assume, as is often the case, that RBP is the first thing pushed. If not, we are in trouble. */

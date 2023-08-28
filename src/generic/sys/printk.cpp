@@ -28,6 +28,7 @@ void FlushBuffer() {
 }
 
 void PutChar(char ch) {
+//	PrintKSpinlock.Lock();
 
 	bool justNewline = false;
 
@@ -43,6 +44,7 @@ void PutChar(char ch) {
 		justNewline = true;
 	}
 	
+//	PrintKSpinlock.Unlock();	
 }
 
 void PutStr(char *str) {
@@ -53,9 +55,7 @@ void PrintK(char *format, ...) {
         va_list ap;
         va_start(ap, format);
 
-//	PrintKSpinlock.Lock();
 	VPrintK(format, ap);
-//	PrintKSpinlock.Unlock();
 
         va_end(ap);
 }
@@ -100,7 +100,7 @@ void EarlyInit() {
 	memset(TerminalColumn, 0, TERMINAL_SIZE + 1);
 
 #ifdef CONFIG_HW_UART
-	info->kernelPort = (UARTDevice*)BOOTMEM::Malloc(sizeof(UARTDevice) + 1);
+	info->kernelPort = (UARTDevice*)BOOTMEM::Malloc(sizeof(UARTDevice));
 #if defined(ARCH_x64)
 	info->kernelPort->Init(COM1);
 #elif defined(ARCH_aarch64)

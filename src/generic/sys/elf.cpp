@@ -24,7 +24,6 @@ size_t LoadProcess(Elf64_Ehdr *elfHeader, VMM::VirtualSpace *space);
 uint64_t LoadELF(uint8_t *data, size_t size) {
 	KInfo *info = GetInfo();
 
-	asm volatile ("cli");
 	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
 
 	VMM::VirtualSpace *space = VMM::NewModuleVirtualSpace();
@@ -34,7 +33,6 @@ uint64_t LoadELF(uint8_t *data, size_t size) {
 	LoadProgramHeaders(data, size, elfHeader, space);
 	LinkSymbols(data, size, elfHeader);
 	size_t pid  = LoadProcess(elfHeader, space);
-	asm volatile ("sti");
 
 	return pid;
 }

@@ -60,6 +60,7 @@ int EarlyKernelInit() {
 #elif defined(ARCH_aarch64)
 	AArch64::EarlyInit();
 #endif
+
 	/* Loading early serial printk */
 	PRINTK::EarlyInit();
 

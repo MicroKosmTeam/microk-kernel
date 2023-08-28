@@ -1,4 +1,6 @@
 #include <cdefs.h>
+#include <stdint.h>
+#include <stddef.h>
 #include <limine.h>
 #include <sys/panic.hpp>
 #include <init/main.hpp>
@@ -92,13 +94,35 @@ static volatile limine_dtb_request dtbRequest {
 
 #endif
 
+static volatile limine_boot_time_request timeRequest {
+	.id = LIMINE_BOOT_TIME_REQUEST,
+	.revision = 0
+};
+
 #define PREFIX "Limine: "
 
+extern uintptr_t __stack_chk_guard;
+
 /* Main Limine initialization function */
-__attribute__((noreturn)) extern "C" void LimineEntry() {
+extern "C" __attribute__((no_stack_protector)) __attribute__((noreturn))
+void LimineEntry() {
+	if(timeRequest.response != NULL) {
+		#if UINT32_MAX == UINTPTR_MAX
+			__stack_chk_guard = timeRequest.response->boot_time & 0xFFFFFFFF;
+		#else
+			__stack_chk_guard = timeRequest.response->boot_time;
+		#endif
+	} else {
+		#if UINT32_MAX == UINTPTR_MAX
+			__stack_chk_guard = 0xe2dee396;
+		#else
+			__stack_chk_guard = 0x595e9fbd94fda766;
+		#endif
+	}
+	
 	/* Startup basic kernel runtime services */
 	EarlyKernelInit();
-
+	
 	KInfo *info = GetInfo();
 
 	/* Checking if vital requests have been answered by Limine
@@ -111,7 +135,7 @@ __attribute__((noreturn)) extern "C" void LimineEntry() {
 	   kernelFileRequest.response == NULL
 	   )
 		PANIC("Requests not answered by Limine");
-
+	
 	/* Transporting the MMAP */
 	PRINTK::PrintK(PREFIX "Getting the memory map from Limine...\r\n");
 
