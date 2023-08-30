@@ -53,6 +53,7 @@ void operator delete(void* p, size_t size) {
 	// We should assume that someone that allocs on BOOTMEM
 	// will not call free
 
+	(void)size;
 	HEAP::Free(p);
 }
 
@@ -69,6 +70,7 @@ void operator delete[](void* p, size_t size) {
 	// We should assume that someone that allocs on BOOTMEM
 	// will not call free
 
+	(void)size;
 	HEAP::Free(p);
 }
 
@@ -79,19 +81,17 @@ void DisplayRam() {
 
 	PRINTK::PrintK("Provided physical RAM map:\r\n");
 
-	for (int i = 0; i < info->mMapEntryCount; i++) {
+	for (size_t i = 0; i < info->MemoryMapEntryCount; i++) {
 		PRINTK::PrintK(" [0x%x - 0x%x] -> %s\r\n",
-				info->mMap[i].base,
-				info->mMap[i].base + info->mMap[i].length,
-				memTypeStrings[info->mMap[i].type]);
+				info->MemoryMap[i].base,
+				info->MemoryMap[i].base + info->MemoryMap[i].length,
+				memTypeStrings[info->MemoryMap[i].type]);
 	}
 
 }
 
 
 void Init() {
-	KInfo *info = GetInfo();
-
 	VMM::InitVMM();
 }
 }

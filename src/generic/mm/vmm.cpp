@@ -7,9 +7,9 @@ namespace VMM {
 void InitVMM() {
 	KInfo *info = GetInfo();
 
-	info->kernelVirtualSpace = NewKernelVirtualSpace();
+	info->KernelVirtualSpace = NewKernelVirtualSpace();
 
-	LoadVirtualSpace(info->kernelVirtualSpace);
+	LoadVirtualSpace(info->KernelVirtualSpace);
 
 	PRINTK::PrintK("Virtual memory subsystem initialized.\r\n");
 
@@ -21,38 +21,38 @@ VirtualSpace *NewModuleVirtualSpace() {
 	VirtualSpace *space = NewVirtualSpace();
 
 	/* We go through every entry in the memory map and map it in virtual memory */
-	for (int i = 0; i < info->mMapEntryCount; i++) {
-		MEM::MMapEntry entry = info->mMap[i];
+	for (size_t i = 0; i < info->MemoryMapEntryCount; i++) {
+		MEM::MMapEntry entry = info->MemoryMap[i];
 
 		if (entry.type == MEMMAP_BAD_MEMORY ||
 		    entry.type == MEMMAP_RESERVED ||
 		    entry.type == MEMMAP_USABLE) continue;
 
 		/* We find the base and the top by rounding to the closest page boundary */
-		uint64_t base = entry.base - (entry.base % PAGE_SIZE);
-		uint64_t top = base + entry.length + (entry.length % PAGE_SIZE);
+		uintptr_t base = entry.base - (entry.base % PAGE_SIZE);
+		uintptr_t top = base + entry.length + (entry.length % PAGE_SIZE);
 
 		/* If it's kernel code, we will map its special location, otherwise we do the lower half and higher half mappings. */
 		/* We use the kernel base to be sure we are not mapping module code over the kernel code. */
-		if (entry.type == MEMMAP_KERNEL_AND_MODULES && entry.base == info->kernelPhysicalBase) {
-			for (uint64_t t = base; t < top; t += PAGE_SIZE){
-				space->MapMemory(t, info->kernelVirtualBase + t - info->kernelPhysicalBase, VMM_PRESENT | VMM_READWRITE | VMM_GLOBAL);
+		if (entry.type == MEMMAP_KERNEL_AND_MODULES && entry.base == info->KernelPhysicalBase) {
+			for (uintptr_t t = base; t < top; t += PAGE_SIZE){
+				space->MapMemory((void*)t, (void*)(info->KernelVirtualBase + t - info->KernelPhysicalBase), VMM_PRESENT | VMM_READWRITE | VMM_GLOBAL);
 
 			}
 		} else if (entry.type == MEMMAP_ACPI_RECLAIMABLE || entry.type == MEMMAP_ACPI_NVS) {
-			for (uint64_t t = base; t < top; t += PAGE_SIZE) {
-				space->MapMemory(t, t + info->higherHalfMapping, VMM_PRESENT | VMM_USER);
+			for (uintptr_t t = base; t < top; t += PAGE_SIZE) {
+				space->MapMemory((void*)t, (void*)(t + info->HigherHalfMapping), VMM_PRESENT | VMM_USER);
 			}
 		} else {
-			for (uint64_t t = base; t < top; t += PAGE_SIZE) {
-				space->MapMemory(t, t + info->higherHalfMapping, VMM_PRESENT | VMM_READWRITE | VMM_GLOBAL);
+			for (uintptr_t t = base; t < top; t += PAGE_SIZE) {
+				space->MapMemory((void*)t, (void*)(t + info->HigherHalfMapping), VMM_PRESENT | VMM_READWRITE | VMM_GLOBAL);
 			}
 		}
 	}
 
 #ifdef CONFIG_ARCH_x86_64
-	for (uintptr_t t = PAGE_SIZE; t < info->kernelStack; t+=PAGE_SIZE) {
-		space->MapMemory(t, t, VMM_PRESENT | VMM_READWRITE);
+	for (uintptr_t t = PAGE_SIZE; t < info->KernelStack; t+=PAGE_SIZE) {
+		space->MapMemory((void*)t, (void*)t, VMM_PRESENT | VMM_READWRITE | VMM_GLOBAL);
 	}
 #endif
 
@@ -65,33 +65,37 @@ VirtualSpace *NewKernelVirtualSpace() {
 	VirtualSpace *space = NewVirtualSpace();
 	
 	/* We go through every entry in the memory map and map it in virtual memory */
-	for (int i = 0; i < info->mMapEntryCount; i++) {
-		MEM::MMapEntry entry = info->mMap[i];
+	for (size_t i = 0; i < info->MemoryMapEntryCount; i++) {
+		MEM::MMapEntry entry = info->MemoryMap[i];
 
 		/* We will skip any memory that is not usable by our kernel, to make the process faster */
-		/* We also ignore ACPI, as our kernel is not interested by the information contained in those structures */
-		/* It is the responsibility of the modules to manage any ACPI related code, and also to free reclaimable areas */
 		if (entry.type == MEMMAP_BAD_MEMORY ||
 		    entry.type == MEMMAP_RESERVED) continue;
 
 		/* We find the base and the top by rounding to the closest page boundary */
-		uint64_t base = entry.base - (entry.base % PAGE_SIZE);
-		uint64_t top = base + entry.length + (entry.length % PAGE_SIZE);
+		uintptr_t base = entry.base - (entry.base % PAGE_SIZE);
+		uintptr_t top = base + entry.length + (entry.length % PAGE_SIZE);
 
 		/* If it's kernel code, we will map its special location, otherwise we do the lower half and higher half mappings. */
 		/* We use the kernel base to be sure we are not mapping module code over the kernel code. */
-		if (entry.type == MEMMAP_KERNEL_AND_MODULES && entry.base == info->kernelPhysicalBase) {
-			for (uint64_t t = base; t < top; t += PAGE_SIZE){
-				space->MapMemory(t, info->kernelVirtualBase + t - info->kernelPhysicalBase, VMM_PRESENT | VMM_READWRITE | VMM_GLOBAL);
+		if (entry.type == MEMMAP_KERNEL_AND_MODULES && entry.base == info->KernelPhysicalBase) {
+			for (uintptr_t t = base; t < top; t += PAGE_SIZE){
+				space->MapMemory((void*)t, (void*)(info->KernelVirtualBase + t - info->KernelPhysicalBase), VMM_PRESENT | VMM_READWRITE | VMM_GLOBAL);
 
 			}
 		} else {
-			for (uint64_t t = base; t < top; t += PAGE_SIZE){
-				space->MapMemory(t, t, VMM_PRESENT | VMM_READWRITE);
-				space->MapMemory(t, t + info->higherHalfMapping, VMM_PRESENT | VMM_READWRITE);
+			for (uintptr_t t = base; t < top; t += PAGE_SIZE){
+				space->MapMemory((void*)t, (void*)t, VMM_PRESENT | VMM_READWRITE);
+				space->MapMemory((void*)t, (void*)(t + info->HigherHalfMapping), VMM_PRESENT | VMM_READWRITE);
 			}
 		}
 	}
+
+#ifdef CONFIG_ARCH_x86_64
+	for (uintptr_t t = PAGE_SIZE; t < info->KernelStack; t+=PAGE_SIZE) {
+		space->MapMemory((void*)t, (void*)t, VMM_PRESENT | VMM_READWRITE | VMM_GLOBAL);
+	}
+#endif
 
 	return space;
 }
@@ -117,7 +121,7 @@ void MapMemory(VirtualSpace *space, void *physicalMemory, void *virtualMemory) {
 	space->MapMemory(physicalMemory, virtualMemory, VMM_PRESENT | VMM_READWRITE | VMM_USER);
 }
 	
-void MapMemory(VirtualSpace *space, void *physicalMemory, void *virtualMemory, uint64_t flags) {
+void MapMemory(VirtualSpace *space, void *physicalMemory, void *virtualMemory, size_t flags) {
 	space->MapMemory(physicalMemory, virtualMemory, flags);
 
 }

@@ -9,7 +9,7 @@ size_t strlen(const char *str) {
 char *strcpy(char *strDest, const char *strSrc){
         if(strDest==NULL || strSrc==NULL) return NULL;
         char *temp = strDest;
-        while(*strDest++ = *strSrc++);
+        while((*strDest++ = *strSrc++));
         return temp;
 }
 

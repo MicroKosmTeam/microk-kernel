@@ -52,7 +52,6 @@
 int EarlyKernelInit() {
 	/* Allocating memory for the info struct */
 	InitInfo();
-	KInfo *info = GetInfo();
 
 	/* Initializing early architecture-specific devices */
 #if defined(ARCH_x64)
@@ -89,7 +88,7 @@ void PrintBanner() {
 			PMM::GetFreeMem() / 1024,
 			(PMM::GetFreeMem() + PMM::GetUsedMem()) / 1024,
 			PMM::GetUsedMem() / 1024,
-			info->kernelVirtualBase,
+			info->KernelVirtualBase,
 			BOOTMEM::GetFree(),
 			BOOTMEM::GetTotal(),
 			BOOTMEM::GetTotal() - BOOTMEM::GetFree());
@@ -109,7 +108,7 @@ __attribute__((noreturn)) void KernelStart() {
 	MEM::Init();
 
 	/* Initializing the heap */
-	HEAP::InitializeHeap(CONFIG_HEAP_BASE, CONFIG_HEAP_SIZE / 0x1000);
+	HEAP::InitializeHeap((void*)CONFIG_HEAP_BASE, CONFIG_HEAP_SIZE / 0x1000);
 
 	/* With the heap initialized, disable new bootmem allocations */
 	BOOTMEM::DeactivateBootmem();
@@ -126,7 +125,7 @@ __attribute__((noreturn)) void KernelStart() {
 
 #ifdef CONFIG_KERNEL_MODULES
 	/* Initializing the scheduler framework */
-	info->kernelScheduler = new PROC::Scheduler();
+	info->KernelScheduler = new PROC::Scheduler();
 
 	/* Initialize the kernel's module manager */
 	info->KernelModuleManager = new MODULE::Manager();
@@ -137,10 +136,10 @@ __attribute__((noreturn)) void KernelStart() {
 	
 	/* Load all the files we are told to load */
 	size_t moduleSize;
-	void *addr;
+	uint8_t *addr;
 
 	/* Get the memory location of the user module */
-	addr = FILE::Open(info->UserModuleName, &moduleSize);
+	addr = (uint8_t*)FILE::Open(info->UserModuleName, &moduleSize);
 	
 	/* Check if it is present */
 	if (addr != NULL) {
@@ -148,16 +147,11 @@ __attribute__((noreturn)) void KernelStart() {
 
 		/* Create the process and set it to a ready state */
 		size_t pid = LoadExecutableFile(addr, moduleSize);
-		info->kernelScheduler->SetProcessState(pid, PROC::P_READY);
+		info->KernelScheduler->SetProcessState(pid, PROC::P_READY);
 
 		/* Recalculate the scheduler and wait for the context switch */
 		PRINTK::PrintK("Switching to user module.\r\n");
-		info->kernelScheduler->RecalculateScheduler();
-
-		x86_64::EnableAPIC();
-		x86_64::WaitAPIC();
-
-		info->kernelScheduler->SwitchToTask(info->kernelScheduler->GetRunningProcess(),info->kernelScheduler->GetRunningProcess()->GetMainThread());
+		info->KernelScheduler->RecalculateScheduler();
 	} else PANIC("Could not find User Module");
 #endif
 

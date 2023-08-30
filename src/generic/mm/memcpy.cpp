@@ -1,18 +1,19 @@
+#include <stddef.h>
+#include <stdint.h>
 #include <mm/memory.hpp>
 #include <arch/x64/cpu/cpu.hpp>
 
 void *memcpy(void *dest, void *src, size_t n) {
 	if (false) {
-		int i;
-	        for(i=0; i<n/16; i++) {
+	        for(size_t i=0; i<n/16; i++) {
 			__asm__ __volatile__ (
 		                        "movups (%0), %%xmm0\n"
 	                                "movntdq %%xmm0, (%1)\n"
 					::"r"(src),
 				        "r"(dest) : "memory");
 
-			src += 16;
-		        dest += 16;
+			src = (void*)((uintptr_t)src + 16);
+		        dest = (void*)((uintptr_t)dest + 16);
 	        }
 
 		if(n & 7) {
@@ -36,7 +37,7 @@ void *memcpy(void *dest, void *src, size_t n) {
 		char *csrc = (char *)src;
 	        char *cdest = (char *)dest;
 
-		for (int i=0; i<n; i++) cdest[i] = csrc[i];
+		for (size_t i=0; i<n; i++) cdest[i] = csrc[i];
 	}
 
 	return dest;

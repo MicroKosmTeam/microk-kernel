@@ -7,9 +7,9 @@
 
 uintptr_t __stack_chk_guard = 0;
 
-__attribute__((noreturn))
-extern "C" void __stack_chk_fail() {
-	OOPS("Stack smashing detected in the kernel");
+extern "C" __attribute__((noreturn))
+void __stack_chk_fail() {
+	PANIC("Stack smashing detected in the kernel");
 }
 
 /* Assume, as is often the case, that RBP is the first thing pushed. If not, we are in trouble. */
@@ -22,7 +22,8 @@ void UnwindStack(int MaxFrames) {
 	StackFrame *stk;
 	stk = (StackFrame*)__builtin_frame_address(0);
 	PRINTK::PrintK("Stack trace:\r\n");
-	for(unsigned int frame = 0; stk && frame < MaxFrames; ++frame) {
+
+	for(int frame = 0; stk && frame < MaxFrames; ++frame) {
 		// Unwind to previous stack frame
 		const Symbol *symbol = LookupSymbol(stk->RIP);
 		if (symbol != NULL) {

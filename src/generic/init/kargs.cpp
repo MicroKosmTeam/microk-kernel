@@ -34,7 +34,7 @@ void ParseArgs() {
 	if(info->KernelArgs == NULL) return;
 
 	/* We split the values in the id and value pairs */
-	const char *id = strtok(info->KernelArgs, "=");
+	const char *id = strtok((char*)info->KernelArgs, "=");
 	if(id == NULL) return;
 	const char *val = strtok(NULL, " ");
 	if (val == NULL) return ;

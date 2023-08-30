@@ -78,7 +78,7 @@ Buffer *BufferManager::CreateBuffer(uint32_t vendorID, uint32_t productID, Buffe
 	void *pages = PMM::RequestPages(size / PAGE_SIZE + 1);
 
 	buf->ID = GetBufferID();
-	buf->Address = pages;
+	buf->Address = (uintptr_t)pages;
 	buf->Size = size;
 	buf->Type = type;
 
@@ -88,12 +88,13 @@ Buffer *BufferManager::CreateBuffer(uint32_t vendorID, uint32_t productID, Buffe
 	buf->Locked = false;
 	buf->Pending = false;
 
-	memset(buf->Address, 0, buf->Size);
+	memset((void*)buf->Address, 0, buf->Size);
 
 	PRINTK::PrintK("Buffer created (ID: %x, VID: %x, PID: %x)\r\n",
 			buf->ID, buf->OwnerVendorID, buf->OwnerProductID);
 
 	BufferNode *node = AddNode(buf);
+	(void)node;
 
 	return buf;
 }
@@ -125,14 +126,14 @@ int BufferManager::MapBuffer(uint32_t vendorID, uint32_t productID, uint32_t id,
 
 	if(vendorID == buf->OwnerVendorID && productID == buf->OwnerProductID) {
 		for (size_t i = 0; i < buf->Size; i+=PAGE_SIZE) {
-			VMM::MapMemory(vms, paddr + i, vaddr + i);
+			VMM::MapMemory(vms, (void*)(paddr + i), (void*)(vaddr + i));
 		}
 
 		PRINTK::PrintK("Buffer mapped (ID: %x, VID: %x, PID: %x, owner)\r\n",
 			buf->ID, buf->OwnerVendorID, buf->OwnerProductID);
 	} else {
 		for (size_t i = 0; i < buf->Size; i+=PAGE_SIZE) {
-			VMM::MapMemory(vms, paddr + i, vaddr + i, VMM::VMM_PRESENT | VMM::VMM_USER);
+			VMM::MapMemory(vms, (void*)(paddr + i), (void*)(vaddr + i), VMM::VMM_PRESENT | VMM::VMM_USER);
 		}
 
 		PRINTK::PrintK("Buffer mapped (ID: %x, VID: %x, PID: %x, non-owner)\r\n",
@@ -147,8 +148,8 @@ int BufferManager::MapBuffer(uint32_t vendorID, uint32_t productID, uint32_t id,
 int BufferManager::DeleteBuffer(Buffer *buf) {
 	if(!__sync_bool_compare_and_swap(&buf->Pending, false, true)) return -1;
 
-	memset(buf->Address, 0, buf->Size);
-	PMM::FreePages(buf->Address, buf->Size / PAGE_SIZE + 1);
+	memset((void*)buf->Address, 0, buf->Size);
+	PMM::FreePages((void*)buf->Address, buf->Size / PAGE_SIZE + 1);
 
 	RemoveNode(buf->ID);
 

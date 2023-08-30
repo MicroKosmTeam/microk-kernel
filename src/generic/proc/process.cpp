@@ -59,9 +59,9 @@ static ExecutableUnitHeader *CreateExecutableUnitHeader(ProcessBase *parent, Exe
 
 	unit->Priority = priority;
 	unit->Flags = flags;
-	unit->IsThread isThread;
+	unit->IsThread = isThread;
 	unit->Parent = parent;
-	unit->State = ExecutableUnitState::PT_WAITING;
+	unit->State = ExecutableUnitState::P_WAITING;
 
 	return unit;
 }
@@ -87,12 +87,12 @@ ProcessBase *CreateProcess(ProcessBase *parent, ExecutableUnitType type, VMM::Vi
 			userProcess->VirtualMemorySpace = virtualMemorySpace;
 			userProcess->HighestFree = GetHighestFree();
 
-			userProcess->UserTaskBlock = PMM::RequestPage();
+			userProcess->UserTaskBlock = (UserTCB*)PMM::RequestPage();
 			memset(userProcess->UserTaskBlock, 0, PAGE_SIZE);
 			userProcess->HighestFree -= PAGE_SIZE;
 			VMM::MapMemory(userProcess->VirtualMemorySpace,
-				       userProcess->UserTaskBlock,
-				       userProcess->HighestFree,
+				       (void*)userProcess->UserTaskBlock,
+				       (void*)userProcess->HighestFree,
 				       VMM::VirtualMemoryFlags::VMM_PRESENT |
 				       VMM::VirtualMemoryFlags::VMM_READWRITE |
 				       VMM::VirtualMemoryFlags::VMM_USER |
@@ -123,11 +123,10 @@ int DeleteProcess(ProcessBase *process) {
 	return 0;
 }
 
-ThreadBase *CreateThread(ProcessBase *parent, uintptr_t entrypoint, size_t stackSize, uint16_t flags) {
+ThreadBase *CreateThread(ProcessBase *parent, uintptr_t entrypoint, size_t stackSize, uint8_t priority, uint16_t flags) {
 	if(parent == NULL) return NULL;
-	if(parent->Type != type) return NULL;
 
-	ThreadBase *thread = (ThreadBase*)CreateExecutableUnitHeader(parent, type, true, priority, flags);
+	ThreadBase *thread = (ThreadBase*)CreateExecutableUnitHeader(parent, parent->Type, true, priority, flags);
 	if(thread == NULL) return NULL;
 
 	/* Initializing thread variables */
@@ -152,7 +151,7 @@ ThreadBase *CreateThread(ProcessBase *parent, uintptr_t entrypoint, size_t stack
 		thread->Previous = precedingThread;
 	}
 
-	switch(type) {
+	switch(parent->Type) {
 		case ExecutableUnitType::PT_KERNEL: {
 			}
 			break;
@@ -161,11 +160,11 @@ ThreadBase *CreateThread(ProcessBase *parent, uintptr_t entrypoint, size_t stack
 			UserProcess *userParent = (UserProcess*)parent;
 
 			size_t highestFree = userParent->HighestFree;
-			VMM::VirtualMemorySpace *space = userParent->VirtualMemorySpace;
+			VMM::VirtualSpace *space = userParent->VirtualMemorySpace;
 
 			for (uintptr_t i = highestFree - stackSize; i < highestFree; i+= PAGE_SIZE) {
 				void *physical = PMM::RequestPage();
-				VMM::MapMemory(space, physical, i,
+				VMM::MapMemory(space, physical, (void*)i,
 					       VMM::VirtualMemoryFlags::VMM_PRESENT |
 					       VMM::VirtualMemoryFlags::VMM_READWRITE |
 					       VMM::VirtualMemoryFlags::VMM_USER |
@@ -177,7 +176,7 @@ ThreadBase *CreateThread(ProcessBase *parent, uintptr_t entrypoint, size_t stack
 			userThread->Context->IretRSP = highestFree;
 			userThread->Context->IretRFLAGS = 0x0202;
 
-			UserStack = highestFree;
+			userThread->UserStack = highestFree;
 			userParent->HighestFree -= stackSize + (PAGE_SIZE - stackSize % PAGE_SIZE);
 
 			highestFree = userParent->HighestFree;
@@ -185,14 +184,14 @@ ThreadBase *CreateThread(ProcessBase *parent, uintptr_t entrypoint, size_t stack
 			const size_t kernelStackSize = 64 * 1024;
 			for (uintptr_t i = highestFree - kernelStackSize; i < highestFree; i+= PAGE_SIZE) {
 				void *physical = PMM::RequestPage();
-				VMM::MapMemory(space, physical, i,
+				VMM::MapMemory(space, physical, (void*)i,
 					       VMM::VirtualMemoryFlags::VMM_PRESENT |
 					       VMM::VirtualMemoryFlags::VMM_READWRITE |
 					       VMM::VirtualMemoryFlags::VMM_NOEXECUTE);
 				memset(physical, 0, PAGE_SIZE);
 			}
 
-			KenrelStack = highestFree;
+			userThread->KernelStack = highestFree;
 			userParent->HighestFree -= stackSize + (PAGE_SIZE - stackSize % PAGE_SIZE);
 			}
 			break;
@@ -208,7 +207,7 @@ ThreadBase *CreateThread(ProcessBase *parent, uintptr_t entrypoint, size_t stack
 
 ThreadBase *FindThread(ProcessBase *process, size_t id) {
 	if(process == NULL) return NULL;
-	ThreadList *list = &process->ThreadList;
+	ThreadList *list = &process->Threads;
 
 	ThreadBase *current = list->Head;
 

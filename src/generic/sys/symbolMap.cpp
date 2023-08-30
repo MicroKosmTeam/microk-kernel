@@ -6,7 +6,6 @@ const Symbol symbols[] = {
    {{0xffffffff80000050}, {"SyscallStack"}}, 
    {{0xffffffff80020050}, {"syscall_end"}}, 
    {{0xffffffff80021050}, {"EfiMain"}}, 
-<<<<<<< HEAD
    {{0xffffffff80021070}, {"LimineEntry"}}, 
    {{0xffffffff80021420}, {"__stack_chk_fail"}}, 
    {{0xffffffff80021460}, {"_Z11UnwindStacki"}}, 
@@ -613,7 +612,6 @@ const Symbol symbols[] = {
    {{0xffffffff8003d068}, {"_ZN6x86_64L6cyclesE"}}, 
    {{0xffffffff8003d070}, {"idtr"}}, 
    {{0xffffffff8003d080}, {"idt"}}, 
-||||||| aeba46e
    {{0xffffffff80021070}, {"LimineEntry"}}, 
    {{0xffffffff80021420}, {"__stack_chk_fail"}}, 
    {{0xffffffff80021460}, {"_Z11UnwindStacki"}}, 
@@ -1218,7 +1216,6 @@ const Symbol symbols[] = {
    {{0xffffffff8003d068}, {"_ZN6x86_64L6cyclesE"}}, 
    {{0xffffffff8003d070}, {"idtr"}}, 
    {{0xffffffff8003d080}, {"idt"}}, 
-=======
    {{0xffffffff8002106c}, {"LimineEntry"}}, 
    {{0xffffffff80021498}, {"__stack_chk_fail"}}, 
    {{0xffffffff800214bd}, {"_Z11UnwindStacki"}}, 
@@ -1825,5 +1822,4 @@ const Symbol symbols[] = {
    {{0xffffffff8003b068}, {"_ZN6x86_64L6cyclesE"}}, 
    {{0xffffffff8003b070}, {"idtr"}}, 
    {{0xffffffff8003b080}, {"idt"}}, 
->>>>>>> stable
 };
