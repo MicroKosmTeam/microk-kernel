@@ -13,6 +13,7 @@ COMMON_CFLAGS = -ffreestanding             \
 	 -I $(SRCDIR)/include       \
 	 -Wall                      \
 	 -Wextra                    \
+	 -Werror                    \
 	 -Wno-write-strings         \
 	 -Weffc++                   \
 	 -O2                        \
@@ -21,7 +22,6 @@ COMMON_CFLAGS = -ffreestanding             \
 	 -fno-lto                   \
 	 -fno-pie                   \
 	 -fno-pic                   \
-	 -fpermissive \
 	 -ggdb
 
 LDFLAGS = -nostdlib                 \
