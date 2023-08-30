@@ -95,6 +95,18 @@ void PrintBanner() {
 			BOOTMEM::GetTotal() - BOOTMEM::GetFree());
 }
 
+<<<<<<< HEAD
+/*
+   Main kernel function.
+*/
+#include <arch/x64/dev/apic.hpp>
+||||||| aeba46e
+/*
+   Main kernel function.
+*/
+=======
+
+>>>>>>> stable
 __attribute__((noreturn)) void KernelStart() {
 	KInfo *info = GetInfo();
 

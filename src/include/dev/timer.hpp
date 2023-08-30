@@ -9,6 +9,7 @@ protected:
 };
 
 
+#if defined(ARCH_x86_64)
 #include <arch/x64/dev/hpet.hpp>
 class TSCTimer : public Timer{
 public:
@@ -29,3 +30,4 @@ public:
 private:
 	uint64_t TSCCyclesPerMicroseconds;
 };
+#endif

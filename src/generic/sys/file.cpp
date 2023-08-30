@@ -50,7 +50,7 @@ void *Open(char *path, size_t *size) {
 		}
 
 		Framebuffer *fbData = &info->framebuffers[num];
-		*size = fbData->Width * fbData->Height * fbData->BPP;
+		*size = sizeof(Framebuffer);
 		return fbData;
 
 	}

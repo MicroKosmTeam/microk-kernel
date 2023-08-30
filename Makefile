@@ -7,7 +7,7 @@ ARCH_SOURCES = $(SRCDIR)/arch/$(ARCH)
 LDS64 = $(SRCDIR)/kernel_$(ARCH).ld
 
 COMMON_CFLAGS = -ffreestanding             \
-	 -fstack-protector          \
+	 -fstack-protector-strong          \
 	 -fno-omit-frame-pointer    \
 	 -fno-builtin-g             \
 	 -I $(SRCDIR)/include       \
@@ -16,7 +16,7 @@ COMMON_CFLAGS = -ffreestanding             \
 	 -Werror                    \
 	 -Wno-write-strings         \
 	 -Weffc++                   \
-	 -O2                        \
+	 -Og                        \
 	 -fno-rtti                  \
 	 -fno-exceptions            \
 	 -fno-lto                   \

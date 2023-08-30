@@ -12,7 +12,12 @@
 #include <module/buffer.hpp>
 #include <module/message.hpp>
 #include <mm/string.hpp>
+#include <mm/memory.hpp>
 #include <sys/file.hpp>
+
+#if defined(ARCH_x86_64)
+#include <arch/x64/io/io.hpp>
+#endif
 
 // TMP measure: do something better with SMP
 __attribute__((__aligned__((16)))) __attribute__((section(".syscall.stack"))) volatile char SyscallStack[128 * 1024];
@@ -247,10 +252,7 @@ size_t HandleSyscallMemoryUnmap(uintptr_t base, size_t length) {
 	return 0;
 }
 
-#include <arch/x64/io/io.hpp>
 size_t HandleSyscallMemoryInOut(uintptr_t port, bool out, size_t outData, size_t *inData, uint8_t size) {
-	using namespace x86_64;
-
 	size_t tmpInData;
 	
 	if(!out && inData == NULL) return -1;
@@ -260,6 +262,9 @@ size_t HandleSyscallMemoryInOut(uintptr_t port, bool out, size_t outData, size_t
 	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
 	
 	VMM::VirtualSpace *procSpace = info->kernelScheduler->GetRunningProcess()->GetVirtualMemorySpace();
+
+#if defined(ARCH_x86_64)
+	using namespace x86_64;
 
 	switch(size) {
 		case 8:
@@ -287,6 +292,7 @@ size_t HandleSyscallMemoryInOut(uintptr_t port, bool out, size_t outData, size_t
 			if(!out) tmpInData = -1;
 			break;
 	}
+#endif
 	
 	VMM::LoadVirtualSpace(procSpace);
 
@@ -604,21 +610,10 @@ size_t HandleSyscallFileOpen(char *filename, uintptr_t *address, size_t *length)
 	size_t filenameLength = strlen(filename);
 	filenameLength = filenameLength > 512 ? 512 : filenameLength;
 
-	char newFilename[512];
+	char newFilename[512] = {0};
 	memcpy(newFilename, filename, filenameLength);
-	size_t newLength;
-	size_t *newAddr;
 
-//	VMM::LoadVirtualSpace(info->kernelVirtualSpace);
-	
-//	VMM::VirtualSpace *procSpace = info->kernelScheduler->GetRunningProcess()->GetVirtualMemorySpace();
-
-	newAddr = FILE::Open(newFilename, &newLength);
-	
-//	VMM::LoadVirtualSpace(procSpace);
-
-	*address = newAddr;
-	*length = newLength;
+	*address = FILE::Open(newFilename, length);
 
 	return 0;
 }
@@ -629,14 +624,15 @@ size_t HandleSyscallFileRead(char *filename, uintptr_t address, size_t length) {
 	size_t filenameLength = strlen(filename);
 	filenameLength = filenameLength > 512 ? 512 : filenameLength;
 
-	char newFilename[512];
+	char newFilename[512] = {0};
 	memcpy(newFilename, filename, filenameLength);
 
-	size_t newLength;
-	size_t *newAddr;
-	newAddr = FILE::Open(newFilename, &newLength);
+	size_t fileLength;
+	uintptr_t fileAddr;
 
-	memcpy(address, newAddr, length > newLength ? newLength : length);
+	fileAddr = FILE::Open(newFilename, &fileLength);
+
+	memcpy(address, fileAddr, length > fileLength ? fileLength : length);
 	
 	return 0;
 }

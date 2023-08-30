@@ -21,10 +21,8 @@ inline void OutB(uintptr_t port, uint8_t value) {
 }
 
 inline uint8_t InB(uintptr_t port) {
-	return 0;
+	return *(uint8_t*)port;
 }
-
-
 
 #endif
 
@@ -90,6 +88,8 @@ uint64_t UARTDevice::Init(SerialPorts serialPort) {
 uint64_t UARTDevice::Init(uintptr_t address) {
 	port = address;
 	active = true;
+
+	return 0;
 }
 #endif
 

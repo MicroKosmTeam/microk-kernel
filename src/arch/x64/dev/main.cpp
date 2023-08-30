@@ -137,6 +137,7 @@ namespace x86_64 {
 int HandleMADT(MADTHeader *madt);
 int HandleSRAT(SDTHeader *srat);
 int HandleHPET(HPETHeader *hpet);
+
 int InitDevices() {
 	KInfo *info = GetInfo();
 
