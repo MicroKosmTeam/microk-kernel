@@ -14,89 +14,114 @@
 extern "C" void LimineEntry(void);
 
 /* Setting the correct entry point for Limine */
-static volatile limine_entry_point_request entryPointRequest {
+static volatile limine_entry_point_request EntryPointRequest {
 	.id = LIMINE_ENTRY_POINT_REQUEST,
 	.revision = 0,
+	.response = NULL,
 	.entry = &LimineEntry
 };
 
 /* Stack request */
 /* Stack size configured in autoconf.h */
-static volatile limine_stack_size_request stackRequest {
+static volatile limine_stack_size_request StackRequest {
 	.id = LIMINE_STACK_SIZE_REQUEST,
 	.revision = 0,
+	.response = NULL,
 	.stack_size = CONFIG_STACK_SIZE
 };
 
 /* Module request */
-static volatile limine_module_request moduleRequest {
+static volatile limine_module_request ModuleRequest {
 	.id = LIMINE_MODULE_REQUEST,
-	.revision = 0
+	.revision = 0,
+	.response = NULL
 };
 
 /* High half direct mapping start request */
-static volatile limine_hhdm_request hhdmRequest {
+static volatile limine_hhdm_request HHDMRequest {
 	.id = LIMINE_HHDM_REQUEST,
-	.revision = 0
+	.revision = 0,
+	.response = NULL
 };
 
 /* Memory map request */
-static volatile limine_memmap_request mMapRequest {
+static volatile limine_memmap_request MemoryMapRequest {
 	.id = LIMINE_MEMMAP_REQUEST,
-	.revision = 0
+	.revision = 0,
+	.response = NULL
 };
 
 /* Kernel address request */
-static volatile limine_kernel_address_request kaddrRequest {
+static volatile limine_kernel_address_request KAddrRequest {
 	.id = LIMINE_KERNEL_ADDRESS_REQUEST,
-	.revision = 0
+	.revision = 0,
+	.response = NULL
 };
 
 /* RSDP request */
-static volatile limine_rsdp_request rsdpRequest {
+static volatile limine_rsdp_request RSDPRequest {
 	.id = LIMINE_RSDP_REQUEST,
-	.revision = 0
+	.revision = 0,
+	.response = NULL
+};
+
+/* SMBIOS request */
+static volatile limine_smbios_request SMBIOSRequest {
+	.id = LIMINE_SMBIOS_REQUEST,
+	.revision = 0,
+	.response = NULL
+};
+
+/* EFI system table request */
+static volatile limine_efi_system_table_request EFITableRequest {
+	.id = LIMINE_EFI_SYSTEM_TABLE_REQUEST,
+	.revision = 0,
+	.response = NULL
 };
 
 /* Framebuffer request */
-static volatile limine_framebuffer_request framebufferRequest {
+static volatile limine_framebuffer_request FramebufferRequest {
 	.id = LIMINE_FRAMEBUFFER_REQUEST,
-	.revision = 0
+	.revision = 0,
+	.response = NULL
 };
 
-static volatile limine_kernel_file_request kernelFileRequest {
+static volatile limine_kernel_file_request KernelFileRequest {
 	.id = LIMINE_KERNEL_FILE_REQUEST,
-	.revision = 0
+	.revision = 0,
+	.response = NULL
 };
 
-/* SMP Request (temporarily disabled */
-/*
+/* SMP Request */
 #if defined(ARCH_x64) 
-struct volatile limine_smp_request smpRequest {
+static volatile limine_smp_request SMPRequest {
 	.id = LIMINE_SMP_REQUEST,
 	.revision = 0,
+	.response = NULL,
 	.flags = 1
 };
 #elif defined(ARCH_aarch64)
-struct volatile limine_smp_request smpRequest {
+static volatile limine_smp_request SMPRequest {
 	.id = LIMINE_SMP_REQUEST,
-	.revision = 0
+	.revision = 0,
+	.response = NULL
 };
 #endif
-*/
 
 /* For AArch64 only: DTB Request */
 #if defined(ARCH_aarch64)
-static volatile limine_dtb_request dtbRequest {
+static volatile limine_dtb_request DTBRequest {
 	.id = LIMINE_DTB_REQUEST,
-	.revision = 0
+	.revision = 0,
+	.response = NULL
 };
 
 #endif
 
-static volatile limine_boot_time_request timeRequest {
+static volatile limine_boot_time_request TimeRequest {
 	.id = LIMINE_BOOT_TIME_REQUEST,
-	.revision = 0
+	.revision = 0,
+	.response = NULL
 };
 
 #define PREFIX "Limine: "
@@ -106,11 +131,11 @@ extern uintptr_t __stack_chk_guard;
 /* Main Limine initialization function */
 extern "C" __attribute__((no_stack_protector)) __attribute__((noreturn))
 void LimineEntry() {
-	if(timeRequest.response != NULL) {
+	if(TimeRequest.response != NULL) {
 		#if UINT32_MAX == UINTPTR_MAX
-			__stack_chk_guard = timeRequest.response->boot_time & 0xFFFFFFFF;
+			__stack_chk_guard = TimeRequest.response->boot_time & 0xFFFFFFFF;
 		#else
-			__stack_chk_guard = timeRequest.response->boot_time;
+			__stack_chk_guard = TimeRequest.response->boot_time;
 		#endif
 	} else {
 		#if UINT32_MAX == UINTPTR_MAX
@@ -127,79 +152,84 @@ void LimineEntry() {
 
 	/* Checking if vital requests have been answered by Limine
 	 * If not, give up and shut down */
-	if(stackRequest.response == NULL ||
-	   moduleRequest.response == NULL ||
-	   mMapRequest.response == NULL ||
-	   hhdmRequest.response == NULL ||
-	   kaddrRequest.response == NULL ||
-	   kernelFileRequest.response == NULL
-	   )
+	if(StackRequest.response == NULL ||
+	   MemoryMapRequest.response == NULL ||
+	   HHDMRequest.response == NULL ||
+	   KAddrRequest.response == NULL ||
+	   KernelFileRequest.response == NULL
+	   ) {
 		PANIC("Requests not answered by Limine");
+	}
 	
 	/* Transporting the MMAP */
 	PRINTK::PrintK(PREFIX "Getting the memory map from Limine...\r\n");
 
-	uint64_t mMapEntryCount = mMapRequest.response->entry_count;
-	info->mMapEntryCount = mMapEntryCount;
-	info->mMap = (MEM::MMapEntry*)BOOTMEM::Malloc(sizeof(MEM::MMapEntry) * mMapEntryCount + 1);
+	int MemoryMapEntryCount = MemoryMapRequest.response->entry_count;
+	info->MemoryMapEntryCount = MemoryMapEntryCount;
+	info->MemoryMap = (MEM::MMapEntry*)BOOTMEM::Malloc(sizeof(MEM::MMapEntry) * MemoryMapEntryCount + 1);
 
-	PRINTK::PrintK(PREFIX "Allocating for %d memory map entries.\r\n", mMapEntryCount);
-	for (int i = 0; i < mMapEntryCount; i++) {
-		info->mMap[i].base = mMapRequest.response->entries[i]->base;
-		info->mMap[i].length = mMapRequest.response->entries[i]->length;
-		info->mMap[i].type = mMapRequest.response->entries[i]->type;
+	PRINTK::PrintK(PREFIX "Allocating for %d memory map entries.\r\n", MemoryMapEntryCount);
+	for (int i = 0; i < MemoryMapEntryCount; i++) {
+		info->MemoryMap[i].base = MemoryMapRequest.response->entries[i]->base;
+		info->MemoryMap[i].length = MemoryMapRequest.response->entries[i]->length;
+		info->MemoryMap[i].type = MemoryMapRequest.response->entries[i]->type;
 	}
 
-	info->higherHalfMapping = hhdmRequest.response->offset;
-	info->kernelPhysicalBase = kaddrRequest.response->physical_base;
-	info->kernelVirtualBase = kaddrRequest.response->virtual_base;
+	info->HigherHalfMapping = HHDMRequest.response->offset;
+	info->KernelPhysicalBase = KAddrRequest.response->physical_base;
+	info->KernelVirtualBase = KAddrRequest.response->virtual_base;
 
-	const char *cmdline = kernelFileRequest.response->kernel_file->cmdline;
+	const char *cmdline = KernelFileRequest.response->kernel_file->cmdline;
 	size_t len = strlen(cmdline);
 	info->KernelArgs = (const char*)BOOTMEM::Malloc(len + 1);
-	memcpy(info->KernelArgs, cmdline, len);
+	memcpy((uint8_t*)info->KernelArgs, (uint8_t*)cmdline, len);
 	*(char*)&info->KernelArgs[len] = '\0';
 
 	/* Transporting files */
-	uint64_t moduleCount = moduleRequest.response->module_count;
-	info->fileCount = moduleCount;
-	info->bootFiles = (FILE::BootFile*)BOOTMEM::Malloc(sizeof(FILE::BootFile) * moduleCount + 1);
+	if(ModuleRequest.response != NULL) {
+		int moduleCount = ModuleRequest.response->module_count;
+		info->FileCount = moduleCount;
+		info->BootFiles = (FILE::BootFile*)BOOTMEM::Malloc(sizeof(FILE::BootFile) * moduleCount);
 
-	PRINTK::PrintK(PREFIX "Allocating for %d modules.\r\n", moduleCount);
-	for (int i = 0; i < moduleCount; i++) {
-		info->bootFiles[i].Address = moduleRequest.response->modules[i]->address;
-		info->bootFiles[i].Size = moduleRequest.response->modules[i]->size;
-		info->bootFiles[i].Path = moduleRequest.response->modules[i]->path;
-		info->bootFiles[i].Cmdline = moduleRequest.response->modules[i]->cmdline;
+		PRINTK::PrintK(PREFIX "Allocating for %d modules.\r\n", moduleCount);
+		for (int i = 0; i < moduleCount; i++) {
+			info->BootFiles[i].Address = ModuleRequest.response->modules[i]->address;
+			info->BootFiles[i].Size = ModuleRequest.response->modules[i]->size;
+			info->BootFiles[i].Path = ModuleRequest.response->modules[i]->path;
+			info->BootFiles[i].Cmdline = ModuleRequest.response->modules[i]->cmdline;
+		}
+	} else {
+		info->FileCount = 0;
+		info->BootFiles = NULL;
 	}
 
-	if (rsdpRequest.response == NULL) {
+	if (RSDPRequest.response == NULL) {
 		info->RSDP = NULL;
 	} else {
-		info->RSDP = rsdpRequest.response->address;
+		info->RSDP = RSDPRequest.response->address;
 	}
 
-	if (framebufferRequest.response == NULL) {
-		info->framebufferCount = 0;
-		info->framebuffers = NULL;
+	if (FramebufferRequest.response == NULL) {
+		info->FramebufferCount = 0;
+		info->Framebuffers = NULL;
 	} else {
-		size_t framebufferCount = framebufferRequest.response->framebuffer_count;
-		info->framebufferCount = framebufferCount;
-		info->framebuffers = (Framebuffer*)BOOTMEM::Malloc(sizeof(Framebuffer) * framebufferCount + 1);
+		int framebufferCount = FramebufferRequest.response->framebuffer_count;
+		info->FramebufferCount = framebufferCount;
+		info->Framebuffers = (Framebuffer*)BOOTMEM::Malloc(sizeof(Framebuffer) * framebufferCount);
 
 		for (int i = 0; i < framebufferCount; i++) {
-			info->framebuffers[i].Address = framebufferRequest.response->framebuffers[i]->address;
-			info->framebuffers[i].Width = framebufferRequest.response->framebuffers[i]->width;
-			info->framebuffers[i].Height = framebufferRequest.response->framebuffers[i]->height;
-			info->framebuffers[i].BPP = framebufferRequest.response->framebuffers[i]->bpp;
-			info->framebuffers[i].RedShift = framebufferRequest.response->framebuffers[i]->red_mask_shift;
-			info->framebuffers[i].GreenShift = framebufferRequest.response->framebuffers[i]->green_mask_shift;
-			info->framebuffers[i].BlueShift = framebufferRequest.response->framebuffers[i]->blue_mask_shift;
+			info->Framebuffers[i].Address = FramebufferRequest.response->framebuffers[i]->address;
+			info->Framebuffers[i].Width = FramebufferRequest.response->framebuffers[i]->width;
+			info->Framebuffers[i].Height = FramebufferRequest.response->framebuffers[i]->height;
+			info->Framebuffers[i].BPP = FramebufferRequest.response->framebuffers[i]->bpp;
+			info->Framebuffers[i].RedShift = FramebufferRequest.response->framebuffers[i]->red_mask_shift;
+			info->Framebuffers[i].GreenShift = FramebufferRequest.response->framebuffers[i]->green_mask_shift;
+			info->Framebuffers[i].BlueShift = FramebufferRequest.response->framebuffers[i]->blue_mask_shift;
 		}
 	}
 
 #if defined(ARCH_aarch64)
-	if (dtbRequest.response == NULL) {
+	if (DTBRequest.response == NULL) {
 		PRINTK::PrintK(PREFIX "WARNING: Not DTB found.\r\n");
 	} else {
 		PRINTK::PrintK(PREFIX "Device Tree blob found at 0x%x\r\n", dtbRequest.response->dtb_ptr);
