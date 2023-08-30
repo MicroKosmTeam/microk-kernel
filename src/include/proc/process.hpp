@@ -6,7 +6,7 @@
 #include <arch/x64/interrupts/idt.hpp>
 
 namespace PROC {
-	enum ProcessState {
+	enum ExecutableUnitState {
 		P_READY,		/* Process is ready to run */
 		P_RUNNING,		/* Process is currently running */
 		P_WAITING,		/* Process is currently waiting */
@@ -14,105 +14,87 @@ namespace PROC {
 		P_MESSAGE,
 	};
 
-	enum ProcessType {
+	enum ExecutableUnitType {
 		PT_KERNEL,		/* Process running in kernel mode */
 		PT_USER,		/* Process running in user mode */
 		PT_REALTIME,		/* A realtime process running in kernel mode, has the highest priority */
 		PT_VM,			/* A virtual machine process, managed by the kernel's VM manager*/
 	};
 
-	class Process;
-	class Thread;
-
-	class Process {
-	public:
-		Process(ProcessType type, VMM::VirtualSpace *vms);
-		~Process();
-
-		size_t CreateThread(size_t stackSize, uintptr_t entrypoint);
-		Thread *GetThread(size_t TID);
-		size_t RequestTID();
-		void DestroyThread(Thread *thread);
-
-		void SetThreadState(size_t TID, ProcessState state);
-		ProcessState GetThreadState(size_t TID);
-
-		void SetMainThread(size_t TID);
-		Thread *GetMainThread();
-		void SetMessageThread(void *entry);
-		Thread *GetMessageThread();
-
-		void SetPriority(uint8_t priority);
-		
-		ProcessState GetProcessState();
-		void SetProcessState(ProcessState state);
-		
-		size_t GetPID();
-		VMM::VirtualSpace *GetVirtualMemorySpace();
-
-		size_t GetHighestFree();
-		void SetHighestFree(size_t highestFree);
-
-		ProcessType GetType() { return Type; }
-	private:
-		size_t PID;
-		ProcessState State;
-		ProcessType Type;
+	struct ExecutableUnitHeader {
+		size_t ID;
 		uint8_t Priority;
+		uint16_t Flags;
 
-		Thread *MessageThread;
+		bool IsThread;
+	
+		ExecutableUnitHeader *Parent;
+
+		ExecutableUnitState State;
+		ExecutableUnitType Type;
+	};
+
+	struct ThreadBase : public ExecutableUnitHeader {
+		CPUStatus *Context;
+
+		ThreadBase *Next;
+		ThreadBase *Previous;
+	};
+
+	struct ThreadList {
+		size_t ThreadCount = 0;
+		size_t ThreadIDBase = 0;
+
+		ThreadBase *Head = NULL;
+		ThreadBase *Tail = NULL;
+	};
+
+	struct ProcessBase : public ExecutableUnitHeader {
+		ThreadList Threads;
+	};
+
+	struct KernelProcess : public ProcessBase {
+	};
+
+	struct KernelThread : public ThreadBase {
+	};
+
+	struct UserTCB {
 		
+	}__attribute__((packed));
+
+	struct UserProcess : public ProcessBase {
 		VMM::VirtualSpace *VirtualMemorySpace;
 		uintptr_t HighestFree;
 
-		size_t LastTID;
-		size_t ThreadNumber;
-
-		Thread *MainThread;
-		Vector<Thread*> Threads;
+		UserTCB *UserTaskBlock;
 	};
 
-	class Thread {
-	public:
-		Thread(Process *process, size_t stackSize, uintptr_t entrypoint, size_t *newTID);
-		~Thread();
-	
-		void SetState(ProcessState state);
-		void SetInstruction(uintptr_t instruction);
-		void SetStack(uintptr_t stack);
-		ProcessState GetState();
-
-		void SaveContext(CPUStatus *context) {
-			Context = context;
-		}
-
-		CPUStatus *GetContext() {
-			return Context;
-		}
-
-		size_t GetTID();
-		uintptr_t GetStack();
-		uintptr_t GetStackBase();
-		size_t GetStackSize();
-		uintptr_t GetInstruction() { return Instruction; }
-	private:
-		size_t TID;
-
-		uintptr_t Stack;
-		uintptr_t StackBase;
-		size_t StackSize;
-
-		uintptr_t KernelStackBase;
-		size_t KernelStackSize;
-
-		CPUStatus *Context;
-		uintptr_t Instruction;
-
-		uintptr_t MessageHandler;
-		uintptr_t SignalHandler;
-
-		ProcessState State;
-
-		Process *Owner;
+	struct UserThread : public ThreadBase {
+		uintptr_t UserStack;
+		uintptr_t KernelStack;
 	};
+
+	struct RealtimeProcess : public ProcessBase {
+	};
+
+	struct RealtimeThread : public ThreadBase {
+	};
+
+	struct VMProcess : public ProcessBase {
+	};
+
+	struct VMThread : public ThreadBase {
+	};
+
+	ProcessBase *CreateProcess(ProcessBase *parent, ExecutableUnitType type, VMM::VirtualSpace *virtualMemorySpace, uint8_t priority, uint16_t flags);
+	int DeleteProcess(ProcessBase *process);
+
+	ThreadBase *CreateThread(ProcessBase *parent, uintptr_t entrypoint, size_t stackSize, uint16_t flags);
+	ThreadBase *FindThread(ProcessBase *process, size_t id);
+	int DeleteThread(ThreadBase *thread);
+
+	int SetExecutableUnitState(ExecutableUnitHeader *unit, ExecutableUnitState state);
+
+
 }

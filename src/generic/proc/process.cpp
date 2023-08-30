@@ -5,238 +5,243 @@
 #include <sys/printk.hpp>
 #include <sys/panic.hpp>
 #include <mm/pmm.hpp>
+#include <stdint.h>
+#include <stddef.h>
+#include <cdefs.h>
 
 namespace PROC {
-static uint64_t CurrentPID = -1; /* This may seem dumb, but it actually is absolutely fine */
+static size_t CurrentPID = 0; /* PIDs start at 0 */
 
-static inline uint64_t RequestPID() {
-	return ++CurrentPID;
+static inline size_t RequestPID() {
+	return CurrentPID++;
 }
 
-Process::Process(ProcessType type, VMM::VirtualSpace *vms) {
-	PID = RequestPID();
-	State = P_WAITING;
-	Type = type;
-	VirtualMemorySpace = vms;
-
-	HighestFree = 0x800000000000;
-
-	LastTID = 0;
-	ThreadNumber = 0;
-	MainThread = NULL;
-	Threads.Init();
-
-	MessageThread = GetThread(CreateThread(64 * 1024, NULL));
+static uintptr_t GetHighestFree() {
+#if defined(ARCH_x64)
+	return 0x800000000000 - PAGE_SIZE;
+#endif
+	return -1;
 }
 
-Process::~Process() {
-	if (State != P_DONE) {
-		/* The process hasn't been properly dismantled */
+static ExecutableUnitHeader *CreateExecutableUnitHeader(ProcessBase *parent, ExecutableUnitType type, bool isThread, uint8_t priority, uint16_t flags) {
+	ExecutableUnitHeader *unit = NULL;
+	if(isThread) {
+		switch(type) {
+			case ExecutableUnitType::PT_KERNEL:
+				unit = (ExecutableUnitHeader*)(new KernelThread);
+				break;
+			case ExecutableUnitType::PT_USER:
+				unit = (ExecutableUnitHeader*)(new UserThread);
+				break;
+			case ExecutableUnitType::PT_REALTIME:
+				unit = (ExecutableUnitHeader*)(new RealtimeThread);
+				break;
+			case ExecutableUnitType::PT_VM:
+				unit = (ExecutableUnitHeader*)(new VMThread);
+				break;
+		}
+	} else {
+		switch(type) {
+			case ExecutableUnitType::PT_KERNEL:
+				unit = (ExecutableUnitHeader*)(new KernelProcess);
+				break;
+			case ExecutableUnitType::PT_USER:
+				unit = (ExecutableUnitHeader*)(new UserProcess);
+				break;
+			case ExecutableUnitType::PT_REALTIME:
+				unit = (ExecutableUnitHeader*)(new RealtimeProcess);
+				break;
+			case ExecutableUnitType::PT_VM:
+				unit = (ExecutableUnitHeader*)(new VMProcess);
+				break;
+		}
+	}
+
+	unit->Priority = priority;
+	unit->Flags = flags;
+	unit->IsThread isThread;
+	unit->Parent = parent;
+	unit->State = ExecutableUnitState::PT_WAITING;
+
+	return unit;
+}
+
+static size_t RequestTID(ProcessBase *parent) {
+	if(parent == NULL || parent->IsThread) return 0;
+
+	return parent->Threads.ThreadIDBase++;
+}
+
+ProcessBase *CreateProcess(ProcessBase *parent, ExecutableUnitType type, VMM::VirtualSpace *virtualMemorySpace, uint8_t priority, uint16_t flags) {
+	ProcessBase *process = (ProcessBase*)CreateExecutableUnitHeader(parent, type, false, priority, flags);
+	if(process == NULL) return NULL;
+
+	process->ID = RequestPID();
+
+	switch(type) {
+		case ExecutableUnitType::PT_KERNEL:
+			break;
+		case ExecutableUnitType::PT_USER: {
+			UserProcess *userProcess = (UserProcess*)process;
+
+			userProcess->VirtualMemorySpace = virtualMemorySpace;
+			userProcess->HighestFree = GetHighestFree();
+
+			userProcess->UserTaskBlock = PMM::RequestPage();
+			memset(userProcess->UserTaskBlock, 0, PAGE_SIZE);
+			userProcess->HighestFree -= PAGE_SIZE;
+			VMM::MapMemory(userProcess->VirtualMemorySpace,
+				       userProcess->UserTaskBlock,
+				       userProcess->HighestFree,
+				       VMM::VirtualMemoryFlags::VMM_PRESENT |
+				       VMM::VirtualMemoryFlags::VMM_READWRITE |
+				       VMM::VirtualMemoryFlags::VMM_USER |
+				       VMM::VirtualMemoryFlags::VMM_NOEXECUTE );
+			}
+			break;
+		case ExecutableUnitType::PT_REALTIME:
+			break;
+		case ExecutableUnitType::PT_VM:
+			break;
+
+	}
+
+	return process;
+}
+
+int DeleteProcess(ProcessBase *process) {
+	if(process == NULL) return -1;
+	if(process->State != ExecutableUnitState::P_DONE) {
+		/* The process hasn't been properly dismantled 
+		 * We'll continue anyway, but this will cause issues
+		 */
 		OOPS("Process not properly dismantled");
 	}
+
+	/* TODO: delete process */
+
+	return 0;
 }
 
-size_t Process::CreateThread(size_t stackSize, uintptr_t entrypoint) {
-	size_t newTID;
-	
-	if(GetProcessState() != P_WAITING) return 0;
+ThreadBase *CreateThread(ProcessBase *parent, uintptr_t entrypoint, size_t stackSize, uint16_t flags) {
+	if(parent == NULL) return NULL;
+	if(parent->Type != type) return NULL;
 
-	Thread *newThread = new Thread(this, stackSize, entrypoint, &newTID);
+	ThreadBase *thread = (ThreadBase*)CreateExecutableUnitHeader(parent, type, true, priority, flags);
+	if(thread == NULL) return NULL;
 
-	Threads.Push(newThread);
+	/* Initializing thread variables */
+	thread->ID = RequestTID(parent);
+	thread->Context = new CPUStatus;
+	memset(thread->Context, 0, sizeof(CPUStatus));
 
-	return newTID;
-}
+	/* Adding the thread to the list in the parent */
+	ThreadBase *precedingThread = parent->Threads.Tail;
+	thread->Next = NULL;
+	++parent->Threads.ThreadCount;
 
-Thread *Process::GetThread(size_t TID) {
-	Thread *thread = Threads.Get(TID - 1);
+	if(precedingThread == NULL) {
+		parent->Threads.Head = thread;
+		parent->Threads.Tail = thread;
+
+		thread->Previous = NULL;
+	} else {
+		parent->Threads.Tail = thread;
+		precedingThread->Next = thread;
+
+		thread->Previous = precedingThread;
+	}
+
+	switch(type) {
+		case ExecutableUnitType::PT_KERNEL: {
+			}
+			break;
+		case ExecutableUnitType::PT_USER: {
+			UserThread *userThread = (UserThread*)thread;
+			UserProcess *userParent = (UserProcess*)parent;
+
+			size_t highestFree = userParent->HighestFree;
+			VMM::VirtualMemorySpace *space = userParent->VirtualMemorySpace;
+
+			for (uintptr_t i = highestFree - stackSize; i < highestFree; i+= PAGE_SIZE) {
+				void *physical = PMM::RequestPage();
+				VMM::MapMemory(space, physical, i,
+					       VMM::VirtualMemoryFlags::VMM_PRESENT |
+					       VMM::VirtualMemoryFlags::VMM_READWRITE |
+					       VMM::VirtualMemoryFlags::VMM_USER |
+					       VMM::VirtualMemoryFlags::VMM_NOEXECUTE);
+				memset(physical, 0, PAGE_SIZE);
+			}
+
+			userThread->Context->IretRIP = entrypoint;
+			userThread->Context->IretRSP = highestFree;
+			userThread->Context->IretRFLAGS = 0x0202;
+
+			UserStack = highestFree;
+			userParent->HighestFree -= stackSize + (PAGE_SIZE - stackSize % PAGE_SIZE);
+
+			highestFree = userParent->HighestFree;
+
+			const size_t kernelStackSize = 64 * 1024;
+			for (uintptr_t i = highestFree - kernelStackSize; i < highestFree; i+= PAGE_SIZE) {
+				void *physical = PMM::RequestPage();
+				VMM::MapMemory(space, physical, i,
+					       VMM::VirtualMemoryFlags::VMM_PRESENT |
+					       VMM::VirtualMemoryFlags::VMM_READWRITE |
+					       VMM::VirtualMemoryFlags::VMM_NOEXECUTE);
+				memset(physical, 0, PAGE_SIZE);
+			}
+
+			KenrelStack = highestFree;
+			userParent->HighestFree -= stackSize + (PAGE_SIZE - stackSize % PAGE_SIZE);
+			}
+			break;
+		case ExecutableUnitType::PT_REALTIME:
+			break;
+		case ExecutableUnitType::PT_VM:
+			break;
+	}
 
 	return thread;
 }
 
-size_t Process::RequestTID() {
-	return ++LastTID;
-}
 
-void Process::DestroyThread(Thread *thread) {
-	if(thread == NULL) return;
+ThreadBase *FindThread(ProcessBase *process, size_t id) {
+	if(process == NULL) return NULL;
+	ThreadList *list = &process->ThreadList;
 
-}
+	ThreadBase *current = list->Head;
 
-void Process::SetThreadState(size_t TID, ProcessState state) {
-	Thread *thread = Threads.Get(TID - 1);
-
-	if (thread == NULL) return;
-
-	switch(state) {
-		case P_DONE: {
-			DestroyThread(thread);
-			}
-			break;
-		default:
-			thread->SetState(state);
-			break;
-
-	}
-}
-
-ProcessState Process::GetThreadState(size_t TID) {
-	Thread *thread = Threads.Get(TID - 1);
-	if (thread == NULL) return P_DONE;
-
-	return thread->GetState();
-}
-
-void Process::SetMainThread(size_t TID) {
-	Thread *thread = Threads.Get(TID - 1);
-	if (thread == NULL) return;
-
-	if (thread->GetState() != P_DONE) MainThread = thread;	
-}
-
-Thread *Process::GetMainThread() {
-	return MainThread;
-}
-
-void Process::SetMessageThread(void *entry) {
-	MessageThread->SetInstruction(entry);
-}
-
-Thread *Process::GetMessageThread() {
-	return MessageThread;
-}
-
-void Process::SetPriority(uint8_t priority) {
-	Priority = priority;
-}
-
-void Process::SetProcessState(ProcessState state) {
-	switch(state) {
-		case P_DONE: {
-			delete VirtualMemorySpace;
-			State = state;
-			}
-			break;
-		default:
-			State = state;
-			break;
-	}
-}
-
-size_t Process::GetPID() {
-	return PID;
-}
-
-ProcessState Process::GetProcessState() {
-	return State;
-}
-
-VMM::VirtualSpace *Process::GetVirtualMemorySpace() {
-	return VirtualMemorySpace;
-}
-
-size_t Process::GetHighestFree() {
-	return HighestFree;
-}
-
-void Process::SetHighestFree(size_t highestFree) {
-	HighestFree = highestFree;
-}
-
-
-Thread::Thread(Process *process, size_t stackSize, uintptr_t entrypoint, size_t *newTID) {
-	KInfo *info = GetInfo();
-	if (stackSize == 0) stackSize = (512 * 1024);
-
-	TID = process->RequestTID();
-	Owner = process;
-	Instruction = entrypoint;
-	State = P_WAITING;
-
-	stackSize -= stackSize % 16;
-
-	if (newTID != NULL) *newTID = GetTID();
-			
-
-	size_t highestFree = process->GetHighestFree();
-	VMM::VirtualSpace *space = process->GetVirtualMemorySpace();
-
-	switch(process->GetType()) {
-		case PT_USER: {
-			for (uintptr_t i = highestFree - stackSize; i < highestFree; i+= PAGE_SIZE) {
-				VMM::MapMemory(space, (void*)PMM::RequestPage(), (void*)i);
-			}
-
-			Context = new CPUStatus;
-			memset(Context, 0, sizeof(CPUStatus));
-			Context->IretRIP = entrypoint;
-			Context->IretRSP = highestFree;
-			Context->IretRFLAGS = 0x0202;
-
-			StackBase = Stack = highestFree;
-			process->SetHighestFree((highestFree - stackSize) - (highestFree - stackSize) % 16);
-			volatile void *stackBase = StackBase - stackSize;
-
-			VMM::LoadVirtualSpace(space);
-			memset(stackBase, 0, stackSize);
-			VMM::LoadVirtualSpace(info->kernelVirtualSpace);
-			}
-			break;
-		case PT_KERNEL: {
-			uintptr_t base = Malloc(stackSize) + stackSize - 1;
-			base -= base % 16;
-			base -= sizeof(SaveContext);
-			Context = StackBase = Stack = base;
-
-			memset(base, 0, sizeof(SaveContext));
-			InitializeStack(base, entrypoint);
-			}
-			break;
+	while(current != list->Tail) {
+		if (current->ID == id) return current;
 	}
 
+	return NULL;
 
 }
 
-Thread::~Thread() {
-	if (State != P_DONE) {
-		OOPS("Thread properly dismantled");
+int DeleteThread(ThreadBase *thread) {
+	if(thread == NULL) return -1;
+	if (thread->State != ExecutableUnitState::P_DONE) {
+		/* The process hasn't been properly dismantled 
+		 * We'll continue anyway, but this will cause issues
+		 */
+		OOPS("Thread not properly dismantled");
 	}
-}
 
-void Thread::SetState(ProcessState state) {
-	switch(state) {
-		default:
-			State = state;
-			break;
-	}
-}
+	/* TODO: delete thread */
 
-ProcessState Thread::GetState() {
-	return State;
+	return 0;
 }
+	
+int SetExecutableUnitState(ExecutableUnitHeader *unit, ExecutableUnitState state) {
+	if(unit == NULL) return -1;
 
-size_t Thread::GetTID() {
-	return TID;
-}
+	unit->State = state;
 
-void Thread::SetInstruction(uintptr_t instruction) {
-	Instruction = instruction;
-}
+	/* TODO: actually set state */
 
-void Thread::SetStack(uintptr_t stack) {
-	Stack = stack;
-}
-
-uintptr_t Thread::GetStackBase() {
-	return StackBase;
-}
-
-uintptr_t Thread::GetStack() {
-	return Stack;
-}
-
-size_t Thread::GetStackSize() {
-	return StackSize;
+	return 0;
 }
 
 }
