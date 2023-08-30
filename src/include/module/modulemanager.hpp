@@ -14,7 +14,7 @@ namespace MODULE {
 	public:
 		Manager();
 
-		int RegisterModule(PROC::Process *process, uint32_t vendorID, uint32_t productID);
+		int RegisterModule(PROC::ProcessBase *process, uint32_t vendorID, uint32_t productID);
 		void UnregisterModule(uint32_t vendorID, uint32_t productID);
 		Module *GetModule(uint32_t vendorID, uint32_t productID);
 		Module *GetModule(size_t PID);

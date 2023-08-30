@@ -4,7 +4,7 @@
 
 namespace PROC {
 	struct ProcessNode {
-		Process *Proc;
+		ProcessBase *Proc;
 		ProcessNode *Next;
 	};
 
@@ -13,30 +13,30 @@ namespace PROC {
 		Scheduler();
 		~Scheduler();
 
-		void AddProcess(Process *process);
+		void AddProcess(ProcessBase *process);
 		void RemoveProcess(size_t PID);
-		Process *GetProcess(size_t PID);
-		Process *GetRunningProcess();
+		ProcessBase *GetProcess(size_t PID);
+		ProcessBase *GetRunningProcess();
 
 		void SaveProcessContext(CPUStatus *status);
 		CPUStatus *GetProcessContext();
-		int SetProcessState(size_t PID, ProcessState state);
+		int SetProcessState(size_t PID, ExecutableUnitState state);
 
 		size_t GetMaxPID() { return MaxPID; }
 		
 			
 		void RecalculateScheduler();
-		void SwitchToTask(Process *proc, Thread *thread);
+		void SwitchToTask(ProcessBase *proc, ThreadBase *thread);
 	private:
-		ProcessNode *Scheduler::AddNode(ProcessNode *queue, Process *proc);
-		Process *PopFirstNode(ProcessNode *queue);
-		Process *RemoveNode(ProcessNode *queue, size_t pid);
+		ProcessNode *AddNode(ProcessNode *queue, ProcessBase *proc);
+		ProcessBase *PopFirstNode(ProcessNode *queue);
+		ProcessBase *RemoveNode(ProcessNode *queue, size_t pid);
 		ProcessNode *FindNode(ProcessNode *queue, size_t pid, ProcessNode **previous, bool *found);
 		
-		Process *GetProcess(size_t PID, ProcessNode *queue);
+		ProcessBase *GetProcess(size_t PID, ProcessNode *queue);
 
 		uintmax_t MaxPID;
-		Process *CurrentProcess;
+		ProcessBase *CurrentProcess;
 
 		ProcessNode *RunQueueBaseNode;
 		ProcessNode *BlockedQueueBaseNode;

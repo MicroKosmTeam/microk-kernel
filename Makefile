@@ -15,7 +15,6 @@ COMMON_CFLAGS = -ffreestanding             \
 	 -Wextra                    \
 	 -Werror                    \
 	 -Wno-write-strings         \
-	 -Weffc++                   \
 	 -Og                        \
 	 -fno-rtti                  \
 	 -fno-exceptions            \

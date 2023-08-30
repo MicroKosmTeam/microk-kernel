@@ -90,7 +90,7 @@ namespace PROC {
 	ProcessBase *CreateProcess(ProcessBase *parent, ExecutableUnitType type, VMM::VirtualSpace *virtualMemorySpace, uint8_t priority, uint16_t flags);
 	int DeleteProcess(ProcessBase *process);
 
-	ThreadBase *CreateThread(ProcessBase *parent, uintptr_t entrypoint, size_t stackSize, uint16_t flags);
+	ThreadBase *CreateThread(ProcessBase *parent, uintptr_t entrypoint, size_t stackSize, uint8_t priority, uint16_t flags);
 	ThreadBase *FindThread(ProcessBase *process, size_t id);
 	int DeleteThread(ThreadBase *thread);
 
