@@ -5,7 +5,6 @@ const Symbol *LookupSymbol(const char *name) {
 	uint64_t symbolIndex;
 
 	for (symbolIndex = 0; symbolIndex < symbolCount; symbolIndex++) {
-		uint64_t symAddr = symbols[symbolIndex].addr;
 		if (strcmp(symbols[symbolIndex].name, name) == 0) return &symbols[symbolIndex - 1];
 	}
 
@@ -19,8 +18,7 @@ const Symbol *LookupSymbol(uint64_t addr) {
 	if (addr < symbols[0].addr || addr > symbols[symbolCount - 1].addr) return NULL;
 
 	for (symbolIndex = 0; symbolIndex < symbolCount; symbolIndex++) {
-		uint64_t symAddr = symbols[symbolIndex].addr;
-		if (symAddr > addr) break;
+		if (symbols[symbolIndex].addr > addr) break;
 	}
 
 	return &symbols[symbolIndex - 1];

@@ -125,7 +125,7 @@ __attribute__((noreturn)) void KernelStart() {
 
 #ifdef CONFIG_KERNEL_MODULES
 	/* Initializing the scheduler framework */
-	info->KernelScheduler = new PROC::Scheduler();
+	info->KernelScheduler = PROC::InitializeScheduler(SCHEDULER_DEFAULT_QUEUES); 
 
 	/* Initialize the kernel's module manager */
 	info->KernelModuleManager = new MODULE::Manager();
@@ -147,11 +147,11 @@ __attribute__((noreturn)) void KernelStart() {
 
 		/* Create the process and set it to a ready state */
 		size_t pid = LoadExecutableFile(addr, moduleSize);
-		info->KernelScheduler->SetProcessState(pid, PROC::P_READY);
+		PROC::SetExecutableUnitState(PROC::GetThread(info->KernelScheduler, pid, 0), PROC::ExecutableUnitState::P_READY);
 
 		/* Recalculate the scheduler and wait for the context switch */
 		PRINTK::PrintK("Switching to user module.\r\n");
-		info->KernelScheduler->RecalculateScheduler();
+		PROC::RecalculateScheduler(info->KernelScheduler);
 	} else PANIC("Could not find User Module");
 #endif
 

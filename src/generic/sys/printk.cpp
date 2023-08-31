@@ -8,7 +8,7 @@
 #include <init/kinfo.hpp>
 
 #ifdef CONFIG_HW_UART
-UARTDevice *kernelPort = NULL;
+UARTDevice *KernelPort = NULL;
 #endif
 
 namespace PRINTK {
@@ -21,7 +21,7 @@ static size_t TerminalPosition;
 
 void FlushBuffer() {
 #ifdef CONFIG_HW_UART
-	if(kernelPort != NULL) kernelPort->PutStr(TerminalColumn);
+	if(KernelPort != NULL) KernelPort->PutStr(TerminalColumn);
 #endif
 	memset(TerminalColumn, 0, TERMINAL_SIZE + 1);
 	TerminalPosition = 0;
@@ -100,13 +100,13 @@ void EarlyInit() {
 	memset(TerminalColumn, 0, TERMINAL_SIZE + 1);
 
 #ifdef CONFIG_HW_UART
-	info->kernelPort = (UARTDevice*)BOOTMEM::Malloc(sizeof(UARTDevice));
+	info->KernelPort = (UARTDevice*)BOOTMEM::Malloc(sizeof(UARTDevice));
 #if defined(ARCH_x64)
-	info->kernelPort->Init(COM1);
+	info->KernelPort->Init(COM1);
 #elif defined(ARCH_aarch64)
-	info->kernelPort->Init(0x09000000);
+	info->KernelPort->Init(0x09000000);
 #endif
-	kernelPort = info->kernelPort;
+	KernelPort = info->KernelPort;
 
 	PrintK("Serial PrintK started.\n");
 #endif
