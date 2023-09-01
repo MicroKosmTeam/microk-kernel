@@ -15,7 +15,7 @@
 #include <mm/memory.hpp>
 #include <sys/file.hpp>
 
-#if defined(ARCH_x64)
+#if defined(ARCH_x86_64)
 #include <arch/x64/io/io.hpp>
 #endif
 
@@ -263,7 +263,7 @@ size_t HandleSyscallMemoryInOut(uintptr_t port, bool out, size_t outData, size_t
 	
 	VMM::VirtualSpace *procSpace = info->kernelScheduler->GetRunningProcess()->GetVirtualMemorySpace();
 
-#if defined(ARCH_x64)
+#if defined(ARCH_x86_64)
 	using namespace x86_64;
 
 	switch(size) {
