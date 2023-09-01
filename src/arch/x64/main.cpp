@@ -40,12 +40,10 @@ void EarlyInit() {
 void Init() {
 	/* x86 CPU initialization */
 	PRINTK::PrintK("Setting up CPU features\r\n");
-	x86CPU *defaultCPU = new x86CPU; /* Allocated by BOOTMEM, do not free */
+	CPUInit();
 
 	/* We get the CPU vendor */
-	char vendor[13];
-	defaultCPU->GetVendor(vendor);
-	PRINTK::PrintK("CPU Vendor: %s\r\n", vendor);
+	PRINTK::PrintK("CPU Vendor: %s\r\n", GetCPUVendor());
 
 	InitDevices();
 }

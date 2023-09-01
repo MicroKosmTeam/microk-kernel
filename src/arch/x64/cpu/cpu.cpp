@@ -7,12 +7,49 @@
 #include <arch/x64/cpu/cpu.hpp>
 #include <sys/panic.hpp>
 #include <stdint.h>
+#include <stddef.h>
+#include <mm/string.hpp>
 
 extern "C" void SyscallEntry();
 
 extern "C" void EnableSCE(void *syscallEntrypoint);
 extern "C" void EnableSSE();
 extern "C" void EnableAVX();
+
+static const char *CPUVendorStrings[] {
+	"AuthenticAMD",
+	"AMDisbetter!",
+	"GenuineIntel",
+	"VIA VIA VIA ",
+	"GenuineTMx86",
+	"TransmetaCPU",
+	"CyrixInstead",
+	"CentaurHauls",
+	"NexGenDriven",
+	"UMC UMC UMC ",
+	"SiS SiS SiS ",
+	"Geode by NSC",
+	"RiseRiseRise",
+	"Vortex86 SoC",
+	"MiSTer AO486",
+	"GenuineAO486",
+	"  Shanghai  ",
+	"HygonGenuine",
+	"E2K MACHINE ",
+	"TCGTCGTCGTCG",
+	" KVMKVMKVM  ",
+	"VMwareVMware",
+	"VBoxVBoxVBox",
+	"XenVMMXenVMM",
+	"Microsoft Hv",
+	" prl hyperv ",
+	" lrpepyh vr ",
+	"bhyve bhyve ",
+	" QNXQVMBSQG ",
+	NULL,
+	"Unknown"
+};
+
 
 
 static uint16_t EnableSMID() {
@@ -83,7 +120,7 @@ namespace x86_64 {
 /*
    Function that initializes the x86CPU class
 */
-void x86CPU::Init() {
+void CPUInit() {
 	uint16_t sseFeatures = EnableSMID();
 	PRINTK::PrintK("SSE features: %x\r\n", sseFeatures);
 
@@ -94,24 +131,35 @@ void x86CPU::Init() {
 /*
    Function that gets the CPU vendor string from CPUID
 */
-void x86CPU::GetVendor(char *string) {
+const char *GetCPUVendor() {
 	uint32_t ebx, edx, ecx, unused;
 	__cpuid(0, unused, ebx, ecx, edx);
 
+	char string[13];
+
 	/* This bitshift logic is used to get the correct 8-bit characters
 	   from the 32 bit registers. The vendor name is 12 characters + \0 */
-	string[0] = (uint8_t)ebx;
-	string[1] = (uint8_t)(ebx >> 8);
-	string[2] = (uint8_t)(ebx >> 16);
-	string[3] = (uint8_t)(ebx >> 24);
-	string[4] = (uint8_t)edx;
-	string[5] = (uint8_t)(edx >> 8);
-	string[6] = (uint8_t)(edx >> 16);
-	string[7] = (uint8_t)(edx >> 24);
-	string[8] = (uint8_t)ecx;
-	string[9] = (uint8_t)(ecx >> 8);
-	string[10] = (uint8_t)(ecx >> 16);
-	string[11] = (uint8_t)(ecx >> 24);
+	string[0] = (uint8_t)(ebx & 0xFF);
+	string[1] = (uint8_t)((ebx >> 8) & 0xFF);
+	string[2] = (uint8_t)((ebx >> 16) & 0xFF);
+	string[3] = (uint8_t)((ebx >> 24) & 0xFF);
+	string[4] = (uint8_t)(edx & 0xFF);
+	string[5] = (uint8_t)((edx >> 8) & 0xFF);
+	string[6] = (uint8_t)((edx >> 16) & 0xFF);
+	string[7] = (uint8_t)((edx >> 24) & 0xFF);
+	string[8] = (uint8_t)(ecx & 0xFF);
+	string[9] = (uint8_t)((ecx >> 8) & 0xFF);
+	string[10] = (uint8_t)((ecx >> 16) & 0xFF);
+	string[11] = (uint8_t)((ecx >> 24) & 0xFF);
 	string[12] = '\0';
+
+	size_t index = 0;
+	while(CPUVendorStrings[index] != NULL) {
+		if(strcmp(string, CPUVendorStrings[index]) == 0) return CPUVendorStrings[index];
+
+		++index;
+	}
+
+	return CPUVendorStrings[index + 1];
 }
 }
