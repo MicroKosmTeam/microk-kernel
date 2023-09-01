@@ -92,21 +92,13 @@ static volatile limine_kernel_file_request KernelFileRequest {
 	.response = NULL
 };
 
-/* SMP Request */
-#if defined(ARCH_x64) 
+
 static volatile limine_smp_request SMPRequest {
 	.id = LIMINE_SMP_REQUEST,
 	.revision = 0,
 	.response = NULL,
 	.flags = 1
 };
-#elif defined(ARCH_aarch64)
-static volatile limine_smp_request SMPRequest {
-	.id = LIMINE_SMP_REQUEST,
-	.revision = 0,
-	.response = NULL
-};
-#endif
 
 /* For AArch64 only: DTB Request */
 #if defined(ARCH_aarch64)
@@ -232,7 +224,7 @@ void LimineEntry() {
 	if (DTBRequest.response == NULL) {
 		PRINTK::PrintK(PREFIX "WARNING: Not DTB found.\r\n");
 	} else {
-		PRINTK::PrintK(PREFIX "Device Tree blob found at 0x%x\r\n", dtbRequest.response->dtb_ptr);
+		PRINTK::PrintK(PREFIX "Device Tree blob found at 0x%x\r\n", DTBRequest.response->dtb_ptr);
 	}
 #endif
 

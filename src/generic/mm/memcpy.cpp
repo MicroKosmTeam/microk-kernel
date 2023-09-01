@@ -4,6 +4,7 @@
 #include <arch/x64/cpu/cpu.hpp>
 
 void *memcpy(void *dest, void *src, size_t n) {
+#if defined(ARCH_x64)
 	if (false) {
 	        for(size_t i=0; i<n/16; i++) {
 			__asm__ __volatile__ (
@@ -34,11 +35,14 @@ void *memcpy(void *dest, void *src, size_t n) {
 		                : "memory");
 		}
 	} else {
+#endif
 		char *csrc = (char *)src;
 	        char *cdest = (char *)dest;
 
 		for (size_t i=0; i<n; i++) cdest[i] = csrc[i];
+#if defined(ARCH_x64)
 	}
+#endif
 
 	return dest;
 }

@@ -88,6 +88,32 @@ void DisplayRam() {
 				memTypeStrings[info->MemoryMap[i].type]);
 	}
 
+	PRINTK::PrintK("Contiguous regions:\r\n");
+	bool isAllUnusable = true;
+	uintptr_t base = info->MemoryMap[0].base;
+	size_t length = info->MemoryMap[0].length;
+
+	for (size_t region = 1; region < info->MemoryMapEntryCount; region++) {
+		if (info->MemoryMap[region - 1].base + info->MemoryMap[region - 1].length == info->MemoryMap[region].base) {
+			length += info->MemoryMap[region].length;
+			if(isAllUnusable) isAllUnusable = info->MemoryMap[region].type == MEMMAP_USABLE ? false : true;
+		} else {
+			PRINTK::PrintK(" %s area: [0x%x - 0x%x]\r\n",
+				isAllUnusable ? "Unusable" : "Usable",
+				base,
+				base + length);
+
+			base = info->MemoryMap[region].base;
+			length = info->MemoryMap[region].length;
+			isAllUnusable = info->MemoryMap[region].type == MEMMAP_USABLE ? false : true;
+		}
+	}
+
+	PRINTK::PrintK(" %s area: [0x%x - 0x%x]\r\n",
+				isAllUnusable ? "Unusable" : "Usable",
+				base,
+				base + length);
+
 }
 
 

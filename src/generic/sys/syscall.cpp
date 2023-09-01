@@ -329,6 +329,11 @@ size_t HandleSyscallMemoryInOut(uintptr_t port, bool out, size_t outData, size_t
 			if(!out) tmpInData = -1;
 			break;
 	}
+#else
+	(void)port;
+	(void)out;
+	(void)outData;
+	(void)size;
 #endif
 	
 	VMM::LoadVirtualSpace(procSpace);
@@ -390,10 +395,7 @@ size_t HandleSyscallProcReturn(size_t returnCode, uintptr_t stack) {
 
 	PROC::SetExecutableUnitState(PROC::GetThread(info->KernelScheduler, proc->ID, 0), PROC::ExecutableUnitState::P_WAITING);
 
-	asm volatile("sti");
-	while(true) {
-		asm volatile("pause");
-	}
+	while(true);
 
 	return 0;
 }

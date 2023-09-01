@@ -103,7 +103,7 @@ VirtualSpace *NewKernelVirtualSpace() {
 VirtualSpace *NewVirtualSpace() {
 #if defined(ARCH_x64)
 	return x86_64::NewVirtualSpace();
-#elif defined(ARCH_AArch64)
+#elif defined(ARCH_aarch64)
 	PRINTK::PrintK("TODO: Implement arm virtual memory.\r\n");
 	return NULL;
 #endif
@@ -112,7 +112,8 @@ VirtualSpace *NewVirtualSpace() {
 void LoadVirtualSpace(VMM::VirtualSpace *space) {
 #if defined(ARCH_x64)
 	x86_64::LoadVirtualSpace(space);
-#elif defined(ARCH_AArch64)
+#elif defined(ARCH_aarch64)
+	(void)space;
 	return;
 #endif
 }
