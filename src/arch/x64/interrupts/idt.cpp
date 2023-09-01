@@ -155,6 +155,7 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 			break;
 		case 13: {
 			PRINTK::PrintK("General protection fault.\r\n");
+			PANIC("General protection fault");
 			break;
 			}
 		case 14: {
@@ -171,6 +172,8 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 					byUser ? "userspace" : "Kernelspace",
 					wasInstructionFetch ? "was" : "wasn't"
 					);
+
+			PANIC("Page fault");
 
 			}
 			break;
@@ -220,37 +223,10 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 			HandleSyscall(context->RAX, context->RDI, context->RSI, context->RDX, context->RCX, context->R8, context->R9);
 			break;
 		default:
-			PRINTK::PrintK("Unhandled exception: %d\r\n", context->VectorNumber);
+			PRINTK::PrintK("Unhandled interrupt: 0x%x\r\n", context->VectorNumber);
+			OOPS("Unhandled interrupt");
 			break;
 	}
-
-	/* TODO: fix this part
-	if(context->IretCS == GDT_OFFSET_KERNEL_CODE) {
-		if (isFatal) {
-			PRINTK::PrintK("\r\n\r\n--[cut here]--\r\n"
-					"Exception in CPU.\r\n");
-
-			PrintRegs(context);
-			PANIC("Kernel mode exception");
-		} else {
-		}
-	} else {
-		if (isFatal) {
-			PRINTK::PrintK("\r\n\r\n--[cut here]--\r\n"
-					"Exception in CPU.\r\n");
-
-			PrintRegs(context);
-
-			info->KernelScheduler->SetProcessState(proc->GetPID(), PROC::P_WAITING);
-
-			while(true) {
-				info->KernelScheduler->RecalculateScheduler();
-			}
-		} else {
-			context->IretCS = GDT_OFFSET_USER_CODE;
-			context->IretSS = GDT_OFFSET_USER_CODE + 0x08;
-		}
-	}*/
 
 	if(switchAddressSpace) {
 		VMM::LoadVirtualSpace(procSpace);
