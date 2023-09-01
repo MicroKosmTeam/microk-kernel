@@ -21,23 +21,23 @@ namespace PROC {
 	};
 
 	struct ExecutableUnitHeader {
-		size_t ID;
-		uint8_t Priority;
-		uint16_t Flags;
+		size_t ID = 0;
+		uint8_t Priority = 0;
+		uint16_t Flags = 0;
 
-		bool IsThread;
+		bool IsThread = false;
 	
-		ExecutableUnitHeader *Parent;
+		ExecutableUnitHeader *Parent = NULL;
 
 		ExecutableUnitState State;
 		ExecutableUnitType Type;
 	};
 
 	struct ThreadBase : public ExecutableUnitHeader {
-		CPUStatus *Context;
+		CPUStatus *Context = NULL;
 
-		ThreadBase *Next;
-		ThreadBase *Previous;
+		ThreadBase *Next = NULL;
+		ThreadBase *Previous = NULL;
 	};
 
 	struct ThreadList {
@@ -63,15 +63,15 @@ namespace PROC {
 	}__attribute__((packed));
 
 	struct UserProcess : public ProcessBase {
-		VMM::VirtualSpace *VirtualMemorySpace;
-		uintptr_t HighestFree;
+		VMM::VirtualSpace *VirtualMemorySpace = NULL;
+		uintptr_t HighestFree = 0;
 
-		UserTCB *UserTaskBlock;
+		UserTCB *UserTaskBlock = NULL;
 	};
 
 	struct UserThread : public ThreadBase {
-		uintptr_t UserStack;
-		uintptr_t KernelStack;
+		uintptr_t UserStack = 0;
+		uintptr_t KernelStack = 0;
 	};
 
 	struct RealtimeProcess : public ProcessBase {

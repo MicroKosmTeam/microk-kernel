@@ -73,6 +73,12 @@ int AddThreadToQueue(Scheduler *scheduler, size_t queue, ThreadBase *thread) {
 		}
 
 		SchedulerNode *oldNextNode = node->Next;
+		if(oldNextNode == NULL) {
+			scheduler->Queues[queue]->Tail = newNode;
+		} else {
+			oldNextNode->Previous = newNode;
+		}
+
 		newNode->Next = oldNextNode;
 		newNode->Previous = node;
 		node->Next = newNode;
@@ -111,7 +117,12 @@ ThreadBase *RemoveThreadFromQueue(Scheduler *scheduler, size_t queue, size_t pid
 
 	if(node->Thread->Parent->ID == pid && node->Thread->ID == tid) {
 		SchedulerNode *previous = node->Previous;
-		previous->Next = NULL;
+		if(previous == NULL) {
+			scheduler->Queues[queue]->Head = NULL;
+		} else {
+			previous->Next = NULL;
+		}
+			
 		scheduler->Queues[queue]->Tail = previous;
 			
 		thread = node->Thread;
@@ -204,17 +215,28 @@ int RecalculateScheduler(Scheduler *scheduler) {
 	if(scheduler->ElapsedQuantum >= scheduler->CurrentThread->Quantum) {
 		/* If there are no threads in the running queue after this one, we'll swap it with the waiting queue 
 		 * Otherwise, we'll just remove it and push it in the waiting queue */
-		
+	
 		if(scheduler->Queues[SCHEDULER_RUNNING_QUEUE]->Head->Next == NULL) {
-			SchedulerQueue *oldRunning = scheduler->Queues[SCHEDULER_RUNNING_QUEUE];
-			scheduler->Queues[SCHEDULER_RUNNING_QUEUE] = scheduler->Queues[SCHEDULER_WAITING_QUEUE];
-			scheduler->Queues[SCHEDULER_WAITING_QUEUE] = oldRunning;
+			if(scheduler->Queues[SCHEDULER_WAITING_QUEUE]->Head == NULL &&
+			   scheduler->Queues[SCHEDULER_BLOCKED_QUEUE]->Head == NULL) {
+				/* This is executed if there is just one process that is running
+				 * we don't erase the elapsed quantum, as we want to switch to
+				 * a new process as soon as we can
+				 */
+				UnlockMutex(&scheduler->SchedulerLock);
+				return 0;
+			} else {
+				SchedulerQueue *oldRunning = scheduler->Queues[SCHEDULER_RUNNING_QUEUE];
+				scheduler->Queues[SCHEDULER_RUNNING_QUEUE] = scheduler->Queues[SCHEDULER_WAITING_QUEUE];
+				scheduler->Queues[SCHEDULER_WAITING_QUEUE] = oldRunning;
+			}
 		} else {
 			ThreadBase *thread = RemoveThreadFromQueue(scheduler, SCHEDULER_WAITING_QUEUE, scheduler->CurrentThread->Thread->Parent->ID, scheduler->CurrentThread->Thread->ID);
 			AddThreadToQueue(scheduler, SCHEDULER_WAITING_QUEUE, thread);
 		}
 		
 		scheduler->CurrentThread = scheduler->Queues[SCHEDULER_RUNNING_QUEUE]->Head;
+		scheduler->ElapsedQuantum = 0;
 
 		UnlockMutex(&scheduler->SchedulerLock);
 		return 1;
@@ -224,5 +246,44 @@ int RecalculateScheduler(Scheduler *scheduler) {
 		return 0;
 	}
 
+}
+
+void PrintSchedulerStatus(Scheduler *scheduler) {
+	if(scheduler == NULL) return;
+	LockMutex(&scheduler->SchedulerLock);
+
+	PRINTK::PrintK("Printing debug status of scheduler at 0x%x\r\n"
+		       " Current thread:                      0x%x\r\n"
+		       " Elapsed quantum:                     0x%x\r\n"
+		       " Queue count:                         0x%x\r\n",
+		       scheduler, scheduler->CurrentThread, scheduler->ElapsedQuantum, scheduler->QueueCount);
+
+
+	ThreadBase *thread = NULL;
+	for (size_t currentQueue = 0; currentQueue < scheduler->QueueCount; ++currentQueue) { 
+		PRINTK::PrintK("  Queue:                              0x%x\r\n", currentQueue);
+		SchedulerNode *node = scheduler->Queues[currentQueue]->Head;
+		if(node == NULL) PRINTK::PrintK("   Empty\r\n");
+		else {
+			thread = node->Thread;
+			while(node != scheduler->Queues[currentQueue]->Tail) {
+				PRINTK::PrintK("   Thread:                            0x%x\r\n"
+					       "    TID:                              0x%x\r\n"
+					       "    PID:                              0x%x\r\n",
+					       thread, thread->ID, thread->Parent->ID);
+
+				thread = node->Thread;
+				node = node->Next;
+			}
+
+			PRINTK::PrintK("   Thread:                            0x%x\r\n"
+				       "    TID:                              0x%x\r\n"
+				       "    PID:                              0x%x\r\n",
+				       thread, thread->ID, thread->Parent->ID);
+		}
+
+	}
+
+	UnlockMutex(&scheduler->SchedulerLock);
 }
 }

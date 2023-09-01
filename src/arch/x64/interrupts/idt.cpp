@@ -175,13 +175,17 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 			}
 			break;
 		case 32:
+			PRINTK::PrintK("Tick.\r\n");
 			if(info->KernelScheduler != NULL) {
 				CPUStatus *newCurrentProcess = NULL;
 				
 				/*PrintRegs(context);*/
 				
-				if(info->KernelScheduler->CurrentThread != NULL)
+				if(info->KernelScheduler->CurrentThread != NULL) 
 					memcpy(info->KernelScheduler->CurrentThread->Thread->Context, context, sizeof(CPUStatus));
+
+
+				info->KernelScheduler->ElapsedQuantum += 1;
 				PROC::RecalculateScheduler(info->KernelScheduler);
 				
 				proc = GetProcess();
@@ -190,6 +194,7 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 				else PANIC("Null proc");
 
 				newCurrentProcess = info->KernelScheduler->CurrentThread->Thread->Context;
+
 
 				memcpy(context, newCurrentProcess, sizeof(CPUStatus));
 

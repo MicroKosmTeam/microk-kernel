@@ -370,9 +370,12 @@ size_t HandleSyscallProcExec(uintptr_t executableBase, size_t executableSize) {
 	}
 
 	size_t pid = LoadExecutableFile((uint8_t*)heapAddr, executableSize);
+	PRINTK::PrintK("New process is PID: 0x%x\r\n", pid);
 	Free(heapAddr);
 
+	/* TODO: fix, Buggy, do not use
 	PROC::SetExecutableUnitState(PROC::GetThread(info->KernelScheduler, pid, 0), PROC::ExecutableUnitState::P_READY);
+	*/
 
 	VMM::LoadVirtualSpace(procSpace);
 
@@ -393,8 +396,11 @@ size_t HandleSyscallProcReturn(size_t returnCode, uintptr_t stack) {
 
 	PROC::UserProcess *proc = GetProcess();
 
-	PROC::SetExecutableUnitState(PROC::GetThread(info->KernelScheduler, proc->ID, 0), PROC::ExecutableUnitState::P_WAITING);
+	(void)proc;
+//	PROC::SetExecutableUnitState(PROC::GetThread(info->KernelScheduler, proc->ID, 0), PROC::ExecutableUnitState::P_WAITING);
 
+	PROC::PrintSchedulerStatus(info->KernelScheduler);
+	
 	while(true);
 
 	return 0;

@@ -14,28 +14,28 @@ namespace PROC {
 	#define SCHEDULER_DEFAULT_QUANTUM 5
 
 	struct SchedulerNode {
-		ThreadBase *Thread;
-		size_t Quantum;
+		ThreadBase *Thread = NULL;
+		size_t Quantum = 0;
 
-		SchedulerNode *Next;
-		SchedulerNode *Previous;
+		SchedulerNode *Next = NULL;
+		SchedulerNode *Previous = NULL;
 	};
 
 	struct SchedulerQueue {
-		size_t ThreadCount;
+		size_t ThreadCount = 0;
 
-		SchedulerNode *Head;
-		SchedulerNode *Tail;
+		SchedulerNode *Head = NULL;
+		SchedulerNode *Tail = NULL;
 	};
 
 	struct Scheduler {
-		SchedulerNode *CurrentThread;
+		SchedulerNode *CurrentThread = NULL;
 
-		size_t ElapsedQuantum;
+		size_t ElapsedQuantum = 0;
 
-		bool SchedulerLock;
+		bool SchedulerLock = false;
 
-		size_t QueueCount;
+		size_t QueueCount = 0;
 		SchedulerQueue *Queues[];
 	};
 
@@ -48,4 +48,6 @@ namespace PROC {
 	ThreadBase *GetThread(Scheduler *scheduler, size_t pid, size_t tid);
 
 	int RecalculateScheduler(Scheduler *scheduler);
+
+	void PrintSchedulerStatus(Scheduler *scheduler);
 }
