@@ -13,10 +13,9 @@ Scheduler *InitializeScheduler(size_t queueCount) {
 	Scheduler *scheduler = (Scheduler*)Malloc(sizeof(Scheduler) + queueCount * sizeof(SchedulerQueue));
 
 	scheduler->SchedulerLock = false;
-
 	scheduler->CurrentThread = NULL;
-
 	scheduler->QueueCount = queueCount;
+	scheduler->ElapsedQuantum = -1;
 
 	for (size_t currentQueue = 0; currentQueue < queueCount; ++currentQueue) { 
 		scheduler->Queues[currentQueue] = new SchedulerQueue;
@@ -190,9 +189,22 @@ int RecalculateScheduler(Scheduler *scheduler) {
 	LockMutex(&scheduler->SchedulerLock);
 
 	/* Check wether the current thread has used up its available quantum */
+	if(scheduler->CurrentThread == NULL) {
+		if(scheduler->Queues[SCHEDULER_RUNNING_QUEUE]->Head != NULL) {
+			scheduler->CurrentThread = scheduler->Queues[SCHEDULER_RUNNING_QUEUE]->Head;
+			scheduler->ElapsedQuantum = 0;
+			UnlockMutex(&scheduler->SchedulerLock);
+			return 0;
+		} else {
+			UnlockMutex(&scheduler->SchedulerLock);
+			return -1;
+		}
+	}
+
 	if(scheduler->ElapsedQuantum >= scheduler->CurrentThread->Quantum) {
 		/* If there are no threads in the running queue after this one, we'll swap it with the waiting queue 
 		 * Otherwise, we'll just remove it and push it in the waiting queue */
+		
 		if(scheduler->Queues[SCHEDULER_RUNNING_QUEUE]->Head->Next == NULL) {
 			SchedulerQueue *oldRunning = scheduler->Queues[SCHEDULER_RUNNING_QUEUE];
 			scheduler->Queues[SCHEDULER_RUNNING_QUEUE] = scheduler->Queues[SCHEDULER_WAITING_QUEUE];
@@ -207,8 +219,7 @@ int RecalculateScheduler(Scheduler *scheduler) {
 		UnlockMutex(&scheduler->SchedulerLock);
 		return 1;
 	} else {
-		/* Things can continue normally */
-	
+		/* Things can continue normally */	
 		UnlockMutex(&scheduler->SchedulerLock);
 		return 0;
 	}
