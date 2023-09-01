@@ -11,10 +11,6 @@
 #include <sys/mutex.hpp>
 #include <arch/x64/interrupts/idt.hpp>
 
-/* Setting the Kernel offset in the GDT (5th entry) */
-#define GDT_OFFSET_KERNEL_CODE (0x08 * 5)
-#define GDT_OFFSET_USER_CODE (0x08 * 7)
-
 /* Max number of interrupts in x86_64 is 256 */
 #define IDT_MAX_DESCRIPTORS 256
 
@@ -136,8 +132,8 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 	asm volatile("mov %%cr3, %0" : "=r"(cr3) :: "memory");
 	bool switchAddressSpace = (cr3 != (uintptr_t)info->KernelVirtualSpace->GetTopAddress()) ? true : false;
 
-	PROC::UserProcess *proc;
-	VMM::VirtualSpace *procSpace;
+	PROC::UserProcess *proc = NULL;
+	VMM::VirtualSpace *procSpace = NULL;
 
 	if(switchAddressSpace) {
 		VMM::LoadVirtualSpace(info->KernelVirtualSpace);
@@ -179,28 +175,21 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 			}
 			break;
 		case 32:
-			/* TODO: Fix timer context switch
-			if(context->IretRIP < 0xFFFFFFFF80000000) 
 			if(info->KernelScheduler != NULL) {
 				CPUStatus *newCurrentProcess = NULL;
 				
-//				PrintRegs(context);
+				/*PrintRegs(context);*/
 				
-				info->KernelScheduler->SaveProcessContext(context);
-				info->KernelScheduler->RecalculateScheduler();
+				if(info->KernelScheduler->CurrentThread != NULL)
+					memcpy(info->KernelScheduler->CurrentThread->Thread->Context, context, sizeof(CPUStatus));
+				PROC::RecalculateScheduler(info->KernelScheduler);
 				
-				proc = info->KernelScheduler->GetRunningProcess();
+				proc = GetProcess();
 
-				if(proc != NULL) procSpace = proc->GetVirtualMemorySpace();
+				if(proc != NULL) procSpace = GetVirtualSpace(proc);
 				else PANIC("Null proc");
 
-				if(proc->GetProcessState() == PROC::P_MESSAGE) {
-					newCurrentProcess = proc->GetMessageThread()->GetContext();
-				} else {
-					newCurrentProcess = proc->GetMainThread()->GetContext();
-				}
-
-				uint64_t flags = context->IretRFLAGS;
+				newCurrentProcess = info->KernelScheduler->CurrentThread->Thread->Context;
 
 				memcpy(context, newCurrentProcess, sizeof(CPUStatus));
 
@@ -216,12 +205,11 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 					switchAddressSpace = false;
 				}
 
-//				PrintRegs(context);
+				/*PrintRegs(context);*/
 			}
 
 			x86_64::SendAPICEOI();
 			x86_64::WaitAPIC();
-			*/
 			break;
 		case 254:
 			HandleSyscall(context->RAX, context->RDI, context->RSI, context->RDX, context->RCX, context->R8, context->R9);

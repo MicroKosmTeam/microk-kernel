@@ -39,8 +39,8 @@ uint32_t ReadAPICRegister(uint16_t offset) {
 	return *apicRegister;
 }
 	
-static uint32_t cycles = 0;
-void SetAPICTimer(uint32_t newCycles) {
+static uint64_t cycles = 0;
+void SetAPICTimer(uint64_t newCycles) {
 	cycles = newCycles;
 }
 

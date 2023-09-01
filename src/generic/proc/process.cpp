@@ -61,6 +61,7 @@ static ExecutableUnitHeader *CreateExecutableUnitHeader(ProcessBase *parent, Exe
 	unit->Flags = flags;
 	unit->IsThread = isThread;
 	unit->Parent = parent;
+	unit->Type = type;
 	unit->State = ExecutableUnitState::P_WAITING;
 
 	return unit;
@@ -175,6 +176,9 @@ ThreadBase *CreateThread(ProcessBase *parent, uintptr_t entrypoint, size_t stack
 			userThread->Context->IretRIP = entrypoint;
 			userThread->Context->IretRSP = highestFree;
 			userThread->Context->IretRFLAGS = 0x0202;
+			
+			userThread->Context->IretCS = GDT_OFFSET_USER_CODE;
+			userThread->Context->IretSS = GDT_OFFSET_USER_CODE + 0x8;
 
 			userThread->UserStack = highestFree;
 			userParent->HighestFree -= stackSize + (PAGE_SIZE - stackSize % PAGE_SIZE);

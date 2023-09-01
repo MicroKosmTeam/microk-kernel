@@ -225,34 +225,4 @@ int RecalculateScheduler(Scheduler *scheduler) {
 	}
 
 }
-
-/*
-void Scheduler::SwitchToTask(Process *proc, Thread *thread) {
-	if (proc == NULL) return;
-	if (thread == NULL) return;
-
-	volatile void *stack = thread->GetStack();
-	volatile void *entry = thread->GetInstruction();
-
-	ProcessType type = proc->GetType();
-		
-	CurrentProcess = proc;
-
-	VMM::LoadVirtualSpace(proc->GetVirtualMemorySpace());
-
-	switch(type) {
-		case PT_USER:
-			EnterUserspace(entry, stack);
-			break;
-		case PT_KERNEL:
-			uint64_t old;
-			SaveContext *context = stack;
-			context->ret = entry;
-			SwitchStack(&old, &stack);
-			break;
-	}
-
-	OOPS("Failed to task switch");
-}
-*/
 }

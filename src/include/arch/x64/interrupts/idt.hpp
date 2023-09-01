@@ -1,6 +1,10 @@
 #pragma once
 #include <stdint.h>
 
+/* Setting the Kernel offset in the GDT (5th entry) */
+#define GDT_OFFSET_KERNEL_CODE (0x08 * 5)
+#define GDT_OFFSET_USER_CODE (0x08 * 7)
+
 struct IDTEntry {
 	uint16_t    ISRLow;      // The lower 16 bits of the ISR's address
 	uint16_t    KernelCs;    // The GDT segment selector that the CPU will load into CS before calling the ISR

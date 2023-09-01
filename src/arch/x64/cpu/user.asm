@@ -10,4 +10,3 @@ EnterUserspace:
 	mov r11, 0x0202     ; eflags
 
 	o64 sysret
-

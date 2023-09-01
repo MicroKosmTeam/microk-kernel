@@ -94,6 +94,7 @@ void PrintBanner() {
 			BOOTMEM::GetTotal() - BOOTMEM::GetFree());
 }
 
+#include <arch/x64/dev/apic.hpp>
 __attribute__((noreturn)) void KernelStart() {
 	KInfo *info = GetInfo();
 
@@ -151,7 +152,7 @@ __attribute__((noreturn)) void KernelStart() {
 
 		/* Recalculate the scheduler and wait for the context switch */
 		PRINTK::PrintK("Switching to user module.\r\n");
-		PROC::RecalculateScheduler(info->KernelScheduler);
+		x86_64::WaitAPIC();
 	} else PANIC("Could not find User Module");
 #endif
 
