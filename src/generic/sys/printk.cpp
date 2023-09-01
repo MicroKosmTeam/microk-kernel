@@ -2,7 +2,6 @@
 #include <stdint.h>
 #include <mm/string.hpp>
 #include <sys/mutex.hpp>
-#include <sys/queue.hpp>
 #include <mm/bootmem.hpp>
 #include <sys/printk.hpp>
 #include <init/kinfo.hpp>

@@ -6,7 +6,6 @@
 #include <mm/string.hpp>
 #include <sys/panic.hpp>
 #include <stdarg.h>
-#include <sys/driver.hpp>
 #include <mm/pmm.hpp>
 #include <mm/vmm.hpp>
 #include <init/kinfo.hpp>

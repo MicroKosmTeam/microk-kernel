@@ -2,7 +2,6 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <mm/vmm.hpp>
-#include <sys/vector.hpp>
 #include <arch/x64/interrupts/idt.hpp>
 
 namespace PROC {

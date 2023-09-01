@@ -152,7 +152,7 @@ __attribute__((noreturn)) void KernelStart() {
 
 		/* Recalculate the scheduler and wait for the context switch */
 		PRINTK::PrintK("Switching to user module.\r\n");
-		x86_64::WaitAPIC();
+		//x86_64::WaitAPIC();
 	} else PANIC("Could not find User Module");
 #endif
 
