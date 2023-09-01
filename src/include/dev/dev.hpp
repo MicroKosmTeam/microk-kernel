@@ -5,7 +5,7 @@
 
 class Device {
 public:
-	virtual ~Device();
+	virtual ~Device() { };
 	virtual uintmax_t Ioctl(uintmax_t request, ...) = 0;
 protected:
 };

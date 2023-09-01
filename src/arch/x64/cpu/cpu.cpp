@@ -88,7 +88,7 @@ void x86CPU::Init() {
 	PRINTK::PrintK("SSE features: %x\r\n", sseFeatures);
 
 	PRINTK::PrintK("Syscall entry at 0x%x\r\n", &SyscallEntry);
-	EnableSCE(&SyscallEntry);
+	EnableSCE((void*)&SyscallEntry);
 }
 
 /*

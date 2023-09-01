@@ -9,12 +9,12 @@
 int CalibrateTSCWithHPET(uintptr_t hpetAddress, uint64_t *tscTicksPerSecond) {
 	KInfo *info = GetInfo();
 
-	VMM::MapMemory(info->kernelVirtualSpace, hpetAddress, hpetAddress);
+	VMM::MapMemory(info->KernelVirtualSpace, (void*)hpetAddress, (void*)hpetAddress);
 
 	// Typecast the HPET address to access the registers
-	volatile uint64_t *capabilities = hpetAddress;
-	volatile uint64_t *configuration = hpetAddress + 0x10;
-	volatile uint64_t *counter = hpetAddress + 0xF0;
+	volatile uint64_t *capabilities = (volatile uint64_t*)hpetAddress;
+	volatile uint64_t *configuration = (volatile uint64_t*)(hpetAddress + 0x10);
+	volatile uint64_t *counter = (volatile uint64_t*)(hpetAddress + 0xF0);
 
 	// Check if HPET is available (bit 0 of the capabilities register should be set)
 	if ((*capabilities & 0x1) == 0) {

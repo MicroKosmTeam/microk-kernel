@@ -20,7 +20,7 @@ VMM::VirtualSpace *NewVirtualSpace() {
 
 void LoadVirtualSpace(VMM::VirtualSpace *space) {
 	/* This loads the page directory into memory */
-	PageTable *PML4 = space->GetTopAddress();
+	PageTable *PML4 = (PageTable*)space->GetTopAddress();
 
 	asm volatile ("mov %0, %%cr3" : : "r" (PML4) : "memory");
 }

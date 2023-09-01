@@ -8,9 +8,10 @@
 #include <mm/vmm.hpp>
 #include <sys/user.hpp>
 #include <sys/syscall.hpp>
+#include <sys/mutex.hpp>
 #include <arch/x64/interrupts/idt.hpp>
 
-/* Setting the kernel offset in the GDT (5th entry) */
+/* Setting the Kernel offset in the GDT (5th entry) */
 #define GDT_OFFSET_KERNEL_CODE (0x08 * 5)
 #define GDT_OFFSET_USER_CODE (0x08 * 7)
 
@@ -25,7 +26,7 @@ volatile __attribute__((aligned(0x10))) IDTR idtr;
 /* Function to set a descriptor in the GDT */
 static void IDTSetDescriptor(uint8_t vector, void* isr, uint8_t flags) {
 	/* Create new descriptor */
-	IDTEntry* descriptor = &idt[vector];
+	volatile IDTEntry *descriptor = &idt[vector];
 
 	/* Setting parameters */
 	descriptor->ISRLow = (uint64_t)isr & 0xFFFF;
@@ -107,24 +108,42 @@ static inline void PrintRegs(CPUStatus *context) {
 			context->IretSS);
 }
 
-#include <arch/x64/dev/apic.hpp>
-/* Stub exception handler */
-extern "C" CPUStatus *InterruptHandler(volatile CPUStatus *context) {
+static inline PROC::UserProcess *GetProcess() {
 	KInfo *info = GetInfo();
-	bool isFatal = false;
+
+	LockMutex(&info->KernelScheduler->SchedulerLock);
+	PROC::UserProcess *proc = (PROC::UserProcess*)info->KernelScheduler->CurrentThread->Thread->Parent;
+	UnlockMutex(&info->KernelScheduler->SchedulerLock);
+
+	return proc;
+}
+
+static inline VMM::VirtualSpace *GetVirtualSpace(PROC::UserProcess *proc) {
+	KInfo *info = GetInfo();
+
+	LockMutex(&info->KernelScheduler->SchedulerLock);
+	VMM::VirtualSpace *procSpace = proc->VirtualMemorySpace;
+	UnlockMutex(&info->KernelScheduler->SchedulerLock);
+
+	return procSpace;
+}
+
+#include <arch/x64/dev/apic.hpp>
+extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
+	KInfo *info = GetInfo();
 
 	uintptr_t cr3;
 	asm volatile("mov %%cr3, %0" : "=r"(cr3) :: "memory");
-	bool switchAddressSpace = (cr3 != info->kernelVirtualSpace->GetTopAddress()) ? true : false;
+	bool switchAddressSpace = (cr3 != (uintptr_t)info->KernelVirtualSpace->GetTopAddress()) ? true : false;
 
-	PROC::Process *proc;
+	PROC::UserProcess *proc;
 	VMM::VirtualSpace *procSpace;
 
 	if(switchAddressSpace) {
-		VMM::LoadVirtualSpace(info->kernelVirtualSpace);
+		VMM::LoadVirtualSpace(info->KernelVirtualSpace);
 
-		proc = info->kernelScheduler->GetRunningProcess();
-		if(proc != NULL) procSpace = proc->GetVirtualMemorySpace();
+		proc = GetProcess();
+		if(proc != NULL) procSpace = GetVirtualSpace(proc);
 		else PANIC("Null proc");
 	}
 
@@ -133,19 +152,16 @@ extern "C" CPUStatus *InterruptHandler(volatile CPUStatus *context) {
 			PRINTK::PrintK("Division by zero.\r\n");
 			break;
 		case 6:
-			isFatal = true;
 			PRINTK::PrintK("Invalid opcode.\r\n");
 			break;
 		case 8:
 			PANIC("Double fault");
 			break;
 		case 13: {
-			isFatal = true;
 			PRINTK::PrintK("General protection fault.\r\n");
 			break;
 			}
 		case 14: {
-			isFatal = true;
 			uintptr_t page;
 			bool protectionViolation = context->ErrorCode & 0b1;
 			bool writeAccess = (context->ErrorCode & 0b10) >> 1;
@@ -156,23 +172,24 @@ extern "C" CPUStatus *InterruptHandler(volatile CPUStatus *context) {
 					page,
 					protectionViolation ? "page protection violation" : "non-present page",
 					writeAccess ? "write" : "read",
-					byUser ? "userspace" : "kernelspace",
+					byUser ? "userspace" : "Kernelspace",
 					wasInstructionFetch ? "was" : "wasn't"
 					);
 
 			}
 			break;
 		case 32:
+			/* TODO: Fix timer context switch
 			if(context->IretRIP < 0xFFFFFFFF80000000) 
-			if(info->kernelScheduler != NULL) {
+			if(info->KernelScheduler != NULL) {
 				CPUStatus *newCurrentProcess = NULL;
 				
 //				PrintRegs(context);
 				
-				info->kernelScheduler->SaveProcessContext(context);
-				info->kernelScheduler->RecalculateScheduler();
+				info->KernelScheduler->SaveProcessContext(context);
+				info->KernelScheduler->RecalculateScheduler();
 				
-				proc = info->kernelScheduler->GetRunningProcess();
+				proc = info->KernelScheduler->GetRunningProcess();
 
 				if(proc != NULL) procSpace = proc->GetVirtualMemorySpace();
 				else PANIC("Null proc");
@@ -204,16 +221,17 @@ extern "C" CPUStatus *InterruptHandler(volatile CPUStatus *context) {
 
 			x86_64::SendAPICEOI();
 			x86_64::WaitAPIC();
+			*/
 			break;
 		case 254:
 			HandleSyscall(context->RAX, context->RDI, context->RSI, context->RDX, context->RCX, context->R8, context->R9);
 			break;
 		default:
-			isFatal = true;
 			PRINTK::PrintK("Unhandled exception: %d\r\n", context->VectorNumber);
 			break;
 	}
 
+	/* TODO: fix this part
 	if(context->IretCS == GDT_OFFSET_KERNEL_CODE) {
 		if (isFatal) {
 			PRINTK::PrintK("\r\n\r\n--[cut here]--\r\n"
@@ -222,7 +240,6 @@ extern "C" CPUStatus *InterruptHandler(volatile CPUStatus *context) {
 			PrintRegs(context);
 			PANIC("Kernel mode exception");
 		} else {
-			/* Do nothing */
 		}
 	} else {
 		if (isFatal) {
@@ -231,16 +248,16 @@ extern "C" CPUStatus *InterruptHandler(volatile CPUStatus *context) {
 
 			PrintRegs(context);
 
-			info->kernelScheduler->SetProcessState(proc->GetPID(), PROC::P_WAITING);
+			info->KernelScheduler->SetProcessState(proc->GetPID(), PROC::P_WAITING);
 
 			while(true) {
-				info->kernelScheduler->RecalculateScheduler();
+				info->KernelScheduler->RecalculateScheduler();
 			}
 		} else {
 			context->IretCS = GDT_OFFSET_USER_CODE;
 			context->IretSS = GDT_OFFSET_USER_CODE + 0x08;
 		}
-	}
+	}*/
 
 	if(switchAddressSpace) {
 		VMM::LoadVirtualSpace(procSpace);

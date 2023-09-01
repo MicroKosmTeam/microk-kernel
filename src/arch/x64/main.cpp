@@ -25,10 +25,10 @@ void EarlyInit() {
 	 * code should be situated), we will be in trouble. However, that shouldn't
 	 * be a thing.
 	 */
-	info->kernelStack = 0x800000;
+	info->KernelStack = 0x800000;
 
 	/* Initialize the GDT and the TSS */
-	LoadGDT(info->kernelStack);
+	LoadGDT(info->KernelStack);
 	PRINTK::PrintK("GDT Loaded.\r\n");
 
 	/* Jumpstart interrupts */
