@@ -178,7 +178,6 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 			}
 			break;
 		case 32:
-			PRINTK::PrintK("Tick.\r\n");
 			if(info->KernelScheduler != NULL) {
 				CPUStatus *newCurrentProcess = NULL;
 				

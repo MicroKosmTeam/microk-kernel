@@ -394,14 +394,14 @@ size_t HandleSyscallProcReturn(size_t returnCode, uintptr_t stack) {
 
 	PRINTK::PrintK("Returning: %d form 0x%x\r\n", returnCode, stack); 
 
-	PROC::UserProcess *proc = GetProcess();
-
-	(void)proc;
 //	PROC::SetExecutableUnitState(PROC::GetThread(info->KernelScheduler, proc->ID, 0), PROC::ExecutableUnitState::P_WAITING);
 
 	PROC::PrintSchedulerStatus(info->KernelScheduler);
-	
-	while(true);
+
+#if defined(ARCH_x64)
+	asm volatile ("sti");
+#endif
+	while(true) {  }
 
 	return 0;
 }
