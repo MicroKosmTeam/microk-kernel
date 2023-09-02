@@ -116,14 +116,14 @@ ThreadBase *RemoveThreadFromQueue(Scheduler *scheduler, size_t queue, size_t pid
 	}
 
 	if(node->Thread->Parent->ID == pid && node->Thread->ID == tid) {
-		SchedulerNode *previous = node->Previous;
-		if(previous == NULL) {
+		if(scheduler->Queues[queue]->Head == scheduler->Queues[queue]->Tail) {
 			scheduler->Queues[queue]->Head = NULL;
+			scheduler->Queues[queue]->Tail = NULL;
 		} else {
+			SchedulerNode *previous = node->Previous;
 			previous->Next = NULL;
+			scheduler->Queues[queue]->Tail = previous;
 		}
-			
-		scheduler->Queues[queue]->Tail = previous;
 			
 		thread = node->Thread;
 		
@@ -272,8 +272,8 @@ void PrintSchedulerStatus(Scheduler *scheduler) {
 					       "    PID:                              0x%x\r\n",
 					       thread, thread->ID, thread->Parent->ID);
 
-				thread = node->Thread;
 				node = node->Next;
+				thread = node->Thread;
 			}
 
 			PRINTK::PrintK("   Thread:                            0x%x\r\n"
