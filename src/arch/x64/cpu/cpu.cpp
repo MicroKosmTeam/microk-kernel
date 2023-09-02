@@ -16,6 +16,8 @@ extern "C" void EnableSCE(void *syscallEntrypoint);
 extern "C" void EnableSSE();
 extern "C" void EnableAVX();
 
+extern "C" void SetIOPL();
+
 static const char *CPUVendorStrings[] {
 	"AuthenticAMD",
 	"AMDisbetter!",
@@ -121,6 +123,8 @@ namespace x86_64 {
    Function that initializes the x86CPU class
 */
 void CPUInit() {
+	SetIOPL();
+
 	uint16_t sseFeatures = EnableSMID();
 	PRINTK::PrintK("SSE features: %x\r\n", sseFeatures);
 
