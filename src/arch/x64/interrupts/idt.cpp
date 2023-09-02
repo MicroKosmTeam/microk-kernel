@@ -8,11 +8,8 @@
 #include <mm/vmm.hpp>
 #include <sys/user.hpp>
 #include <sys/syscall.hpp>
+#include <sys/mutex.hpp>
 #include <arch/x64/interrupts/idt.hpp>
-
-/* Setting the kernel offset in the GDT (5th entry) */
-#define GDT_OFFSET_KERNEL_CODE (0x08 * 5)
-#define GDT_OFFSET_USER_CODE (0x08 * 7)
 
 /* Max number of interrupts in x86_64 is 256 */
 #define IDT_MAX_DESCRIPTORS 256
@@ -25,7 +22,7 @@ volatile __attribute__((aligned(0x10))) IDTR idtr;
 /* Function to set a descriptor in the GDT */
 static void IDTSetDescriptor(uint8_t vector, void* isr, uint8_t flags) {
 	/* Create new descriptor */
-	IDTEntry* descriptor = &idt[vector];
+	volatile IDTEntry *descriptor = &idt[vector];
 
 	/* Setting parameters */
 	descriptor->ISRLow = (uint64_t)isr & 0xFFFF;
@@ -52,7 +49,7 @@ void IDTInit() {
 		IDTSetDescriptor(vector, isrStubTable[vector],  0x8F);
 	}
 		
-	IDTSetDescriptor(32, isrStubTable[32], 0x8E);
+	IDTSetDescriptor(32, isrStubTable[32], 0xEE);
 	IDTSetDescriptor(254, isrStubTable[254], 0xEE);
 
 	/* Load the new IDT */
@@ -107,24 +104,42 @@ static inline void PrintRegs(CPUStatus *context) {
 			context->IretSS);
 }
 
+static inline PROC::UserProcess *GetProcess() {
+	KInfo *info = GetInfo();
+
+	LockMutex(&info->KernelScheduler->SchedulerLock);
+	PROC::UserProcess *proc = (PROC::UserProcess*)info->KernelScheduler->CurrentThread->Thread->Parent;
+	UnlockMutex(&info->KernelScheduler->SchedulerLock);
+
+	return proc;
+}
+
+static inline VMM::VirtualSpace *GetVirtualSpace(PROC::UserProcess *proc) {
+	KInfo *info = GetInfo();
+
+	LockMutex(&info->KernelScheduler->SchedulerLock);
+	VMM::VirtualSpace *procSpace = proc->VirtualMemorySpace;
+	UnlockMutex(&info->KernelScheduler->SchedulerLock);
+
+	return procSpace;
+}
+
 #include <arch/x64/dev/apic.hpp>
-/* Stub exception handler */
 extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 	KInfo *info = GetInfo();
-	bool isFatal = false;
 
 	uintptr_t cr3;
 	asm volatile("mov %%cr3, %0" : "=r"(cr3) :: "memory");
-	bool switchAddressSpace = (cr3 != info->kernelVirtualSpace->GetTopAddress()) ? true : false;
+	bool switchAddressSpace = (cr3 != (uintptr_t)info->KernelVirtualSpace->GetTopAddress()) ? true : false;
 
-	PROC::Process *proc;
-	VMM::VirtualSpace *procSpace;
+	PROC::UserProcess *proc = NULL;
+	VMM::VirtualSpace *procSpace = NULL;
 
 	if(switchAddressSpace) {
-		VMM::LoadVirtualSpace(info->kernelVirtualSpace);
+		VMM::LoadVirtualSpace(info->KernelVirtualSpace);
 
-		proc = info->kernelScheduler->GetRunningProcess();
-		if(proc != NULL) procSpace = proc->GetVirtualMemorySpace();
+		proc = GetProcess();
+		if(proc != NULL) procSpace = GetVirtualSpace(proc);
 		else PANIC("Null proc");
 	}
 
@@ -133,19 +148,17 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 			PRINTK::PrintK("Division by zero.\r\n");
 			break;
 		case 6:
-			isFatal = true;
 			PRINTK::PrintK("Invalid opcode.\r\n");
 			break;
 		case 8:
 			PANIC("Double fault");
 			break;
 		case 13: {
-			isFatal = true;
 			PRINTK::PrintK("General protection fault.\r\n");
+			PANIC("General protection fault");
 			break;
 			}
 		case 14: {
-			isFatal = true;
 			uintptr_t page;
 			bool protectionViolation = context->ErrorCode & 0b1;
 			bool writeAccess = (context->ErrorCode & 0b10) >> 1;
@@ -156,55 +169,62 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 					page,
 					protectionViolation ? "page protection violation" : "non-present page",
 					writeAccess ? "write" : "read",
-					byUser ? "userspace" : "kernelspace",
+					byUser ? "userspace" : "Kernelspace",
 					wasInstructionFetch ? "was" : "wasn't"
 					);
+
+			PANIC("Page fault");
 
 			}
 			break;
 		case 32:
+			if(info->KernelScheduler != NULL) {
+				CPUStatus *newCurrentProcess = NULL;
+				
+				/*PrintRegs(context);*/
+				
+				if(info->KernelScheduler->CurrentThread != NULL) 
+					memcpy(info->KernelScheduler->CurrentThread->Thread->Context, context, sizeof(CPUStatus));
+
+
+				info->KernelScheduler->ElapsedQuantum += 1;
+				PROC::RecalculateScheduler(info->KernelScheduler);
+				
+				proc = GetProcess();
+
+				if(proc != NULL) procSpace = GetVirtualSpace(proc);
+				else PANIC("Null proc");
+
+				newCurrentProcess = info->KernelScheduler->CurrentThread->Thread->Context;
+
+
+				memcpy(context, newCurrentProcess, sizeof(CPUStatus));
+
+				if(context->IretCS != GDT_OFFSET_KERNEL_CODE) { 
+					context->IretCS = GDT_OFFSET_USER_CODE;
+					context->IretSS = GDT_OFFSET_USER_CODE + 0x08;
+				
+					switchAddressSpace = true;
+				} else {
+					context->IretCS = GDT_OFFSET_KERNEL_CODE;
+					context->IretSS = GDT_OFFSET_KERNEL_CODE + 0x08;
+
+					switchAddressSpace = false;
+				}
+
+				/*PrintRegs(context);*/
+			}
+
 			x86_64::SendAPICEOI();
 			x86_64::WaitAPIC();
-			/* TODO:
-			if(info->kernelScheduler != NULL)
-				info->kernelScheduler->RecalculateScheduler();
-			*/
 			break;
 		case 254:
 			HandleSyscall(context->RAX, context->RDI, context->RSI, context->RDX, context->RCX, context->R8, context->R9);
 			break;
 		default:
-			isFatal = true;
-			PRINTK::PrintK("Unhandled exception: %d\r\n", context->VectorNumber);
+			PRINTK::PrintK("Unhandled interrupt: 0x%x\r\n", context->VectorNumber);
+			OOPS("Unhandled interrupt");
 			break;
-	}
-
-	if(context->IretCS == GDT_OFFSET_KERNEL_CODE) {
-		if (isFatal) {
-			PRINTK::PrintK("\r\n\r\n--[cut here]--\r\n"
-					"Exception in CPU.\r\n");
-
-			PrintRegs(context);
-			PANIC("Kernel mode exception");
-		} else {
-			/* Do nothing */
-		}
-	} else {
-		if (isFatal) {
-			PRINTK::PrintK("\r\n\r\n--[cut here]--\r\n"
-					"Exception in CPU.\r\n");
-
-			PrintRegs(context);
-
-			info->kernelScheduler->SetProcessState(proc->GetPID(), PROC::P_WAITING);
-
-			while(true) {
-				info->kernelScheduler->RecalculateScheduler();
-			}
-		} else {
-			context->IretCS = GDT_OFFSET_USER_CODE;
-			context->IretSS = GDT_OFFSET_USER_CODE + 0x08;
-		}
 	}
 
 	if(switchAddressSpace) {

@@ -30,6 +30,7 @@ namespace BOOTMEM {
 	}
 
 	void Free(void *address) {
+		(void)address;
 		return; // Bootmem can't free
 	}
 

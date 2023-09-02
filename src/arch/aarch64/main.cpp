@@ -20,20 +20,22 @@ extern "C" void EnterUserspace() {
 }
 
 extern "C" void SwitchStack(void *oldStack, void *newStack) {
+	(void)oldStack;
+	(void)newStack;
 	while(true);
 }
 
 void InitializeStack(void *stack, uintptr_t function) {
+	(void)stack;
+	(void)function;
 	while(true);
 }
 
 namespace AArch64 {
 void EarlyInit() {
-	KInfo *info = GetInfo();
 }
 
 void Init() {
-	KInfo *info = GetInfo();
 
 	while(true);
 }

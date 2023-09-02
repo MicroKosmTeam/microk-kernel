@@ -23,15 +23,15 @@ void *Open(char *path, size_t *size) {
 	const char *name = strtok(NULL, ":");
 
 	if (strcmp(id, "FILE") == 0) {
-		for (int i = 0; i < info->fileCount; i++) {
-			if (strcmp(info->bootFiles[i].Path, name) == 0) {
-				*size = info->bootFiles[i].Size;
-				return info->bootFiles[i].Address - info->higherHalfMapping;
+		for (size_t i = 0; i < info->FileCount; i++) {
+			if (strcmp(info->BootFiles[i].Path, name) == 0) {
+				*size = info->BootFiles[i].Size;
+				return (void*)((uintptr_t)info->BootFiles[i].Address - info->HigherHalfMapping);
 			}
 		}
 	} else if (strcmp(id, "ACPI") == 0) {
 		char tableName[5];
-		memcpy(tableName, name, 4);
+		memcpy((void*)tableName, (void*)name, 4);
 		tableName[4] = '\0';
 
 		if (strcmp(tableName, "RSDP") == 0) {
@@ -42,14 +42,14 @@ void *Open(char *path, size_t *size) {
 			return NULL;
 		}
 	} else if (strcmp(id, "FB") == 0) {
-		size_t num = atoi(name);
+		size_t num = atoi((char*)name);
 
-		if (num > info->framebufferCount) {
+		if (num > info->FramebufferCount) {
 			*size = 0;
 			return NULL;
 		}
 
-		Framebuffer *fbData = &info->framebuffers[num];
+		Framebuffer *fbData = &info->Framebuffers[num];
 		*size = sizeof(Framebuffer);
 		return fbData;
 

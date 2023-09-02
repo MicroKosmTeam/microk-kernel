@@ -20,7 +20,7 @@ enum SerialPorts {
 
 class UARTDevice : public Device {
 public:
-	UARTDevice() { active = false; }
+	UARTDevice() : port(0),active(false) {}
 	~UARTDevice() { }
 
 	uintmax_t Ioctl(uintmax_t request, ...);

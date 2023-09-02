@@ -69,7 +69,7 @@ ModuleNode *Manager::FindNode(uint32_t vendorID, uint32_t productID, ModuleNode 
 	return NULL;
 }
 
-int Manager::RegisterModule(PROC::Process *process, uint32_t vendorID, uint32_t productID) {
+int Manager::RegisterModule(PROC::ProcessBase *process, uint32_t vendorID, uint32_t productID) {
 	ModuleNode *node = AddNode(vendorID, productID);
 
 	if(node->ModuleData != NULL) return -1;
@@ -100,7 +100,7 @@ Module *Manager::GetModule(size_t PID) {
 	}
 
 	while(true) {
-		if (node->ModuleData->GetProcess()->GetPID() == PID) {
+		if (node->ModuleData->GetProcess()->ID == PID) {
 			return node->ModuleData;
 		}
 

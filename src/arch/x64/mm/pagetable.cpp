@@ -13,7 +13,7 @@ PageTableManager::PageTableManager(PageTable *PML4Address){
 }
 
 void PageTableManager::Fork(VMM::VirtualSpace *space, bool higherHalf) {
-	PageTable *newPML4 = space->GetTopAddress();
+	PageTable *newPML4 = (PageTable*)space->GetTopAddress();
 
 	for (int PDP_i = (higherHalf) ? (256) : (0); PDP_i < ENTRIES; PDP_i++) {
 		PageDirectoryEntry PDE;
@@ -221,7 +221,7 @@ void *PageTableManager::GetPhysicalAddress(void *virtualMemory) {
 		address = (void*)((uint64_t)PDE.GetAddress() << 12);
 	} else return NULL;
 
-	address += (uintptr_t)virtualMemory % PAGE_SIZE;
+	address = (void*)((uintptr_t)address + (uintptr_t)virtualMemory % PAGE_SIZE);
 
 	return address;
 }

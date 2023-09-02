@@ -5,243 +5,294 @@
 #include <mm/pmm.hpp>
 #include <sys/panic.hpp>
 #include <sys/user.hpp>
+#include <sys/mutex.hpp>
 
 namespace PROC {
 
-ProcessNode *Scheduler::AddNode(ProcessNode *queue, Process *proc) {
-	bool found = false;
-	ProcessNode *node, *prev;
+Scheduler *InitializeScheduler(size_t queueCount) {
+	Scheduler *scheduler = (Scheduler*)Malloc(sizeof(Scheduler) + queueCount * sizeof(SchedulerQueue));
 
-	node = FindNode(queue, proc->GetPID(), &prev, &found);
+	scheduler->SchedulerLock = false;
+	scheduler->CurrentThread = NULL;
+	scheduler->QueueCount = queueCount;
+	scheduler->ElapsedQuantum = -1;
 
-	/* Already present, return this one */
-	if(found) return node;
-
-	/* If not, prev is now our last node. */
-	ProcessNode *newNode = new ProcessNode;
-	newNode->Proc = proc;
-	newNode->Next = NULL;
-
-	prev->Next = newNode;
-	
-	return prev->Next;
-}
-
-Process *Scheduler::PopFirstNode(ProcessNode *queue) {
-	ProcessNode *node = queue->Next;
-
-	if (node == NULL) {
-		return NULL;
+	for (size_t currentQueue = 0; currentQueue < queueCount; ++currentQueue) { 
+		scheduler->Queues[currentQueue] = new SchedulerQueue;
+		scheduler->Queues[currentQueue]->ThreadCount = 0;
+		scheduler->Queues[currentQueue]->Head = NULL;
+		scheduler->Queues[currentQueue]->Tail = NULL;
 	}
 
-	queue->Next = node->Next;
-
-	Process *proc = node->Proc;
-	delete node;
-
-	return proc;
+	return scheduler;
 }
 
-Process *Scheduler::RemoveNode(ProcessNode *queue, size_t pid) {
-	bool found = false;
-	ProcessNode *previous; 
-	ProcessNode *node = FindNode(queue, pid, &previous, &found);
+int DeinitializeScheduler(Scheduler *scheduler) {
+	if(scheduler == NULL) return -1;
+	LockMutex(&scheduler->SchedulerLock);
 
-	/* This issue shall be reported */
-	if(!found) return NULL;
+	for (size_t currentQueue = 0; currentQueue < scheduler->QueueCount; ++currentQueue) { 
+		if(scheduler->Queues[currentQueue]->Head != NULL) {
+			SchedulerNode *node = scheduler->Queues[currentQueue]->Head;
+			while(node != scheduler->Queues[currentQueue]->Tail) {
+				node = node->Next;
+				delete node->Previous;
+			}
 
-	previous->Next = node->Next;
-	Process *proc = node->Proc;
-	delete node;
-
-	return proc;
-}
-
-ProcessNode *Scheduler::FindNode(ProcessNode *queue, size_t pid, ProcessNode **previous, bool *found) {
-	ProcessNode *node = queue->Next, *prev = queue;
-
-	if (node == NULL) {
-		*previous = prev;
-		*found = false;
-		return NULL;
-	}
-
-	while(true) {
-		if (node->Proc->GetPID() == pid) {
-			*found = true;
-			*previous = prev;
-			return node;
+			delete scheduler->Queues[currentQueue]->Tail;
 		}
 
-		prev = node;
-		if (node->Next == NULL) break;
-		node = node->Next;
+		delete scheduler->Queues[currentQueue];
 	}
 
-	*previous = prev;
-	*found = false;
-	return NULL;
-}
-
-Scheduler::Scheduler() {
-	KInfo *info = GetInfo();
-
-	CurrentProcess = NULL;
-	
-	RunQueueBaseNode = new ProcessNode;
-	BlockedQueueBaseNode = new ProcessNode;
-
-	RunQueueBaseNode->Proc = NULL;
-	RunQueueBaseNode->Next = NULL;
-
-	BlockedQueueBaseNode->Proc = NULL;
-	BlockedQueueBaseNode->Next = NULL;
-
-	info->kernelProcess = new Process(PT_KERNEL, info->kernelVirtualSpace);
-	AddProcess(info->kernelProcess);
-}
-
-void Scheduler::AddProcess(Process *process) {
-	if (process == NULL) return;
-
-	AddNode(BlockedQueueBaseNode, process);
-
-	if (process->GetPID() > MaxPID) MaxPID = process->GetPID();
-}
-
-int Scheduler::SetProcessState(size_t PID, ProcessState state) {
-	Process *proc;
-
-	switch(state) {
-		case P_READY:
-			proc = GetProcess(PID, BlockedQueueBaseNode);
-			if (proc == NULL) return -1;
-
-			RemoveNode(BlockedQueueBaseNode, PID);
-			AddNode(RunQueueBaseNode, proc);
-
-			break;
-		case P_RUNNING:
-			proc = GetProcess(PID, RunQueueBaseNode);
-			if (proc == NULL) return -1;
-
-			CurrentProcess = proc;
-
-			break;
-		case P_WAITING:
-			proc = GetProcess(PID, RunQueueBaseNode);
-			if (proc == NULL) return -1;
-
-			RemoveNode(RunQueueBaseNode, PID);
-			AddNode(BlockedQueueBaseNode, proc);
-
-			break;
-		case P_MESSAGE:
-			proc = GetProcess(PID, BlockedQueueBaseNode);
-			if (proc == NULL) return -1;
-
-			RemoveNode(BlockedQueueBaseNode, PID);
-			AddNode(RunQueueBaseNode, proc);
-
-			break;
-		case P_DONE:
-			proc = GetProcess(PID);
-			if (proc == NULL) return -1;
-
-			if(RemoveNode(RunQueueBaseNode, PID) == NULL)
-				if (RemoveNode(BlockedQueueBaseNode, PID) == NULL)
-					return -1;
-
-			break;
-	}
-
-	proc->SetProcessState(state);
+	Free(scheduler);
 
 	return 0;
 }
 
-Process *Scheduler::GetProcess(size_t PID, ProcessNode *queue) {
-	if(PID > MaxPID) return NULL;
+int AddThreadToQueue(Scheduler *scheduler, size_t queue, ThreadBase *thread) {
+	if (scheduler == NULL || scheduler->Queues[queue] == NULL || thread == NULL) return -1;
+	LockMutex(&scheduler->SchedulerLock);
 
-	bool found = false;
-	ProcessNode *previous; 
-	ProcessNode *node = FindNode(queue, PID, &previous, &found);
+	SchedulerNode *newNode = new SchedulerNode;
+	newNode->Thread = thread;
+	newNode->Quantum = SCHEDULER_DEFAULT_QUANTUM;
+	newNode->Next = NULL;
+	newNode->Previous = NULL;
 
-	if(found) return node->Proc;
+	if(scheduler->Queues[queue]->Head == NULL) {
+		scheduler->Queues[queue]->Head = newNode;
+		scheduler->Queues[queue]->Tail = newNode;
+	} else {
+		SchedulerNode *node = scheduler->Queues[queue]->Head;
+		while(node != scheduler->Queues[queue]->Tail) {
+			if(node->Thread->Priority < thread->Priority)
+				break;
+
+			node = node->Next;
+		}
+
+		SchedulerNode *oldNextNode = node->Next;
+		if(oldNextNode == NULL) {
+			scheduler->Queues[queue]->Tail = newNode;
+		} else {
+			oldNextNode->Previous = newNode;
+		}
+
+		newNode->Next = oldNextNode;
+		newNode->Previous = node;
+		node->Next = newNode;
+	}
+
+
+	UnlockMutex(&scheduler->SchedulerLock);
+	return 0;
+}
+
+ThreadBase *RemoveThreadFromQueue(Scheduler *scheduler, size_t queue, size_t pid, size_t tid) {
+	if (scheduler == NULL || scheduler->Queues[queue] == NULL || scheduler->Queues[queue]->Head == NULL) return NULL;
+	LockMutex(&scheduler->SchedulerLock);
+
+	ThreadBase *thread = NULL;
 	
+	SchedulerNode *node = scheduler->Queues[queue]->Head;
+
+	while(node != scheduler->Queues[queue]->Tail) {
+		if(node->Thread->Parent->ID == pid && node->Thread->ID == tid) {
+			SchedulerNode *previous = node->Previous;
+			SchedulerNode *next = node->Next;
+
+			if(previous != NULL) {
+				previous->Next = next;
+			} else {
+				scheduler->Queues[queue]->Head = next;
+			}
+			next->Previous = previous;
+
+			thread = node->Thread;
+
+			delete node;
+		
+			UnlockMutex(&scheduler->SchedulerLock);
+			return thread;
+		}
+
+		node = node->Next;
+	}
+
+
+
+	if(node->Thread->Parent->ID == pid && node->Thread->ID == tid) {
+		if(scheduler->Queues[queue]->Head == scheduler->Queues[queue]->Tail) {
+			scheduler->Queues[queue]->Head = NULL;
+			scheduler->Queues[queue]->Tail = NULL;
+		} else {
+			SchedulerNode *previous = node->Previous;
+			previous->Next = NULL;
+			scheduler->Queues[queue]->Tail = previous;
+		}
+			
+		thread = node->Thread;
+		
+		delete node;
+	} else {
+		UnlockMutex(&scheduler->SchedulerLock);
+
+		return NULL;
+	}
+
+	UnlockMutex(&scheduler->SchedulerLock);
+	return thread;
+}
+
+ThreadBase *GetThreadFromQueue(Scheduler *scheduler, size_t queue, size_t pid, size_t tid) {
+	if (scheduler == NULL || scheduler->Queues[queue] == NULL || scheduler->Queues[queue]->Head == NULL) return NULL;
+	LockMutex(&scheduler->SchedulerLock);
+
+	ThreadBase *thread = NULL;
+
+	SchedulerNode *node = scheduler->Queues[queue]->Head;
+	while(node != scheduler->Queues[queue]->Tail) {
+		if(node->Thread->Parent->ID == pid && node->Thread->ID == tid) {
+			thread = node->Thread;
+			UnlockMutex(&scheduler->SchedulerLock);
+			return thread;
+		}
+
+		node = node->Next;
+	}
+
+	if(node->Thread->Parent->ID == pid && node->Thread->ID == tid) {
+		thread = node->Thread;
+	} else {
+		UnlockMutex(&scheduler->SchedulerLock);
+
+		return NULL;
+	}
+
+	UnlockMutex(&scheduler->SchedulerLock);
+	return thread;
+}
+	
+ThreadBase *GetThread(Scheduler *scheduler, size_t pid, size_t tid) {
+	if(scheduler == NULL) return NULL;
+	LockMutex(&scheduler->SchedulerLock);
+
+	ThreadBase *thread = NULL;
+	for (size_t currentQueue = 0; currentQueue < scheduler->QueueCount; ++currentQueue) { 
+		SchedulerNode *node = scheduler->Queues[currentQueue]->Head;
+		while(node != scheduler->Queues[currentQueue]->Tail) {
+			if(node->Thread->Parent->ID == pid && node->Thread->ID == tid) {
+				thread = node->Thread;
+				UnlockMutex(&scheduler->SchedulerLock);
+				return thread;
+			}
+
+			node = node->Next;
+		}
+
+		if(node->Thread->Parent->ID == pid && node->Thread->ID == tid) {
+			thread = node->Thread;
+			UnlockMutex(&scheduler->SchedulerLock);
+			return thread;
+		}
+	}
+
+	UnlockMutex(&scheduler->SchedulerLock);
 	return NULL;
 }
 
-Process *Scheduler::GetProcess(size_t PID) {
-	if(PID > MaxPID) return NULL;
+int RecalculateScheduler(Scheduler *scheduler) {
+	if(scheduler == NULL) return -1;
+	LockMutex(&scheduler->SchedulerLock);
 
-	bool found = false;
-	ProcessNode *previous; 
-	ProcessNode *node = FindNode(RunQueueBaseNode, PID, &previous, &found);
-
-	if(found) return node->Proc;
-	
-	node = FindNode(BlockedQueueBaseNode, PID, &previous, &found);
-
-	if (found) return node->Proc;
-	
-	return NULL;
-}
-
-Process *Scheduler::GetRunningProcess() {
-	return CurrentProcess;
-}
-
-void Scheduler::RecalculateScheduler() {
-	PROC::Process *proc = PopFirstNode(RunQueueBaseNode);
-	if (proc == NULL) return;
-
-	AddNode(RunQueueBaseNode, proc);
-
-	if (RunQueueBaseNode->Next == NULL) return;
-
-	CurrentProcess = proc;
-
-	SwitchToTask(RunQueueBaseNode->Next->Proc, 0);
-}
-
-void Scheduler::SwitchToTask(Process *proc, size_t TID) {
-	if (proc == NULL) return;
-
-	Thread *thread;
-
-	if (TID == 0) thread = proc->GetMainThread();
-	else thread = proc->GetThread(TID);
-	
-	if (thread == NULL) return;
-	
-	if(proc->GetProcessState() == P_MESSAGE) {
-		Thread *msg = proc->GetMessageThread();
-		if (msg != NULL) thread = msg;
+	/* Check wether the current thread has used up its available quantum */
+	if(scheduler->CurrentThread == NULL) {
+		if(scheduler->Queues[SCHEDULER_RUNNING_QUEUE]->Head != NULL) {
+			scheduler->CurrentThread = scheduler->Queues[SCHEDULER_RUNNING_QUEUE]->Head;
+			scheduler->ElapsedQuantum = 0;
+			UnlockMutex(&scheduler->SchedulerLock);
+			return 0;
+		} else {
+			UnlockMutex(&scheduler->SchedulerLock);
+			return -1;
+		}
 	}
 
-	void *stack = thread->GetStack();
-	void *entry = thread->GetInstruction();
+	if(scheduler->ElapsedQuantum >= scheduler->CurrentThread->Quantum) {
+		/* If there are no threads in the running queue after this one, we'll swap it with the waiting queue 
+		 * Otherwise, we'll just remove it and push it in the waiting queue */
+	
+		if(scheduler->Queues[SCHEDULER_RUNNING_QUEUE]->Head->Next == NULL) {
+			if(scheduler->Queues[SCHEDULER_WAITING_QUEUE]->Head == NULL &&
+			   scheduler->Queues[SCHEDULER_BLOCKED_QUEUE]->Head == NULL) {
+				/* This is executed if there is just one process that is running
+				 * we don't erase the elapsed quantum, as we want to switch to
+				 * a new process as soon as we can
+				 */
+				UnlockMutex(&scheduler->SchedulerLock);
+				return 0;
+			} else {
+				SchedulerQueue *oldRunning = scheduler->Queues[SCHEDULER_RUNNING_QUEUE];
+				scheduler->Queues[SCHEDULER_RUNNING_QUEUE] = scheduler->Queues[SCHEDULER_WAITING_QUEUE];
+				scheduler->Queues[SCHEDULER_WAITING_QUEUE] = oldRunning;
+			}
+		} else {
+			UnlockMutex(&scheduler->SchedulerLock);
+			ThreadBase *thread = RemoveThreadFromQueue(scheduler, SCHEDULER_RUNNING_QUEUE, scheduler->CurrentThread->Thread->Parent->ID, scheduler->CurrentThread->Thread->ID);
+			AddThreadToQueue(scheduler, SCHEDULER_WAITING_QUEUE, thread);
+			LockMutex(&scheduler->SchedulerLock);
+		}
+		
+		scheduler->CurrentThread = scheduler->Queues[SCHEDULER_RUNNING_QUEUE]->Head;
+		scheduler->ElapsedQuantum = 0;
 
-	CurrentProcess = proc;
-
-	ProcessType type = proc->GetType();
-
-	VMM::LoadVirtualSpace(proc->GetVirtualMemorySpace());
-
-	switch(type) {
-		case PT_USER:
-			EnterUserspace(entry, stack);
-			break;
-		case PT_KERNEL:
-			uint64_t old;
-			SaveContext *context = stack;
-			context->ret = entry;
-			SwitchStack(&old, &stack);
-			break;
+		UnlockMutex(&scheduler->SchedulerLock);
+		return 1;
+	} else {
+		/* Things can continue normally */	
+		UnlockMutex(&scheduler->SchedulerLock);
+		return 0;
 	}
 
-	OOPS("Failed to task switch");
 }
 
+void PrintSchedulerStatus(Scheduler *scheduler) {
+	if(scheduler == NULL) return;
+	LockMutex(&scheduler->SchedulerLock);
+
+	PRINTK::PrintK("Printing debug status of scheduler at 0x%x\r\n"
+		       " Current thread:                      0x%x\r\n"
+		       " Elapsed quantum:                     0x%x\r\n"
+		       " Queue count:                         0x%x\r\n",
+		       scheduler, scheduler->CurrentThread, scheduler->ElapsedQuantum, scheduler->QueueCount);
+
+
+	ThreadBase *thread = NULL;
+	for (size_t currentQueue = 0; currentQueue < scheduler->QueueCount; ++currentQueue) { 
+		PRINTK::PrintK("  Queue:                              0x%x\r\n", currentQueue);
+		SchedulerNode *node = scheduler->Queues[currentQueue]->Head;
+		if(node == NULL) PRINTK::PrintK("   Empty\r\n");
+		else {
+			thread = node->Thread;
+			while(node != scheduler->Queues[currentQueue]->Tail) {
+				PRINTK::PrintK("   Thread:                            0x%x\r\n"
+					       "    TID:                              0x%x\r\n"
+					       "    PID:                              0x%x\r\n",
+					       thread, thread->ID, thread->Parent->ID);
+
+				node = node->Next;
+				thread = node->Thread;
+			}
+
+			PRINTK::PrintK("   Thread:                            0x%x\r\n"
+				       "    TID:                              0x%x\r\n"
+				       "    PID:                              0x%x\r\n",
+				       thread, thread->ID, thread->Parent->ID);
+		}
+
+	}
+
+	UnlockMutex(&scheduler->SchedulerLock);
+}
 }

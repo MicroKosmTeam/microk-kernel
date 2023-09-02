@@ -13,7 +13,7 @@ uintptr_t GetAPICBase() {
 	uint32_t eax, edx;
 	GetMSR(IA32_APIC_BASE_MSR, &eax, &edx);
 
-	return (eax & 0xfffff000) | ((edx & 0x0f) << 32);
+	return (eax & 0xfffff000) | (((uintptr_t)edx & 0x0f) << 32);
 }
 
 void SetAPICBase(uintptr_t apic) {
@@ -39,8 +39,8 @@ uint32_t ReadAPICRegister(uint16_t offset) {
 	return *apicRegister;
 }
 	
-static uint32_t cycles = 0;
-void SetAPICTimer(uint32_t newCycles) {
+static uint64_t cycles = 0;
+void SetAPICTimer(uint64_t newCycles) {
 	cycles = newCycles;
 }
 
@@ -50,9 +50,9 @@ void WaitAPIC() {
 
 void EnableAPIC() {	
 	KInfo *info = GetInfo();
-	void *base = GetAPICBase();
+	void *base = (void*)GetAPICBase();
 
-	VMM::MapMemory(info->kernelVirtualSpace, base, base);
+	VMM::MapMemory(info->KernelVirtualSpace, base, base);
 
 	SetAPICBase(GetAPICBase());
 

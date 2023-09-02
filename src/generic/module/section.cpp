@@ -17,15 +17,15 @@ SectionNode *SectionManager::AddNode(const char *sectionName, uint32_t vendorID,
 	bool found = false;
 	SectionNode *node, *prev;
 
-	node = FindNode(sectionName, 0, 0, &prev, &found);
+	node = FindNode(sectionName, vendorID, productID, &prev, &found);
 
 	/* Already present, return this one */
 	if(found) return node;
 
 	/* If not, prev is now our last node. */
 	SectionNode *newNode = new SectionNode;
-	newNode->VendorID = 0;
-	newNode->ProductID = 0;
+	newNode->VendorID = vendorID;
+	newNode->ProductID = productID;
 	newNode->Next = NULL;
 
 	prev->Next = newNode;

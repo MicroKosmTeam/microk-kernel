@@ -26,4 +26,17 @@ global FlushTSS
 FlushTSS:
 	mov ax, 0x48
 	ltr ax
+
+	ret
+
+; Function to set IOPL=0
+global SetIOPL
+SetIOPL:
+	xor rax, rax
+	pushf				; Push the current flags onto the stack
+	pop rax				; Pop the flags into eax
+	and rax, 0xFFFFFFFFFFFFCFFF	; Clear IOPL bits (bits 12 and 13) to 0
+	push rax			; Push the modified flags back onto the stack
+	popf				; Pop the flags to set the new IOPL
+
 	ret

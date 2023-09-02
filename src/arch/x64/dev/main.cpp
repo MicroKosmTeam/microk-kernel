@@ -141,20 +141,20 @@ int HandleHPET(HPETHeader *hpet);
 int InitDevices() {
 	KInfo *info = GetInfo();
 
-	RSDP2 *rsdp = info->RSDP;
+	RSDP2 *rsdp = (RSDP2*)info->RSDP;
 
 	/* We only accept ACPI 2.0+ */
 	if(rsdp->Revision < 2) return -1;
 
 	/* Select either the XSDT or the RSDT seeing whats available */
-	SDTHeader *sdtAddr = rsdp->XSDTAddress ? rsdp->XSDTAddress : rsdp->RSDTAddress;
+	SDTHeader *sdtAddr = rsdp->XSDTAddress ? (SDTHeader*)rsdp->XSDTAddress : (SDTHeader*)(uintptr_t)rsdp->RSDTAddress;
 	uint8_t size = rsdp->XSDTAddress ? 8 : 4;
 
 	/* Scan through all the entries in the SDT */
 	size_t entries = (sdtAddr->Length - sizeof(SDTHeader)) / size;
-	for (int i = 0; i < entries; i++) {
+	for (size_t i = 0; i < entries; i++) {
 		uintptr_t addr = *(uintptr_t*)((uintptr_t)sdtAddr + sizeof(SDTHeader) + (i * size));
-		SDTHeader *newSDTHeader = addr + info->higherHalfMapping;
+		SDTHeader *newSDTHeader = (SDTHeader*)(addr + info->HigherHalfMapping);
 
 		if (memcmp(newSDTHeader->Signature, "APIC", 4) == 0) {
 			HandleMADT((MADTHeader*)newSDTHeader);
@@ -284,11 +284,8 @@ int HandleHPET(HPETHeader *hpet) {
 	CalibrateTSCWithHPET(hpet->Address.Address, &tscPerSecond);
 	PRINTK::PrintK("CPU is running at %d.%dMHz\r\n", tscPerSecond / 1000000, tscPerSecond  % 1000000 / 1000);
 
-	/*
+	SetAPICTimer(tscPerSecond / 2000);
 	EnableAPIC();
-	SetAPICTimer(tscPerSecond / 1000);
-	WaitAPIC();
-	*/
 
 	return 0;
 }

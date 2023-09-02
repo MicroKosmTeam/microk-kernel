@@ -15,19 +15,6 @@ static uint64_t totalMem;
 
 static SpinLock HeapLock;
 
-namespace HEAP {
-bool IsHeapActive() {
-	return isHeapActive;
-}
-
-uint64_t GetFree() {
-	return freeMem;
-}
-
-uint64_t GetTotal() {
-	return totalMem;
-}
-
 void HeapSegHeader::CombineForward() {
         if(next == NULL) return;
         if(!next->free) return;
@@ -66,6 +53,19 @@ HeapSegHeader *HeapSegHeader::Split(size_t splitlength) {
         return newSplitHeader;
 }
 
+namespace HEAP {
+bool IsHeapActive() {
+	return isHeapActive;
+}
+
+uint64_t GetFree() {
+	return freeMem;
+}
+
+uint64_t GetTotal() {
+	return totalMem;
+}
+
 void InitializeHeap(void *heapAddress, size_t pageCount) {
 	KInfo *info = GetInfo();
 
@@ -73,7 +73,7 @@ void InitializeHeap(void *heapAddress, size_t pageCount) {
 	PRINTK::PrintK("Initializing the heap at 0x%x with %d pages.\r\n", heapAddress, pageCount);
 
         for (size_t i = 0; i < pageCount; i++) {
-		VMM::MapMemory(info->kernelVirtualSpace, PMM::RequestPage(), pos);
+		VMM::MapMemory(info->KernelVirtualSpace, PMM::RequestPage(), pos);
                 pos = (void*)((size_t)pos + 0x1000); // Advancing
         }
 
@@ -97,7 +97,6 @@ void InitializeHeap(void *heapAddress, size_t pageCount) {
 #define MAX_TRIES 4
 
 void *Malloc(size_t size) {
-
         if (size % 0x10 > 0){ // Not multiple of 0x10
                 size -= (size % 0x10);
                 size += 0x10;
@@ -134,6 +133,8 @@ void *Malloc(size_t size) {
 		HeapLock.Unlock();
 
 	}
+
+	return NULL;
 }
 
 void Free(void *address) {
@@ -161,7 +162,7 @@ void ExpandHeap(size_t length) {
         HeapSegHeader *newSegment = (HeapSegHeader*)heapEnd;
 
         for (size_t i = 0; i < pageCount; i++) {
-		VMM::MapMemory(info->kernelVirtualSpace, PMM::RequestPage(), heapEnd);
+		VMM::MapMemory(info->KernelVirtualSpace, PMM::RequestPage(), heapEnd);
                 heapEnd = (void*)((size_t)heapEnd + 0x1000);
         }
 

@@ -53,6 +53,7 @@ void operator delete(void* p, size_t size) {
 	// We should assume that someone that allocs on BOOTMEM
 	// will not call free
 
+	(void)size;
 	HEAP::Free(p);
 }
 
@@ -69,6 +70,7 @@ void operator delete[](void* p, size_t size) {
 	// We should assume that someone that allocs on BOOTMEM
 	// will not call free
 
+	(void)size;
 	HEAP::Free(p);
 }
 
@@ -79,19 +81,43 @@ void DisplayRam() {
 
 	PRINTK::PrintK("Provided physical RAM map:\r\n");
 
-	for (int i = 0; i < info->mMapEntryCount; i++) {
+	for (size_t i = 0; i < info->MemoryMapEntryCount; i++) {
 		PRINTK::PrintK(" [0x%x - 0x%x] -> %s\r\n",
-				info->mMap[i].base,
-				info->mMap[i].base + info->mMap[i].length,
-				memTypeStrings[info->mMap[i].type]);
+				info->MemoryMap[i].base,
+				info->MemoryMap[i].base + info->MemoryMap[i].length,
+				memTypeStrings[info->MemoryMap[i].type]);
 	}
+
+	PRINTK::PrintK("Contiguous regions:\r\n");
+	bool isAllUnusable = true;
+	uintptr_t base = info->MemoryMap[0].base;
+	size_t length = info->MemoryMap[0].length;
+
+	for (size_t region = 1; region < info->MemoryMapEntryCount; region++) {
+		if (info->MemoryMap[region - 1].base + info->MemoryMap[region - 1].length == info->MemoryMap[region].base) {
+			length += info->MemoryMap[region].length;
+			if(isAllUnusable) isAllUnusable = info->MemoryMap[region].type == MEMMAP_USABLE ? false : true;
+		} else {
+			PRINTK::PrintK(" %s area: [0x%x - 0x%x]\r\n",
+				isAllUnusable ? "Unusable" : "Usable",
+				base,
+				base + length);
+
+			base = info->MemoryMap[region].base;
+			length = info->MemoryMap[region].length;
+			isAllUnusable = info->MemoryMap[region].type == MEMMAP_USABLE ? false : true;
+		}
+	}
+
+	PRINTK::PrintK(" %s area: [0x%x - 0x%x]\r\n",
+				isAllUnusable ? "Unusable" : "Usable",
+				base,
+				base + length);
 
 }
 
 
 void Init() {
-	KInfo *info = GetInfo();
-
 	VMM::InitVMM();
 }
 }

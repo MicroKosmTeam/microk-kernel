@@ -65,23 +65,23 @@ struct KInfo {
 	const char *KernelArgs;
 
 	/* Memory information */
-	MEM::MMapEntry *mMap; /* Pointer to the memory map */
-	uint64_t mMapEntryCount; /* Number of memory map regions */
+	MEM::MMapEntry *MemoryMap; /* Pointer to the memory map */
+	size_t MemoryMapEntryCount; /* Number of memory map regions */
 
-	uintptr_t higherHalfMapping; /* Start of higher half mapping */
-	uintptr_t kernelStack; /* Start of kernel stack */
+	uintptr_t HigherHalfMapping; /* Start of higher half mapping */
 
-	uintptr_t kernelPhysicalBase; /* Start of the kernel in physical memory */
-	uintptr_t kernelVirtualBase; /* Start of the kernel in virtual memory */
+	uintptr_t KernelPhysicalBase; /* Start of the kernel in physical memory */
+	uintptr_t KernelVirtualBase; /* Start of the kernel in virtual memory */
 
-	VMM::VirtualSpace *kernelVirtualSpace; /* Kernel virtual memory space */
-	PROC::Process *kernelProcess;
-	PROC::Scheduler *kernelScheduler;
+	PROC::Scheduler *KernelScheduler;
+	VMM::VirtualSpace *KernelVirtualSpace; /* Kernel virtual memory space */
+	PROC::KernelProcess *KernelProcess;
+	uintptr_t KernelStack; /* Start of kernel stack */
 
 #ifdef CONFIG_KERNEL_MODULES
 	/* Module information */
-	FILE::BootFile *bootFiles; /* Pointer to the Limine modules */
-	uint64_t fileCount; /* Number of modules provided */
+	FILE::BootFile *BootFiles; /* Pointer to the Limine modules */
+	size_t FileCount; /* Number of modules provided */
 
 	char UserModuleName[256];
 
@@ -92,13 +92,13 @@ struct KInfo {
 
 #ifdef CONFIG_HW_UART
 	/* Kernel serial device */
-	UARTDevice *kernelPort; /* UART deivice used as serial port */
+	UARTDevice *KernelPort; /* UART deivice used as serial port */
 #endif
 
 	void *RSDP;
 
-	size_t framebufferCount;
-	Framebuffer *framebuffers;
+	size_t FramebufferCount;
+	Framebuffer *Framebuffers;
 };
 
 /*

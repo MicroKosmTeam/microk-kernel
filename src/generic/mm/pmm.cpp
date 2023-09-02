@@ -3,77 +3,76 @@
 #include <init/kinfo.hpp>
 #include <sys/mutex.hpp>
 
-static uint64_t free_memory;
-static uint64_t reserved_memory;
-static uint64_t used_memory;
-static bool initialized = false;
-static Bitmap page_bitmap;
-static uint64_t page_bitmap_index = 0; // Last page searched
-static SpinLock BitmapLock;
+static size_t FreeMemory;
+static size_t ReservedMemory;
+static size_t UsedMemory;
+static bool Initialized = false;
+static Bitmap PageBitmap;
+static size_t PageBitmapIndex = 0; // Last page searched
 static uintptr_t HigherHalf;
 
-static void InitBitmap(size_t bitmap_size, void *buffer_address);
+static void InitBitmap(size_t bitmapSize, void *bufferAddress);
 static void UnreservePage(void *address);
-static void UnreservePages(void *address, uint64_t page_count);
+static void UnreservePages(void *address, size_t pageCount);
 static void ReservePage(void *address);
-static void ReservePages(void *address, uint64_t page_count);
+static void ReservePages(void *address, size_t pageCount);
 
-static void InitBitmap(size_t bitmap_size, void *buffer_address) {
-	page_bitmap.size = bitmap_size;
-	page_bitmap.buffer = (uint8_t*)buffer_address;
-	for (int i = 0; i < bitmap_size; i++) {
-		*(uint8_t*)(page_bitmap.buffer + i) = 0;
+static void InitBitmap(size_t bitmapSize, void *bufferAddress) {
+	PageBitmap.size = bitmapSize;
+	PageBitmap.buffer = (uint8_t*)bufferAddress;
+	for (size_t i = 0; i < bitmapSize; i++) {
+		*(uint8_t*)(PageBitmap.buffer + i) = 0;
 	}
 }
 static void UnreservePage(void *address) {
-	uint64_t index = (uint64_t)address / 4096;
-	if(page_bitmap[index] == false) return;
-	if(page_bitmap.Set(index, false)) {
-		free_memory += 4096;
-		reserved_memory -= 4096;
-		if(page_bitmap_index > index) {
-			page_bitmap_index = index; // Making sure that we don't miss free pages
+	size_t index = (size_t)address / 4096;
+	if(PageBitmap[index] == false) return;
+	if(PageBitmap.Set(index, false)) {
+		FreeMemory += 4096;
+		ReservedMemory -= 4096;
+		if(PageBitmapIndex > index) {
+			PageBitmapIndex = index; // Making sure that we don't miss free pages
 		}
 	}
 }
 
 static void ReservePage(void *address) {
-	uint64_t index = (uint64_t)address / 4096;
-	if(page_bitmap[index] == true) return;
-	if(page_bitmap.Set(index, true)) {
-		free_memory -= 4096;
-		reserved_memory += 4096;
+	size_t index = (size_t)address / 4096;
+	if(PageBitmap[index] == true) return;
+	if(PageBitmap.Set(index, true)) {
+		FreeMemory -= 4096;
+		ReservedMemory += 4096;
 	}
 }
-static void UnreservePages(void *address, uint64_t page_count) {
-	for (int i = 0; i < page_count; i++) {
-		UnreservePage((void*)(uint64_t)address + (i * 4096));
+static void UnreservePages(void *address, size_t pageCount) {
+	for (size_t i = 0; i < pageCount; i++) {
+		UnreservePage((void*)((size_t)address + (i * 4096)));
 	}
 }
 
-static void ReservePages(void *address, uint64_t page_count) {
-	for (int i = 0; i < page_count; i++) {
-		ReservePage((void*)(uint64_t)address + (i * 4096));
+static void ReservePages(void *address, size_t pageCount) {
+	for (size_t i = 0; i < pageCount; i++) {
+		ReservePage((void*)((size_t)address + (i * 4096)));
 	}
 }
 
 
 namespace PMM {
 void InitPageFrameAllocator() {
-	if (initialized) return;
+	if (Initialized) return;
 
-	initialized = true;
+	Initialized = true;
 
 	KInfo *info = GetInfo();
 
-	HigherHalf = info->higherHalfMapping; 
+	HigherHalf = info->HigherHalfMapping; 
 
 	void *largestFree = NULL;
 	size_t largestFreeSize = 0;
 
-	uint64_t memory_size = 0;
-	for (int i = 0; i < info->mMapEntryCount; i++) {
-		MEM::MMapEntry desc = info->mMap[i];
+	size_t memorySize = 0;
+	for (size_t i = 0; i < info->MemoryMapEntryCount; i++) {
+		MEM::MMapEntry desc = info->MemoryMap[i];
 		if (desc.type == MEMMAP_USABLE) {
 			if(desc.length > largestFreeSize) {
 				largestFree = (void*)desc.base;
@@ -81,24 +80,24 @@ void InitPageFrameAllocator() {
 			}
 		}
 
-		if (desc.type != MEMMAP_RESERVED) memory_size += desc.length;
+		if (desc.type != MEMMAP_RESERVED) memorySize += desc.length;
 	}
 
-	uint64_t bitmap_size = memory_size / 4096 / 8 + 1;
+	size_t bitmapSize = memorySize / 4096 / 8 + 1;
 
-	free_memory = memory_size;
+	FreeMemory = memorySize;
 
-	largestFree += HigherHalf;
+	largestFree = (void*)((uintptr_t)largestFree + HigherHalf);
 
 	// Initialize bitmap
-	InitBitmap(bitmap_size, largestFree);
+	InitBitmap(bitmapSize, largestFree);
 
 	// Reserve all pages
-	ReservePages(0, memory_size / 4096 + 1);
+	ReservePages(0, memorySize / 4096 + 1);
 
 	// Unreserve usable pages (we do it because the mmap can have holes in it)
-	for (int i = 0; i < info->mMapEntryCount; i++){
-		MEM::MMapEntry desc = info->mMap[i];
+	for (size_t i = 0; i < info->MemoryMapEntryCount; i++){
+		MEM::MMapEntry desc = info->MemoryMap[i];
 		if (desc.type == MEMMAP_USABLE) {
 			UnreservePages((void*)desc.base, desc.length / 4096);
 		}
@@ -108,29 +107,23 @@ void InitPageFrameAllocator() {
 	ReservePages(0, 0x100);
 
 	// Locking the page bitmap
-	ReservePages(page_bitmap.buffer, page_bitmap.size / 4096 + 1);
+	ReservePages(PageBitmap.buffer, PageBitmap.size / 4096 + 1);
 
-	BitmapLock.Unlock();
-	
-	PRINTK::PrintK("Bitmap allocator started: %dkb of memory in total.\r\n", memory_size / 1024);
+	PRINTK::PrintK("Bitmap allocator started: %dkb of memory in total.\r\n", memorySize / 1024);
 }
 
 #define MAX_TRIES 4 
 void *RequestPage() {
 	for (int i = 0; i < MAX_TRIES; ++i) {
-		BitmapLock.Lock();
+		for (; PageBitmapIndex < PageBitmap.size * 8; PageBitmapIndex++) {
+			if(PageBitmap[PageBitmapIndex] == true) continue;
+			LockPage((void*)(PageBitmapIndex * 4096));
 
-		for (; page_bitmap_index < page_bitmap.size * 8; page_bitmap_index++) {
-			if(page_bitmap[page_bitmap_index] == true) continue;
-			LockPage((void*)(page_bitmap_index * 4096));
-
-			BitmapLock.Unlock();
-			return (void*)(page_bitmap_index * 4096);
+			return (void*)(PageBitmapIndex * 4096);
 		}
 
 		// Try again 
-		page_bitmap_index = 0;
-		BitmapLock.Unlock();
+		PageBitmapIndex = 0;
 	}
 	
 	return NULL;
@@ -138,24 +131,19 @@ void *RequestPage() {
 
 void *RequestPages(size_t pages) {
 	for (int i = 0; i < MAX_TRIES; ++i) {
-		BitmapLock.Lock();
-
-		for (; page_bitmap_index < (page_bitmap.size - pages)* 8; page_bitmap_index++) {
+		for (; PageBitmapIndex < (PageBitmap.size - pages)* 8; PageBitmapIndex++) {
 			bool free = true;
-			for (size_t i; i < pages; i++) {
-				if(page_bitmap[page_bitmap_index + i]) { free = false; break; };
+			for (size_t i = 0; i < pages; i++) {
+				if(PageBitmap[PageBitmapIndex + i]) { free = false; break; };
 			}
 
 			if (free) {
-				LockPages((void*)(page_bitmap_index * 4096), pages);
-				BitmapLock.Unlock();
+				LockPages((void*)(PageBitmapIndex * 4096), pages);
 
-				return (void*)(page_bitmap_index * 4096);
+				return (void*)(PageBitmapIndex * 4096);
 			}
 
 		}
-
-		BitmapLock.Unlock();
 	}
 
 	// No more memory
@@ -163,68 +151,60 @@ void *RequestPages(size_t pages) {
 }
 
 bool FreePage(void *address) {
-//	BitmapLock.Lock();
-
-	uint64_t index = (uint64_t)address / 4096;
-	if(page_bitmap[index] == false) {
-		BitmapLock.Unlock();
+	size_t index = (size_t)address / 4096;
+	if(PageBitmap[index] == false) {
 		return false;
 	}
 
-	if(page_bitmap.Set(index, false)) {
-		free_memory += 4096;
-		used_memory -= 4096;
+	if(PageBitmap.Set(index, false)) {
+		FreeMemory += 4096;
+		UsedMemory -= 4096;
 
-		if(page_bitmap_index > index) {
-			page_bitmap_index = index; // Making sure that we don't miss free pages
+		if(PageBitmapIndex > index) {
+			PageBitmapIndex = index; // Making sure that we don't miss free pages
 		}
 	}
 
-//	BitmapLock.Unlock();
 	return true;
 }
 
 bool LockPage(void *address) {
-//	BitmapLock.Lock();	
-
-	uint64_t index = (uint64_t)address / 4096;
-	if(page_bitmap[index] == true) {
-		BitmapLock.Unlock();
+	size_t index = (size_t)address / 4096;
+	if(PageBitmap[index] == true) {
 		return false;
 	}
 	
-	if(page_bitmap.Set(index, true)) {
-		free_memory -= 4096;
-		used_memory += 4096;
+	if(PageBitmap.Set(index, true)) {
+		FreeMemory -= 4096;
+		UsedMemory += 4096;
 	}
 
-//	BitmapLock.Unlock();
 	return true;
 }
 
 
 
-void FreePages(void *address, uint64_t page_count) {
-	for (int i = 0; i < page_count; i++) {
-		FreePage((void*)(uint64_t)address + (i * 4096));
+void FreePages(void *address, size_t pageCount) {
+	for (size_t i = 0; i < pageCount; i++) {
+		FreePage((void*)((size_t)address + (i * 4096)));
 	}
 }
 
-void LockPages(void *address, uint64_t page_count) {
-	for (int i = 0; i < page_count; i++) {
-		LockPage((void*)(uint64_t)address + (i * 4096));
+void LockPages(void *address, size_t pageCount) {
+	for (size_t i = 0; i < pageCount; i++) {
+		LockPage((void*)((size_t)address + (i * 4096)));
 	}
 }
 
-uint64_t GetFreeMem() {
-	return free_memory;
+size_t GetFreeMem() {
+	return FreeMemory;
 }
 
-uint64_t GetUsedMem() {
-	return used_memory;
+size_t GetUsedMem() {
+	return UsedMemory;
 }
 
-uint64_t GetReservedMem() {
-	return reserved_memory;
+size_t GetReservedMem() {
+	return ReservedMemory;
 }
 }

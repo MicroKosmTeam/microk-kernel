@@ -10,7 +10,7 @@ void PageDirectoryEntry::SetFlag(PT_Flag flag, bool enabled) {
 
 bool PageDirectoryEntry::GetFlag(PT_Flag flag) {
         uint64_t bit_selector = (uint64_t)1 << flag;
-        return value & bit_selector > 0 ? true : false;
+        return value & (bit_selector > 0 ? true : false);
 }
 
 void PageDirectoryEntry::SetAddress(uint64_t address) {

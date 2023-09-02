@@ -34,14 +34,18 @@ uintmax_t UARTDevice::Ioctl(uintmax_t request, ...) {
 
 	switch (request) {
 		case 0: // Init();
-			result = Init(va_arg(ap, int));
+#if defined(ARCH_x64)
+			result = Init(static_cast<SerialPorts>(va_arg(ap, size_t)));
+#elif defined(ARCH_aarch64)
+			result = Init(va_arg(ap, uintptr_t));
+#endif
 			break;
 		case 1: // PutChar();
-			PutChar((const char)va_arg(ap, int));
+			PutChar((char)va_arg(ap, int));
 			result = 0;
 			break;
 		case 2: // PutStr();
-			PutStr((const char*)va_arg(ap, int*));
+			PutStr((char*)va_arg(ap, int*));
 			result = 0;
 			break;
 		case 3: // GetChar();
