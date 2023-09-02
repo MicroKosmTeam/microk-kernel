@@ -94,14 +94,19 @@ ThreadBase *RemoveThreadFromQueue(Scheduler *scheduler, size_t queue, size_t pid
 	LockMutex(&scheduler->SchedulerLock);
 
 	ThreadBase *thread = NULL;
-
+	
 	SchedulerNode *node = scheduler->Queues[queue]->Head;
+
 	while(node != scheduler->Queues[queue]->Tail) {
 		if(node->Thread->Parent->ID == pid && node->Thread->ID == tid) {
 			SchedulerNode *previous = node->Previous;
 			SchedulerNode *next = node->Next;
 
-			previous->Next = next;
+			if(previous != NULL) {
+				previous->Next = next;
+			} else {
+				scheduler->Queues[queue]->Head = next;
+			}
 			next->Previous = previous;
 
 			thread = node->Thread;
@@ -114,6 +119,8 @@ ThreadBase *RemoveThreadFromQueue(Scheduler *scheduler, size_t queue, size_t pid
 
 		node = node->Next;
 	}
+
+
 
 	if(node->Thread->Parent->ID == pid && node->Thread->ID == tid) {
 		if(scheduler->Queues[queue]->Head == scheduler->Queues[queue]->Tail) {
@@ -231,8 +238,10 @@ int RecalculateScheduler(Scheduler *scheduler) {
 				scheduler->Queues[SCHEDULER_WAITING_QUEUE] = oldRunning;
 			}
 		} else {
-			ThreadBase *thread = RemoveThreadFromQueue(scheduler, SCHEDULER_WAITING_QUEUE, scheduler->CurrentThread->Thread->Parent->ID, scheduler->CurrentThread->Thread->ID);
+			UnlockMutex(&scheduler->SchedulerLock);
+			ThreadBase *thread = RemoveThreadFromQueue(scheduler, SCHEDULER_RUNNING_QUEUE, scheduler->CurrentThread->Thread->Parent->ID, scheduler->CurrentThread->Thread->ID);
 			AddThreadToQueue(scheduler, SCHEDULER_WAITING_QUEUE, thread);
+			LockMutex(&scheduler->SchedulerLock);
 		}
 		
 		scheduler->CurrentThread = scheduler->Queues[SCHEDULER_RUNNING_QUEUE]->Head;

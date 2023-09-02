@@ -11,7 +11,7 @@ namespace PROC {
 	#define SCHEDULER_WAITING_QUEUE  1
 	#define SCHEDULER_BLOCKED_QUEUE  2
 
-	#define SCHEDULER_DEFAULT_QUANTUM 5
+	#define SCHEDULER_DEFAULT_QUANTUM 1
 
 	struct SchedulerNode {
 		ThreadBase *Thread = NULL;
