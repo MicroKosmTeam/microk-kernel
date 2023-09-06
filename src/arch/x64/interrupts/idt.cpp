@@ -183,8 +183,14 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 				
 				/*PrintRegs(context);*/
 				
-				if(info->KernelScheduler->CurrentThread != NULL) 
+				if(info->KernelScheduler->CurrentThread != NULL) {
 					memcpy(info->KernelScheduler->CurrentThread->Thread->Context, context, sizeof(CPUStatus));
+
+					if(context->IretCS != GDT_OFFSET_KERNEL_CODE) { 
+						context->IretCS = GDT_OFFSET_USER_CODE;
+						context->IretSS = GDT_OFFSET_USER_CODE + 0x08;
+					}
+				}
 
 
 				info->KernelScheduler->ElapsedQuantum += 1;
@@ -206,9 +212,6 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 				
 					switchAddressSpace = true;
 				} else {
-					context->IretCS = GDT_OFFSET_KERNEL_CODE;
-					context->IretSS = GDT_OFFSET_KERNEL_CODE + 0x08;
-
 					switchAddressSpace = false;
 				}
 
