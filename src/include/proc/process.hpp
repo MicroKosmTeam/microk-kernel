@@ -59,7 +59,7 @@ namespace PROC {
 	};
 
 	struct UserTCB {
-		
+		uint32_t Magic;
 	}__attribute__((packed));
 
 	struct UserProcess : public ProcessBase {

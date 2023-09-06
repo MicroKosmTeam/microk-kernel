@@ -90,6 +90,9 @@ ProcessBase *CreateProcess(ProcessBase *parent, ExecutableUnitType type, VMM::Vi
 
 			userProcess->UserTaskBlock = (UserTCB*)PMM::RequestPage();
 			memset(userProcess->UserTaskBlock, 0, PAGE_SIZE);
+			
+			userProcess->UserTaskBlock->Magic = 0xDEADC0DE;
+
 			userProcess->HighestFree -= PAGE_SIZE;
 			VMM::MapMemory(userProcess->VirtualMemorySpace,
 				       (void*)userProcess->UserTaskBlock,
