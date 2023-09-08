@@ -53,15 +53,15 @@ int EarlyKernelInit() {
 	/* Allocating memory for the info struct */
 	InitInfo();
 
+	/* Loading early serial printk */
+	PRINTK::EarlyInit();
+
 	/* Initializing early architecture-specific devices */
 #if defined(ARCH_x64)
 	x86_64::EarlyInit();
 #elif defined(ARCH_aarch64)
 	AArch64::EarlyInit();
 #endif
-
-	/* Loading early serial printk */
-	PRINTK::EarlyInit();
 
 	return 0;
 }
@@ -157,6 +157,8 @@ __attribute__((noreturn)) void KernelStart() {
 #endif
 	} else PANIC("Could not find User Module");
 #endif
+
+	PRINTK::PrintK("Kernel startup complete.\r\n");
 
 	/* We are done */
 	while (true) CPUPause();

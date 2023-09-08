@@ -24,9 +24,8 @@ namespace VMM {
 	};
 
 	void InitVMM();
+	VirtualSpace *AllocateVirtualSpace();
 	VirtualSpace *NewVirtualSpace();
-	VirtualSpace *NewKernelVirtualSpace();
-	VirtualSpace *NewModuleVirtualSpace();
 	void LoadVirtualSpace(VMM::VirtualSpace *space);
 	void MapMemory(VirtualSpace *space, void *physicalMemory, void *virtualMemory);
 	void MapMemory(VirtualSpace *space, void *physicalMemory, void *virtualMemory, uint64_t flags);

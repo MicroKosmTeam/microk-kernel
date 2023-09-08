@@ -25,7 +25,7 @@ void UnwindStack(int MaxFrames) {
 
 	for(int frame = 0; stk && frame < MaxFrames; ++frame) {
 		// Unwind to previous stack frame
-		if(stk->RIP < UINTPTR_MAX >> 1) break;
+		if(stk->RIP < UINTPTR_MAX / 2) break;
 		const Symbol *symbol = LookupSymbol(stk->RIP);
 		if (symbol != NULL) {
 			PRINTK::PrintK("  0x%x   %s\r\n", stk->RIP, symbol->name);
@@ -33,7 +33,7 @@ void UnwindStack(int MaxFrames) {
 			PRINTK::PrintK("  0x%x   <unknown>\r\n", stk->RIP);
 		}
 
-		if(stk->RBP == NULL) break;
+		if(stk->RBP == NULL || ((uintptr_t)stk->RBP < (uintptr_t)(UINTPTR_MAX / 2) && (uintptr_t)stk->RBP > (uintptr_t)0x100000)) break;
 		stk = stk->RBP;
 	}
 }

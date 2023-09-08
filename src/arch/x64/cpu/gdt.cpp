@@ -57,17 +57,13 @@ void TSSInit(uintptr_t stackPointer) {
 /*
    Function that loads the GDT to the CPU
 */
-void LoadGDT(uintptr_t stackPointer) {
-	/* Initialization of the TSS */
-	TSSInit(stackPointer);
-
+void LoadGDT() {
 	/* Setting GDT pointer size and offset */
 	gdtPointer.size = sizeof(gdt) - 1;
 	gdtPointer.offset = (uint64_t)&gdt;
 
 	/* Call to asm functions that load the GDT and TSS */
 	FlushGDT(&gdtPointer);
-	FlushTSS();
 }
 }
 

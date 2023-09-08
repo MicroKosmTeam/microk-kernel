@@ -148,6 +148,7 @@ int InitDevices() {
 
 	/* Select either the XSDT or the RSDT seeing whats available */
 	SDTHeader *sdtAddr = rsdp->XSDTAddress ? (SDTHeader*)rsdp->XSDTAddress : (SDTHeader*)(uintptr_t)rsdp->RSDTAddress;
+	sdtAddr = (SDTHeader*)((uintptr_t)sdtAddr + info->HigherHalfMapping);
 	uint8_t size = rsdp->XSDTAddress ? 8 : 4;
 
 	/* Scan through all the entries in the SDT */
