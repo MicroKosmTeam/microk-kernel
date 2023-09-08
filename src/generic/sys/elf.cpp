@@ -25,7 +25,7 @@ uint64_t LoadELF(uint8_t *data, size_t size) {
 
 	VMM::LoadVirtualSpace(info->KernelVirtualSpace);
 
-	VMM::VirtualSpace *space = VMM::NewModuleVirtualSpace();
+	VMM::VirtualSpace *space = VMM::NewVirtualSpace();
 	
 	Elf64_Ehdr *elfHeader = (Elf64_Ehdr*)data;
 	
