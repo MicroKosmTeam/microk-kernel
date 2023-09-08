@@ -25,8 +25,7 @@ VirtualSpace *NewModuleVirtualSpace() {
 		MEM::MMapEntry entry = info->MemoryMap[i];
 
 		if (entry.type == MEMMAP_BAD_MEMORY ||
-		    entry.type == MEMMAP_RESERVED ||
-		    entry.type == MEMMAP_USABLE) continue;
+		    entry.type == MEMMAP_RESERVED) continue;
 
 		/* We find the base and the top by rounding to the closest page boundary */
 		uintptr_t base = entry.base - (entry.base % PAGE_SIZE);
