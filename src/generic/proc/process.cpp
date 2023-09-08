@@ -74,6 +74,7 @@ static size_t RequestTID(ProcessBase *parent) {
 }
 
 ProcessBase *CreateProcess(ProcessBase *parent, ExecutableUnitType type, VMM::VirtualSpace *virtualMemorySpace, uint8_t priority, uint16_t flags) {
+	KInfo *info = GetInfo();
 	ProcessBase *process = (ProcessBase*)CreateExecutableUnitHeader(parent, type, false, priority, flags);
 	if(process == NULL) return NULL;
 
@@ -89,9 +90,10 @@ ProcessBase *CreateProcess(ProcessBase *parent, ExecutableUnitType type, VMM::Vi
 			userProcess->HighestFree = GetHighestFree();
 
 			userProcess->UserTaskBlock = (UserTCB*)PMM::RequestPage();
-			memset(userProcess->UserTaskBlock, 0, PAGE_SIZE);
-			
-			userProcess->UserTaskBlock->Magic = 0xDEADC0DE;
+			UserTCB *tcb = (UserTCB*)((uintptr_t)userProcess->UserTaskBlock + info->HigherHalfMapping);
+
+			memset(tcb, 0, PAGE_SIZE);
+			tcb->Magic = 0xDEADC0DE;
 
 			userProcess->HighestFree -= PAGE_SIZE;
 			VMM::MapMemory(userProcess->VirtualMemorySpace,
@@ -100,7 +102,7 @@ ProcessBase *CreateProcess(ProcessBase *parent, ExecutableUnitType type, VMM::Vi
 				       VMM::VirtualMemoryFlags::VMM_PRESENT |
 				       VMM::VirtualMemoryFlags::VMM_READWRITE |
 				       VMM::VirtualMemoryFlags::VMM_USER |
-				       VMM::VirtualMemoryFlags::VMM_NOEXECUTE );
+				       VMM::VirtualMemoryFlags::VMM_NOEXECUTE);
 			}
 			break;
 		case ExecutableUnitType::PT_REALTIME:
@@ -132,6 +134,8 @@ ThreadBase *CreateThread(ProcessBase *parent, uintptr_t entrypoint, size_t stack
 
 	ThreadBase *thread = (ThreadBase*)CreateExecutableUnitHeader(parent, parent->Type, true, priority, flags);
 	if(thread == NULL) return NULL;
+	
+	KInfo *info = GetInfo();
 
 	/* Initializing thread variables */
 	thread->ID = RequestTID(parent);
@@ -173,7 +177,7 @@ ThreadBase *CreateThread(ProcessBase *parent, uintptr_t entrypoint, size_t stack
 					       VMM::VirtualMemoryFlags::VMM_READWRITE |
 					       VMM::VirtualMemoryFlags::VMM_USER |
 					       VMM::VirtualMemoryFlags::VMM_NOEXECUTE);
-				memset(physical, 0, PAGE_SIZE);
+				memset((void*)((uintptr_t)physical + info->HigherHalfMapping), 0, PAGE_SIZE);
 			}
 
 			userThread->Context->IretRIP = entrypoint;
@@ -195,7 +199,7 @@ ThreadBase *CreateThread(ProcessBase *parent, uintptr_t entrypoint, size_t stack
 					       VMM::VirtualMemoryFlags::VMM_PRESENT |
 					       VMM::VirtualMemoryFlags::VMM_READWRITE |
 					       VMM::VirtualMemoryFlags::VMM_NOEXECUTE);
-				memset(physical, 0, PAGE_SIZE);
+				memset((void*)((uintptr_t)physical + info->HigherHalfMapping), 0, PAGE_SIZE);
 			}
 
 			userThread->KernelStack = highestFree;

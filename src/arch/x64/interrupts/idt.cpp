@@ -49,7 +49,7 @@ void IDTInit() {
 		IDTSetDescriptor(vector, isrStubTable[vector],  0x8F);
 	}
 		
-	IDTSetDescriptor(32, isrStubTable[32], 0xEE);
+	IDTSetDescriptor(32, isrStubTable[32], 0x8E);
 	IDTSetDescriptor(254, isrStubTable[254], 0xEE);
 
 	/* Load the new IDT */
@@ -108,6 +108,8 @@ static inline PROC::UserProcess *GetProcess() {
 	KInfo *info = GetInfo();
 
 	LockMutex(&info->KernelScheduler->SchedulerLock);
+	if(info->KernelScheduler == NULL) return NULL;
+	if(info->KernelScheduler->CurrentThread == NULL) return NULL;
 	PROC::UserProcess *proc = (PROC::UserProcess*)info->KernelScheduler->CurrentThread->Thread->Parent;
 	UnlockMutex(&info->KernelScheduler->SchedulerLock);
 
@@ -129,8 +131,10 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 	KInfo *info = GetInfo();
 
 	uintptr_t cr3;
+	uintptr_t kcr3 = (uintptr_t)info->KernelVirtualSpace->GetTopAddress() - info->HigherHalfMapping;
 	asm volatile("mov %%cr3, %0" : "=r"(cr3) :: "memory");
-	bool switchAddressSpace = (cr3 != (uintptr_t)info->KernelVirtualSpace->GetTopAddress()) ? true : false;
+
+	bool switchAddressSpace = (cr3 != kcr3) ? true : false;
 
 	PROC::UserProcess *proc = NULL;
 	VMM::VirtualSpace *procSpace = NULL;
@@ -139,8 +143,12 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 		VMM::LoadVirtualSpace(info->KernelVirtualSpace);
 
 		proc = GetProcess();
-		if(proc != NULL) procSpace = GetVirtualSpace(proc);
-		else PANIC("Null proc");
+
+		if(proc != NULL) {
+			procSpace = GetVirtualSpace(proc);
+		} else {
+			procSpace = info->KernelVirtualSpace;
+		}
 	}
 
 	switch(context->VectorNumber) {
@@ -181,17 +189,14 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 			if(info->KernelScheduler != NULL) {
 				CPUStatus *newCurrentProcess = NULL;
 				
-				/*PrintRegs(context);*/
-				
 				if(info->KernelScheduler->CurrentThread != NULL) {
 					memcpy(info->KernelScheduler->CurrentThread->Thread->Context, context, sizeof(CPUStatus));
-
-					if(context->IretCS != GDT_OFFSET_KERNEL_CODE) { 
-						context->IretCS = GDT_OFFSET_USER_CODE;
-						context->IretSS = GDT_OFFSET_USER_CODE + 0x08;
-					}
 				}
 
+				if(context->IretCS != GDT_OFFSET_KERNEL_CODE) { 
+					context->IretCS = GDT_OFFSET_USER_CODE;
+					context->IretSS = GDT_OFFSET_USER_CODE + 0x08;
+				}
 
 				info->KernelScheduler->ElapsedQuantum += 1;
 				PROC::RecalculateScheduler(info->KernelScheduler);
@@ -202,8 +207,6 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 				else PANIC("Null proc");
 
 				newCurrentProcess = info->KernelScheduler->CurrentThread->Thread->Context;
-
-
 				memcpy(context, newCurrentProcess, sizeof(CPUStatus));
 
 				if(context->IretCS != GDT_OFFSET_KERNEL_CODE) { 
@@ -214,8 +217,6 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 				} else {
 					switchAddressSpace = false;
 				}
-
-				/*PrintRegs(context);*/
 			}
 
 			x86_64::SendAPICEOI();

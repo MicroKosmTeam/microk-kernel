@@ -52,5 +52,6 @@ extern "C" void FlushGDT(GDTPointer *pointer);
 extern "C" void FlushTSS();
 
 namespace x86_64 {
-	void LoadGDT(uintptr_t stackPointer);
+	void LoadGDT();
+	void TSSInit(uintptr_t stackPointer);
 }

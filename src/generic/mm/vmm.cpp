@@ -41,20 +41,21 @@ VirtualSpace *NewModuleVirtualSpace() {
 			}
 		} else if (entry.type == MEMMAP_ACPI_RECLAIMABLE || entry.type == MEMMAP_ACPI_NVS) {
 			for (uintptr_t t = base; t < top; t += PAGE_SIZE) {
-				space->MapMemory((void*)t, (void*)(t + info->HigherHalfMapping), VMM_PRESENT | VMM_USER);
+				space->MapMemory((void*)t, (void*)(t + info->HigherHalfMapping), VMM_PRESENT | VMM_USER | VMM_NOEXECUTE);
 			}
 		} else {
 			for (uintptr_t t = base; t < top; t += PAGE_SIZE) {
-				space->MapMemory((void*)t, (void*)(t + info->HigherHalfMapping), VMM_PRESENT | VMM_READWRITE | VMM_GLOBAL);
+				space->MapMemory((void*)t, (void*)(t + info->HigherHalfMapping), VMM_PRESENT | VMM_READWRITE | VMM_GLOBAL | VMM_NOEXECUTE);
 			}
 		}
 	}
 
-#ifdef CONFIG_ARCH_x86_64
+#if defined(ARCH_x64)
 	for (uintptr_t t = PAGE_SIZE; t < info->KernelStack; t+=PAGE_SIZE) {
 		space->MapMemory((void*)t, (void*)t, VMM_PRESENT | VMM_READWRITE | VMM_GLOBAL);
 	}
 #endif
+
 
 	return space;
 }
@@ -85,17 +86,17 @@ VirtualSpace *NewKernelVirtualSpace() {
 			}
 		} else {
 			for (uintptr_t t = base; t < top; t += PAGE_SIZE){
-				space->MapMemory((void*)t, (void*)t, VMM_PRESENT | VMM_READWRITE);
-				space->MapMemory((void*)t, (void*)(t + info->HigherHalfMapping), VMM_PRESENT | VMM_READWRITE);
+				space->MapMemory((void*)t, (void*)(t + info->HigherHalfMapping), VMM_PRESENT | VMM_READWRITE | VMM_NOEXECUTE);
 			}
 		}
 	}
 
-#ifdef CONFIG_ARCH_x86_64
+#if defined(ARCH_x64)
 	for (uintptr_t t = PAGE_SIZE; t < info->KernelStack; t+=PAGE_SIZE) {
 		space->MapMemory((void*)t, (void*)t, VMM_PRESENT | VMM_READWRITE | VMM_GLOBAL);
 	}
 #endif
+
 
 	return space;
 }

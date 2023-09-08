@@ -185,6 +185,8 @@ size_t HandleSyscallMemoryVmalloc(uintptr_t base, size_t length, size_t flags) {
 		uintptr_t paddr = (uintptr_t)PMM::RequestPage();
 		if (paddr == 0) PANIC("Out of memory");
 
+		memset((void*)(paddr + info->HigherHalfMapping), 0, PAGE_SIZE);
+
 		if (flags == 0) VMM::MapMemory(procSpace, (void*)paddr, (void*)vaddr);
 		else VMM::MapMemory(procSpace, (void*)paddr, (void*)vaddr, flags);
 	}
@@ -661,13 +663,15 @@ size_t HandleSyscallModuleSectionUnregister(const char *sectionName) {
 }
 
 size_t HandleSyscallFileOpen(char *filename, uintptr_t *address, size_t *length) {
+	KInfo *info = GetInfo();
+
 	size_t filenameLength = strlen(filename);
 	filenameLength = filenameLength > 512 ? 512 : filenameLength;
 
 	char newFilename[512] = {0};
 	memcpy((void*)newFilename, (void*)filename, filenameLength);
 
-	*address = (uintptr_t)FILE::Open(newFilename, length);
+	*address = (uintptr_t)FILE::Open(newFilename, length) - info->HigherHalfMapping;
 
 	return 0;
 }

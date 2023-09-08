@@ -31,7 +31,7 @@ uint64_t LoadELF(uint8_t *data, size_t size) {
 	
 	LoadProgramHeaders(data, size, elfHeader, space);
 /*	LinkSymbols(data, size, elfHeader);*/
-	size_t pid  = LoadProcess(elfHeader, space);
+	size_t pid = LoadProcess(elfHeader, space);
 
 	return pid;
 }
@@ -141,14 +141,13 @@ void LoadProgramHeaders(uint8_t *data, size_t size, Elf64_Ehdr *elfHeader, VMM::
 
 size_t LoadProcess(Elf64_Ehdr *elfHeader, VMM::VirtualSpace *space) {
 	KInfo *info = GetInfo();
-
+	
 	PROC::UserProcess *proc = (PROC::UserProcess*)PROC::CreateProcess((PROC::ProcessBase*)info->KernelProcess, PROC::ExecutableUnitType::PT_USER, space, 0, 0);
 	PROC::UserThread *thread = (PROC::UserThread*)PROC::CreateThread((PROC::ProcessBase*)proc, elfHeader->e_entry, 64 * 1024, 0, 0);
 
 	PROC::AddThreadToQueue(info->KernelScheduler, SCHEDULER_RUNNING_QUEUE, thread);
-	
-	/* Cleaning up */
-	if((void*)elfHeader > (void*)CONFIG_HEAP_BASE) Free(elfHeader);
 
+	PRINTK::PrintK("Process created with PID: 0x%x\r\n", proc->ID);
+	
 	return proc->ID;
 }

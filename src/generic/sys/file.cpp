@@ -26,7 +26,7 @@ void *Open(char *path, size_t *size) {
 		for (size_t i = 0; i < info->FileCount; i++) {
 			if (strcmp(info->BootFiles[i].Path, name) == 0) {
 				*size = info->BootFiles[i].Size;
-				return (void*)((uintptr_t)info->BootFiles[i].Address - info->HigherHalfMapping);
+				return (void*)info->BootFiles[i].Address;
 			}
 		}
 	} else if (strcmp(id, "ACPI") == 0) {

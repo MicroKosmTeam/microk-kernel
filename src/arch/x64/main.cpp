@@ -25,11 +25,16 @@ void EarlyInit() {
 	 * code should be situated), we will be in trouble. However, that shouldn't
 	 * be a thing.
 	 */
-	info->KernelStack = 0x800000;
+	info->KernelStack = (0x800000/* + info->HigherHalfMapping*/);
+	PRINTK::PrintK("Kernel stack: 0x%x\r\n", info->KernelStack);
 
-	/* Initialize the GDT and the TSS */
-	LoadGDT(info->KernelStack);
+	/* Initialize the GDT */
+	LoadGDT();
 	PRINTK::PrintK("GDT Loaded.\r\n");
+
+	/* Initialization of the TSS */
+	TSSInit(info->KernelStack);
+	FlushTSS();
 
 	/* Jumpstart interrupts */
 	PRINTK::PrintK("Loading x86_64 IDT\r\n");
