@@ -7,8 +7,10 @@
 #include <arch/x64/cpu/cpu.hpp>
 #include <sys/panic.hpp>
 #include <stdint.h>
+#include <mm/pmm.hpp>
 #include <stddef.h>
 #include <mm/string.hpp>
+#include <init/kinfo.hpp>
 
 extern "C" void SyscallEntry();
 
@@ -123,6 +125,8 @@ namespace x86_64 {
    Function that initializes the x86CPU class
 */
 void CPUInit() {
+	KInfo *info = GetInfo();
+
 	SetIOPL();
 
 	uint16_t sseFeatures = EnableSMID();
@@ -130,6 +134,22 @@ void CPUInit() {
 
 	PRINTK::PrintK("Syscall entry at 0x%x\r\n", &SyscallEntry);
 	EnableSCE((void*)&SyscallEntry);
+
+	SetMSR(MSR_GSBASE, 0xDEADDEAD, 0xDEADDEAD);
+
+	uintptr_t localCPUStruct = (uintptr_t)PMM::RequestPage() + info->HigherHalfMapping;
+	SetMSR(MSR_KERNELGSBASE, localCPUStruct, localCPUStruct >> 32);
+
+	UpdateLocalCPUStruct(0xDEADC0DECAFEBABE);
+}
+
+void UpdateLocalCPUStruct(uintptr_t taskKernelStack) {
+	uint32_t lo, hi;
+	GetMSR(MSR_KERNELGSBASE, &lo, &hi);
+
+	LocalCPUStruct *cpuStruct = (LocalCPUStruct*)(((uint64_t)hi << 32) + (uint64_t)lo);
+
+	cpuStruct->TaskKernelStack = taskKernelStack;
 }
 
 /*

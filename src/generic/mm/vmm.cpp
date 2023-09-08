@@ -52,7 +52,7 @@ VirtualSpace *NewVirtualSpace() {
 
 #if defined(ARCH_x64)
 	for (uintptr_t t = PAGE_SIZE; t < info->KernelStack; t+=PAGE_SIZE) {
-		space->MapMemory((void*)t, (void*)t, VMM_PRESENT | VMM_READWRITE | VMM_GLOBAL);
+		space->MapMemory((void*)t, (void*)t, VMM_PRESENT | VMM_READWRITE | VMM_GLOBAL | VMM_NOEXECUTE);
 	}
 #endif
 

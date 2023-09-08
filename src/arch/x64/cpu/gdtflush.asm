@@ -13,12 +13,14 @@ reloadSegments:
 	o64 retf                  ; Perform a far return
 .reloadCS:
 	; Reload data segment registers
-	mov   ax, 0x30
-	mov   ds, ax
-	mov   es, ax
-	mov   fs, ax
-	mov   gs, ax
-	mov   ss, ax
+	mov ax, 0x30
+	mov ds, ax
+	mov es, ax
+	mov ss, ax
+
+	xor rax, rax
+	mov fs, rax
+	mov gs, rax
 	ret
 
 ; Function to load the TSS

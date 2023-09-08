@@ -1,5 +1,7 @@
 [bits 64]
 
+%include "src/arch/x64/cpu/macros.asm"
+
 extern HandleSyscall 
 extern StartSyscallStack
 
@@ -22,9 +24,12 @@ SyscallEntry:
 	mov r12, rsp
 	mov r13, rbp
 	mov rsp, [StartSyscallStack]; TODO FIX
+	; Using gs
+	;mov rsp, gs:0
+
 	push r12
 	push r13
-
+	
 	mov rbp, rsp
 
 	; Get arguments in the correct order
@@ -40,15 +45,15 @@ SyscallEntry:
 	call HandleSyscall
 
 	; Return to base
-	mov rsp, rbp
+	mov rsp, rbp	
 
 	; Restore stack pointer
 	pop r13
 	pop r12
-
+	
 	mov rsp, r12
 	mov rbp, r13
-
+	
 	; Restore for sysret
 	pop r11
 	pop rcx
@@ -59,5 +64,5 @@ SyscallEntry:
 	pop r13
 	pop r12
 	pop rbx
-
+	
 	o64 sysret

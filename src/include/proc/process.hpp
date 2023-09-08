@@ -35,6 +35,7 @@ namespace PROC {
 
 	struct ThreadBase : public ExecutableUnitHeader {
 		CPUStatus *Context = NULL;
+		uintptr_t KernelStack = 0;
 
 		ThreadBase *Next = NULL;
 		ThreadBase *Previous = NULL;
@@ -71,7 +72,6 @@ namespace PROC {
 
 	struct UserThread : public ThreadBase {
 		uintptr_t UserStack = 0;
-		uintptr_t KernelStack = 0;
 	};
 
 	struct RealtimeProcess : public ProcessBase {

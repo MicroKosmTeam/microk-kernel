@@ -10,6 +10,7 @@
 #include <sys/syscall.hpp>
 #include <sys/mutex.hpp>
 #include <arch/x64/interrupts/idt.hpp>
+#include <arch/x64/cpu/cpu.hpp>
 
 /* Max number of interrupts in x86_64 is 256 */
 #define IDT_MAX_DESCRIPTORS 256
@@ -208,6 +209,18 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 
 				newCurrentProcess = info->KernelScheduler->CurrentThread->Thread->Context;
 				memcpy(context, newCurrentProcess, sizeof(CPUStatus));
+
+				uint64_t cs;
+				asm volatile (
+						"mov %%cs, %0"
+						: "=r" (cs)
+						:
+						: // No clobbered registers
+					     );
+
+				if (cs != 0xDEADC0DECAFEBABE) {
+					x86_64::UpdateLocalCPUStruct(info->KernelScheduler->CurrentThread->Thread->KernelStack);
+				}
 
 				if(context->IretCS != GDT_OFFSET_KERNEL_CODE) { 
 					context->IretCS = GDT_OFFSET_USER_CODE;
