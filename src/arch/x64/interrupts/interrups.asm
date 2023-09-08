@@ -6,11 +6,15 @@ isr_stub_%+%1:
 
 push %1
 
+swapgs_if_necessary_begin %1
+
 pushall
 mov rdi, rsp
 call InterruptHandler
 mov rsp, rax
 popall
+
+swapgs_if_necessary_end %1
 
 exitisr
 
@@ -18,6 +22,8 @@ exitisr
 
 %macro isr_no_err_stub 1
 isr_stub_%+%1:
+
+swapgs_if_necessary_begin %1
 
 push 0
 push %1
@@ -27,6 +33,8 @@ mov rdi, rsp
 call InterruptHandler
 mov rsp, rax
 popall
+
+swapgs_if_necessary_end %1
 
 exitisr
 

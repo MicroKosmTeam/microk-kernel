@@ -202,6 +202,8 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 				info->KernelScheduler->ElapsedQuantum += 1;
 				PROC::RecalculateScheduler(info->KernelScheduler);
 				
+				if(info->KernelScheduler->CurrentThread == NULL) break;
+				
 				proc = GetProcess();
 
 				if(proc != NULL) procSpace = GetVirtualSpace(proc);
@@ -210,22 +212,12 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 				newCurrentProcess = info->KernelScheduler->CurrentThread->Thread->Context;
 				memcpy(context, newCurrentProcess, sizeof(CPUStatus));
 
-				uint64_t cs;
-				asm volatile (
-						"mov %%cs, %0"
-						: "=r" (cs)
-						:
-						: // No clobbered registers
-					     );
-
-				if (cs != 0xDEADC0DECAFEBABE) {
-					x86_64::UpdateLocalCPUStruct(info->KernelScheduler->CurrentThread->Thread->KernelStack);
-				}
+				x86_64::UpdateLocalCPUStruct(info->KernelScheduler->CurrentThread->Thread->KernelStack);
 
 				if(context->IretCS != GDT_OFFSET_KERNEL_CODE) { 
 					context->IretCS = GDT_OFFSET_USER_CODE;
 					context->IretSS = GDT_OFFSET_USER_CODE + 0x08;
-				
+
 					switchAddressSpace = true;
 				} else {
 					switchAddressSpace = false;

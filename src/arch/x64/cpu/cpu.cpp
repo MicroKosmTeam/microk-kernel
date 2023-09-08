@@ -124,6 +124,8 @@ namespace x86_64 {
 /*
    Function that initializes the x86CPU class
 */
+
+uintptr_t localCPUStruct = 0;
 void CPUInit() {
 	KInfo *info = GetInfo();
 
@@ -137,18 +139,16 @@ void CPUInit() {
 
 	SetMSR(MSR_GSBASE, 0xDEADDEAD, 0xDEADDEAD);
 
-	uintptr_t localCPUStruct = (uintptr_t)PMM::RequestPage() + info->HigherHalfMapping;
+	localCPUStruct = (uintptr_t)PMM::RequestPage() + info->HigherHalfMapping;
 	SetMSR(MSR_KERNELGSBASE, localCPUStruct, localCPUStruct >> 32);
 
 	UpdateLocalCPUStruct(0xDEADC0DECAFEBABE);
 }
 
 void UpdateLocalCPUStruct(uintptr_t taskKernelStack) {
-	uint32_t lo, hi;
-	GetMSR(MSR_KERNELGSBASE, &lo, &hi);
+	LocalCPUStruct *cpuStruct = (LocalCPUStruct*)localCPUStruct;
 
-	LocalCPUStruct *cpuStruct = (LocalCPUStruct*)(((uint64_t)hi << 32) + (uint64_t)lo);
-
+//	PRINTK::PrintK("New kernel stack: 0x%x\r\n", taskKernelStack);
 	cpuStruct->TaskKernelStack = taskKernelStack;
 }
 
