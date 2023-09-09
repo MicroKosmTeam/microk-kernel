@@ -45,22 +45,22 @@ add rsp, 16
 
 %macro swapgs_if_necessary_begin 1
 push rax
-mov rax, [rsp - 8]
+mov rax, [rsp + 8]
 cmp rax, 0x28 
-pop rax
 je .done_swapgs_begin_%+%1
 swapgs
 .done_swapgs_begin_%+%1:
+pop rax
 %endmacro
 
 %macro swapgs_if_necessary_end 1
 push rax
-mov rax, [rsp - 8]
+mov rax, [rsp + 8]
 cmp rax, 0x28 
-pop rax
 je .done_swapgs_end_%+%1
 swapgs
 .done_swapgs_end_%+%1:
+pop rax
 %endmacro
 
 %macro exitisr 0

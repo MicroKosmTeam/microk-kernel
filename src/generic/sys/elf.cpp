@@ -21,10 +21,6 @@ void LoadProgramHeaders(uint8_t *data, size_t size, Elf64_Ehdr *elfHeader, VMM::
 size_t LoadProcess(Elf64_Ehdr *elfHeader, VMM::VirtualSpace *space);
 
 uint64_t LoadELF(uint8_t *data, size_t size) {
-	KInfo *info = GetInfo();
-
-	VMM::LoadVirtualSpace(info->KernelVirtualSpace);
-
 	VMM::VirtualSpace *space = VMM::NewVirtualSpace();
 	
 	Elf64_Ehdr *elfHeader = (Elf64_Ehdr*)data;
@@ -53,6 +49,31 @@ void LoadProgramHeaders(uint8_t *data, size_t size, Elf64_Ehdr *elfHeader, VMM::
 
 		switch (programHeader->p_type) {
 			case PT_LOAD: {
+				size_t fileRemaining = programHeader->p_filesz;
+				size_t copiedAmount = 0;
+
+				for (uintptr_t addr = programHeader->p_vaddr;
+				     addr < programHeader->p_vaddr + programHeader->p_memsz;
+				     addr += PAGE_SIZE) {
+
+					void *physical = PMM::RequestPage();
+					VMM::MapMemory(space, physical, (void*)addr);
+
+					uintptr_t higher = (uintptr_t)physical + info->HigherHalfMapping;
+					memset((void*)higher, 0, PAGE_SIZE);
+
+					if(fileRemaining > 0) {
+						size_t copyAmount = fileRemaining > PAGE_SIZE ? PAGE_SIZE : fileRemaining;
+						memcpy((void*)higher,
+						       (void*)(data + programHeader->p_offset + copiedAmount),
+						       copyAmount);
+
+						copiedAmount += copyAmount;
+						fileRemaining = programHeader->p_filesz - copiedAmount;
+					}
+				}
+
+					      /*
 				char buffer[PAGE_SIZE];
 				size_t fileRemaining = programHeader->p_filesz;
 				uintptr_t virtualAddr = programHeader->p_vaddr;
@@ -82,8 +103,7 @@ void LoadProgramHeaders(uint8_t *data, size_t size, Elf64_Ehdr *elfHeader, VMM::
 				}
 					
 
-				VMM::LoadVirtualSpace(info->KernelVirtualSpace);
-
+				VMM::LoadVirtualSpace(info->KernelVirtualSpace);*/
 				}
 				break;
 
