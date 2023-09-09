@@ -173,8 +173,6 @@ size_t HandleSyscallMemoryVmalloc(uintptr_t base, size_t length, size_t flags) {
 
 	KInfo *info = GetInfo();
 
-	VMM::LoadVirtualSpace(info->KernelVirtualSpace);
-
 	PROC::UserProcess *proc = GetProcess();
 	VMM::VirtualSpace *procSpace = GetVirtualSpace(proc);
 
@@ -191,26 +189,15 @@ size_t HandleSyscallMemoryVmalloc(uintptr_t base, size_t length, size_t flags) {
 		else VMM::MapMemory(procSpace, (void*)paddr, (void*)vaddr, flags);
 	}
 
-	VMM::LoadVirtualSpace(procSpace);
-
 	return 0;
 }
 
 size_t HandleSyscallMemoryPalloc(uintptr_t *base, size_t length) {
-	KInfo *info = GetInfo();
-
-	VMM::LoadVirtualSpace(info->KernelVirtualSpace);
-	
-	PROC::UserProcess *proc = GetProcess();
-	VMM::VirtualSpace *procSpace = GetVirtualSpace(proc);
-
 	uintptr_t newBase = 0;
 
 	size_t roundedLength = length / PAGE_SIZE + 1;
 	if (length % PAGE_SIZE == 0) newBase = (uintptr_t)PMM::RequestPage();
 	else newBase = (uintptr_t)PMM::RequestPages(roundedLength);
-
-	VMM::LoadVirtualSpace(procSpace);
 
 	*base = newBase;
 
@@ -221,10 +208,6 @@ size_t HandleSyscallMemoryVmfree(uintptr_t base, size_t length) {
 	if (base <= 0x1000 || base + length >= 0x00007FFFFFFFF000)
 		return -1;
 
-	KInfo *info = GetInfo();
-
-	VMM::LoadVirtualSpace(info->KernelVirtualSpace);
-	
 	PROC::UserProcess *proc = GetProcess();
 	VMM::VirtualSpace *procSpace = GetVirtualSpace(proc);
 
@@ -239,16 +222,10 @@ size_t HandleSyscallMemoryVmfree(uintptr_t base, size_t length) {
 		PMM::FreePage((void*)paddr);
 	}
 
-	VMM::LoadVirtualSpace(procSpace);
-
 	return 0;
 }
 
 size_t HandleSyscallMemoryMmap(uintptr_t src, uintptr_t dest, size_t length, size_t flags) {
-	KInfo *info = GetInfo();
-	
-	VMM::LoadVirtualSpace(info->KernelVirtualSpace);
-	
 	PROC::UserProcess *proc = GetProcess();
 	VMM::VirtualSpace *procSpace = GetVirtualSpace(proc);
 
@@ -262,8 +239,6 @@ size_t HandleSyscallMemoryMmap(uintptr_t src, uintptr_t dest, size_t length, siz
 		else VMM::MapMemory(procSpace, (void*)src, (void*)dest, flags);
 	}
 
-	VMM::LoadVirtualSpace(procSpace);
-
 	return 0;
 }
 
@@ -271,10 +246,6 @@ size_t HandleSyscallMemoryUnmap(uintptr_t base, size_t length) {
 	if (base <= 0x1000 || base + length >= 0x00007FFFFFFFF000)
 		return -1; /* Make sure it is in valid memory */
 
-	KInfo *info = GetInfo();
-
-	VMM::LoadVirtualSpace(info->KernelVirtualSpace);
-	
 	PROC::UserProcess *proc = GetProcess();
 	VMM::VirtualSpace *procSpace = GetVirtualSpace(proc);
 
@@ -285,8 +256,6 @@ size_t HandleSyscallMemoryUnmap(uintptr_t base, size_t length) {
 		procSpace->UnmapMemory((void*)base);
 	}
 
-	VMM::LoadVirtualSpace(procSpace);
-
 	return 0;
 }
 
@@ -294,13 +263,6 @@ size_t HandleSyscallMemoryInOut(uintptr_t port, bool out, size_t outData, size_t
 	size_t tmpInData = 0;
 	
 	if(!out && inData == NULL) return -1;
-
-	KInfo *info = GetInfo();
-
-	VMM::LoadVirtualSpace(info->KernelVirtualSpace);
-	
-	PROC::UserProcess *proc = GetProcess();
-	VMM::VirtualSpace *procSpace = GetVirtualSpace(proc);
 
 #if defined(ARCH_x64)
 	using namespace x86_64;
@@ -338,8 +300,6 @@ size_t HandleSyscallMemoryInOut(uintptr_t port, bool out, size_t outData, size_t
 	(void)size;
 #endif
 	
-	VMM::LoadVirtualSpace(procSpace);
-
 	if(!out) *inData = tmpInData;
 
 	return 0;
@@ -349,28 +309,15 @@ size_t HandleSyscallMemoryInOut(uintptr_t port, bool out, size_t outData, size_t
 size_t HandleSyscallProcExec(uintptr_t executableBase, size_t executableSize) {
 	KInfo *info = GetInfo();
 
-	VMM::LoadVirtualSpace(info->KernelVirtualSpace);
-	
 	PROC::UserProcess *proc = GetProcess();
 	VMM::VirtualSpace *procSpace = GetVirtualSpace(proc);
 
-	uint8_t buffer[PAGE_SIZE];
-	size_t remaining = 0;
-
-	size_t heapSize = (executableSize / PAGE_SIZE + 1) * PAGE_SIZE;
+	size_t heapSize = (executableSize + (PAGE_SIZE - executableSize % PAGE_SIZE));
 	uint8_t *heapAddr = (uint8_t*)Malloc(heapSize);
 	memset(heapAddr, 0, heapSize);
+	memcpy(heapAddr, (void*)executableBase, executableSize);
 	
-	for (size_t i = 0; i < executableSize; i += PAGE_SIZE) {
-		remaining = executableSize - i;
-
-		VMM::LoadVirtualSpace(procSpace);
-		memcpy((void*)buffer, (void*)(executableBase + i), remaining > PAGE_SIZE ? PAGE_SIZE : remaining);
-
-		VMM::LoadVirtualSpace(info->KernelVirtualSpace);
-		memcpy((void*)((uintptr_t)heapAddr + i), (void*)buffer, remaining > PAGE_SIZE ? PAGE_SIZE : remaining);
-	}
-
+	VMM::LoadVirtualSpace(info->KernelVirtualSpace);
 	size_t pid = LoadExecutableFile((uint8_t*)heapAddr, executableSize);
 	PRINTK::PrintK("New process is PID: 0x%x\r\n", pid);
 	Free(heapAddr);

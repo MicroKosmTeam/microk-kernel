@@ -36,7 +36,7 @@
  * Bootmem allocator
  */
 
-#define CONFIG_BOOTMEM_SIZE (4096)
+#define CONFIG_BOOTMEM_SIZE (8192)
 
 /*
  * Kernel heap

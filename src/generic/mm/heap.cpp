@@ -4,6 +4,7 @@
 #include <sys/mutex.hpp>
 #include <init/kinfo.hpp>
 #include <sys/printk.hpp>
+#include <sys/panic.hpp>
 
 static void *heapStart;
 static void *heapEnd;
@@ -72,8 +73,15 @@ void InitializeHeap(void *heapAddress, size_t pageCount) {
         void *pos = heapAddress;
 	PRINTK::PrintK("Initializing the heap at 0x%x with %d pages.\r\n", heapAddress, pageCount);
 
+	size_t pageListSize = sizeof(VMM::PageList) + pageCount * sizeof(uintptr_t);
+	pageListSize += PAGE_SIZE - pageListSize % PAGE_SIZE;
+	info->KernelHeapPageList = (VMM::PageList*)PMM::RequestPages(pageListSize / PAGE_SIZE);
+	info->KernelHeapPageList->PageCount = pageCount;
+
         for (size_t i = 0; i < pageCount; i++) {
-		VMM::MapMemory(info->KernelVirtualSpace, PMM::RequestPage(), pos);
+		void *physical = PMM::RequestPage();
+		info->KernelHeapPageList->PhysicalAddresses[i] = (uintptr_t)physical;
+		VMM::MapMemory(info->KernelVirtualSpace, physical, pos, VMM::VMM_PRESENT | VMM::VMM_READWRITE | VMM::VMM_GLOBAL | VMM::VMM_NOEXECUTE);
                 pos = (void*)((size_t)pos + 0x1000); // Advancing
         }
 
