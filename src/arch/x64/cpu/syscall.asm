@@ -9,6 +9,9 @@ section .syscall.entrypoint
 
 global SyscallEntry
 SyscallEntry:
+	cli
+	swapgs
+
 	; Save mandatory registers
 	push rbx
 	push r12
@@ -23,9 +26,13 @@ SyscallEntry:
 	; Switch stack and save the stack pointer
 	mov r12, rsp
 	mov r13, rbp
-	mov rsp, [StartSyscallStack]; TODO FIX
+
+	; This is because some syscall are legacy and switch address spaces
+jmp .abnormal
 	; Using gs
-	;mov rsp, gs:0
+	mov rsp, gs:0
+.abnormal:
+	mov rsp, [StartSyscallStack]; TODO FIX
 
 	push r12
 	push r13
@@ -65,4 +72,6 @@ SyscallEntry:
 	pop r12
 	pop rbx
 	
+	swapgs
+
 	o64 sysret
