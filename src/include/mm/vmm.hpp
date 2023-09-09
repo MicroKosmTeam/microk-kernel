@@ -26,6 +26,7 @@ namespace VMM {
 
 	struct PageList {
 		size_t PageCount;
+		size_t AllocatedSize;
 		uintptr_t PhysicalAddresses[];
 	};
 
