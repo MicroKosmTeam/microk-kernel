@@ -207,7 +207,7 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 					PRINTK::PrintK("Page %d.\r\n", pageSelector);
 
 					for(virtualReference = 0; virtualReference < pages->Pages[pageSelector].Data.COW->VirtualReferences; ++virtualReference) {
-						PRINTK::PrintK("%d. 0x%x vs 0x%x\r\n", virtualReference, pages->Pages[pageSelector].Data.COW->VirtualAddresses[virtualReference], roundedPage);
+						PRINTK::PrintK(" %d. 0x%x vs 0x%x\r\n", virtualReference, pages->Pages[pageSelector].Data.COW->VirtualAddresses[virtualReference], roundedPage);
 						if(pages->Pages[pageSelector].Data.COW->VirtualAddresses[virtualReference] == roundedPage) {
 							found = true;
 							break;
@@ -221,6 +221,7 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 			if(!found) PANIC("Page fault");
 			else {
 				uintptr_t copy = (uintptr_t)PMM::RequestPage();
+				memset((void*)(copy + info->HigherHalfMapping), 0, PAGE_SIZE);
 				memcpy((void*)(copy + info->HigherHalfMapping),
 				       (void*)(pages->Pages[pageSelector].Data.COW->PhysicalAddressOfOriginal + info->HigherHalfMapping),
 				       PAGE_SIZE);
@@ -249,7 +250,7 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 				}
 
 				info->KernelScheduler->ElapsedQuantum += 1;
-				PROC::RecalculateScheduler(info->KernelScheduler);
+				if(PROC::RecalculateScheduler(info->KernelScheduler) == -1) PANIC("Recalculating the scheduler failed");
 				
 				if(info->KernelScheduler->CurrentThread == NULL) break;
 				
