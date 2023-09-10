@@ -113,7 +113,7 @@ VMM::PageList *LoadProgramHeaders(uint8_t *data, size_t size, Elf64_Ehdr *elfHea
 						++pageSelector;
 
 						VMM::MapMemory(space, lastPhysicalPage, (void*)(addr - addr % PAGE_SIZE),
-							       VMM::VMM_PRESENT | VMM::VMM_USER | VMM::VMM_READWRITE);
+							       VMM::VMM_PRESENT | VMM::VMM_USER);
 
 						uintptr_t higher = (uintptr_t)lastPhysicalPage + info->HigherHalfMapping + addr % PAGE_SIZE;
 
@@ -140,7 +140,7 @@ VMM::PageList *LoadProgramHeaders(uint8_t *data, size_t size, Elf64_Ehdr *elfHea
 						++pageSelector;
 
 						VMM::MapMemory(space, lastPhysicalPage, (void*)addr,
-							       VMM::VMM_PRESENT | VMM::VMM_USER | VMM::VMM_READWRITE);
+							       VMM::VMM_PRESENT | VMM::VMM_USER);
 
 						uintptr_t higher = (uintptr_t)lastPhysicalPage + info->HigherHalfMapping;
 						memset((void*)higher, 0, PAGE_SIZE);
