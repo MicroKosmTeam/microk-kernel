@@ -24,10 +24,22 @@ namespace VMM {
 	private:
 	};
 
+	struct PageMetadata {
+		bool IsCOW;
+		union {
+			uintptr_t PhysicalAddress;
+
+			struct {
+				uintptr_t PhysicalAddressOfOriginal;
+				uintptr_t PhysicalAddressOfCopy;
+			} COWData;
+		};
+	};
+
 	struct PageList {
 		size_t PageCount;
 		size_t AllocatedSize;
-		uintptr_t PhysicalAddresses[];
+		PageMetadata Pages[];
 	};
 
 	void InitVMM();
