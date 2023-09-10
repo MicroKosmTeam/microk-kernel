@@ -101,7 +101,7 @@ VMM::PageList *LoadProgramHeaders(uint8_t *data, size_t size, Elf64_Ehdr *elfHea
 					elfPages->Pages[pageSelector].Data.COW->VirtualReferences = 1;
 					elfPages->Pages[pageSelector].Data.COW->VirtualAddresses[0] = (addr - addr % PAGE_SIZE);
 
-					VMM::MapMemory(space, lastPhysicalPage, (void*)(addr - addr % PAGE_SIZE), VMM::VMM_PRESENT | VMM::VMM_USER | VMM::VMM_READWRITE);
+					VMM::MapMemory(space, lastPhysicalPage, (void*)(addr - addr % PAGE_SIZE), VMM::VMM_PRESENT | VMM::VMM_USER);
 
 					if(fileRemaining > 0) {
 						memcpy((void*)(higher + addr % PAGE_SIZE),
