@@ -50,6 +50,9 @@ namespace PROC {
 	};
 
 	struct ProcessBase : public ExecutableUnitHeader {
+		VMM::VirtualSpace *VirtualMemorySpace = NULL;
+		uintptr_t HighestFree = 0;
+
 		ThreadList Threads;
 	};
 
@@ -64,9 +67,6 @@ namespace PROC {
 	}__attribute__((packed));
 
 	struct UserProcess : public ProcessBase {
-		VMM::VirtualSpace *VirtualMemorySpace = NULL;
-		uintptr_t HighestFree = 0;
-
 		UserTCB *UserTaskBlock = NULL;
 	};
 

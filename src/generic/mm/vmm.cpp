@@ -50,6 +50,14 @@ VirtualSpace *NewVirtualSpace() {
 		}
 	}
 
+	if(info->KernelHeapPageList != NULL) {
+		uintptr_t heapAddress = CONFIG_HEAP_BASE;
+		for (size_t heapPage = 0; heapPage < info->KernelHeapPageList->PageCount; heapPage++) {
+			space->MapMemory((void*)info->KernelHeapPageList->PhysicalAddresses[heapPage], (void*)heapAddress, VMM_PRESENT | VMM_READWRITE | VMM_GLOBAL | VMM_NOEXECUTE);
+			heapAddress += PAGE_SIZE;
+		}
+	}
+
 #if defined(ARCH_x64)
 	for (uintptr_t t = PAGE_SIZE; t < info->KernelStack; t+=PAGE_SIZE) {
 		space->MapMemory((void*)t, (void*)t, VMM_PRESENT | VMM_READWRITE | VMM_GLOBAL | VMM_NOEXECUTE);

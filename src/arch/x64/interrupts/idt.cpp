@@ -188,8 +188,6 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 			break;
 		case 32:
 			if(info->KernelScheduler != NULL) {
-				CPUStatus *newCurrentProcess = NULL;
-				
 				if(info->KernelScheduler->CurrentThread != NULL) {
 					memcpy(info->KernelScheduler->CurrentThread->Thread->Context, context, sizeof(CPUStatus));
 				}
@@ -209,8 +207,7 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 				if(proc != NULL) procSpace = GetVirtualSpace(proc);
 				else PANIC("Null proc");
 
-				newCurrentProcess = info->KernelScheduler->CurrentThread->Thread->Context;
-				memcpy(context, newCurrentProcess, sizeof(CPUStatus));
+				memcpy(context, info->KernelScheduler->CurrentThread->Thread->Context, sizeof(CPUStatus));
 
 				x86_64::UpdateLocalCPUStruct(info->KernelScheduler->CurrentThread->Thread->KernelStack);
 

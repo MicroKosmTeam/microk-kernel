@@ -4,6 +4,7 @@
 #include <sys/mutex.hpp>
 #include <init/kinfo.hpp>
 #include <sys/printk.hpp>
+#include <sys/panic.hpp>
 
 static void *heapStart;
 static void *heapEnd;
@@ -72,8 +73,16 @@ void InitializeHeap(void *heapAddress, size_t pageCount) {
         void *pos = heapAddress;
 	PRINTK::PrintK("Initializing the heap at 0x%x with %d pages.\r\n", heapAddress, pageCount);
 
+	size_t pageListSize = sizeof(VMM::PageList) + pageCount * sizeof(uintptr_t);
+	pageListSize += PAGE_SIZE - pageListSize % PAGE_SIZE;
+	info->KernelHeapPageList = (VMM::PageList*)PMM::RequestPages(pageListSize / PAGE_SIZE);
+	info->KernelHeapPageList->PageCount = pageCount;
+	info->KernelHeapPageList->AllocatedSize = pageListSize;
+
         for (size_t i = 0; i < pageCount; i++) {
-		VMM::MapMemory(info->KernelVirtualSpace, PMM::RequestPage(), pos);
+		void *physical = PMM::RequestPage();
+		info->KernelHeapPageList->PhysicalAddresses[i] = (uintptr_t)physical;
+		VMM::MapMemory(info->KernelVirtualSpace, physical, pos, VMM::VMM_PRESENT | VMM::VMM_READWRITE | VMM::VMM_GLOBAL | VMM::VMM_NOEXECUTE);
                 pos = (void*)((size_t)pos + 0x1000); // Advancing
         }
 
@@ -128,7 +137,7 @@ void *Malloc(size_t size) {
 			currSeg = currSeg->next;
 		}
 
-		ExpandHeap(size);
+		ExpandHeap(size * 4);
 
 		HeapLock.Unlock();
 
@@ -151,6 +160,9 @@ void Free(void *address) {
 }
 
 void ExpandHeap(size_t length) {
+	/* TODO: not yet implemented fully with KernelHeapPageList,
+	 * we would need to map the new pages in each virtual space */
+	PANIC("ExpandHeap not yet implemented fully");
 	KInfo *info = GetInfo();
 
         if (length % 0x1000) { // We can't allocate less that a page
@@ -161,10 +173,34 @@ void ExpandHeap(size_t length) {
         size_t pageCount = length / 0x1000;
         HeapSegHeader *newSegment = (HeapSegHeader*)heapEnd;
 
-        for (size_t i = 0; i < pageCount; i++) {
-		VMM::MapMemory(info->KernelVirtualSpace, PMM::RequestPage(), heapEnd);
-                heapEnd = (void*)((size_t)heapEnd + 0x1000);
-        }
+	size_t newPageListSize = sizeof(VMM::PageList) + (info->KernelHeapPageList->PageCount + pageCount) * sizeof(uintptr_t);
+	if(newPageListSize < info->KernelHeapPageList->AllocatedSize) {
+		info->KernelHeapPageList->AllocatedSize = newPageListSize;
+
+		size_t initialPageCount = info->KernelHeapPageList->PageCount;
+		info->KernelHeapPageList->PageCount += pageCount;
+
+		for (size_t i = initialPageCount; i < info->KernelHeapPageList->PageCount; i++) {
+			void *physical = PMM::RequestPage();
+			info->KernelHeapPageList->PhysicalAddresses[i] = (uintptr_t)physical;
+			VMM::MapMemory(info->KernelVirtualSpace, physical, heapEnd, VMM::VMM_PRESENT | VMM::VMM_READWRITE | VMM::VMM_GLOBAL | VMM::VMM_NOEXECUTE);
+			heapEnd = (void*)((size_t)heapEnd + 0x1000);
+		}
+
+	} else {
+		/* TODO: implement
+		pageListSize += PAGE_SIZE - pageListSize % PAGE_SIZE;
+		info->KernelHeapPageList = (VMM::PageList*)PMM::RequestPages(pageListSize / PAGE_SIZE);
+		info->KernelHeapPageList->PageCount = pageCount;
+
+		for (size_t i = ; i < info->KernelHeapPageList->PageCount; i++) {
+			void *physical = PMM::RequestPage();
+			info->KernelHeapPageList->PhysicalAddresses[i] = (uintptr_t)physical;
+			VMM::MapMemory(info->KernelVirtualSpace, physical, heapEnd, VMM::VMM_PRESENT | VMM::VMM_READWRITE | VMM::VMM_GLOBAL | VMM::VMM_NOEXECUTE);
+			heapEnd = (void*)((size_t)heapEnd + 0x1000);
+		} */
+
+	}
 
         newSegment->free = true;
         newSegment->last = lastHeader;

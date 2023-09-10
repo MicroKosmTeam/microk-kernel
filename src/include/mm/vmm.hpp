@@ -1,5 +1,6 @@
 #pragma once
 #include <stdint.h>
+#include <stddef.h>
 
 #define PAGE_SIZE 0x1000
 
@@ -21,6 +22,12 @@ namespace VMM {
 		virtual void UnmapMemory(void *virtualMemory) = 0;
 		virtual void *GetTopAddress() = 0;
 	private:
+	};
+
+	struct PageList {
+		size_t PageCount;
+		size_t AllocatedSize;
+		uintptr_t PhysicalAddresses[];
 	};
 
 	void InitVMM();

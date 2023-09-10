@@ -28,11 +28,10 @@ SyscallEntry:
 	mov r13, rbp
 
 	; This is because some syscall are legacy and switch address spaces
-jmp .abnormal
-	; Using gs
-	mov rsp, gs:0
-.abnormal:
+	; and because it seems that after the first process, we change the GS, we have some trouble
+	; mov rsp, gs:0
 	mov rsp, [StartSyscallStack]; TODO FIX
+
 
 	push r12
 	push r13

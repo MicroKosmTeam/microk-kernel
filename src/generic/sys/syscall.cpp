@@ -173,8 +173,6 @@ size_t HandleSyscallMemoryVmalloc(uintptr_t base, size_t length, size_t flags) {
 
 	KInfo *info = GetInfo();
 
-	VMM::LoadVirtualSpace(info->KernelVirtualSpace);
-
 	PROC::UserProcess *proc = GetProcess();
 	VMM::VirtualSpace *procSpace = GetVirtualSpace(proc);
 
@@ -191,26 +189,15 @@ size_t HandleSyscallMemoryVmalloc(uintptr_t base, size_t length, size_t flags) {
 		else VMM::MapMemory(procSpace, (void*)paddr, (void*)vaddr, flags);
 	}
 
-	VMM::LoadVirtualSpace(procSpace);
-
 	return 0;
 }
 
 size_t HandleSyscallMemoryPalloc(uintptr_t *base, size_t length) {
-	KInfo *info = GetInfo();
-
-	VMM::LoadVirtualSpace(info->KernelVirtualSpace);
-	
-	PROC::UserProcess *proc = GetProcess();
-	VMM::VirtualSpace *procSpace = GetVirtualSpace(proc);
-
 	uintptr_t newBase = 0;
 
 	size_t roundedLength = length / PAGE_SIZE + 1;
 	if (length % PAGE_SIZE == 0) newBase = (uintptr_t)PMM::RequestPage();
 	else newBase = (uintptr_t)PMM::RequestPages(roundedLength);
-
-	VMM::LoadVirtualSpace(procSpace);
 
 	*base = newBase;
 
@@ -221,10 +208,6 @@ size_t HandleSyscallMemoryVmfree(uintptr_t base, size_t length) {
 	if (base <= 0x1000 || base + length >= 0x00007FFFFFFFF000)
 		return -1;
 
-	KInfo *info = GetInfo();
-
-	VMM::LoadVirtualSpace(info->KernelVirtualSpace);
-	
 	PROC::UserProcess *proc = GetProcess();
 	VMM::VirtualSpace *procSpace = GetVirtualSpace(proc);
 
@@ -239,16 +222,10 @@ size_t HandleSyscallMemoryVmfree(uintptr_t base, size_t length) {
 		PMM::FreePage((void*)paddr);
 	}
 
-	VMM::LoadVirtualSpace(procSpace);
-
 	return 0;
 }
 
 size_t HandleSyscallMemoryMmap(uintptr_t src, uintptr_t dest, size_t length, size_t flags) {
-	KInfo *info = GetInfo();
-	
-	VMM::LoadVirtualSpace(info->KernelVirtualSpace);
-	
 	PROC::UserProcess *proc = GetProcess();
 	VMM::VirtualSpace *procSpace = GetVirtualSpace(proc);
 
@@ -262,8 +239,6 @@ size_t HandleSyscallMemoryMmap(uintptr_t src, uintptr_t dest, size_t length, siz
 		else VMM::MapMemory(procSpace, (void*)src, (void*)dest, flags);
 	}
 
-	VMM::LoadVirtualSpace(procSpace);
-
 	return 0;
 }
 
@@ -271,10 +246,6 @@ size_t HandleSyscallMemoryUnmap(uintptr_t base, size_t length) {
 	if (base <= 0x1000 || base + length >= 0x00007FFFFFFFF000)
 		return -1; /* Make sure it is in valid memory */
 
-	KInfo *info = GetInfo();
-
-	VMM::LoadVirtualSpace(info->KernelVirtualSpace);
-	
 	PROC::UserProcess *proc = GetProcess();
 	VMM::VirtualSpace *procSpace = GetVirtualSpace(proc);
 
@@ -285,8 +256,6 @@ size_t HandleSyscallMemoryUnmap(uintptr_t base, size_t length) {
 		procSpace->UnmapMemory((void*)base);
 	}
 
-	VMM::LoadVirtualSpace(procSpace);
-
 	return 0;
 }
 
@@ -294,13 +263,6 @@ size_t HandleSyscallMemoryInOut(uintptr_t port, bool out, size_t outData, size_t
 	size_t tmpInData = 0;
 	
 	if(!out && inData == NULL) return -1;
-
-	KInfo *info = GetInfo();
-
-	VMM::LoadVirtualSpace(info->KernelVirtualSpace);
-	
-	PROC::UserProcess *proc = GetProcess();
-	VMM::VirtualSpace *procSpace = GetVirtualSpace(proc);
 
 #if defined(ARCH_x64)
 	using namespace x86_64;
@@ -338,8 +300,6 @@ size_t HandleSyscallMemoryInOut(uintptr_t port, bool out, size_t outData, size_t
 	(void)size;
 #endif
 	
-	VMM::LoadVirtualSpace(procSpace);
-
 	if(!out) *inData = tmpInData;
 
 	return 0;
@@ -347,30 +307,11 @@ size_t HandleSyscallMemoryInOut(uintptr_t port, bool out, size_t outData, size_t
 
 
 size_t HandleSyscallProcExec(uintptr_t executableBase, size_t executableSize) {
-	KInfo *info = GetInfo();
-
-	VMM::LoadVirtualSpace(info->KernelVirtualSpace);
-	
-	PROC::UserProcess *proc = GetProcess();
-	VMM::VirtualSpace *procSpace = GetVirtualSpace(proc);
-
-	uint8_t buffer[PAGE_SIZE];
-	size_t remaining = 0;
-
-	size_t heapSize = (executableSize / PAGE_SIZE + 1) * PAGE_SIZE;
+	size_t heapSize = (executableSize + (PAGE_SIZE - executableSize % PAGE_SIZE));
 	uint8_t *heapAddr = (uint8_t*)Malloc(heapSize);
 	memset(heapAddr, 0, heapSize);
+	memcpy(heapAddr, (void*)executableBase, executableSize);
 	
-	for (size_t i = 0; i < executableSize; i += PAGE_SIZE) {
-		remaining = executableSize - i;
-
-		VMM::LoadVirtualSpace(procSpace);
-		memcpy((void*)buffer, (void*)(executableBase + i), remaining > PAGE_SIZE ? PAGE_SIZE : remaining);
-
-		VMM::LoadVirtualSpace(info->KernelVirtualSpace);
-		memcpy((void*)((uintptr_t)heapAddr + i), (void*)buffer, remaining > PAGE_SIZE ? PAGE_SIZE : remaining);
-	}
-
 	size_t pid = LoadExecutableFile((uint8_t*)heapAddr, executableSize);
 	PRINTK::PrintK("New process is PID: 0x%x\r\n", pid);
 	Free(heapAddr);
@@ -378,8 +319,6 @@ size_t HandleSyscallProcExec(uintptr_t executableBase, size_t executableSize) {
 	/* TODO: fix, Buggy, do not use
 	PROC::SetExecutableUnitState(PROC::GetThread(info->KernelScheduler, pid, 0), PROC::ExecutableUnitState::P_READY);
 	*/
-
-	VMM::LoadVirtualSpace(procSpace);
 
 	return 0;
 }
@@ -391,8 +330,6 @@ size_t HandleSyscallProcFork(size_t TODO) {
 
 size_t HandleSyscallProcReturn(size_t returnCode, uintptr_t stack) {
 	KInfo *info = GetInfo();
-
-	VMM::LoadVirtualSpace(info->KernelVirtualSpace);
 
 	PRINTK::PrintK("Returning: %d form 0x%x\r\n", returnCode, stack); 
 
@@ -409,9 +346,6 @@ size_t HandleSyscallProcReturn(size_t returnCode, uintptr_t stack) {
 }
 
 size_t HandleSyscallProcExit(size_t exitCode, uintptr_t stack) {
-	KInfo *info = GetInfo();
-
-	VMM::LoadVirtualSpace(info->KernelVirtualSpace);
 	PRINTK::PrintK("Exiting: %d form 0x%x\r\n", exitCode, stack); 
 	
 	while(true);
@@ -432,14 +366,9 @@ size_t HandleSyscallProcKill(size_t TODO) {
 size_t HandleSyscallModuleRegister(size_t vendorID, size_t productID) {
 	KInfo *info = GetInfo();
 
-	VMM::LoadVirtualSpace(info->KernelVirtualSpace);
-
 	PROC::UserProcess *proc = GetProcess();
-	VMM::VirtualSpace *procSpace = GetVirtualSpace(proc);
 
 	info->KernelModuleManager->RegisterModule(proc, vendorID, productID);
-	
-	VMM::LoadVirtualSpace(procSpace);
 
 	return 0;
 }
@@ -447,38 +376,26 @@ size_t HandleSyscallModuleRegister(size_t vendorID, size_t productID) {
 size_t HandleSyscallModuleUnregister() {
 	KInfo *info = GetInfo();
 
-	VMM::LoadVirtualSpace(info->KernelVirtualSpace);
-
 	PROC::UserProcess *proc = GetProcess();
-	VMM::VirtualSpace *procSpace = GetVirtualSpace(proc);
 
 	MODULE::Module *mod = info->KernelModuleManager->GetModule(proc->ID);
 	if (mod != NULL) info->KernelModuleManager->UnregisterModule(mod->GetVendor(), mod->GetProduct());
 	
-	VMM::LoadVirtualSpace(procSpace);
-
 	return 0;
 }
 
 size_t HandleSyscallModuleBufferCreate(size_t size, size_t type, uint32_t *id) {
 	KInfo *info = GetInfo();
 
-	VMM::LoadVirtualSpace(info->KernelVirtualSpace);
-
 	PROC::UserProcess *proc = GetProcess();
-	VMM::VirtualSpace *procSpace = GetVirtualSpace(proc);
 
 	MODULE::Module *mod = info->KernelModuleManager->GetModule(proc->ID);
 	if (mod == NULL) {
-		VMM::LoadVirtualSpace(procSpace);
-
 		return 0;
 	}
 
 	MODULE::Buffer *buf = info->KernelBufferManager->CreateBuffer(mod->GetVendor(), mod->GetProduct(), static_cast<MODULE::BufferType>(type), size);
 	uint32_t tmpID = buf->ID;
-
-	VMM::LoadVirtualSpace(procSpace);
 
 	*id = tmpID;
 
@@ -488,21 +405,12 @@ size_t HandleSyscallModuleBufferCreate(size_t size, size_t type, uint32_t *id) {
 size_t HandleSyscallModuleBufferMap(uintptr_t address, uint32_t id) {
 	KInfo *info = GetInfo();
 
-	VMM::LoadVirtualSpace(info->KernelVirtualSpace);
-
 	PROC::UserProcess *proc = GetProcess();
 	VMM::VirtualSpace *procSpace = GetVirtualSpace(proc);
-
 	MODULE::Module *mod = info->KernelModuleManager->GetModule(proc->ID);
-	if (mod == NULL) {
-		VMM::LoadVirtualSpace(procSpace);
-
-		return 0;
-	}
+	if (mod == NULL) return 0;
 
 	int result = info->KernelBufferManager->MapBuffer(mod->GetVendor(), mod->GetProduct(), id, procSpace, address);
-
-	VMM::LoadVirtualSpace(procSpace);
 
 	return result;
 }
@@ -519,19 +427,13 @@ size_t HandleSyscallModuleBufferDelete(uint32_t id) {
 }
 
 size_t HandleSyscallModuleMessageHandler(uintptr_t entry) {
-	KInfo *info = GetInfo();
-
-	VMM::LoadVirtualSpace(info->KernelVirtualSpace);
-
 	PROC::UserProcess *proc = GetProcess();
-	VMM::VirtualSpace *procSpace = GetVirtualSpace(proc);
+	(void)proc;
 
 	(void)entry;
 	/* TODO: fix this
 	proc->SetMessageThread(entry);
 	*/
-
-	VMM::LoadVirtualSpace(procSpace);
 
 	return 0;
 }
@@ -601,17 +503,12 @@ size_t HandleSyscallModuleSectionRegister(const char *sectionName) {
 	char newSectionName[256] = { 0 };
 	memcpy((void*)newSectionName, (void*)sectionName, sectionLength);
 
-	VMM::LoadVirtualSpace(info->KernelVirtualSpace);
-	
 	PROC::UserProcess *proc = GetProcess();
-	VMM::VirtualSpace *procSpace = GetVirtualSpace(proc);
 
 	MODULE::Module *mod = info->KernelModuleManager->GetModule(proc->ID);
-	if (mod == NULL) { PRINTK::PrintK("NULLMODULE\r\n"); while(true); }
+	if (mod == NULL) return -1;
 
 	info->KernelSectionManager->RegisterSectionDriver(newSectionName, mod->GetVendor(), mod->GetProduct());
-	
-	VMM::LoadVirtualSpace(procSpace);
 
 	return 0;
 }
@@ -623,15 +520,8 @@ size_t HandleSyscallModuleSectionGet(const char *sectionName, uint32_t *vendorID
 	strcpy(newSectionName, sectionName);
 	uint32_t newVendor, newProduct;
 
-	VMM::LoadVirtualSpace(info->KernelVirtualSpace);
-	
-	PROC::UserProcess *proc = GetProcess();
-	VMM::VirtualSpace *procSpace = GetVirtualSpace(proc);
-
 	info->KernelSectionManager->GetSectionDriver(newSectionName, &newVendor, &newProduct);
 	
-	VMM::LoadVirtualSpace(procSpace);
-
 	*vendorID = newVendor;
 	*productID = newProduct;
 
@@ -647,17 +537,12 @@ size_t HandleSyscallModuleSectionUnregister(const char *sectionName) {
 	char newSectionName[256];
 	memcpy((void*)newSectionName, (void*)sectionName, sectionLength);
 
-	VMM::LoadVirtualSpace(info->KernelVirtualSpace);
-	
 	PROC::UserProcess *proc = GetProcess();
-	VMM::VirtualSpace *procSpace = GetVirtualSpace(proc);
 
 	MODULE::Module *mod = info->KernelModuleManager->GetModule(proc->ID);
 	if (mod == NULL) return 0;
 
 	info->KernelSectionManager->UnregisterSectionDriver(newSectionName, mod->GetVendor(), mod->GetProduct());
-	
-	VMM::LoadVirtualSpace(procSpace);
 
 	return 0;
 }

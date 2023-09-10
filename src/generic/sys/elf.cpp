@@ -21,10 +21,6 @@ void LoadProgramHeaders(uint8_t *data, size_t size, Elf64_Ehdr *elfHeader, VMM::
 size_t LoadProcess(Elf64_Ehdr *elfHeader, VMM::VirtualSpace *space);
 
 uint64_t LoadELF(uint8_t *data, size_t size) {
-	KInfo *info = GetInfo();
-
-	VMM::LoadVirtualSpace(info->KernelVirtualSpace);
-
 	VMM::VirtualSpace *space = VMM::NewVirtualSpace();
 	
 	Elf64_Ehdr *elfHeader = (Elf64_Ehdr*)data;
@@ -47,12 +43,61 @@ void LoadProgramHeaders(uint8_t *data, size_t size, Elf64_Ehdr *elfHeader, VMM::
 	size_t progSize = 0;
 
 	Elf64_Phdr *programHeader;
+	void *lastPhysicalPage = NULL;
+	uintptr_t lastHighestPage = 0;
+
 	for (size_t i = 0; i < programHeaderNumber; i++) {
 		programHeader = (Elf64_Phdr*)(data + programHeaderOffset + programHeaderSize * i);
 		if(programHeader->p_memsz == 0) continue;
 
 		switch (programHeader->p_type) {
 			case PT_LOAD: {
+				size_t fileRemaining = programHeader->p_filesz;
+				size_t copiedAmount = 0;
+
+				for (uintptr_t addr = programHeader->p_vaddr;
+				     addr < programHeader->p_vaddr + programHeader->p_memsz;) {
+					size_t pageAmount = (PAGE_SIZE - addr % PAGE_SIZE);
+					size_t copyAmount = fileRemaining > pageAmount ? pageAmount : fileRemaining;
+
+					if((addr % PAGE_SIZE) != 0 && lastHighestPage == (addr - addr % PAGE_SIZE)) {
+						VMM::MapMemory(space, lastPhysicalPage, (void*)(addr - addr % PAGE_SIZE));
+
+						uintptr_t higher = (uintptr_t)lastPhysicalPage + info->HigherHalfMapping + addr % PAGE_SIZE;
+
+						if(fileRemaining > 0) {
+							memcpy((void*)higher,
+							       (void*)(data + programHeader->p_offset + copiedAmount),
+							       copyAmount);
+
+							copiedAmount += copyAmount;
+							fileRemaining = programHeader->p_filesz - copiedAmount;
+						}
+
+						addr += pageAmount;
+					} else {
+						lastPhysicalPage = PMM::RequestPage();
+						VMM::MapMemory(space, lastPhysicalPage, (void*)addr);
+
+						uintptr_t higher = (uintptr_t)lastPhysicalPage + info->HigherHalfMapping;
+						memset((void*)higher, 0, PAGE_SIZE);
+
+						if(fileRemaining > 0) {
+							memcpy((void*)higher,
+							       (void*)(data + programHeader->p_offset + copiedAmount),
+							       copyAmount);
+
+							copiedAmount += copyAmount;
+							fileRemaining = programHeader->p_filesz - copiedAmount;
+						}
+
+						addr += PAGE_SIZE;
+					}
+
+					lastHighestPage = addr;
+				}
+
+				/*
 				char buffer[PAGE_SIZE];
 				size_t fileRemaining = programHeader->p_filesz;
 				uintptr_t virtualAddr = programHeader->p_vaddr;
@@ -83,7 +128,7 @@ void LoadProgramHeaders(uint8_t *data, size_t size, Elf64_Ehdr *elfHeader, VMM::
 					
 
 				VMM::LoadVirtualSpace(info->KernelVirtualSpace);
-
+				*/
 				}
 				break;
 

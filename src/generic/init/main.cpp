@@ -94,6 +94,14 @@ void PrintBanner() {
 			BOOTMEM::GetTotal() - BOOTMEM::GetFree());
 }
 
+void RestInit() {
+	PRINTK::PrintK("The kernel is resting.\r\n");
+	
+	while(true) {
+		asm volatile("hlt");
+	}
+}
+
 #include <arch/x64/dev/apic.hpp>
 __attribute__((noreturn)) void KernelStart() {
 	KInfo *info = GetInfo();
@@ -127,7 +135,11 @@ __attribute__((noreturn)) void KernelStart() {
 #ifdef CONFIG_KERNEL_MODULES
 	/* Initializing the scheduler framework */
 	info->KernelScheduler = PROC::InitializeScheduler(SCHEDULER_DEFAULT_QUEUES); 
-
+/*
+	info->KernelProcess = (PROC::KernelProcess*)PROC::CreateProcess((PROC::ProcessBase*)info->KernelProcess, PROC::ExecutableUnitType::PT_KERNEL, info->KernelVirtualSpace, 0, 0);
+	PROC::KernelThread *kernelThread = (PROC::KernelThread*)PROC::CreateThread((PROC::ProcessBase*)info->KernelProcess, (uintptr_t)&RestInit, 64 * 1024, 0, 0);
+	PROC::AddThreadToQueue(info->KernelScheduler, SCHEDULER_RUNNING_QUEUE, kernelThread);
+*/
 	/* Initialize the kernel's module manager */
 	info->KernelModuleManager = new MODULE::Manager();
 	info->KernelBufferManager = new MODULE::BufferManager();

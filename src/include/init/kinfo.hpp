@@ -78,6 +78,8 @@ struct KInfo {
 	PROC::KernelProcess *KernelProcess;
 	uintptr_t KernelStack; /* Start of kernel stack */
 
+	VMM::PageList *KernelHeapPageList;
+
 #ifdef CONFIG_KERNEL_MODULES
 	/* Module information */
 	FILE::BootFile *BootFiles; /* Pointer to the Limine modules */
