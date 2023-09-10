@@ -79,6 +79,8 @@ ProcessBase *CreateProcess(ProcessBase *parent, ExecutableUnitType type, VMM::Vi
 	if(process == NULL) return NULL;
 
 	process->ID = RequestPID();
+	
+	process->VirtualMemorySpace = virtualMemorySpace;
 
 	switch(type) {
 		case ExecutableUnitType::PT_KERNEL:
@@ -86,7 +88,6 @@ ProcessBase *CreateProcess(ProcessBase *parent, ExecutableUnitType type, VMM::Vi
 		case ExecutableUnitType::PT_USER: {
 			UserProcess *userProcess = (UserProcess*)process;
 
-			userProcess->VirtualMemorySpace = virtualMemorySpace;
 			userProcess->HighestFree = GetHighestFree();
 
 			userProcess->UserTaskBlock = (UserTCB*)PMM::RequestPage();
@@ -111,6 +112,7 @@ ProcessBase *CreateProcess(ProcessBase *parent, ExecutableUnitType type, VMM::Vi
 			break;
 
 	}
+
 
 	return process;
 }
@@ -161,6 +163,30 @@ ThreadBase *CreateThread(ProcessBase *parent, uintptr_t entrypoint, size_t stack
 
 	switch(parent->Type) {
 		case ExecutableUnitType::PT_KERNEL: {
+			KernelThread *kernelThread = (KernelThread*)thread;
+			KernelProcess *kernelParent = (KernelProcess*)parent;
+			
+			size_t highestFree = kernelParent->HighestFree;
+			VMM::VirtualSpace *space = kernelParent->VirtualMemorySpace;
+
+			for (uintptr_t i = highestFree - stackSize; i < highestFree; i+= PAGE_SIZE) {
+				void *physical = PMM::RequestPage();
+				VMM::MapMemory(space, physical, (void*)i,
+					       VMM::VirtualMemoryFlags::VMM_PRESENT |
+					       VMM::VirtualMemoryFlags::VMM_READWRITE |
+					       VMM::VirtualMemoryFlags::VMM_NOEXECUTE);
+				memset((void*)((uintptr_t)physical + info->HigherHalfMapping), 0, PAGE_SIZE);
+			}
+
+			kernelThread->KernelStack = highestFree;
+			kernelParent->HighestFree -= stackSize + (PAGE_SIZE - stackSize % PAGE_SIZE);
+
+			kernelThread->Context->IretRIP = entrypoint;
+			kernelThread->Context->IretRSP = highestFree;
+			kernelThread->Context->IretRFLAGS = 0x0202;
+			
+			kernelThread->Context->IretCS = GDT_OFFSET_KERNEL_CODE;
+			kernelThread->Context->IretSS = GDT_OFFSET_KERNEL_CODE + 0x8;
 			}
 			break;
 		case ExecutableUnitType::PT_USER: {

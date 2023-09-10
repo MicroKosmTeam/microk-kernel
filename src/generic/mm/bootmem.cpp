@@ -2,8 +2,7 @@
 #include <sys/panic.hpp>
 #include <cdefs.h>
 
-const uint32_t BOOTMEM_SIZE = CONFIG_BOOTMEM_SIZE;
-__attribute__((__aligned__((16)))) uint8_t bootmemMemory[BOOTMEM_SIZE];
+__attribute__((__aligned__((16)))) uint8_t bootmemMemory[CONFIG_BOOTMEM_SIZE];
 uint32_t lastPosition = 0;
 bool bootmemStatus = true;
 
@@ -17,7 +16,7 @@ namespace BOOTMEM {
 	}
 
 	void *Malloc(size_t size) {
-		if (lastPosition + size > BOOTMEM_SIZE) {
+		if (lastPosition + size > CONFIG_BOOTMEM_SIZE) {
 			DeactivateBootmem();
 			PANIC("No remaining bootmem memory");
 			return NULL;
@@ -35,10 +34,10 @@ namespace BOOTMEM {
 	}
 
 	uint32_t GetFree() {
-		return BOOTMEM_SIZE - lastPosition;
+		return CONFIG_BOOTMEM_SIZE - lastPosition;
 	}
 
 	uint32_t GetTotal() {
-		return BOOTMEM_SIZE;
+		return CONFIG_BOOTMEM_SIZE;
 	}
 }
