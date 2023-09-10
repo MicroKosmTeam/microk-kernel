@@ -73,14 +73,14 @@ static size_t RequestTID(ProcessBase *parent) {
 	return parent->Threads.ThreadIDBase++;
 }
 
-ProcessBase *CreateProcess(ProcessBase *parent, ExecutableUnitType type, VMM::VirtualSpace *virtualMemorySpace, uint8_t priority, uint16_t flags) {
+ProcessBase *CreateProcess(ProcessBase *parent, ExecutableUnitType type, VMM::VirtualSpace *virtualMemorySpace, VMM::PageList *pageList, uint8_t priority, uint16_t flags) {
 	KInfo *info = GetInfo();
 	ProcessBase *process = (ProcessBase*)CreateExecutableUnitHeader(parent, type, false, priority, flags);
 	if(process == NULL) return NULL;
 
 	process->ID = RequestPID();
-	
 	process->VirtualMemorySpace = virtualMemorySpace;
+	process->ExecutablePageList = pageList;
 
 	switch(type) {
 		case ExecutableUnitType::PT_KERNEL:

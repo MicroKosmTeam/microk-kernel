@@ -75,14 +75,14 @@ void InitializeHeap(void *heapAddress, size_t pageCount) {
 
 	size_t pageListSize = sizeof(VMM::PageList) + pageCount * sizeof(VMM::PageMetadata);
 	pageListSize += PAGE_SIZE - pageListSize % PAGE_SIZE;
-	info->KernelHeapPageList = (VMM::PageList*)PMM::RequestPages(pageListSize / PAGE_SIZE);
+	info->KernelHeapPageList = (VMM::PageList*)((uintptr_t)PMM::RequestPages(pageListSize / PAGE_SIZE) + info->HigherHalfMapping);
 	info->KernelHeapPageList->PageCount = pageCount;
 	info->KernelHeapPageList->AllocatedSize = pageListSize;
 
         for (size_t i = 0; i < pageCount; i++) {
 		void *physical = PMM::RequestPage();
 		info->KernelHeapPageList->Pages[i].IsCOW = false;
-		info->KernelHeapPageList->Pages[i].PhysicalAddress = (uintptr_t)physical;
+		info->KernelHeapPageList->Pages[i].Data.PhysicalAddress = (uintptr_t)physical;
 		VMM::MapMemory(info->KernelVirtualSpace, physical, pos, VMM::VMM_PRESENT | VMM::VMM_READWRITE | VMM::VMM_GLOBAL | VMM::VMM_NOEXECUTE);
                 pos = (void*)((size_t)pos + 0x1000); // Advancing
         }
@@ -184,7 +184,7 @@ void ExpandHeap(size_t length) {
 		for (size_t i = initialPageCount; i < info->KernelHeapPageList->PageCount; i++) {
 			void *physical = PMM::RequestPage();
 			info->KernelHeapPageList->Pages[i].IsCOW = false;
-			info->KernelHeapPageList->Pages[i].PhysicalAddress = (uintptr_t)physical;
+			info->KernelHeapPageList->Pages[i].Data.PhysicalAddress = (uintptr_t)physical;
 			VMM::MapMemory(info->KernelVirtualSpace, physical, heapEnd, VMM::VMM_PRESENT | VMM::VMM_READWRITE | VMM::VMM_GLOBAL | VMM::VMM_NOEXECUTE);
 			heapEnd = (void*)((size_t)heapEnd + 0x1000);
 		}

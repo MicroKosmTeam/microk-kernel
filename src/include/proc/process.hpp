@@ -52,6 +52,7 @@ namespace PROC {
 	struct ProcessBase : public ExecutableUnitHeader {
 		VMM::VirtualSpace *VirtualMemorySpace = NULL;
 		uintptr_t HighestFree = 0;
+		VMM::PageList *ExecutablePageList;
 
 		ThreadList Threads;
 	};
@@ -86,7 +87,7 @@ namespace PROC {
 	struct VMThread : public ThreadBase {
 	};
 
-	ProcessBase *CreateProcess(ProcessBase *parent, ExecutableUnitType type, VMM::VirtualSpace *virtualMemorySpace, uint8_t priority, uint16_t flags);
+	ProcessBase *CreateProcess(ProcessBase *parent, ExecutableUnitType type, VMM::VirtualSpace *virtualMemorySpace, VMM::PageList *pageList, uint8_t priority, uint16_t flags);
 	int DeleteProcess(ProcessBase *process);
 
 	ThreadBase *CreateThread(ProcessBase *parent, uintptr_t entrypoint, size_t stackSize, uint8_t priority, uint16_t flags);

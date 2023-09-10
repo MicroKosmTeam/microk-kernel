@@ -23,17 +23,21 @@ namespace VMM {
 		virtual void *GetTopAddress() = 0;
 	private:
 	};
+	
+	struct COWMetadata {
+		uintptr_t PhysicalAddressOfOriginal;
+		uintptr_t PhysicalAddressOfCopy;
+
+		size_t VirtualReferences;
+		uintptr_t VirtualAddresses[];
+	};
 
 	struct PageMetadata {
 		bool IsCOW;
 		union {
 			uintptr_t PhysicalAddress;
-
-			struct {
-				uintptr_t PhysicalAddressOfOriginal;
-				uintptr_t PhysicalAddressOfCopy;
-			} COWData;
-		};
+			COWMetadata *COW;
+		} Data;
 	};
 
 	struct PageList {
