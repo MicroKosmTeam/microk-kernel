@@ -6,6 +6,7 @@
 #include <sys/printk.hpp>
 #include <init/kinfo.hpp>
 #include <mm/vmm.hpp>
+#include <mm/pmm.hpp>
 #include <sys/user.hpp>
 #include <sys/syscall.hpp>
 #include <sys/mutex.hpp>
@@ -105,7 +106,7 @@ static inline void PrintRegs(CPUStatus *context) {
 			context->IretSS);
 }
 
-static inline PROC::UserProcess *GetProcess() {
+static inline PROC::ProcessBase *GetProcess() {
 	KInfo *info = GetInfo();
 
 	LockMutex(&info->KernelScheduler->SchedulerLock);
@@ -117,7 +118,7 @@ static inline PROC::UserProcess *GetProcess() {
 	return proc;
 }
 
-static inline VMM::VirtualSpace *GetVirtualSpace(PROC::UserProcess *proc) {
+static inline VMM::VirtualSpace *GetVirtualSpace(PROC::ProcessBase *proc) {
 	KInfo *info = GetInfo();
 
 	LockMutex(&info->KernelScheduler->SchedulerLock);
@@ -137,7 +138,7 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 
 	bool switchAddressSpace = (cr3 != kcr3) ? true : false;
 
-	PROC::UserProcess *proc = NULL;
+	PROC::ProcessBase *proc = NULL;
 	VMM::VirtualSpace *procSpace = NULL;
 
 	if(switchAddressSpace) {
@@ -163,11 +164,13 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 			PANIC("Double fault");
 			break;
 		case 13: {
+			PrintRegs(context);
 			PRINTK::PrintK("General protection fault.\r\n");
 			PANIC("General protection fault");
 			break;
 			}
 		case 14: {
+			PrintRegs(context);
 			uintptr_t page;
 			bool protectionViolation = context->ErrorCode & 0b1;
 			bool writeAccess = (context->ErrorCode & 0b10) >> 1;
@@ -182,7 +185,56 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 					wasInstructionFetch ? "was" : "wasn't"
 					);
 
-			PANIC("Page fault");
+
+			VMM::PageList *pages = NULL;
+			if (proc != NULL) {
+				pages = proc->ExecutablePageList;
+			} else {
+				PANIC("Null proc");
+			}
+
+			uintptr_t roundedPage = (page - page % PAGE_SIZE);
+
+			size_t pageSelector;
+			size_t virtualReference;
+
+			bool found = false;
+
+			if(protectionViolation && writeAccess && byUser) {
+				for(pageSelector = 0; pageSelector < pages->PageCount; ++pageSelector) {
+					if(!pages->Pages[pageSelector].IsCOW) continue;
+					if(pages->Pages[pageSelector].Data.COW->PhysicalAddressOfCopy != 0) continue;
+					PRINTK::PrintK("Page %d.\r\n", pageSelector);
+
+					for(virtualReference = 0; virtualReference < pages->Pages[pageSelector].Data.COW->VirtualReferences; ++virtualReference) {
+						PRINTK::PrintK(" %d. 0x%x vs 0x%x\r\n", virtualReference, pages->Pages[pageSelector].Data.COW->VirtualAddresses[virtualReference], roundedPage);
+						if(pages->Pages[pageSelector].Data.COW->VirtualAddresses[virtualReference] == roundedPage) {
+							found = true;
+							break;
+						}
+					}
+
+					if(found) break;
+				}
+			}
+
+			if(!found) PANIC("Page fault");
+			else {
+				uintptr_t copy = (uintptr_t)PMM::RequestPage();
+				memset((void*)(copy + info->HigherHalfMapping), 0, PAGE_SIZE);
+				memcpy((void*)(copy + info->HigherHalfMapping),
+				       (void*)(pages->Pages[pageSelector].Data.COW->PhysicalAddressOfOriginal + info->HigherHalfMapping),
+				       PAGE_SIZE);
+
+				PRINTK::PrintK("COW!!\r\n"
+					       " Original: 0x%x\r\n"
+					       " Copy:     0x%x\r\n", pages->Pages[pageSelector].Data.COW->PhysicalAddressOfOriginal, copy);
+
+
+				pages->Pages[pageSelector].Data.COW->PhysicalAddressOfCopy = copy;
+				VMM::MapMemory(procSpace, (void*)copy, (void*)roundedPage, VMM::VMM_PRESENT | VMM::VMM_USER | VMM::VMM_READWRITE);
+				PRINTK::PrintK("Cow, out.\r\n");
+			}
 
 			}
 			break;
@@ -198,7 +250,7 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 				}
 
 				info->KernelScheduler->ElapsedQuantum += 1;
-				PROC::RecalculateScheduler(info->KernelScheduler);
+				if(PROC::RecalculateScheduler(info->KernelScheduler) == -1) PANIC("Recalculating the scheduler failed");
 				
 				if(info->KernelScheduler->CurrentThread == NULL) break;
 				
@@ -212,9 +264,6 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 				x86_64::UpdateLocalCPUStruct(info->KernelScheduler->CurrentThread->Thread->KernelStack);
 
 				if(context->IretCS != GDT_OFFSET_KERNEL_CODE) { 
-					context->IretCS = GDT_OFFSET_USER_CODE;
-					context->IretSS = GDT_OFFSET_USER_CODE + 0x08;
-
 					switchAddressSpace = true;
 				} else {
 					switchAddressSpace = false;
@@ -231,6 +280,11 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 			PRINTK::PrintK("Unhandled interrupt: 0x%x\r\n", context->VectorNumber);
 			OOPS("Unhandled interrupt");
 			break;
+	}
+	
+	if(context->IretCS != GDT_OFFSET_KERNEL_CODE) { 
+		context->IretCS = GDT_OFFSET_USER_CODE;
+		context->IretSS = GDT_OFFSET_USER_CODE + 0x08;
 	}
 
 	if(switchAddressSpace) {

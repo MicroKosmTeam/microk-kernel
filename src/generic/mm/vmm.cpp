@@ -53,7 +53,7 @@ VirtualSpace *NewVirtualSpace() {
 	if(info->KernelHeapPageList != NULL) {
 		uintptr_t heapAddress = CONFIG_HEAP_BASE;
 		for (size_t heapPage = 0; heapPage < info->KernelHeapPageList->PageCount; heapPage++) {
-			space->MapMemory((void*)info->KernelHeapPageList->PhysicalAddresses[heapPage], (void*)heapAddress, VMM_PRESENT | VMM_READWRITE | VMM_GLOBAL | VMM_NOEXECUTE);
+			space->MapMemory((void*)info->KernelHeapPageList->Pages[heapPage].Data.PhysicalAddress, (void*)heapAddress, VMM_PRESENT | VMM_READWRITE | VMM_GLOBAL | VMM_NOEXECUTE);
 			heapAddress += PAGE_SIZE;
 		}
 	}
