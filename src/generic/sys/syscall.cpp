@@ -183,7 +183,7 @@ size_t HandleSyscallMemoryVmalloc(uintptr_t base, size_t length, size_t flags) {
 		uintptr_t paddr = (uintptr_t)PMM::RequestPage();
 		if (paddr == 0) PANIC("Out of memory");
 
-		memset((void*)(paddr + info->HigherHalfMapping), 0, PAGE_SIZE);
+		Memset((void*)(paddr + info->HigherHalfMapping), 0, PAGE_SIZE);
 
 		if (flags == 0) VMM::MapMemory(procSpace, (void*)paddr, (void*)vaddr);
 		else VMM::MapMemory(procSpace, (void*)paddr, (void*)vaddr, flags);
@@ -309,8 +309,8 @@ size_t HandleSyscallMemoryInOut(uintptr_t port, bool out, size_t outData, size_t
 size_t HandleSyscallProcExec(uintptr_t executableBase, size_t executableSize) {
 	size_t heapSize = (executableSize + (PAGE_SIZE - executableSize % PAGE_SIZE));
 	uint8_t *heapAddr = (uint8_t*)Malloc(heapSize);
-	memset(heapAddr, 0, heapSize);
-	memcpy(heapAddr, (void*)executableBase, executableSize);
+	Memset(heapAddr, 0, heapSize);
+	Memcpy(heapAddr, (void*)executableBase, executableSize);
 	
 	size_t pid = LoadExecutableFile((uint8_t*)heapAddr, executableSize);
 	PRINTK::PrintK("New process is PID: 0x%x\r\n", pid);
@@ -473,12 +473,12 @@ size_t HandleSyscallModuleMessageSend(uint32_t vendorID, uint32_t productID, voi
 		VMM::MapMemory(receiverProcSpace, paddr, (void*)((uintptr_t)baseAddr + i));
 
 		VMM::LoadVirtualSpace(procSpace);
-		memcpy((void*)buffer, (void*)((uintptr_t)data + i), remaining > bufferSize ? bufferSize : remaining);
+		Memcpy((void*)buffer, (void*)((uintptr_t)data + i), remaining > bufferSize ? bufferSize : remaining);
 
 		VMM::LoadVirtualSpace(info->KernelVirtualSpace);
 		VMM::LoadVirtualSpace(receiverProcSpace);
 
-		memcpy((void*)((uintptr_t)baseAddr + i), (void*)buffer, remaining > bufferSize ? bufferSize : remaining);
+		Memcpy((void*)((uintptr_t)baseAddr + i), (void*)buffer, remaining > bufferSize ? bufferSize : remaining);
 	}
 
 	VMM::LoadVirtualSpace(info->KernelVirtualSpace);
@@ -501,7 +501,7 @@ size_t HandleSyscallModuleSectionRegister(const char *sectionName) {
 	sectionLength = sectionLength > 256 ? 256 : sectionLength;
 
 	char newSectionName[256] = { 0 };
-	memcpy((void*)newSectionName, (void*)sectionName, sectionLength);
+	Memcpy((void*)newSectionName, (void*)sectionName, sectionLength);
 
 	PROC::UserProcess *proc = GetProcess();
 
@@ -535,7 +535,7 @@ size_t HandleSyscallModuleSectionUnregister(const char *sectionName) {
 	sectionLength = sectionLength > 256 ? 256 : sectionLength;
 
 	char newSectionName[256];
-	memcpy((void*)newSectionName, (void*)sectionName, sectionLength);
+	Memcpy((void*)newSectionName, (void*)sectionName, sectionLength);
 
 	PROC::UserProcess *proc = GetProcess();
 
@@ -554,7 +554,7 @@ size_t HandleSyscallFileOpen(char *filename, uintptr_t *address, size_t *length)
 	filenameLength = filenameLength > 512 ? 512 : filenameLength;
 
 	char newFilename[512] = {0};
-	memcpy((void*)newFilename, (void*)filename, filenameLength);
+	Memcpy((void*)newFilename, (void*)filename, filenameLength);
 
 	*address = (uintptr_t)FILE::Open(newFilename, length) - info->HigherHalfMapping;
 
@@ -566,14 +566,14 @@ size_t HandleSyscallFileRead(char *filename, uintptr_t address, size_t length) {
 	filenameLength = filenameLength > 512 ? 512 : filenameLength;
 
 	char newFilename[512] = {0};
-	memcpy((void*)newFilename, (void*)filename, filenameLength);
+	Memcpy((void*)newFilename, (void*)filename, filenameLength);
 
 	size_t fileLength;
 	uintptr_t fileAddr;
 
 	fileAddr = (uintptr_t)FILE::Open(newFilename, &fileLength);
 
-	memcpy((void*)address, (void*)fileAddr, length > fileLength ? fileLength : length);
+	Memcpy((void*)address, (void*)fileAddr, length > fileLength ? fileLength : length);
 	
 	return 0;
 }

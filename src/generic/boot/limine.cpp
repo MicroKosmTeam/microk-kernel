@@ -1,7 +1,7 @@
 #include <cdefs.h>
 #include <stdint.h>
 #include <stddef.h>
-#include <limine.h>
+#include <boot/limine.h>
 #include <sys/panic.hpp>
 #include <init/main.hpp>
 #include <boot/boot.hpp>
@@ -34,7 +34,9 @@ static volatile limine_stack_size_request StackRequest {
 static volatile limine_module_request ModuleRequest {
 	.id = LIMINE_MODULE_REQUEST,
 	.revision = 0,
-	.response = NULL
+	.response = NULL,
+	.internal_module_count = 0,
+	.internal_modules = 0
 };
 
 /* High half direct mapping start request */
@@ -42,6 +44,15 @@ static volatile limine_hhdm_request HHDMRequest {
 	.id = LIMINE_HHDM_REQUEST,
 	.revision = 0,
 	.response = NULL
+};
+
+/* Paging mode request */
+static volatile limine_paging_mode_request PagingModeRequest {
+	.id = LIMINE_PAGING_MODE_REQUEST,
+	.revision = 0,
+	.response = NULL,
+	.mode = LIMINE_PAGING_MODE_DEFAULT,
+	.flags = 0
 };
 
 /* Memory map request */
@@ -174,7 +185,7 @@ void LimineEntry() {
 	const char *cmdline = KernelFileRequest.response->kernel_file->cmdline;
 	size_t len = strlen(cmdline);
 	info->KernelArgs = (const char*)BOOTMEM::Malloc(len + 1);
-	memcpy((uint8_t*)info->KernelArgs, (uint8_t*)cmdline, len);
+	Memcpy((uint8_t*)info->KernelArgs, (uint8_t*)cmdline, len);
 	*(char*)&info->KernelArgs[len] = '\0';
 
 	/* Transporting files */

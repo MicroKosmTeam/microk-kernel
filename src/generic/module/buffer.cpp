@@ -88,7 +88,7 @@ Buffer *BufferManager::CreateBuffer(uint32_t vendorID, uint32_t productID, Buffe
 	buf->Locked = false;
 	buf->Pending = false;
 
-	memset((void*)buf->Address, 0, buf->Size);
+	Memset((void*)buf->Address, 0, buf->Size);
 
 	PRINTK::PrintK("Buffer created (ID: %x, VID: %x, PID: %x)\r\n",
 			buf->ID, buf->OwnerVendorID, buf->OwnerProductID);
@@ -148,7 +148,7 @@ int BufferManager::MapBuffer(uint32_t vendorID, uint32_t productID, uint32_t id,
 int BufferManager::DeleteBuffer(Buffer *buf) {
 	if(!__sync_bool_compare_and_swap(&buf->Pending, false, true)) return -1;
 
-	memset((void*)buf->Address, 0, buf->Size);
+	Memset((void*)buf->Address, 0, buf->Size);
 	PMM::FreePages((void*)buf->Address, buf->Size / PAGE_SIZE + 1);
 
 	RemoveNode(buf->ID);

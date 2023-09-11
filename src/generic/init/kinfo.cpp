@@ -32,7 +32,7 @@ KInfo *info = NULL;
 void InitInfo() {
 	/* Allocate and clear the KInfo struct */
 	info = (KInfo*)BOOTMEM::Malloc(sizeof(KInfo));
-	memset(info, 0, sizeof(KInfo));
+	Memset(info, 0, sizeof(KInfo));
 }
 
 KInfo *GetInfo() {

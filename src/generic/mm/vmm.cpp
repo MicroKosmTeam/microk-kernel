@@ -26,7 +26,8 @@ VirtualSpace *NewVirtualSpace() {
 
 		/* We will skip any memory that is not usable by our kernel, to make the process faster */
 		if (entry.type == MEMMAP_BAD_MEMORY ||
-		    entry.type == MEMMAP_RESERVED) continue;
+		    entry.type == MEMMAP_RESERVED ||
+		    entry.type == MEMMAP_ACPI_NVS) continue;
 
 		/* We find the base and the top by rounding to the closest page boundary */
 		uintptr_t base = entry.base - (entry.base % PAGE_SIZE);
@@ -39,9 +40,9 @@ VirtualSpace *NewVirtualSpace() {
 				space->MapMemory((void*)t, (void*)(info->KernelVirtualBase + t - info->KernelPhysicalBase), VMM_PRESENT | VMM_READWRITE | VMM_GLOBAL);
 
 			}
-		} else if (entry.type == MEMMAP_ACPI_RECLAIMABLE || entry.type == MEMMAP_ACPI_NVS) {
+		} else if (entry.type == MEMMAP_ACPI_RECLAIMABLE) {
 			for (uintptr_t t = base; t < top; t += PAGE_SIZE) {
-				space->MapMemory((void*)t, (void*)(t + info->HigherHalfMapping), VMM_PRESENT | VMM_USER | VMM_NOEXECUTE);
+				space->MapMemory((void*)t, (void*)(t + info->HigherHalfMapping), VMM_PRESENT | VMM_GLOBAL | VMM_USER | VMM_NOEXECUTE);
 			}
 		} else {
 			for (uintptr_t t = base; t < top; t += PAGE_SIZE) {

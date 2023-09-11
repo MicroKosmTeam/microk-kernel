@@ -92,7 +92,7 @@ VMM::PageList *LoadProgramHeaders(uint8_t *data, size_t size, Elf64_Ehdr *elfHea
 
 					lastPhysicalPage = PMM::RequestPage();
 					uintptr_t higher = (uintptr_t)lastPhysicalPage + info->HigherHalfMapping;
-					memset((void*)higher, 0, PAGE_SIZE);
+					Memset((void*)higher, 0, PAGE_SIZE);
 
 					elfPages->Pages[pageSelector].IsCOW = true;
 					elfPages->Pages[pageSelector].Data.COW = (VMM::COWMetadata*)Malloc(sizeof(VMM::COWMetadata) + sizeof(uintptr_t));
@@ -101,10 +101,10 @@ VMM::PageList *LoadProgramHeaders(uint8_t *data, size_t size, Elf64_Ehdr *elfHea
 					elfPages->Pages[pageSelector].Data.COW->VirtualReferences = 1;
 					elfPages->Pages[pageSelector].Data.COW->VirtualAddresses[0] = (addr - addr % PAGE_SIZE);
 
-					VMM::MapMemory(space, lastPhysicalPage, (void*)(addr - addr % PAGE_SIZE), VMM::VMM_PRESENT | VMM::VMM_USER | VMM::VMM_READWRITE);
+					VMM::MapMemory(space, lastPhysicalPage, (void*)(addr - addr % PAGE_SIZE), VMM::VMM_PRESENT | VMM::VMM_USER);
 
 					if(fileRemaining > 0) {
-						memcpy((void*)(higher + addr % PAGE_SIZE),
+						Memcpy((void*)(higher + addr % PAGE_SIZE),
 								(void*)(data + programHeader->p_offset + copiedAmount),
 								copyAmount);
 

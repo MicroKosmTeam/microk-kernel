@@ -93,7 +93,7 @@ ProcessBase *CreateProcess(ProcessBase *parent, ExecutableUnitType type, VMM::Vi
 			userProcess->UserTaskBlock = (UserTCB*)PMM::RequestPage();
 			UserTCB *tcb = (UserTCB*)((uintptr_t)userProcess->UserTaskBlock + info->HigherHalfMapping);
 
-			memset(tcb, 0, PAGE_SIZE);
+			Memset(tcb, 0, PAGE_SIZE);
 			tcb->Magic = 0xDEADC0DE;
 
 			userProcess->HighestFree -= PAGE_SIZE;
@@ -142,7 +142,7 @@ ThreadBase *CreateThread(ProcessBase *parent, uintptr_t entrypoint, size_t stack
 	/* Initializing thread variables */
 	thread->ID = RequestTID(parent);
 	thread->Context = new CPUStatus;
-	memset(thread->Context, 0, sizeof(CPUStatus));
+	Memset(thread->Context, 0, sizeof(CPUStatus));
 
 	/* Adding the thread to the list in the parent */
 	ThreadBase *precedingThread = parent->Threads.Tail;
@@ -175,7 +175,7 @@ ThreadBase *CreateThread(ProcessBase *parent, uintptr_t entrypoint, size_t stack
 					       VMM::VirtualMemoryFlags::VMM_PRESENT |
 					       VMM::VirtualMemoryFlags::VMM_READWRITE |
 					       VMM::VirtualMemoryFlags::VMM_NOEXECUTE);
-				memset((void*)((uintptr_t)physical + info->HigherHalfMapping), 0, PAGE_SIZE);
+				Memset((void*)((uintptr_t)physical + info->HigherHalfMapping), 0, PAGE_SIZE);
 			}
 
 			kernelThread->KernelStack = highestFree;
@@ -203,7 +203,7 @@ ThreadBase *CreateThread(ProcessBase *parent, uintptr_t entrypoint, size_t stack
 					       VMM::VirtualMemoryFlags::VMM_READWRITE |
 					       VMM::VirtualMemoryFlags::VMM_USER |
 					       VMM::VirtualMemoryFlags::VMM_NOEXECUTE);
-				memset((void*)((uintptr_t)physical + info->HigherHalfMapping), 0, PAGE_SIZE);
+				Memset((void*)((uintptr_t)physical + info->HigherHalfMapping), 0, PAGE_SIZE);
 			}
 
 			userThread->Context->IretRIP = entrypoint;
@@ -225,7 +225,7 @@ ThreadBase *CreateThread(ProcessBase *parent, uintptr_t entrypoint, size_t stack
 					       VMM::VirtualMemoryFlags::VMM_PRESENT |
 					       VMM::VirtualMemoryFlags::VMM_READWRITE |
 					       VMM::VirtualMemoryFlags::VMM_NOEXECUTE);
-				memset((void*)((uintptr_t)physical + info->HigherHalfMapping), 0, PAGE_SIZE);
+				Memset((void*)((uintptr_t)physical + info->HigherHalfMapping), 0, PAGE_SIZE);
 			}
 
 			userThread->KernelStack = highestFree;

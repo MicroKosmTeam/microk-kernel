@@ -2,9 +2,10 @@
 #include <stdint.h>
 #include <stddef.h>
 
-extern "C" void *memcpy(void *dest, void *src, size_t n);
-extern "C" void *memset(void *start, uint8_t value, uint64_t num);
-extern "C" int memcmp(const void* buf1, const void* buf2, size_t count);
+void *Memcpy(void *dest, void *src, size_t n);
+void *Memset(void *start, uint8_t value, uint64_t num);
+int Memcmp(const void* buf1, const void* buf2, size_t count);
+void *Memmove(void *dest, const void *src, size_t n);
 
 void *Malloc(size_t size);
 void Free(void *p);

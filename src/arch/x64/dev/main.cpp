@@ -157,11 +157,11 @@ int InitDevices() {
 		uintptr_t addr = *(uintptr_t*)((uintptr_t)sdtAddr + sizeof(SDTHeader) + (i * size));
 		SDTHeader *newSDTHeader = (SDTHeader*)(addr + info->HigherHalfMapping);
 
-		if (memcmp(newSDTHeader->Signature, "APIC", 4) == 0) {
+		if (Memcmp(newSDTHeader->Signature, "APIC", 4) == 0) {
 			HandleMADT((MADTHeader*)newSDTHeader);
-		} else if (memcmp(newSDTHeader->Signature, "SRAT", 4) == 0) {
+		} else if (Memcmp(newSDTHeader->Signature, "SRAT", 4) == 0) {
 			HandleSRAT(newSDTHeader);
-		} else if (memcmp(newSDTHeader->Signature, "HPET", 4) == 0) {
+		} else if (Memcmp(newSDTHeader->Signature, "HPET", 4) == 0) {
 			HandleHPET((HPETHeader*)newSDTHeader);
 		}
 	}

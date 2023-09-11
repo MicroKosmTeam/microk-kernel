@@ -31,7 +31,7 @@ void *Open(char *path, size_t *size) {
 		}
 	} else if (strcmp(id, "ACPI") == 0) {
 		char tableName[5];
-		memcpy((void*)tableName, (void*)name, 4);
+		Memcpy((void*)tableName, (void*)name, 4);
 		tableName[4] = '\0';
 
 		if (strcmp(tableName, "RSDP") == 0) {

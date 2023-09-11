@@ -22,14 +22,14 @@ volatile __attribute__((aligned(0x10))) IDTEntry idt[IDT_MAX_DESCRIPTORS];
 volatile __attribute__((aligned(0x10))) IDTR idtr;
 
 /* Function to set a descriptor in the GDT */
-static void IDTSetDescriptor(uint8_t vector, void* isr, uint8_t flags) {
+static void IDTSetDescriptor(uint8_t vector, void *isr, uint8_t ist, uint8_t flags) {
 	/* Create new descriptor */
 	volatile IDTEntry *descriptor = &idt[vector];
 
 	/* Setting parameters */
 	descriptor->ISRLow = (uint64_t)isr & 0xFFFF;
 	descriptor->KernelCs = GDT_OFFSET_KERNEL_CODE;
-	descriptor->IST = 0;
+	descriptor->IST = ist;
 	descriptor->Attributes = flags;
 	descriptor->ISRMid = ((uint64_t)isr >> 16) & 0xFFFF;
 	descriptor->ISRHigh = ((uint64_t)isr >> 32) & 0xFFFFFFFF;
@@ -48,11 +48,12 @@ void IDTInit() {
 
 	/* Fill in the 32 exception handlers */
 	for (uint8_t vector = 0; vector < 32; vector++) {
-		IDTSetDescriptor(vector, isrStubTable[vector],  0x8F);
+		IDTSetDescriptor(vector, isrStubTable[vector], 0, 0x8E);
 	}
-		
-	IDTSetDescriptor(32, isrStubTable[32], 0x8E);
-	IDTSetDescriptor(254, isrStubTable[254], 0xEE);
+	
+	IDTSetDescriptor(14, isrStubTable[14], 1, 0x8E);
+	IDTSetDescriptor(32, isrStubTable[32], 2, 0x8F);
+	IDTSetDescriptor(254, isrStubTable[254], 3, 0xEF);
 
 	/* Load the new IDT */
 	asm volatile ("lidt %0" : : "m"(idtr));
@@ -221,8 +222,8 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 			if(!found) PANIC("Page fault");
 			else {
 				uintptr_t copy = (uintptr_t)PMM::RequestPage();
-				memset((void*)(copy + info->HigherHalfMapping), 0, PAGE_SIZE);
-				memcpy((void*)(copy + info->HigherHalfMapping),
+				Memset((void*)(copy + info->HigherHalfMapping), 0, PAGE_SIZE);
+				Memcpy((void*)(copy + info->HigherHalfMapping),
 				       (void*)(pages->Pages[pageSelector].Data.COW->PhysicalAddressOfOriginal + info->HigherHalfMapping),
 				       PAGE_SIZE);
 
@@ -241,7 +242,7 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 		case 32:
 			if(info->KernelScheduler != NULL) {
 				if(info->KernelScheduler->CurrentThread != NULL) {
-					memcpy(info->KernelScheduler->CurrentThread->Thread->Context, context, sizeof(CPUStatus));
+					Memcpy(info->KernelScheduler->CurrentThread->Thread->Context, context, sizeof(CPUStatus));
 				}
 
 				if(context->IretCS != GDT_OFFSET_KERNEL_CODE) { 
@@ -259,7 +260,7 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 				if(proc != NULL) procSpace = GetVirtualSpace(proc);
 				else PANIC("Null proc");
 
-				memcpy(context, info->KernelScheduler->CurrentThread->Thread->Context, sizeof(CPUStatus));
+				Memcpy(context, info->KernelScheduler->CurrentThread->Thread->Context, sizeof(CPUStatus));
 
 				x86_64::UpdateLocalCPUStruct(info->KernelScheduler->CurrentThread->Thread->KernelStack);
 
