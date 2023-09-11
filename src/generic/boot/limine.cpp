@@ -111,15 +111,13 @@ static volatile limine_smp_request SMPRequest {
 	.flags = 1
 };
 
-/* For AArch64 only: DTB Request */
-#if defined(ARCH_aarch64)
+/* DTB Request */
 static volatile limine_dtb_request DTBRequest {
 	.id = LIMINE_DTB_REQUEST,
 	.revision = 0,
 	.response = NULL
 };
 
-#endif
 
 static volatile limine_boot_time_request TimeRequest {
 	.id = LIMINE_BOOT_TIME_REQUEST,
@@ -207,11 +205,50 @@ void LimineEntry() {
 	}
 
 	if (RSDPRequest.response == NULL) {
+		PRINTK::PrintK(PREFIX "WARNING: no RSDP found.\r\n");
 		info->RSDP = NULL;
 	} else {
-		info->RSDP = RSDPRequest.response->address;
+		if(RSDPRequest.response->address != NULL) {
+			PRINTK::PrintK(PREFIX "RSDP found at 0x%x\r\n", RSDPRequest.response->address);
+			info->RSDP = RSDPRequest.response->address;
+		} else {
+			PRINTK::PrintK(PREFIX "WARNING: no RSDP found.\r\n");
+			info->RSDP = NULL;
+		}
 	}
 
+	if(SMBIOSRequest.response == NULL) {
+		PRINTK::PrintK(PREFIX "WARNING: no viable SMBIOS entry found.\r\n");
+	} else {
+		if(SMBIOSRequest.response->entry_64 != NULL) {
+			PRINTK::PrintK(PREFIX "SMBIOS 64 entry at 0x%x\r\n", SMBIOSRequest.response->entry_64);
+		} else if (SMBIOSRequest.response->entry_32 != NULL) {
+			PRINTK::PrintK(PREFIX "SMBIOS 32 entry at 0x%x\r\n", SMBIOSRequest.response->entry_32);
+		} else {
+			PRINTK::PrintK(PREFIX "WARNING: no viable SMBIOS entry found.\r\n");
+		}
+	}
+
+	if(EFITableRequest.response == NULL) {
+		PRINTK::PrintK(PREFIX "WARNING: EFI system table not found, assuming we're running on a BIOS system.\r\n");
+	} else {
+		if(EFITableRequest.response->address != NULL) {
+			PRINTK::PrintK(PREFIX "EFI system table found at 0x%x\r\n", EFITableRequest.response->address);
+		} else {
+			PRINTK::PrintK(PREFIX "WARNING: EFI system table not found, assuming we're running on a BIOS system.\r\n");
+		}
+	}
+
+	if(DTBRequest.response == NULL) {
+		PRINTK::PrintK(PREFIX "WARNING: No DTB found.\r\n");
+	} else {
+		if(DTBRequest.response->dtb_ptr != NULL) {
+			PRINTK::PrintK(PREFIX "DTB found at 0x%x\r\n", DTBRequest.response->dtb_ptr);
+		} else {
+			PRINTK::PrintK(PREFIX "WARNING: No DTB found.\r\n");
+		}
+	}
+	
 	if (FramebufferRequest.response == NULL) {
 		info->FramebufferCount = 0;
 		info->Framebuffers = NULL;
@@ -230,14 +267,6 @@ void LimineEntry() {
 			info->Framebuffers[i].BlueShift = FramebufferRequest.response->framebuffers[i]->blue_mask_shift;
 		}
 	}
-
-#if defined(ARCH_aarch64)
-	if (DTBRequest.response == NULL) {
-		PRINTK::PrintK(PREFIX "WARNING: Not DTB found.\r\n");
-	} else {
-		PRINTK::PrintK(PREFIX "Device Tree blob found at 0x%x\r\n", DTBRequest.response->dtb_ptr);
-	}
-#endif
 
 	/* Launch the kernel proper */
 	KernelStart();
