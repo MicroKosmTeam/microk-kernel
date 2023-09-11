@@ -41,7 +41,7 @@ VirtualSpace *NewVirtualSpace() {
 			}
 		} else if (entry.type == MEMMAP_ACPI_RECLAIMABLE || entry.type == MEMMAP_ACPI_NVS) {
 			for (uintptr_t t = base; t < top; t += PAGE_SIZE) {
-				space->MapMemory((void*)t, (void*)(t + info->HigherHalfMapping), VMM_PRESENT | VMM_USER | VMM_NOEXECUTE);
+				space->MapMemory((void*)t, (void*)(t + info->HigherHalfMapping), VMM_PRESENT | VMM_GLOBAL | VMM_USER | VMM_NOEXECUTE);
 			}
 		} else {
 			for (uintptr_t t = base; t < top; t += PAGE_SIZE) {
