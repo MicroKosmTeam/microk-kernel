@@ -17,10 +17,8 @@ reloadSegments:
 	mov ds, ax
 	mov es, ax
 	mov ss, ax
-
-	xor rax, rax
-	mov fs, rax
-	mov gs, rax
+	mov fs, ax
+	mov gs, ax
 	ret
 
 ; Function to load the TSS
