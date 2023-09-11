@@ -40,7 +40,14 @@ void TSSInit(uintptr_t stackPointer) {
 
 	/* Initializing the stack pointer */
 	tss.rsp0 = stackPointer;
-	tss.ist1 = 0;
+	tss.ist1 = tss.rsp0 - 64 * 1024;
+	tss.ist2 = tss.ist1 - 64 * 1024;
+	tss.ist3 = tss.ist2 - 64 * 1024;
+	tss.ist4 = tss.ist3 - 64 * 1024;
+	tss.ist5 = tss.ist4 - 64 * 1024;
+	tss.ist6 = tss.ist5 - 64 * 1024;
+	tss.ist7 = tss.ist6 - 64 * 1024;
+
 	/* Giving TSS size */
 	tss.iopb_offset = sizeof(tss);
 
