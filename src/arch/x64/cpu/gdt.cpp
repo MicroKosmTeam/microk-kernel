@@ -36,7 +36,7 @@ namespace x86_64 {
 */
 void TSSInit(uintptr_t stackPointer) {
 	/* Cleaning the TSS struct */
-	memset(&tss, 0, sizeof(tss));
+	Memset(&tss, 0, sizeof(tss));
 
 	/* Initializing the stack pointer */
 	tss.rsp0 = stackPointer;

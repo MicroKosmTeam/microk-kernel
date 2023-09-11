@@ -22,7 +22,7 @@ void FlushBuffer() {
 #ifdef CONFIG_HW_UART
 	if(KernelPort != NULL) KernelPort->PutStr(TerminalColumn);
 #endif
-	memset(TerminalColumn, 0, TERMINAL_SIZE + 1);
+	Memset(TerminalColumn, 0, TERMINAL_SIZE + 1);
 	TerminalPosition = 0;
 }
 
@@ -96,7 +96,7 @@ void VPrintK(char *format, va_list ap) {
 void EarlyInit() {
 	KInfo *info = GetInfo();
 
-	memset(TerminalColumn, 0, TERMINAL_SIZE + 1);
+	Memset(TerminalColumn, 0, TERMINAL_SIZE + 1);
 
 #ifdef CONFIG_HW_UART
 	info->KernelPort = (UARTDevice*)BOOTMEM::Malloc(sizeof(UARTDevice));

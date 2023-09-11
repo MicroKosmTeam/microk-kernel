@@ -174,7 +174,7 @@ void LimineEntry() {
 	const char *cmdline = KernelFileRequest.response->kernel_file->cmdline;
 	size_t len = strlen(cmdline);
 	info->KernelArgs = (const char*)BOOTMEM::Malloc(len + 1);
-	memcpy((uint8_t*)info->KernelArgs, (uint8_t*)cmdline, len);
+	Memcpy((uint8_t*)info->KernelArgs, (uint8_t*)cmdline, len);
 	*(char*)&info->KernelArgs[len] = '\0';
 
 	/* Transporting files */

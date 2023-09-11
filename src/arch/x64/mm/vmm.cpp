@@ -11,7 +11,7 @@ VMM::VirtualSpace *NewVirtualSpace() {
 	KInfo *info = GetInfo();
 	/* We create a new empty page directory */
 	PageTable *PML4 = (PageTable*)((uintptr_t)PMM::RequestPage() + info->HigherHalfMapping);
-	memset(PML4, 0, PAGE_SIZE);
+	Memset(PML4, 0, PAGE_SIZE);
 
 	VMM::VirtualSpace *space = new PageTableManager(PML4);
 

@@ -27,7 +27,7 @@ void PageTableManager::Fork(VMM::VirtualSpace *space, bool higherHalf) {
 		PageTable *newPDP;
 		if (PDE.GetFlag(PT_Flag::Present)) {
 			newPDP = (PageTable*)PMM::RequestPage();
-			memset(newPDP, 0, 0x1000);
+			Memset(newPDP, 0, 0x1000);
 
 			newPDE.SetAddress((uint64_t)newPDP >> 12);
 			newPDE.SetFlag(PT_Flag::Present, true);
@@ -44,7 +44,7 @@ void PageTableManager::Fork(VMM::VirtualSpace *space, bool higherHalf) {
 				PageTable *newPD;
 				if (PDE.GetFlag(PT_Flag::Present)) {
 					newPD = (PageTable*)PMM::RequestPage();
-					memset(newPD, 0, 0x1000);
+					Memset(newPD, 0, 0x1000);
 					
 					newPDE.SetAddress((uint64_t)newPD >> 12);
 					newPDE.SetFlag(PT_Flag::Present, true);
@@ -61,7 +61,7 @@ void PageTableManager::Fork(VMM::VirtualSpace *space, bool higherHalf) {
 						PageTable *newPT;
 						if (PDE.GetFlag(PT_Flag::Present)) {
 							newPT = (PageTable*)PMM::RequestPage();
-							memset(newPT, 0, 0x1000);
+							Memset(newPT, 0, 0x1000);
 							newPDE.SetAddress((uint64_t)newPT >> 12);
 							newPDE.SetFlag(PT_Flag::Present, true);
 							newPDE.SetFlag(PT_Flag::ReadWrite, true);
@@ -108,7 +108,7 @@ void PageTableManager::MapMemory(void *physicalMemory, void *virtualMemory, uint
 		PDP = (PageTable*)PMM::RequestPage();
 		PDE.SetAddress((uint64_t)PDP >> 12);
 		PDP = (PageTable*)((uintptr_t)PDP + info->HigherHalfMapping);
-		memset(PDP, 0, 0x1000);
+		Memset(PDP, 0, 0x1000);
 		PDE.SetFlag(PT_Flag::Present, true);
 		PDE.SetFlag(PT_Flag::ReadWrite, true);
 		PDE.SetFlag(PT_Flag::UserSuper, true);
@@ -125,7 +125,7 @@ void PageTableManager::MapMemory(void *physicalMemory, void *virtualMemory, uint
 		PDE.SetAddress((uint64_t)PD >> 12);
 
 		PD = (PageTable*)((uintptr_t)PD + info->HigherHalfMapping);
-		memset(PD, 0, 0x1000);
+		Memset(PD, 0, 0x1000);
 		PDE.SetFlag(PT_Flag::Present, true);
 		PDE.SetFlag(PT_Flag::ReadWrite, true);
 		PDE.SetFlag(PT_Flag::UserSuper, true);
@@ -142,7 +142,7 @@ void PageTableManager::MapMemory(void *physicalMemory, void *virtualMemory, uint
 		PDE.SetAddress((uint64_t)PT >> 12);
 		
 		PT = (PageTable*)((uintptr_t)PT + info->HigherHalfMapping);
-		memset(PT, 0, 0x1000);
+		Memset(PT, 0, 0x1000);
 		PDE.SetFlag(PT_Flag::Present, true);
 		PDE.SetFlag(PT_Flag::ReadWrite, true);
 		PDE.SetFlag(PT_Flag::UserSuper, true);

@@ -221,8 +221,8 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 			if(!found) PANIC("Page fault");
 			else {
 				uintptr_t copy = (uintptr_t)PMM::RequestPage();
-				memset((void*)(copy + info->HigherHalfMapping), 0, PAGE_SIZE);
-				memcpy((void*)(copy + info->HigherHalfMapping),
+				Memset((void*)(copy + info->HigherHalfMapping), 0, PAGE_SIZE);
+				Memcpy((void*)(copy + info->HigherHalfMapping),
 				       (void*)(pages->Pages[pageSelector].Data.COW->PhysicalAddressOfOriginal + info->HigherHalfMapping),
 				       PAGE_SIZE);
 
@@ -241,7 +241,7 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 		case 32:
 			if(info->KernelScheduler != NULL) {
 				if(info->KernelScheduler->CurrentThread != NULL) {
-					memcpy(info->KernelScheduler->CurrentThread->Thread->Context, context, sizeof(CPUStatus));
+					Memcpy(info->KernelScheduler->CurrentThread->Thread->Context, context, sizeof(CPUStatus));
 				}
 
 				if(context->IretCS != GDT_OFFSET_KERNEL_CODE) { 
@@ -259,7 +259,7 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 				if(proc != NULL) procSpace = GetVirtualSpace(proc);
 				else PANIC("Null proc");
 
-				memcpy(context, info->KernelScheduler->CurrentThread->Thread->Context, sizeof(CPUStatus));
+				Memcpy(context, info->KernelScheduler->CurrentThread->Thread->Context, sizeof(CPUStatus));
 
 				x86_64::UpdateLocalCPUStruct(info->KernelScheduler->CurrentThread->Thread->KernelStack);
 

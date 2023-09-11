@@ -1,20 +1,16 @@
 #include <mm/memory.hpp>
-#include <arch/x64/cpu/cpu.hpp>
+#include <stddef.h>
+#include <stdint.h>
 
-void *memset(void *start, uint8_t value, uint64_t num) {
-	if(false) {
-		int d0, d1;
-	        __asm__ __volatile__(
-		        "rep\n\t"
-	                "stosb"
-		        : "=&c" (d0), "=&D" (d1)
-			:"a" (value),"1" (start),"0" (num)
-	                :"memory");
-	} else {
-	        for (uint64_t i = 0; i < num; i++) {
-		        *(uint8_t*)((uint64_t)start + i) = value;
-	        }
+extern "C" void *memset(void *start, uint8_t value, uint64_t num) {
+	return Memset(start, value, num);
+}
+
+void *Memset(void *start, uint8_t value, uint64_t num) {
+	for (uint64_t i = 0; i < num; i++) {
+		*(uint8_t*)((uint64_t)start + i) = value;
 	}
+
 
 	return start;
 }
