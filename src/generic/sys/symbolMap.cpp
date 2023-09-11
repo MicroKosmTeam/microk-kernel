@@ -1,5 +1,5 @@
 #include <sys/symbol.hpp>
-const uint64_t symbolCount = 1115;
+const uint64_t symbolCount = 1116;
 const Symbol symbols[] = {
    {{0xffffffff80000000}, {"SyscallEntry"}}, 
    {{0xffffffff80000000}, {"syscall_start"}}, 
@@ -1062,7 +1062,7 @@ const Symbol symbols[] = {
    {{0xffffffff80030208}, {"_ZTV8SpinLock"}}, 
    {{0xffffffff80030320}, {"_ZL14memTypeStrings"}}, 
    {{0xffffffff800386e0}, {"symbols"}}, 
-   {{0xffffffff8003cc90}, {"symbolCount"}}, 
+   {{0xffffffff8003cca0}, {"symbolCount"}}, 
    {{0xffffffff8003cf80}, {"_ZL16CPUVendorStrings"}}, 
    {{0xffffffff8003d0b0}, {"_ZTVN6x86_646IOAPICE"}}, 
    {{0xffffffff8003d520}, {"_ZTVN6x86_643PITE"}}, 
@@ -1077,11 +1077,12 @@ const Symbol symbols[] = {
    {{0xffffffff8003f180}, {"_ZL11RSDPRequest"}}, 
    {{0xffffffff8003f1c0}, {"_ZL12KAddrRequest"}}, 
    {{0xffffffff8003f200}, {"_ZL16MemoryMapRequest"}}, 
-   {{0xffffffff8003f240}, {"_ZL11HHDMRequest"}}, 
-   {{0xffffffff8003f280}, {"_ZL13ModuleRequest"}}, 
-   {{0xffffffff8003f2c0}, {"_ZL12StackRequest"}}, 
-   {{0xffffffff8003f300}, {"_ZL17EntryPointRequest"}}, 
-   {{0xffffffff8003f338}, {"bootmemStatus"}}, 
+   {{0xffffffff8003f240}, {"_ZL17PagingModeRequest"}}, 
+   {{0xffffffff8003f280}, {"_ZL11HHDMRequest"}}, 
+   {{0xffffffff8003f2c0}, {"_ZL13ModuleRequest"}}, 
+   {{0xffffffff8003f300}, {"_ZL12StackRequest"}}, 
+   {{0xffffffff8003f340}, {"_ZL17EntryPointRequest"}}, 
+   {{0xffffffff8003f378}, {"bootmemStatus"}}, 
    {{0xffffffff80040000}, {"gdt"}}, 
    {{0xffffffff80041000}, {"__stack_chk_guard"}}, 
    {{0xffffffff80041008}, {"info"}}, 
