@@ -40,10 +40,6 @@ static inline VMM::VirtualSpace *GetVirtualSpace(PROC::UserProcess *proc) {
 	return procSpace;
 }
 
-// TMP measure: do something better with SMP
-__attribute__((__aligned__((16)))) __attribute__((section(".syscall.stack"))) volatile char SyscallStack[128 * 1024];
-__attribute__((section(".syscall.stack"))) __attribute__((__aligned__((16)))) volatile void *StartSyscallStack = &SyscallStack[128 * 1024 - 1];
-
 void AddOverride(size_t syscallNumber);
 size_t CheckOverride(size_t syscallNumber);
 size_t RunOverride(size_t syscallNumber);

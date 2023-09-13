@@ -12,6 +12,8 @@
 namespace x86_64 {
 	struct LocalCPUStruct {
 		uintptr_t TaskKernelStack;
+		uintptr_t UserStackPointer;
+		uintptr_t UserBaseStackPointer;
 	}__attribute__((packed));
 
 	inline void GetMSR(uint32_t msr, uint32_t *lo, uint32_t *hi) {

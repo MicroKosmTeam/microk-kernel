@@ -3,7 +3,6 @@
 %include "src/arch/x64/cpu/macros.asm"
 
 extern HandleSyscall 
-extern StartSyscallStack
 
 section .syscall.entrypoint
 
@@ -11,6 +10,13 @@ global SyscallEntry
 SyscallEntry:
 	cli
 	swapgs
+
+	; Save the stack pointer
+	mov gs:8, rsp
+	mov gs:16, rbp
+
+	; Switch to a new stack
+	mov rsp, gs:0	
 
 	; Save mandatory registers
 	push rbx
@@ -23,25 +29,10 @@ SyscallEntry:
 	push rcx
 	push r11
 
-	; Switch stack and save the stack pointer
-	mov r12, rsp
-	mov r13, rbp
-
-	; This is because some syscall are legacy and switch address spaces
-	; and because it seems that after the first process, we change the GS, we have some trouble
-	; mov rsp, gs:0
-	mov rsp, [StartSyscallStack]; TODO FIX
-
-
-	push r12
-	push r13
-	
+	; Get arguments in the correct order
 	mov rbp, rsp
 
-	; Get arguments in the correct order
-
 	push r10
-
 	mov rcx, rdx
 	mov rdx, rsi
 	mov rsi, rdi
@@ -51,15 +42,8 @@ SyscallEntry:
 	call HandleSyscall
 
 	; Return to base
-	mov rsp, rbp	
+	mov rsp, rbp
 
-	; Restore stack pointer
-	pop r13
-	pop r12
-	
-	mov rsp, r12
-	mov rbp, r13
-	
 	; Restore for sysret
 	pop r11
 	pop rcx
@@ -70,7 +54,11 @@ SyscallEntry:
 	pop r13
 	pop r12
 	pop rbx
-	
+
+	; Restore stack pointer
+	mov rsp, gs:8
+	mov rbp, gs:16
+		
 	swapgs
 
 	o64 sysret
