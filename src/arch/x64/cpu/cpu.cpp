@@ -147,8 +147,9 @@ void CPUInit() {
 
 void UpdateLocalCPUStruct(uintptr_t taskKernelStack) {
 	LocalCPUStruct *cpuStruct = (LocalCPUStruct*)localCPUStruct;
+	Memset(cpuStruct, 0, sizeof(LocalCPUStruct));
 
-//	PRINTK::PrintK("New kernel stack: 0x%x\r\n", taskKernelStack);
+	PRINTK::PrintK("New kernel stack: 0x%x\r\n", taskKernelStack);
 	cpuStruct->TaskKernelStack = taskKernelStack;
 }
 

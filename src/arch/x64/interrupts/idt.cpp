@@ -133,27 +133,15 @@ static inline VMM::VirtualSpace *GetVirtualSpace(PROC::ProcessBase *proc) {
 extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 	KInfo *info = GetInfo();
 
-	uintptr_t cr3;
-	uintptr_t kcr3 = (uintptr_t)info->KernelVirtualSpace->GetTopAddress() - info->HigherHalfMapping;
-	asm volatile("mov %%cr3, %0" : "=r"(cr3) :: "memory");
-
+/*
 	bool switchAddressSpace = (cr3 != kcr3) ? true : false;
 
 	PROC::ProcessBase *proc = NULL;
 	VMM::VirtualSpace *procSpace = NULL;
 
-	if(switchAddressSpace) {
-		VMM::LoadVirtualSpace(info->KernelVirtualSpace);
-
-		proc = GetProcess();
-
-		if(proc != NULL) {
-			procSpace = GetVirtualSpace(proc);
-		} else {
-			procSpace = info->KernelVirtualSpace;
-		}
-	}
-
+	proc = GetProcess();
+	procSpace = GetVirtualSpace(proc);
+*/
 	switch(context->VectorNumber) {
 		case 0:
 			PRINTK::PrintK("Division by zero.\r\n");
@@ -171,6 +159,9 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 			break;
 			}
 		case 14: {
+			PROC::ProcessBase *proc = GetProcess();
+			VMM::VirtualSpace *procSpace = GetVirtualSpace(proc);
+
 			PrintRegs(context);
 			uintptr_t page;
 			bool protectionViolation = context->ErrorCode & 0b1;
@@ -255,20 +246,13 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 				
 				if(info->KernelScheduler->CurrentThread == NULL) break;
 				
-				proc = GetProcess();
-
-				if(proc != NULL) procSpace = GetVirtualSpace(proc);
-				else PANIC("Null proc");
+				PROC::ProcessBase *proc = GetProcess();
 
 				Memcpy(context, info->KernelScheduler->CurrentThread->Thread->Context, sizeof(CPUStatus));
 
 				x86_64::UpdateLocalCPUStruct(info->KernelScheduler->CurrentThread->Thread->KernelStack);
 
-				if(context->IretCS != GDT_OFFSET_KERNEL_CODE) { 
-					switchAddressSpace = true;
-				} else {
-					switchAddressSpace = false;
-				}
+				VMM::LoadVirtualSpace(proc->VirtualMemorySpace);
 			}
 
 			x86_64::SendAPICEOI();
@@ -287,10 +271,10 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 		context->IretCS = GDT_OFFSET_USER_CODE;
 		context->IretSS = GDT_OFFSET_USER_CODE + 0x08;
 	}
-
+/*
 	if(switchAddressSpace) {
 		VMM::LoadVirtualSpace(procSpace);
 	}
-	
+*/	
 	return context;
 }

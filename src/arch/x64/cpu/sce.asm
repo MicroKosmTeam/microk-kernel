@@ -7,6 +7,7 @@ EnableSCE:
 	or rax, 1           ; enable SCE bit
 	wrmsr               ; write back new EFER
 
+	; TODO: fix STAR MSR, pretty sure what we're doing is incorrect
 	mov rcx, 0xc0000081 ; STAR MSR
 	;rdmsr               ; read current STAR
 	;mov edx, 0x00480028 ; load up GDT segment bases 0x28 (kernel) and 0x48 (user)

@@ -24,7 +24,8 @@ void SetAPICBase(uintptr_t apic) {
 }
 
 void WriteAPICRegister(uint16_t offset, uint32_t data) {
-	uintptr_t apic = GetAPICBase();
+	KInfo *info = GetInfo();
+	uintptr_t apic = GetAPICBase() + info->HigherHalfMapping;
 
 	volatile uint32_t *apicRegister = (volatile uint32_t*)(apic + offset);
 
@@ -32,7 +33,8 @@ void WriteAPICRegister(uint16_t offset, uint32_t data) {
 }
 
 uint32_t ReadAPICRegister(uint16_t offset) {
-	uintptr_t apic = GetAPICBase();
+	KInfo *info = GetInfo();
+	uintptr_t apic = GetAPICBase() + info->HigherHalfMapping;
 
 	volatile uint32_t *apicRegister = (volatile uint32_t*)(apic + offset);
 
@@ -49,11 +51,6 @@ void WaitAPIC() {
 }
 
 void EnableAPIC() {	
-	KInfo *info = GetInfo();
-	uintptr_t base = GetAPICBase();
-
-	VMM::MapMemory(info->KernelVirtualSpace, (void*)base, (void*)base);
-
 	SetAPICBase(GetAPICBase());
 
 	PRINTK::PrintK("APIC at 0x%x\r\n", GetAPICBase());

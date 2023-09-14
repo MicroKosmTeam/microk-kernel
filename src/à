@@ -10,6 +10,7 @@ global SyscallEntry
 SyscallEntry:
 	swapgs
 
+jmp $
 	; Save the stack pointer
 	mov gs:8, rsp
 	mov gs:16, rbp

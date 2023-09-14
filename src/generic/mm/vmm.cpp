@@ -1,6 +1,7 @@
 #include <mm/vmm.hpp>
 #include <init/kinfo.hpp>
 #include <arch/x64/mm/vmm.hpp>
+#include <arch/x64/dev/apic.hpp>
 #include <sys/printk.hpp>
 
 namespace VMM {
@@ -63,6 +64,8 @@ VirtualSpace *NewVirtualSpace() {
 	for (uintptr_t t = PAGE_SIZE; t < info->KernelStack; t+=PAGE_SIZE) {
 		space->MapMemory((void*)t, (void*)t, VMM_PRESENT | VMM_READWRITE | VMM_GLOBAL | VMM_NOEXECUTE);
 	}
+	
+	space->MapMemory((void*)x86_64::GetAPICBase(), (void*)(x86_64::GetAPICBase() + info->HigherHalfMapping), VMM_PRESENT | VMM_READWRITE | VMM_GLOBAL | VMM_NOEXECUTE);
 #endif
 
 
