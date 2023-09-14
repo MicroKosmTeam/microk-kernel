@@ -9,9 +9,10 @@ ENTRY(EfiMain)
 /* MMU permissions */
 PHDRS
 {
-	text	PT_LOAD	FLAGS((1 << 0) | (1 << 2));	/* Execute + Read */
-	rodata	PT_LOAD	FLAGS((1 << 2));		/* Read only */
-	data	PT_LOAD	FLAGS((1 << 1) | (1 << 2));	/* Write + Read */
+	text		PT_LOAD	FLAGS((1 << 0) | (1 << 2));		/* Execute + Read */
+	rodata		PT_LOAD	FLAGS((1 << 2));			/* Read only */
+	data		PT_LOAD	FLAGS((1 << 1) | (1 << 2));		/* Write + Read */
+	essentials 	PT_LOAD	FLAGS((1 << 0) | (1 << 1) | (1 << 2));	/* Execute + Read + Write */
 }
 
 SECTIONS
@@ -22,14 +23,14 @@ SECTIONS
 
 	. = 0xffffffff80000000;
 
-	syscall_start = .;
+	essential_start = .;
 
-	.syscall : {
-		KEEP(*(.syscall.entrypoint))
-		*(.syscall.*)
-	} :text
+	.essentials : {
+		KEEP(*(.interrupt))
+		KEEP(*(.syscall))
+	} :essentials
 
-	syscall_end = .;
+	essential_end = .;
 
 	/* Move to the next memory page for .text */
 	. += 0x1000;

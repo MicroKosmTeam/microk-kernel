@@ -17,9 +17,12 @@
 #define IDT_MAX_DESCRIPTORS 256
 
 /* Create the IDT, aligned for maximum performance */
-volatile __attribute__((aligned(0x10))) IDTEntry idt[IDT_MAX_DESCRIPTORS];
+volatile __attribute__((section(".interrupt"))) __attribute__((aligned(0x10)))
+IDTEntry idt[IDT_MAX_DESCRIPTORS];
+
 /* Create the IDTR */
-volatile __attribute__((aligned(0x10))) IDTR idtr;
+volatile __attribute__((section(".interrupt"))) __attribute__((aligned(0x10)))
+IDTR idtr;
 
 /* Function to set a descriptor in the GDT */
 static void IDTSetDescriptor(uint8_t vector, void *isr, uint8_t ist, uint8_t flags) {

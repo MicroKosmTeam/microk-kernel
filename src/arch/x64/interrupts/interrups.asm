@@ -1,6 +1,8 @@
 [bits 64]
 %include "src/arch/x64/cpu/macros.asm"
 
+section .interrupt
+
 %macro isr_err_stub 1
 isr_stub_%+%1:
 

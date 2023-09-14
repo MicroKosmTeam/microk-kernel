@@ -4,7 +4,7 @@
 
 extern HandleSyscall 
 
-section .syscall.entrypoint
+section .syscall
 
 global SyscallEntry
 SyscallEntry:
@@ -57,7 +57,7 @@ SyscallEntry:
 	; Restore stack pointer
 	mov rsp, gs:8
 	mov rbp, gs:16
-		
+	
 	swapgs
 
 	o64 sysret
