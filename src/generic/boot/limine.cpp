@@ -1,6 +1,7 @@
 #include <cdefs.h>
 #include <stdint.h>
 #include <stddef.h>
+#include <sys/mutex.hpp>
 #include <boot/limine.h>
 #include <sys/panic.hpp>
 #include <init/main.hpp>
@@ -9,6 +10,10 @@
 #include <mm/bootmem.hpp>
 #include <mm/string.hpp>
 #include <sys/printk.hpp>
+
+#if defined(ARCH_x64)
+extern "C" __attribute__((naked)) void CPUPause();
+#endif
 
 /* Function called by Limine at bootup through the entry point */
 extern "C" void LimineEntry(void);
@@ -129,6 +134,12 @@ static volatile limine_boot_time_request TimeRequest {
 
 extern uintptr_t __stack_chk_guard;
 
+__attribute__((noreturn))
+void LimineSMPEntry(limine_smp_info *info) {
+	(void)info;
+	while(true) CPUPause();
+}
+
 /* Main Limine initialization function */
 extern "C" __attribute__((no_stack_protector)) __attribute__((noreturn))
 void LimineEntry() {
@@ -204,7 +215,20 @@ void LimineEntry() {
 		info->BootFiles = NULL;
 	}
 
-	if (RSDPRequest.response == NULL) {
+	if(SMPRequest.response == NULL) {
+		PRINTK::PrintK(PREFIX "WARNING: no SMP detected, assuming single core processor.\r\n");
+	} else {
+		if(SMPRequest.response->cpu_count > 1 && SMPRequest.response->cpus != NULL) {
+			PRINTK::PrintK(PREFIX "SMP detected with %d processors.\r\n", SMPRequest.response->cpu_count);
+			for (size_t i = 0; i < SMPRequest.response->cpu_count; ++i) {
+				SMPRequest.response->cpus[i]->goto_address = &LimineSMPEntry;
+			}
+		} else {
+			PRINTK::PrintK(PREFIX "WARNING: no SMP detected, assuming single core processor.\r\n");
+		}
+	}
+
+	if(RSDPRequest.response == NULL) {
 		PRINTK::PrintK(PREFIX "WARNING: no RSDP found.\r\n");
 		info->RSDP = NULL;
 	} else {
@@ -250,10 +274,12 @@ void LimineEntry() {
 	}
 	
 	if (FramebufferRequest.response == NULL) {
+		PRINTK::PrintK(PREFIX "WARNING: No framebuffers detected.\r\n");
 		info->FramebufferCount = 0;
 		info->Framebuffers = NULL;
 	} else {
 		int framebufferCount = FramebufferRequest.response->framebuffer_count;
+		PRINTK::PrintK(PREFIX "%d framebuffers detected.\r\n", framebufferCount);
 		info->FramebufferCount = framebufferCount;
 		info->Framebuffers = (Framebuffer*)BOOTMEM::Malloc(sizeof(Framebuffer) * framebufferCount);
 

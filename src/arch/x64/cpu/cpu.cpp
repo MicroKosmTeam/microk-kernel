@@ -134,7 +134,7 @@ void CPUInit() {
 	uint16_t sseFeatures = EnableSMID();
 	PRINTK::PrintK("SSE features: %x\r\n", sseFeatures);
 
-	PRINTK::PrintK("Syscall entry at 0x%x\r\n", &SyscallEntry);
+	PRINTK::PrintK("Syscall entries at 00x%x\r\n", &SyscallEntry);
 	EnableSCE(NULL, (void*)&SyscallEntry);
 
 	SetMSR(MSR_GSBASE, 0xDEADDEAD, 0xDEADDEAD);
@@ -147,9 +147,7 @@ void CPUInit() {
 
 void UpdateLocalCPUStruct(uintptr_t taskKernelStack) {
 	LocalCPUStruct *cpuStruct = (LocalCPUStruct*)localCPUStruct;
-	Memset(cpuStruct, 0, sizeof(LocalCPUStruct));
 
-	PRINTK::PrintK("New kernel stack: 0x%x\r\n", taskKernelStack);
 	cpuStruct->TaskKernelStack = taskKernelStack;
 }
 
@@ -160,10 +158,11 @@ const char *GetCPUVendor() {
 	uint32_t ebx, edx, ecx, unused;
 	__cpuid(0, unused, ebx, ecx, edx);
 
-	char string[13];
+	char string[13] = { 0 };
 
 	/* This bitshift logic is used to get the correct 8-bit characters
-	   from the 32 bit registers. The vendor name is 12 characters + \0 */
+	 * from the 32 bit registers. The vendor name is 12 characters + NULL
+	 */
 	string[0] = (uint8_t)(ebx & 0xFF);
 	string[1] = (uint8_t)((ebx >> 8) & 0xFF);
 	string[2] = (uint8_t)((ebx >> 16) & 0xFF);

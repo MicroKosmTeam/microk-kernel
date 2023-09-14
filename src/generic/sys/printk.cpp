@@ -1,7 +1,6 @@
 #include <cdefs.h>
 #include <stdint.h>
 #include <mm/string.hpp>
-#include <sys/mutex.hpp>
 #include <mm/bootmem.hpp>
 #include <sys/printk.hpp>
 #include <init/kinfo.hpp>
@@ -14,7 +13,6 @@ namespace PRINTK {
 
 #define TERMINAL_SIZE 240
 
-static SpinLock PrintKSpinlock;
 static char TerminalColumn[TERMINAL_SIZE + 1];
 static size_t TerminalPosition;
 
@@ -27,8 +25,6 @@ void FlushBuffer() {
 }
 
 void PutChar(char ch) {
-//	PrintKSpinlock.Lock();
-
 	bool justNewline = false;
 
 	if (TerminalPosition + 1 > TERMINAL_SIZE) {
@@ -42,8 +38,6 @@ void PutChar(char ch) {
 		FlushBuffer();
 		justNewline = true;
 	}
-	
-//	PrintKSpinlock.Unlock();	
 }
 
 void PutStr(char *str) {

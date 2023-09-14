@@ -53,15 +53,15 @@ int EarlyKernelInit() {
 	/* Allocating memory for the info struct */
 	InitInfo();
 
-	/* Loading early serial printk */
-	PRINTK::EarlyInit();
-
 	/* Initializing early architecture-specific devices */
 #if defined(ARCH_x64)
 	x86_64::EarlyInit();
 #elif defined(ARCH_aarch64)
 	AArch64::EarlyInit();
 #endif
+
+	/* Loading early serial printk */
+	PRINTK::EarlyInit();
 
 	return 0;
 }
@@ -117,7 +117,7 @@ __attribute__((noreturn)) void KernelStart() {
 	MEM::Init();
 
 	/* Initializing the heap */
-	HEAP::InitializeHeap((void*)CONFIG_HEAP_BASE, CONFIG_HEAP_SIZE / 0x1000);
+	HEAP::InitializeHeap((void*)CONFIG_HEAP_BASE, CONFIG_HEAP_SIZE / PAGE_SIZE);
 
 	/* With the heap initialized, disable new bootmem allocations */
 	BOOTMEM::DeactivateBootmem();
