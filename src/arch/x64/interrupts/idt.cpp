@@ -147,6 +147,7 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 			PRINTK::PrintK("Division by zero.\r\n");
 			break;
 		case 6:
+			PrintRegs(context);
 			PRINTK::PrintK("Invalid opcode.\r\n");
 			break;
 		case 8:

@@ -14,9 +14,9 @@
 
 extern "C" void SyscallEntry();
 
-extern "C" void EnableSCE(void *syscallEntrypoint);
 extern "C" void EnableSSE();
 extern "C" void EnableAVX();
+extern "C" void EnableSCE(void *compatSyscallEntry, void *syscallEntry); 
 
 extern "C" void SetIOPL();
 
@@ -135,7 +135,7 @@ void CPUInit() {
 	PRINTK::PrintK("SSE features: %x\r\n", sseFeatures);
 
 	PRINTK::PrintK("Syscall entry at 0x%x\r\n", &SyscallEntry);
-	EnableSCE((void*)&SyscallEntry);
+	EnableSCE(NULL, (void*)&SyscallEntry);
 
 	SetMSR(MSR_GSBASE, 0xDEADDEAD, 0xDEADDEAD);
 
