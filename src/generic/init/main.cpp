@@ -37,6 +37,7 @@
 #include <sys/atomic.hpp>
 #include <sys/printk.hpp>
 #include <sys/loader.hpp>
+#include <sys/syscall.hpp>
 #include <proc/scheduler.hpp>
 #include <module/modulemanager.hpp>
 #include <module/buffer.hpp>
@@ -134,7 +135,8 @@ __attribute__((noreturn)) void KernelStart() {
 
 #ifdef CONFIG_KERNEL_MODULES
 	/* Initializing the scheduler framework */
-	info->KernelScheduler = PROC::InitializeScheduler(SCHEDULER_DEFAULT_QUEUES); 
+	info->KernelScheduler = PROC::InitializeScheduler(SCHEDULER_DEFAULT_QUEUES);
+	InitSyscalls();
 /*
 	info->KernelProcess = (PROC::KernelProcess*)PROC::CreateProcess((PROC::ProcessBase*)info->KernelProcess, PROC::ExecutableUnitType::PT_KERNEL, info->KernelVirtualSpace, 0, 0);
 	PROC::KernelThread *kernelThread = (PROC::KernelThread*)PROC::CreateThread((PROC::ProcessBase*)info->KernelProcess, (uintptr_t)&RestInit, 64 * 1024, 0, 0);

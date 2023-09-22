@@ -20,30 +20,6 @@
 #include <arch/x64/io/io.hpp>
 #endif
 
-static inline PROC::UserProcess *GetProcess() {
-	KInfo *info = GetInfo();
-
-	LockMutex(&info->KernelScheduler->SchedulerLock);
-	PROC::UserProcess *proc = (PROC::UserProcess*)info->KernelScheduler->CurrentThread->Thread->Parent;
-	UnlockMutex(&info->KernelScheduler->SchedulerLock);
-
-	return proc;
-}
-
-static inline VMM::VirtualSpace *GetVirtualSpace(PROC::UserProcess *proc) {
-	KInfo *info = GetInfo();
-
-	LockMutex(&info->KernelScheduler->SchedulerLock);
-	VMM::VirtualSpace *procSpace = proc->VirtualMemorySpace;
-	UnlockMutex(&info->KernelScheduler->SchedulerLock);
-
-	return procSpace;
-}
-
-void AddOverride(size_t syscallNumber);
-size_t CheckOverride(size_t syscallNumber);
-size_t RunOverride(size_t syscallNumber);
-
 /* Kernel syscall handlers */
 size_t HandleSyscallDebugPrintK(const char *string);
 
@@ -81,51 +57,84 @@ size_t HandleSyscallFileClose(size_t TODO);
 
 size_t HandleSyscallKernOverride(size_t TODO);
 
+static inline PROC::UserProcess *GetProcess() {
+	KInfo *info = GetInfo();
+
+	LockMutex(&info->KernelScheduler->SchedulerLock);
+	PROC::UserProcess *proc = (PROC::UserProcess*)info->KernelScheduler->CurrentThread->Thread->Parent;
+	UnlockMutex(&info->KernelScheduler->SchedulerLock);
+
+	return proc;
+}
+
+static inline VMM::VirtualSpace *GetVirtualSpace(PROC::UserProcess *proc) {
+	KInfo *info = GetInfo();
+
+	LockMutex(&info->KernelScheduler->SchedulerLock);
+	VMM::VirtualSpace *procSpace = proc->VirtualMemorySpace;
+	UnlockMutex(&info->KernelScheduler->SchedulerLock);
+
+	return procSpace;
+}
+SyscallFunctionCallback *vector;
+void InitSyscalls() {
+	KInfo *info = GetInfo();
+	vector = (SyscallFunctionCallback*)((uintptr_t)PMM::RequestPage() + info->HigherHalfMapping);
+	if(vector == NULL) PANIC("Unable to allocate for the syscall vector");
+	
+	Memset(vector, 0, PAGE_SIZE);
+
+	PRINTK::PrintK("Initializing system call API.\r\n");
+
+	vector[SYSCALL_DEBUG_PRINTK] = (SyscallFunctionCallback)(void*)HandleSyscallDebugPrintK;
+
+	vector[SYSCALL_MEMORY_GETINFO] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryGetinfo;
+	vector[SYSCALL_MEMORY_VMALLOC] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryVmalloc;
+	vector[SYSCALL_MEMORY_PALLOC] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryPalloc;
+	vector[SYSCALL_MEMORY_VMFREE] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryVmfree;
+	vector[SYSCALL_MEMORY_MMAP] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryMmap;
+	vector[SYSCALL_MEMORY_UNMAP] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryUnmap;
+	vector[SYSCALL_MEMORY_INOUT] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryInOut;
+
+	vector[SYSCALL_PROC_EXEC] = (SyscallFunctionCallback)(void*)HandleSyscallProcExec;
+	vector[SYSCALL_PROC_FORK] = (SyscallFunctionCallback)(void*)HandleSyscallProcFork;
+	vector[SYSCALL_PROC_RETURN] = (SyscallFunctionCallback)(void*)HandleSyscallProcReturn;
+	vector[SYSCALL_PROC_EXIT] = (SyscallFunctionCallback)(void*)HandleSyscallProcExit;
+	vector[SYSCALL_PROC_WAIT] = (SyscallFunctionCallback)(void*)HandleSyscallProcWait;
+	vector[SYSCALL_PROC_KILL] = (SyscallFunctionCallback)(void*)HandleSyscallProcKill;
+
+	vector[SYSCALL_MODULE_REGISTER] = (SyscallFunctionCallback)(void*)HandleSyscallModuleRegister;
+	vector[SYSCALL_MODULE_UNREGISTER] = (SyscallFunctionCallback)(void*)HandleSyscallModuleUnregister;
+	vector[SYSCALL_MODULE_BUFFER_CREATE] = (SyscallFunctionCallback)(void*)HandleSyscallModuleBufferCreate;
+	vector[SYSCALL_MODULE_BUFFER_MAP] = (SyscallFunctionCallback)(void*)HandleSyscallModuleBufferMap;
+	vector[SYSCALL_MODULE_BUFFER_UNMAP] = (SyscallFunctionCallback)(void*)HandleSyscallModuleBufferUnmap;
+	vector[SYSCALL_MODULE_BUFFER_DELETE] = (SyscallFunctionCallback)(void*)HandleSyscallModuleBufferDelete;
+	vector[SYSCALL_MODULE_MESSAGE_HANDLER] = (SyscallFunctionCallback)(void*)HandleSyscallModuleMessageHandler;
+	vector[SYSCALL_MODULE_MESSAGE_SEND] = (SyscallFunctionCallback)(void*)HandleSyscallModuleMessageSend;
+	vector[SYSCALL_MODULE_SECTION_REGISTER] = (SyscallFunctionCallback)(void*)HandleSyscallModuleSectionRegister;
+	vector[SYSCALL_MODULE_SECTION_GET] = (SyscallFunctionCallback)(void*)HandleSyscallModuleSectionGet;
+	vector[SYSCALL_MODULE_SECTION_UNREGISTER] = (SyscallFunctionCallback)(void*)HandleSyscallModuleSectionUnregister;
+
+	vector[SYSCALL_FILE_OPEN] = (SyscallFunctionCallback)(void*)HandleSyscallFileOpen;
+	vector[SYSCALL_FILE_READ] = (SyscallFunctionCallback)(void*)HandleSyscallFileRead;
+	vector[SYSCALL_FILE_WRITE] = (SyscallFunctionCallback)(void*)HandleSyscallFileWrite;
+	vector[SYSCALL_FILE_CLOSE] = (SyscallFunctionCallback)(void*)HandleSyscallFileClose;
+
+	vector[SYSCALL_KERN_OVERRIDE] = (SyscallFunctionCallback)(void*)HandleSyscallKernOverride;
+
+	(void)info;
+
+}
+
 extern "C" size_t HandleSyscall(size_t syscallNumber, size_t arg1, size_t arg2, size_t arg3, size_t arg4, size_t arg5, size_t arg6) {
 	/* Check first if the syscall has been overridden. */
 	size_t override = CheckOverride(syscallNumber);
 	if(override != 0) return RunOverride(override);
 
 	/* The syscall was not overridden, execute the normal kernel call */
-	switch(syscallNumber) {
-		case SYSCALL_DEBUG_PRINTK: return HandleSyscallDebugPrintK((const char*)arg1);
+	if(syscallNumber < 1 || syscallNumber > 30) return syscallNumber;
 
-		case SYSCALL_MEMORY_GETINFO: return HandleSyscallMemoryGetinfo((uintptr_t)arg1);
-		case SYSCALL_MEMORY_VMALLOC: return HandleSyscallMemoryVmalloc((uintptr_t)arg1, arg2, arg3);
-		case SYSCALL_MEMORY_PALLOC: return HandleSyscallMemoryPalloc((uintptr_t*)arg1, arg2);
-		case SYSCALL_MEMORY_VMFREE: return HandleSyscallMemoryVmfree((uintptr_t)arg1, arg2);
-		case SYSCALL_MEMORY_MMAP: return HandleSyscallMemoryMmap((uintptr_t)arg1, (uintptr_t)arg2, arg3, arg4);
-		case SYSCALL_MEMORY_UNMAP: return HandleSyscallMemoryUnmap((uintptr_t)arg1, arg2);
-		case SYSCALL_MEMORY_INOUT: return HandleSyscallMemoryInOut((uintptr_t)arg1, (bool)arg2, arg3, (size_t*)arg4, (uint8_t)arg5);
-
-		case SYSCALL_PROC_EXEC: return HandleSyscallProcExec((uintptr_t)arg1, arg2);
-		case SYSCALL_PROC_FORK: return HandleSyscallProcFork(arg6);
-		case SYSCALL_PROC_RETURN: return HandleSyscallProcReturn(arg1, (uintptr_t)arg2);
-		case SYSCALL_PROC_EXIT: return HandleSyscallProcExit(arg1, (uintptr_t)arg2);
-		case SYSCALL_PROC_WAIT: return HandleSyscallProcWait(arg6);
-		case SYSCALL_PROC_KILL: return HandleSyscallProcKill(arg6);
-
-		case SYSCALL_MODULE_REGISTER: return HandleSyscallModuleRegister(arg1, arg2);
-		case SYSCALL_MODULE_UNREGISTER: return HandleSyscallModuleUnregister();
-		case SYSCALL_MODULE_BUFFER_CREATE: return HandleSyscallModuleBufferCreate(arg1, arg2, (uint32_t*)arg3);
-		case SYSCALL_MODULE_BUFFER_MAP: return HandleSyscallModuleBufferMap((uintptr_t)arg1, (uint32_t)arg2);
-		case SYSCALL_MODULE_BUFFER_UNMAP: return HandleSyscallModuleBufferUnmap((uintptr_t)arg1, (uint32_t)arg2);
-		case SYSCALL_MODULE_BUFFER_DELETE: return HandleSyscallModuleBufferDelete((uint32_t)arg1);
-		case SYSCALL_MODULE_MESSAGE_HANDLER: return HandleSyscallModuleMessageHandler((uintptr_t)arg1);
-		case SYSCALL_MODULE_MESSAGE_SEND: return HandleSyscallModuleMessageSend((uint32_t)arg1, (uint32_t)arg2, (void*)arg3, arg4);
-		case SYSCALL_MODULE_SECTION_REGISTER: return HandleSyscallModuleSectionRegister((const char*)arg1);
-		case SYSCALL_MODULE_SECTION_GET: return HandleSyscallModuleSectionGet((const char*)arg1, (uint32_t*)arg2, (uint32_t*)arg3);
-		case SYSCALL_MODULE_SECTION_UNREGISTER: return HandleSyscallModuleSectionUnregister((const char*)arg1);
-
-		case SYSCALL_FILE_OPEN: return HandleSyscallFileOpen((char*)arg1, (uintptr_t*)arg2, (size_t*)arg3);
-		case SYSCALL_FILE_READ: return HandleSyscallFileRead((char*)arg1, (uintptr_t)arg2, arg3);
-		case SYSCALL_FILE_WRITE: return HandleSyscallFileWrite(arg6);
-		case SYSCALL_FILE_CLOSE: return HandleSyscallFileClose(arg6);
-
-		case SYSCALL_KERN_OVERRIDE: return HandleSyscallKernOverride(arg6);
-
-		default: return 0;
-	}
+	return vector[syscallNumber](arg1, arg2, arg3, arg4, arg5, arg6);
 }
 
 void AddOverride(size_t syscallNumber) {
