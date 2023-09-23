@@ -82,6 +82,12 @@ namespace PROC {
 		uint8_t Signature[4];
 		uintptr_t TablePointer;
 	}__attribute__((packed));
+
+	struct KBST : public TableHeader {
+		size_t FreePhysicalMemory;
+		size_t UsedPhysicalMemory;
+		size_t ReservedPhysicalMemory;
+	}__attribute__((packed));
 	
 	struct UserProcess : public ProcessBase {
 		UserTCB *UserTaskBlock = NULL;
@@ -112,5 +118,6 @@ namespace PROC {
 
 	int SetExecutableUnitState(ExecutableUnitHeader *unit, ExecutableUnitState state);
 
-	void PopulateUserTCB(UserTCB *tcb);
+	void PopulateUserTCB(UserTCB *tcb, UserProcess *userProcess);
+	void PopulateKBST(KBST *kbst);
 }
