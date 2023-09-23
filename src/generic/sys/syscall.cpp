@@ -343,6 +343,7 @@ size_t HandleSyscallProcReturn(size_t returnCode, uintptr_t stack) {
 	PROC::PrintSchedulerStatus(info->KernelScheduler);
 
 #if defined(ARCH_x64)
+	asm volatile ("swapgs");
 	asm volatile ("sti");
 #endif
 	while(true) {  }
@@ -445,56 +446,10 @@ size_t HandleSyscallModuleMessageHandler(uintptr_t entry) {
 
 size_t HandleSyscallModuleMessageSend(uint32_t vendorID, uint32_t productID, void *data, size_t size) {
 	if(size == 0) return -1;
-	
-	KInfo *info = GetInfo();
-	const size_t bufferSize = PAGE_SIZE;
-	char buffer[bufferSize];
-
-	VMM::LoadVirtualSpace(info->KernelVirtualSpace);
-	
-	PROC::UserProcess *proc = GetProcess();
-	VMM::VirtualSpace *procSpace = GetVirtualSpace(proc);
-
-	MODULE::Module *sendMod = info->KernelModuleManager->GetModule(proc->ID);
-	MODULE::Module *receiverMod = info->KernelModuleManager->GetModule(vendorID, productID);
-	if (sendMod == NULL || receiverMod == NULL) {
-		VMM::LoadVirtualSpace(procSpace);
-		return -1;
-	}
-
-	PROC::UserProcess *receiverProc = (PROC::UserProcess*)receiverMod->GetProcess();
-	VMM::VirtualSpace *receiverProcSpace = receiverProc->VirtualMemorySpace;
-
-	size_t remaining = 0;
-	void *baseAddr = (void*)0x700000000000;
-	
-	for (size_t i = 0; i < size; i += bufferSize) {
-		remaining = size - i;
-
-		VMM::LoadVirtualSpace(info->KernelVirtualSpace);
-		void *paddr = PMM::RequestPage();
-		if (paddr == NULL) PANIC("Out of memory");
-
-		VMM::MapMemory(receiverProcSpace, paddr, (void*)((uintptr_t)baseAddr + i));
-
-		VMM::LoadVirtualSpace(procSpace);
-		Memcpy((void*)buffer, (void*)((uintptr_t)data + i), remaining > bufferSize ? bufferSize : remaining);
-
-		VMM::LoadVirtualSpace(info->KernelVirtualSpace);
-		VMM::LoadVirtualSpace(receiverProcSpace);
-
-		Memcpy((void*)((uintptr_t)baseAddr + i), (void*)buffer, remaining > bufferSize ? bufferSize : remaining);
-	}
-
-	VMM::LoadVirtualSpace(info->KernelVirtualSpace);
-
-	void *paddr = receiverProcSpace->GetPhysicalAddress(baseAddr);
-
-	MODULE::ComposeMessage((MODULE::Message*)paddr, sendMod->GetVendor(), sendMod->GetProduct(), size);
-
-	PROC::SetExecutableUnitState(PROC::GetThread(info->KernelScheduler, receiverProc->ID, 0), PROC::ExecutableUnitState::P_MESSAGE);
-
-	VMM::LoadVirtualSpace(procSpace);
+	(void)vendorID;
+	(void)productID;
+	(void)data;
+	(void)size;
 
 	return 0;
 }

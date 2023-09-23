@@ -3,7 +3,8 @@
 #include <init/kinfo.hpp>
 #include <mm/vmm.hpp>
 
-#define FRACTIONAL_TIME_TO_WAIT 0x100
+/* That would be 10ms */
+#define FRACTIONAL_TIME_TO_WAIT 100
 
 /* Function to calibrate the TSC using HPET */
 int CalibrateTSCWithHPET(uintptr_t hpetAddress, uint64_t *tscTicksPerSecond) {
