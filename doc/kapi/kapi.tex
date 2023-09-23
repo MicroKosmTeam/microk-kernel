@@ -1,0 +1,44 @@
+\documentclass{report}
+
+\title{%
+  \large MicroKosm Kernel API \\
+   Version 1.0 \\
+   }
+
+\date{2023-09-01}
+\author{Filippo Mutta}
+
+\begin{document}
+
+\pagenumbering{gobble}
+\maketitle
+\newpage
+
+\pagenumbering{arabic}
+
+\tableofcontents
+
+\chapter{Core Internal API}
+\section{Comprehensive list of core kernel API calls}
+
+\chapter{Core Syscall API}
+\section{Comprehensive list of syscalls}
+
+\begin{tabular}{ |c|c|c|c| }
+	Vector number & Name & Arguments & Descritpion \\ 
+	1 & PrintK & const char *message & Prints a debug message to the kernel log. \\
+\end{tabular}
+\section{Debug syscalls}
+\textit{\textbf{WARNING:} the all the following syscalls are for debug purposes only. On production systems, their presence is not guaranteed and not recomended. They are inherently more insecure than normal syscalls, so it is advised to remove them if the system isn't meant for debugging and testing of critical modules.}
+\subsection{PrintK}
+\begin{tabular}{ |c|c|c|c| }
+	Vector number & Name & Arguments & Descritpion \\ 
+	1 & PrintK & const char *message & Prints a debug message to the kernel log. \\
+\end{tabular}
+
+The mechanism of this syscall is identical to the kernel function. It takes as an argument a NULL-terminated string. There are no checks associated with the function.
+
+\chapter{Extra APIs}
+\section{User TCB}
+
+\end{document}
