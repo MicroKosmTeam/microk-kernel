@@ -23,7 +23,6 @@
 /* Kernel syscall handlers */
 size_t HandleSyscallDebugPrintK(const char *string);
 
-size_t HandleSyscallMemoryGetinfo(uintptr_t structbase);
 size_t HandleSyscallMemoryVmalloc(uintptr_t base, size_t length, size_t flags);
 size_t HandleSyscallMemoryPalloc(uintptr_t *base, size_t length);
 size_t HandleSyscallMemoryVmfree(uintptr_t base, size_t length);
@@ -89,7 +88,6 @@ void InitSyscalls() {
 
 	SyscallVector[SYSCALL_DEBUG_PRINTK] = (SyscallFunctionCallback)(void*)HandleSyscallDebugPrintK;
 
-	SyscallVector[SYSCALL_MEMORY_GETINFO] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryGetinfo;
 	SyscallVector[SYSCALL_MEMORY_VMALLOC] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryVmalloc;
 	SyscallVector[SYSCALL_MEMORY_PALLOC] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryPalloc;
 	SyscallVector[SYSCALL_MEMORY_VMFREE] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryVmfree;
@@ -155,19 +153,6 @@ size_t RunOverride(size_t syscallNumber) {
 
 size_t HandleSyscallDebugPrintK(const char *string) {
 	PRINTK::PrintK("%s", string);
-
-	return 0;
-}
-
-size_t HandleSyscallMemoryGetinfo(uintptr_t structbase) {
-	if (structbase <= 0x1000 || structbase >= 0x00007FFFFFFFFFFF)
-		return -1; /* Make sure it is in valid memory */
-
-	size_t *data = (size_t*)structbase;
-	data[0] = PMM::GetFreeMem() + PMM::GetUsedMem();  /* Total */
-	data[1] = PMM::GetFreeMem(); /* Free */
-	data[2] = PMM::GetUsedMem(); /* Reserved (todo, get correct amount) */
-	data[3] = 0; /* Buffers */
 
 	return 0;
 }
