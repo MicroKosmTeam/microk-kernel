@@ -28,9 +28,9 @@ namespace MEM {
 	#define MEMMAP_FRAMEBUFFER            7
 
 	struct MMapEntry {
-		uint64_t base;
-		uint64_t length;
-		uint64_t type;
+		uintptr_t base;
+		uintptr_t length;
+		uintptr_t type;
 	};
 
 	void Init();

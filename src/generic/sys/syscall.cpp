@@ -76,54 +76,52 @@ static inline VMM::VirtualSpace *GetVirtualSpace(PROC::UserProcess *proc) {
 
 	return procSpace;
 }
-SyscallFunctionCallback *vector;
+
+SyscallFunctionCallback *SyscallVector;
 void InitSyscalls() {
 	KInfo *info = GetInfo();
-	vector = (SyscallFunctionCallback*)((uintptr_t)PMM::RequestPage() + info->HigherHalfMapping);
-	if(vector == NULL) PANIC("Unable to allocate for the syscall vector");
+	SyscallVector = (SyscallFunctionCallback*)((uintptr_t)PMM::RequestPage() + info->HigherHalfMapping);
+	if(SyscallVector == NULL) PANIC("Unable to allocate for the syscall vector");
 	
-	Memset(vector, 0, PAGE_SIZE);
+	Memset(SyscallVector, 0, PAGE_SIZE);
 
 	PRINTK::PrintK("Initializing system call API.\r\n");
 
-	vector[SYSCALL_DEBUG_PRINTK] = (SyscallFunctionCallback)(void*)HandleSyscallDebugPrintK;
+	SyscallVector[SYSCALL_DEBUG_PRINTK] = (SyscallFunctionCallback)(void*)HandleSyscallDebugPrintK;
 
-	vector[SYSCALL_MEMORY_GETINFO] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryGetinfo;
-	vector[SYSCALL_MEMORY_VMALLOC] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryVmalloc;
-	vector[SYSCALL_MEMORY_PALLOC] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryPalloc;
-	vector[SYSCALL_MEMORY_VMFREE] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryVmfree;
-	vector[SYSCALL_MEMORY_MMAP] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryMmap;
-	vector[SYSCALL_MEMORY_UNMAP] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryUnmap;
-	vector[SYSCALL_MEMORY_INOUT] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryInOut;
+	SyscallVector[SYSCALL_MEMORY_GETINFO] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryGetinfo;
+	SyscallVector[SYSCALL_MEMORY_VMALLOC] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryVmalloc;
+	SyscallVector[SYSCALL_MEMORY_PALLOC] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryPalloc;
+	SyscallVector[SYSCALL_MEMORY_VMFREE] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryVmfree;
+	SyscallVector[SYSCALL_MEMORY_MMAP] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryMmap;
+	SyscallVector[SYSCALL_MEMORY_UNMAP] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryUnmap;
+	SyscallVector[SYSCALL_MEMORY_INOUT] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryInOut;
 
-	vector[SYSCALL_PROC_EXEC] = (SyscallFunctionCallback)(void*)HandleSyscallProcExec;
-	vector[SYSCALL_PROC_FORK] = (SyscallFunctionCallback)(void*)HandleSyscallProcFork;
-	vector[SYSCALL_PROC_RETURN] = (SyscallFunctionCallback)(void*)HandleSyscallProcReturn;
-	vector[SYSCALL_PROC_EXIT] = (SyscallFunctionCallback)(void*)HandleSyscallProcExit;
-	vector[SYSCALL_PROC_WAIT] = (SyscallFunctionCallback)(void*)HandleSyscallProcWait;
-	vector[SYSCALL_PROC_KILL] = (SyscallFunctionCallback)(void*)HandleSyscallProcKill;
+	SyscallVector[SYSCALL_PROC_EXEC] = (SyscallFunctionCallback)(void*)HandleSyscallProcExec;
+	SyscallVector[SYSCALL_PROC_FORK] = (SyscallFunctionCallback)(void*)HandleSyscallProcFork;
+	SyscallVector[SYSCALL_PROC_RETURN] = (SyscallFunctionCallback)(void*)HandleSyscallProcReturn;
+	SyscallVector[SYSCALL_PROC_EXIT] = (SyscallFunctionCallback)(void*)HandleSyscallProcExit;
+	SyscallVector[SYSCALL_PROC_WAIT] = (SyscallFunctionCallback)(void*)HandleSyscallProcWait;
+	SyscallVector[SYSCALL_PROC_KILL] = (SyscallFunctionCallback)(void*)HandleSyscallProcKill;
 
-	vector[SYSCALL_MODULE_REGISTER] = (SyscallFunctionCallback)(void*)HandleSyscallModuleRegister;
-	vector[SYSCALL_MODULE_UNREGISTER] = (SyscallFunctionCallback)(void*)HandleSyscallModuleUnregister;
-	vector[SYSCALL_MODULE_BUFFER_CREATE] = (SyscallFunctionCallback)(void*)HandleSyscallModuleBufferCreate;
-	vector[SYSCALL_MODULE_BUFFER_MAP] = (SyscallFunctionCallback)(void*)HandleSyscallModuleBufferMap;
-	vector[SYSCALL_MODULE_BUFFER_UNMAP] = (SyscallFunctionCallback)(void*)HandleSyscallModuleBufferUnmap;
-	vector[SYSCALL_MODULE_BUFFER_DELETE] = (SyscallFunctionCallback)(void*)HandleSyscallModuleBufferDelete;
-	vector[SYSCALL_MODULE_MESSAGE_HANDLER] = (SyscallFunctionCallback)(void*)HandleSyscallModuleMessageHandler;
-	vector[SYSCALL_MODULE_MESSAGE_SEND] = (SyscallFunctionCallback)(void*)HandleSyscallModuleMessageSend;
-	vector[SYSCALL_MODULE_SECTION_REGISTER] = (SyscallFunctionCallback)(void*)HandleSyscallModuleSectionRegister;
-	vector[SYSCALL_MODULE_SECTION_GET] = (SyscallFunctionCallback)(void*)HandleSyscallModuleSectionGet;
-	vector[SYSCALL_MODULE_SECTION_UNREGISTER] = (SyscallFunctionCallback)(void*)HandleSyscallModuleSectionUnregister;
+	SyscallVector[SYSCALL_MODULE_REGISTER] = (SyscallFunctionCallback)(void*)HandleSyscallModuleRegister;
+	SyscallVector[SYSCALL_MODULE_UNREGISTER] = (SyscallFunctionCallback)(void*)HandleSyscallModuleUnregister;
+	SyscallVector[SYSCALL_MODULE_BUFFER_CREATE] = (SyscallFunctionCallback)(void*)HandleSyscallModuleBufferCreate;
+	SyscallVector[SYSCALL_MODULE_BUFFER_MAP] = (SyscallFunctionCallback)(void*)HandleSyscallModuleBufferMap;
+	SyscallVector[SYSCALL_MODULE_BUFFER_UNMAP] = (SyscallFunctionCallback)(void*)HandleSyscallModuleBufferUnmap;
+	SyscallVector[SYSCALL_MODULE_BUFFER_DELETE] = (SyscallFunctionCallback)(void*)HandleSyscallModuleBufferDelete;
+	SyscallVector[SYSCALL_MODULE_MESSAGE_HANDLER] = (SyscallFunctionCallback)(void*)HandleSyscallModuleMessageHandler;
+	SyscallVector[SYSCALL_MODULE_MESSAGE_SEND] = (SyscallFunctionCallback)(void*)HandleSyscallModuleMessageSend;
+	SyscallVector[SYSCALL_MODULE_SECTION_REGISTER] = (SyscallFunctionCallback)(void*)HandleSyscallModuleSectionRegister;
+	SyscallVector[SYSCALL_MODULE_SECTION_GET] = (SyscallFunctionCallback)(void*)HandleSyscallModuleSectionGet;
+	SyscallVector[SYSCALL_MODULE_SECTION_UNREGISTER] = (SyscallFunctionCallback)(void*)HandleSyscallModuleSectionUnregister;
 
-	vector[SYSCALL_FILE_OPEN] = (SyscallFunctionCallback)(void*)HandleSyscallFileOpen;
-	vector[SYSCALL_FILE_READ] = (SyscallFunctionCallback)(void*)HandleSyscallFileRead;
-	vector[SYSCALL_FILE_WRITE] = (SyscallFunctionCallback)(void*)HandleSyscallFileWrite;
-	vector[SYSCALL_FILE_CLOSE] = (SyscallFunctionCallback)(void*)HandleSyscallFileClose;
+	SyscallVector[SYSCALL_FILE_OPEN] = (SyscallFunctionCallback)(void*)HandleSyscallFileOpen;
+	SyscallVector[SYSCALL_FILE_READ] = (SyscallFunctionCallback)(void*)HandleSyscallFileRead;
+	SyscallVector[SYSCALL_FILE_WRITE] = (SyscallFunctionCallback)(void*)HandleSyscallFileWrite;
+	SyscallVector[SYSCALL_FILE_CLOSE] = (SyscallFunctionCallback)(void*)HandleSyscallFileClose;
 
-	vector[SYSCALL_KERN_OVERRIDE] = (SyscallFunctionCallback)(void*)HandleSyscallKernOverride;
-
-	(void)info;
-
+	SyscallVector[SYSCALL_KERN_OVERRIDE] = (SyscallFunctionCallback)(void*)HandleSyscallKernOverride;
 }
 
 extern "C" size_t HandleSyscall(size_t syscallNumber, size_t arg1, size_t arg2, size_t arg3, size_t arg4, size_t arg5, size_t arg6) {
@@ -132,9 +130,11 @@ extern "C" size_t HandleSyscall(size_t syscallNumber, size_t arg1, size_t arg2, 
 	if(override != 0) return RunOverride(override);
 
 	/* The syscall was not overridden, execute the normal kernel call */
-	if(syscallNumber < 1 || syscallNumber > 30) return syscallNumber;
+	if(syscallNumber < 1 ||
+	   syscallNumber >= PAGE_SIZE / sizeof(SyscallFunctionCallback) ||
+	   SyscallVector[syscallNumber] == NULL) return -ENOTPRESENT;
 
-	return vector[syscallNumber](arg1, arg2, arg3, arg4, arg5, arg6);
+	return SyscallVector[syscallNumber](arg1, arg2, arg3, arg4, arg5, arg6);
 }
 
 void AddOverride(size_t syscallNumber) {

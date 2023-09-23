@@ -92,9 +92,9 @@ ProcessBase *CreateProcess(ProcessBase *parent, ExecutableUnitType type, VMM::Vi
 
 			userProcess->UserTaskBlock = (UserTCB*)PMM::RequestPage();
 			UserTCB *tcb = (UserTCB*)((uintptr_t)userProcess->UserTaskBlock + info->HigherHalfMapping);
-
 			Memset(tcb, 0, PAGE_SIZE);
-			tcb->Magic = 0xDEADC0DE;
+
+			PopulateUserTCB(tcb);
 
 			userProcess->HighestFree -= PAGE_SIZE;
 			VMM::MapMemory(userProcess->VirtualMemorySpace,
@@ -278,6 +278,56 @@ int SetExecutableUnitState(ExecutableUnitHeader *unit, ExecutableUnitState state
 	/* TODO: actually set state */
 
 	return 0;
+}
+
+void PopulateUserTCB(UserTCB *tcb) {
+	if(tcb == NULL) return;
+	tcb->Signature[0] = 'U';
+	tcb->Signature[1] = 'T';
+	tcb->Signature[2] = 'C';
+	tcb->Signature[3] = 'B';
+
+	tcb->Revision = 1;
+	tcb->Checksum = 0;
+	
+	tcb->SystemTables = 2;
+	tcb->ServiceTables = 1;
+
+	tcb->SystemTableListOffset = sizeof(UserTCB);
+	
+	TableListElement *systemTableList = (TableListElement*)((uintptr_t)tcb + tcb->SystemTableListOffset);
+
+	systemTableList[0].Signature[0] = 'K';
+	systemTableList[0].Signature[1] = 'B';
+	systemTableList[0].Signature[2] = 'S';
+	systemTableList[0].Signature[3] = 'T';
+	systemTableList[0].TablePointer = 0;
+
+	systemTableList[1].Signature[0] = 'P';
+	systemTableList[1].Signature[1] = 'T';
+	systemTableList[1].Signature[2] = 'S';
+	systemTableList[1].Signature[3] = 'T';
+	systemTableList[1].TablePointer = 0;
+
+	size_t systemTableListSize = tcb->SystemTables * sizeof(TableListElement);
+	tcb->ServiceTableListOffset = tcb->SystemTableListOffset + systemTableListSize;
+
+	TableListElement *serviceTableList = (TableListElement*)((uintptr_t)tcb + tcb->ServiceTableListOffset);
+
+	serviceTableList[0].Signature[0] = 'D';
+	serviceTableList[0].Signature[1] = 'T';
+	serviceTableList[0].Signature[2] = 'I';
+	serviceTableList[0].Signature[3] = 'T';
+	serviceTableList[0].TablePointer = 0;
+
+	uint8_t checksumDifference = 0;
+	uint8_t *tcbByte = (uint8_t*)tcb;
+
+	while((uintptr_t)tcbByte < (uintptr_t)tcb + PAGE_SIZE) {
+		checksumDifference += *tcbByte++;
+	}
+
+	tcb->Checksum = 0x100 - checksumDifference;
 }
 
 }
