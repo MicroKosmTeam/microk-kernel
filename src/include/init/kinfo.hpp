@@ -83,7 +83,7 @@ struct KInfo {
 
 #ifdef CONFIG_KERNEL_MODULES
 	/* Module information */
-	FILE::BootFile *BootFiles; /* Pointer to the Limine modules */
+	BootFile *BootFiles; /* Pointer to the Limine modules */
 	size_t FileCount; /* Number of modules provided */
 
 	char UserModuleName[256];

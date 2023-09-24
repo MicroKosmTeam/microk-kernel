@@ -49,13 +49,6 @@ size_t HandleSyscallModuleSectionRegister(const char *sectionName);
 size_t HandleSyscallModuleSectionGet(const char *sectionName, uint32_t *vendorID, uint32_t *productID);
 size_t HandleSyscallModuleSectionUnregister(const char *sectionName);
 
-size_t HandleSyscallFileOpen(char *filename, uintptr_t *address, size_t *length);
-size_t HandleSyscallFileRead(char *filename, uintptr_t address, size_t length);
-size_t HandleSyscallFileWrite(size_t TODO);
-size_t HandleSyscallFileClose(size_t TODO);
-
-size_t HandleSyscallKernOverride(size_t TODO);
-
 static inline PROC::UserProcess *GetProcess() {
 	KInfo *info = GetInfo();
 
@@ -113,43 +106,15 @@ void InitSyscalls() {
 	SyscallVector[SYSCALL_MODULE_SECTION_REGISTER] = (SyscallFunctionCallback)(void*)HandleSyscallModuleSectionRegister;
 	SyscallVector[SYSCALL_MODULE_SECTION_GET] = (SyscallFunctionCallback)(void*)HandleSyscallModuleSectionGet;
 	SyscallVector[SYSCALL_MODULE_SECTION_UNREGISTER] = (SyscallFunctionCallback)(void*)HandleSyscallModuleSectionUnregister;
-
-	SyscallVector[SYSCALL_FILE_OPEN] = (SyscallFunctionCallback)(void*)HandleSyscallFileOpen;
-	SyscallVector[SYSCALL_FILE_READ] = (SyscallFunctionCallback)(void*)HandleSyscallFileRead;
-	SyscallVector[SYSCALL_FILE_WRITE] = (SyscallFunctionCallback)(void*)HandleSyscallFileWrite;
-	SyscallVector[SYSCALL_FILE_CLOSE] = (SyscallFunctionCallback)(void*)HandleSyscallFileClose;
-
-	SyscallVector[SYSCALL_KERN_OVERRIDE] = (SyscallFunctionCallback)(void*)HandleSyscallKernOverride;
 }
 
 extern "C" size_t HandleSyscall(size_t syscallNumber, size_t arg1, size_t arg2, size_t arg3, size_t arg4, size_t arg5, size_t arg6) {
-	/* Check first if the syscall has been overridden. */
-	size_t override = CheckOverride(syscallNumber);
-	if(override != 0) return RunOverride(override);
-
-	/* The syscall was not overridden, execute the normal kernel call */
 	if(syscallNumber < 1 ||
 	   syscallNumber >= PAGE_SIZE / sizeof(SyscallFunctionCallback) ||
 	   SyscallVector[syscallNumber] == NULL) return -ENOTPRESENT;
 
 	return SyscallVector[syscallNumber](arg1, arg2, arg3, arg4, arg5, arg6);
 }
-
-void AddOverride(size_t syscallNumber) {
-	(void)syscallNumber;
-	return;
-}
-
-size_t CheckOverride(size_t syscallNumber) {
-	(void)syscallNumber;
-	return 0;
-}
-
-size_t RunOverride(size_t syscallNumber) {
-	(void)syscallNumber;
-	return 0;
-}
-
 
 size_t HandleSyscallDebugPrintK(const char *string) {
 	PRINTK::PrintK("%s", string);
@@ -468,7 +433,7 @@ size_t HandleSyscallModuleMessageSend(uint32_t vendorID, uint32_t productID, voi
 size_t HandleSyscallModuleSectionRegister(const char *sectionName) {
 	KInfo *info = GetInfo();
 
-	size_t sectionLength = strlen(sectionName);
+	size_t sectionLength = Strlen(sectionName);
 	sectionLength = sectionLength > 256 ? 256 : sectionLength;
 
 	char newSectionName[256] = { 0 };
@@ -488,7 +453,7 @@ size_t HandleSyscallModuleSectionGet(const char *sectionName, uint32_t *vendorID
 	KInfo *info = GetInfo();
 
 	char newSectionName[256];
-	strcpy(newSectionName, sectionName);
+	Strcpy(newSectionName, sectionName);
 	uint32_t newVendor, newProduct;
 
 	info->KernelSectionManager->GetSectionDriver(newSectionName, &newVendor, &newProduct);
@@ -502,7 +467,7 @@ size_t HandleSyscallModuleSectionGet(const char *sectionName, uint32_t *vendorID
 size_t HandleSyscallModuleSectionUnregister(const char *sectionName) {
 	KInfo *info = GetInfo();
 
-	size_t sectionLength = strlen(sectionName);
+	size_t sectionLength = Strlen(sectionName);
 	sectionLength = sectionLength > 256 ? 256 : sectionLength;
 
 	char newSectionName[256];
@@ -515,51 +480,5 @@ size_t HandleSyscallModuleSectionUnregister(const char *sectionName) {
 
 	info->KernelSectionManager->UnregisterSectionDriver(newSectionName, mod->GetVendor(), mod->GetProduct());
 
-	return 0;
-}
-
-size_t HandleSyscallFileOpen(char *filename, uintptr_t *address, size_t *length) {
-	KInfo *info = GetInfo();
-
-	size_t filenameLength = strlen(filename);
-	filenameLength = filenameLength > 512 ? 512 : filenameLength;
-
-	char newFilename[512] = {0};
-	Memcpy((void*)newFilename, (void*)filename, filenameLength);
-
-	*address = (uintptr_t)FILE::Open(newFilename, length) - info->HigherHalfMapping;
-
-	return 0;
-}
-
-size_t HandleSyscallFileRead(char *filename, uintptr_t address, size_t length) {
-	size_t filenameLength = strlen(filename);
-	filenameLength = filenameLength > 512 ? 512 : filenameLength;
-
-	char newFilename[512] = {0};
-	Memcpy((void*)newFilename, (void*)filename, filenameLength);
-
-	size_t fileLength;
-	uintptr_t fileAddr;
-
-	fileAddr = (uintptr_t)FILE::Open(newFilename, &fileLength);
-
-	Memcpy((void*)address, (void*)fileAddr, length > fileLength ? fileLength : length);
-	
-	return 0;
-}
-
-size_t HandleSyscallFileWrite(size_t TODO) {
-	(void)TODO;
-	return 0;
-}
-
-size_t HandleSyscallFileClose(size_t TODO) {
-	(void)TODO;
-	return 0;
-}
-
-size_t HandleSyscallKernOverride(size_t TODO) {
-	(void)TODO;
 	return 0;
 }

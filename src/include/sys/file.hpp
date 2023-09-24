@@ -3,16 +3,11 @@
 #include <stdint.h>
 #include <stddef.h>
 
-namespace FILE {
-#ifdef CONFIG_KERNEL_MODULES
-	struct BootFile {
-		void *Address;
-		uint64_t Size;
-		char *Path;
-		char *Cmdline;
-	}__attribute__((packed));
-#endif
+struct BootFile {
+	uintptr_t Address;
+	size_t Size;
+	char Path[256];
+	char Cmdline[256];
+}__attribute__((packed));
 
-
-	void *Open(char *path, size_t *size);
-}
+uintptr_t FindFile(const char *path, size_t *size);

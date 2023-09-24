@@ -5,7 +5,7 @@ const Symbol *LookupSymbol(const char *name) {
 	uint64_t symbolIndex;
 
 	for (symbolIndex = 0; symbolIndex < symbolCount; symbolIndex++) {
-		if (strcmp(symbols[symbolIndex].name, name) == 0) return &symbols[symbolIndex - 1];
+		if (Strcmp(symbols[symbolIndex].name, name) == 0) return &symbols[symbolIndex - 1];
 	}
 
 	return NULL;

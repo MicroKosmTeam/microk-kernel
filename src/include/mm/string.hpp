@@ -1,9 +1,9 @@
 #include <stddef.h>
 
-size_t strlen(const char *str);
-int strcmp(const char *s1, const char *s2);
-char *strtok(char *s, char *delim);
-char *strcpy(char *strDest, const char *strSrc);
+size_t Strlen(const char *str);
+int Strcmp(const char *s1, const char *s2);
+char *Strtok(char *s, char *delim);
+char *Strcpy(char *strDest, const char *strSrc);
 
-void itoa (char *buf, int base, long long int d);
-long long int atoi(char *str);
+void Itoa (char *buf, int base, long long int d);
+long long int Atoi(char *str);

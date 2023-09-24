@@ -155,7 +155,7 @@ __attribute__((noreturn)) void KernelStart() {
 	uint8_t *addr;
 
 	/* Get the memory location of the user module */
-	addr = (uint8_t*)FILE::Open(info->UserModuleName, &moduleSize);
+	addr = (uint8_t*)FindFile(info->UserModuleName, &moduleSize);
 	
 	/* Check if it is present */
 	if (addr != NULL) {

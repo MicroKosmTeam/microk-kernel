@@ -36,10 +36,16 @@ VirtualSpace *NewVirtualSpace() {
 
 		/* If it's kernel code, we will map its special location, otherwise we do the lower half and higher half mappings. */
 		/* We use the kernel base to be sure we are not mapping module code over the kernel code. */
-		if (entry.type == MEMMAP_KERNEL_AND_MODULES && entry.base == info->KernelPhysicalBase) {
-			for (uintptr_t t = base; t < top; t += PAGE_SIZE){
-				space->MapMemory((void*)t, (void*)(info->KernelVirtualBase + t - info->KernelPhysicalBase), VMM_PRESENT | VMM_READWRITE | VMM_GLOBAL);
+		if (entry.type == MEMMAP_KERNEL_AND_MODULES) {
+			if(entry.base == info->KernelPhysicalBase) {
+				for (uintptr_t t = base; t < top; t += PAGE_SIZE){
+					space->MapMemory((void*)t, (void*)(info->KernelVirtualBase + t - info->KernelPhysicalBase), VMM_PRESENT | VMM_READWRITE | VMM_GLOBAL);
 
+				}
+			} else {
+				for (uintptr_t t = base; t < top; t += PAGE_SIZE) {
+					space->MapMemory((void*)t, (void*)(t + info->HigherHalfMapping), VMM_PRESENT | VMM_GLOBAL | VMM_USER | VMM_NOEXECUTE);
+				}
 			}
 		} else if (entry.type == MEMMAP_ACPI_RECLAIMABLE) {
 			for (uintptr_t t = base; t < top; t += PAGE_SIZE) {

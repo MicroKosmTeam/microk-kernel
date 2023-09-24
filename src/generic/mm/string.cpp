@@ -1,19 +1,19 @@
 #include <mm/string.hpp>
 
-size_t strlen(const char *str) {
+size_t Strlen(const char *str) {
         const char *s;
         for (s = str; *s; ++s);
         return (s - str);
 }
 
-char *strcpy(char *strDest, const char *strSrc){
+char *Strcpy(char *strDest, const char *strSrc){
         if(strDest==NULL || strSrc==NULL) return NULL;
         char *temp = strDest;
         while((*strDest++ = *strSrc++));
         return temp;
 }
 
-int strcmp(const char *s1, const char *s2) {
+int Strcmp(const char *s1, const char *s2) {
         const unsigned char *p1 = (const unsigned char *)s1;
         const unsigned char *p2 = (const unsigned char *)s2;
 
@@ -40,7 +40,7 @@ bool is_delim(char c, char *delim) {
 
 	return false;
 }
-char *strtok(char *s, char *delim) {
+char *Strtok(char *s, char *delim) {
 	static char *p; // start of the next search
 	if(!s) s = p;
 	if(!s) return NULL;
@@ -83,7 +83,7 @@ char *strtok(char *s, char *delim) {
 }
 
 
-void itoa (char *buf, int base, long long int d) {
+void Itoa (char *buf, int base, long long int d) {
         char *p = buf;
         char *p1, *p2;
         unsigned long long ud = d;
@@ -119,7 +119,7 @@ void itoa (char *buf, int base, long long int d) {
         }
 }
 
-long long int atoi(char *str) {
+long long int Atoi(char *str) {
         // Initialize result
         long long int res = 0;
 

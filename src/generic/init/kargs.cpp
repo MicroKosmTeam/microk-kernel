@@ -34,28 +34,28 @@ void ParseArgs() {
 	if(info->KernelArgs == NULL) return;
 
 	/* We split the values in the id and value pairs */
-	const char *id = strtok((char*)info->KernelArgs, "=");
+	const char *id = Strtok((char*)info->KernelArgs, "=");
 	if(id == NULL) return;
-	const char *val = strtok(NULL, " ");
+	const char *val = Strtok(NULL, " ");
 	if (val == NULL) return ;
 
 	while(true) {
 		/* Here we parse the IDs.
-		  For now, we just strcmp what we desire,
+		  For now, we just Strcmp what we desire,
 		  in the future a hashmap would be probably better */
-		if(strcmp(id, "user") == 0) {
+		if(Strcmp(id, "user") == 0) {
 			/* Select the user file */
-			strcpy(info->UserModuleName, "FILE:/");
-			strcpy(info->UserModuleName + 6, val);
+			Strcpy(info->UserModuleName, "/");
+			Strcpy(info->UserModuleName + 1, val);
 		} else {
 			/* Invalid argument */
 		}
 
 		/* Continue with the parsing,
 		   checking we have not reached the end of the string every time*/
-		id = strtok(NULL, "=");
+		id = Strtok(NULL, "=");
 		if(id == NULL) break;
-		val = strtok(NULL, " ");
+		val = Strtok(NULL, " ");
 		if (val == NULL) break;
 	}
 

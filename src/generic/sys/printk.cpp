@@ -66,11 +66,11 @@ void VPrintK(char *format, va_list ap) {
                                         break;
                                 case 'd':
                                 case 'u':
-                                        itoa(buf, 'd', va_arg(ap, int64_t));
+                                        Itoa(buf, 'd', va_arg(ap, int64_t));
                                         PutStr(buf);
                                         break;
                                 case 'x':
-                                        itoa(buf, 'x', va_arg(ap, int64_t));
+                                        Itoa(buf, 'x', va_arg(ap, int64_t));
                                         PutStr(buf);
                                         break;
                                 case '%':

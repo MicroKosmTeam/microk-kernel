@@ -26,7 +26,7 @@ struct PTST: public TableHeader {
 
 struct BFST: public TableHeader {
 	size_t NumberOfFiles;
-	FILE::BootFile Files[];
+	BootFile Files[];
 }__attribute__((packed));
 
 int InitializeKernelTables();

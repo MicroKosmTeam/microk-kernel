@@ -192,7 +192,7 @@ void LimineEntry() {
 	info->KernelVirtualBase = KAddrRequest.response->virtual_base;
 
 	const char *cmdline = KernelFileRequest.response->kernel_file->cmdline;
-	size_t len = strlen(cmdline);
+	size_t len = Strlen(cmdline);
 	info->KernelArgs = (const char*)BOOTMEM::Malloc(len + 1);
 	Memcpy((uint8_t*)info->KernelArgs, (uint8_t*)cmdline, len);
 	*(char*)&info->KernelArgs[len] = '\0';
@@ -201,14 +201,16 @@ void LimineEntry() {
 	if(ModuleRequest.response != NULL) {
 		int moduleCount = ModuleRequest.response->module_count;
 		info->FileCount = moduleCount;
-		info->BootFiles = (FILE::BootFile*)BOOTMEM::Malloc(sizeof(FILE::BootFile) * moduleCount);
+
+		info->BootFiles = (BootFile*)BOOTMEM::Malloc(moduleCount * sizeof(BootFile));
 
 		PRINTK::PrintK(PREFIX "Allocating for %d modules.\r\n", moduleCount);
+
 		for (int i = 0; i < moduleCount; i++) {
-			info->BootFiles[i].Address = ModuleRequest.response->modules[i]->address;
+			info->BootFiles[i].Address = (uintptr_t)ModuleRequest.response->modules[i]->address;
 			info->BootFiles[i].Size = ModuleRequest.response->modules[i]->size;
-			info->BootFiles[i].Path = ModuleRequest.response->modules[i]->path;
-			info->BootFiles[i].Cmdline = ModuleRequest.response->modules[i]->cmdline;
+			Strcpy(info->BootFiles[i].Path, ModuleRequest.response->modules[i]->path);
+			Strcpy(info->BootFiles[i].Cmdline, ModuleRequest.response->modules[i]->cmdline);
 		}
 	} else {
 		info->FileCount = 0;

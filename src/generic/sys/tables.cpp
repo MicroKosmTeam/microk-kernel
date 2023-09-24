@@ -48,6 +48,7 @@ void PopulateKBST(KBST *kbst) {
 	kbst->Checksum = 0x100 - checksumDifference;
 }
 
+#include <mm/string.hpp>
 void PopulateBFST(BFST *bfst) {
 	KInfo *info = GetInfo();
 
@@ -58,7 +59,8 @@ void PopulateBFST(BFST *bfst) {
 	bfst->Revision = 1;
 
 	bfst->NumberOfFiles = info->FileCount;
-	Memcpy(bfst->Files, info->BootFiles, sizeof(FILE::BootFile) * info->FileCount);
+	
+	Memcpy(bfst->Files, info->BootFiles, sizeof(BootFile) * info->FileCount);
 
 	uint8_t checksumDifference = 0;
 	uint8_t *bfstByte = (uint8_t*)bfst;
