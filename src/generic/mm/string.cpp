@@ -1,37 +1,48 @@
 #include <mm/string.hpp>
 
-size_t Strlen(const char *str) {
-        const char *s;
-        for (s = str; *s; ++s);
+size_t Strnlen(const char *str, size_t maxLength) {
+        const char *strEnd = str;
+
+        for (size_t current = 0;
+	     current < maxLength && strEnd[current];
+	     ++strEnd, ++current);
+
         return (s - str);
 }
 
-char *Strcpy(char *strDest, const char *strSrc){
-        if(strDest==NULL || strSrc==NULL) return NULL;
-        char *temp = strDest;
-        while((*strDest++ = *strSrc++));
-        return temp;
+char *Strncpy(char *dest, const char *src, size_t maxLength){
+        if(dest == NULL || src == NULL) return NULL;
+
+        char *destStart = strDest;
+
+        for (size_t current = 0;
+	    current < maxLength && (*dest++ = *src++);
+	    ++current);
+
+        return destStart;
 }
 
-int Strcmp(const char *s1, const char *s2) {
-        const unsigned char *p1 = (const unsigned char *)s1;
-        const unsigned char *p2 = (const unsigned char *)s2;
+int Strncmp(const char *first, const char *second, size_t maxLength) {
+        const uint8_t *firstCurrent = (const uint8_t*)first;
+        const uint8_t *secondCurrent = (const uint8_t*)second;
 
-        while (*p1 != '\0') {
-                if (*p2 == '\0') return  1;
-                if (*p2 > *p1)   return -1;
-                if (*p1 > *p2)   return  1;
+        for (size_t current = 0;
+	     current < maxLength && (*first != '\0');
+	     ++current) {
+                if (*first == '\0') return  1;
+                if (*second > *first)   return -1;
+                if (*first > *second)   return  1;
 
-                p1++;
-                p2++;
+                ++first;
+                ++second;
         }
 
-        if (*p2 != '\0') return -1;
+        if (*second != '\0') return -1;
 
         return 0;
 }
 
-bool is_delim(char c, char *delim) {
+bool IsDelim(char c, char *delim) {
 	while(*delim != '\0') {
 		if(c == *delim)
 			return true;
@@ -47,7 +58,7 @@ char *Strtok(char *s, char *delim) {
 
 	// handle beginning of the string containing delims
 	while(true) {
-		if(is_delim(*s, delim)) {
+		if(IsDelim(*s, delim)) {
 			s++;
 			continue;
 		}
@@ -72,7 +83,7 @@ char *Strtok(char *s, char *delim) {
 			return ret;
 		}
 
-		if(is_delim(*s, delim)) {
+		if(IsDelim(*s, delim)) {
 			*s = '\0';
 			p = s + 1;
 			return ret;

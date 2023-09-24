@@ -179,7 +179,7 @@ const char *GetCPUVendor() {
 
 	size_t index = 0;
 	while(CPUVendorStrings[index] != NULL) {
-		if(Strcmp(string, CPUVendorStrings[index]) == 0) return CPUVendorStrings[index];
+		if(Strncmp(string, CPUVendorStrings[index]) == 0) return CPUVendorStrings[index];
 
 		++index;
 	}

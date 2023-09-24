@@ -433,7 +433,7 @@ size_t HandleSyscallModuleMessageSend(uint32_t vendorID, uint32_t productID, voi
 size_t HandleSyscallModuleSectionRegister(const char *sectionName) {
 	KInfo *info = GetInfo();
 
-	size_t sectionLength = Strlen(sectionName);
+	size_t sectionLength = Strnlen(sectionName);
 	sectionLength = sectionLength > 256 ? 256 : sectionLength;
 
 	char newSectionName[256] = { 0 };
@@ -453,7 +453,7 @@ size_t HandleSyscallModuleSectionGet(const char *sectionName, uint32_t *vendorID
 	KInfo *info = GetInfo();
 
 	char newSectionName[256];
-	Strcpy(newSectionName, sectionName);
+	Strncpy(newSectionName, sectionName);
 	uint32_t newVendor, newProduct;
 
 	info->KernelSectionManager->GetSectionDriver(newSectionName, &newVendor, &newProduct);
@@ -467,7 +467,7 @@ size_t HandleSyscallModuleSectionGet(const char *sectionName, uint32_t *vendorID
 size_t HandleSyscallModuleSectionUnregister(const char *sectionName) {
 	KInfo *info = GetInfo();
 
-	size_t sectionLength = Strlen(sectionName);
+	size_t sectionLength = Strnlen(sectionName);
 	sectionLength = sectionLength > 256 ? 256 : sectionLength;
 
 	char newSectionName[256];

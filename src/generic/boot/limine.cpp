@@ -192,7 +192,7 @@ void LimineEntry() {
 	info->KernelVirtualBase = KAddrRequest.response->virtual_base;
 
 	const char *cmdline = KernelFileRequest.response->kernel_file->cmdline;
-	size_t len = Strlen(cmdline);
+	size_t len = Strnlen(cmdline);
 	info->KernelArgs = (const char*)BOOTMEM::Malloc(len + 1);
 	Memcpy((uint8_t*)info->KernelArgs, (uint8_t*)cmdline, len);
 	*(char*)&info->KernelArgs[len] = '\0';
@@ -209,8 +209,8 @@ void LimineEntry() {
 		for (int i = 0; i < moduleCount; i++) {
 			info->BootFiles[i].Address = (uintptr_t)ModuleRequest.response->modules[i]->address;
 			info->BootFiles[i].Size = ModuleRequest.response->modules[i]->size;
-			Strcpy(info->BootFiles[i].Path, ModuleRequest.response->modules[i]->path);
-			Strcpy(info->BootFiles[i].Cmdline, ModuleRequest.response->modules[i]->cmdline);
+			Strncpy(info->BootFiles[i].Path, ModuleRequest.response->modules[i]->path);
+			Strncpy(info->BootFiles[i].Cmdline, ModuleRequest.response->modules[i]->cmdline);
 		}
 	} else {
 		info->FileCount = 0;

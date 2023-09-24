@@ -41,12 +41,12 @@ void ParseArgs() {
 
 	while(true) {
 		/* Here we parse the IDs.
-		  For now, we just Strcmp what we desire,
+		  For now, we just Strncmp what we desire,
 		  in the future a hashmap would be probably better */
-		if(Strcmp(id, "user") == 0) {
+		if(Strncmp(id, "user") == 0) {
 			/* Select the user file */
-			Strcpy(info->UserModuleName, "/");
-			Strcpy(info->UserModuleName + 1, val);
+			Strncpy(info->UserModuleName, "/");
+			Strncpy(info->UserModuleName + 1, val);
 		} else {
 			/* Invalid argument */
 		}
