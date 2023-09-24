@@ -24,7 +24,7 @@
 size_t HandleSyscallDebugPrintK(const char *string);
 
 size_t HandleSyscallMemoryVmalloc(uintptr_t base, size_t length, size_t flags);
-size_t HandleSyscallMemoryPalloc(uintptr_t *base, size_t length);
+size_t HandleSyscallMemoryPMAlloc(uintptr_t *base, size_t length, size_t flags);
 size_t HandleSyscallMemoryVmfree(uintptr_t base, size_t length);
 size_t HandleSyscallMemoryMmap(uintptr_t src, uintptr_t dest, size_t length, size_t flags);
 size_t HandleSyscallMemoryUnmap(uintptr_t base, size_t length);
@@ -32,8 +32,8 @@ size_t HandleSyscallMemoryInOut(uintptr_t port, bool out, size_t outData, size_t
 
 size_t HandleSyscallProcExec(uintptr_t executableBase, size_t executableSize);
 size_t HandleSyscallProcFork(size_t TODO);
-size_t HandleSyscallProcReturn(size_t returnCode, uintptr_t stack);
-size_t HandleSyscallProcExit(size_t exitCode, uintptr_t stack);
+size_t HandleSyscallProcReturn(size_t returnCode);
+size_t HandleSyscallProcExit(size_t exitCode);
 size_t HandleSyscallProcWait(size_t TODO);
 size_t HandleSyscallProcKill(size_t TODO);
 
@@ -89,7 +89,7 @@ void InitSyscalls() {
 	SyscallVector[SYSCALL_DEBUG_PRINTK] = (SyscallFunctionCallback)(void*)HandleSyscallDebugPrintK;
 
 	SyscallVector[SYSCALL_MEMORY_VMALLOC] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryVmalloc;
-	SyscallVector[SYSCALL_MEMORY_PALLOC] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryPalloc;
+	SyscallVector[SYSCALL_MEMORY_PMALLOC] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryPMAlloc;
 	SyscallVector[SYSCALL_MEMORY_VMFREE] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryVmfree;
 	SyscallVector[SYSCALL_MEMORY_MMAP] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryMmap;
 	SyscallVector[SYSCALL_MEMORY_UNMAP] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryUnmap;
@@ -182,7 +182,8 @@ size_t HandleSyscallMemoryVmalloc(uintptr_t base, size_t length, size_t flags) {
 	return 0;
 }
 
-size_t HandleSyscallMemoryPalloc(uintptr_t *base, size_t length) {
+size_t HandleSyscallMemoryPMAlloc(uintptr_t *base, size_t length, size_t flags) {
+	(void)flags;
 	uintptr_t newBase = 0;
 
 	size_t roundedLength = length / PAGE_SIZE + 1;
@@ -318,12 +319,36 @@ size_t HandleSyscallProcFork(size_t TODO) {
 	return 0;
 }
 
-size_t HandleSyscallProcReturn(size_t returnCode, uintptr_t stack) {
+size_t HandleSyscallProcReturn(size_t returnCode) {
 	KInfo *info = GetInfo();
 
-	PRINTK::PrintK("Returning: %d form 0x%x\r\n", returnCode, stack); 
+	uintptr_t kernelStack, userStack, userStackBase;
+#if defined(ARCH_x64)
+	asm volatile("mov %%gs:0, %0" : "=r"(kernelStack) : : "memory");
+	asm volatile("mov %%gs:8, %0" : "=r"(userStack) : : "memory");
+	asm volatile("mov %%gs:16, %0" : "=r"(userStackBase) : : "memory");
+/*
+	CPUStatus context;
+	Memset(&context, 0, sizeof(context));
+	context.RBX = *(uint64_t*)kernelStack;
+	context.R12 = *(uint64_t*)(kernelStack - 8);
+	context.R13 = *(uint64_t*)(kernelStack - 16);
+	context.R14 = *(uint64_t*)(kernelStack - 24);
+	context.R15 = *(uint64_t*)(kernelStack - 32);
+	context.IretRIP = *(uint64_t*)(kernelStack - 48);
+	context.IretRFLAGS = *(uint64_t*)(kernelStack - 56);
+	context.IretRSP = userStack;
+	
+	context.IretCS = GDT_OFFSET_USER_CODE;
+	context.IretSS = GDT_OFFSET_USER_CODE + 0x08;
+				
+	Memcpy(info->KernelScheduler->CurrentThread->Thread->Context, &context, sizeof(context));
+*/
+#endif
 
-//	PROC::SetExecutableUnitState(PROC::GetThread(info->KernelScheduler, proc->ID, 0), PROC::ExecutableUnitState::P_WAITING);
+	PRINTK::PrintK("Returning in 0x%x: %d form 0x%x (0x%x)\r\n", kernelStack, returnCode, userStack, userStackBase); 
+
+	//PROC::SetExecutableUnitState(info->KernelScheduler->CurrentThread->Thread, PROC::ExecutableUnitState::P_WAITING);
 
 	PROC::PrintSchedulerStatus(info->KernelScheduler);
 
@@ -331,12 +356,13 @@ size_t HandleSyscallProcReturn(size_t returnCode, uintptr_t stack) {
 	asm volatile ("swapgs");
 	asm volatile ("sti");
 #endif
-	while(true) {  }
+	while(true);
 
 	return 0;
 }
 
-size_t HandleSyscallProcExit(size_t exitCode, uintptr_t stack) {
+size_t HandleSyscallProcExit(size_t exitCode) {
+	uintptr_t stack = 0;
 	PRINTK::PrintK("Exiting: %d form 0x%x\r\n", exitCode, stack); 
 	
 	while(true);

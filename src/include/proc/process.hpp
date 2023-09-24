@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <mm/vmm.hpp>
+#include <sys/tables.hpp>
 #include <arch/x64/interrupts/idt.hpp>
 
 namespace PROC {
@@ -63,13 +64,6 @@ namespace PROC {
 	struct KernelThread : public ThreadBase {
 	};
 
-	struct TableHeader {
-		uint8_t Signature[4];
-		uint8_t Revision;
-
-		uint8_t Checksum;
-	}__attribute__((packed));
-
 	struct UserTCB : public TableHeader {
 		uint8_t SystemTables;
 		uint32_t SystemTableListOffset;
@@ -78,17 +72,6 @@ namespace PROC {
 		uint32_t ServiceTableListOffset;
 	}__attribute__((packed));
 
-	struct TableListElement {
-		uint8_t Signature[4];
-		uintptr_t TablePointer;
-	}__attribute__((packed));
-
-	struct KBST : public TableHeader {
-		size_t FreePhysicalMemory;
-		size_t UsedPhysicalMemory;
-		size_t ReservedPhysicalMemory;
-	}__attribute__((packed));
-	
 	struct UserProcess : public ProcessBase {
 		UserTCB *UserTaskBlock = NULL;
 	};

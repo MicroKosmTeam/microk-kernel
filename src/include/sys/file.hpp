@@ -10,7 +10,7 @@ namespace FILE {
 		uint64_t Size;
 		char *Path;
 		char *Cmdline;
-	};
+	}__attribute__((packed));
 #endif
 
 

@@ -8,5 +8,5 @@ namespace x86_64 {
 	uint8_t InB(uint16_t port);
 	uint16_t InW(uint16_t port);
 	uint32_t InD(uint16_t port);
-	void IoWait(void);
+	void IoWait();
 }

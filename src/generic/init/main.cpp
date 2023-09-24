@@ -137,6 +137,7 @@ __attribute__((noreturn)) void KernelStart() {
 	/* Initializing the scheduler framework */
 	info->KernelScheduler = PROC::InitializeScheduler(SCHEDULER_DEFAULT_QUEUES);
 	InitSyscalls();
+	InitializeKernelTables();
 /*
 	info->KernelProcess = (PROC::KernelProcess*)PROC::CreateProcess((PROC::ProcessBase*)info->KernelProcess, PROC::ExecutableUnitType::PT_KERNEL, info->KernelVirtualSpace, 0, 0);
 	PROC::KernelThread *kernelThread = (PROC::KernelThread*)PROC::CreateThread((PROC::ProcessBase*)info->KernelProcess, (uintptr_t)&RestInit, 64 * 1024, 0, 0);

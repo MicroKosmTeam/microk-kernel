@@ -27,6 +27,7 @@
 #include <cdefs.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <sys/tables.hpp>
 #include <mm/memory.hpp>
 #include <sys/file.hpp>
 #include <mm/vmm.hpp>
@@ -90,6 +91,9 @@ struct KInfo {
 	MODULE::Manager *KernelModuleManager;
 	MODULE::BufferManager *KernelBufferManager;
 	MODULE::SectionManager *KernelSectionManager;
+
+	uintptr_t KernelBaseSystemTable;
+	uintptr_t BootFileSystemTable;
 #endif
 
 #ifdef CONFIG_HW_UART

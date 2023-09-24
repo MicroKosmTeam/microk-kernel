@@ -42,7 +42,7 @@ uint32_t InD(uint16_t port) {
 }
 
 /* Wastes a cycle of the IO bus */
-void IoWait(void) {
+void IoWait() {
         OutB(0x80, 0);
 }
 }

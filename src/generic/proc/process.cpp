@@ -293,45 +293,56 @@ void PopulateUserTCB(UserTCB *tcb, UserProcess *userProcess) {
 	tcb->Revision = 1;
 	tcb->Checksum = 0;
 	
-	tcb->SystemTables = 2;
+	tcb->SystemTables = 3;
 	tcb->ServiceTables = 1;
 
 	tcb->SystemTableListOffset = sizeof(UserTCB);
 	
 	TableListElement *systemTableList = (TableListElement*)((uintptr_t)tcb + tcb->SystemTableListOffset);
 
-	void *kbstAddr = PMM::RequestPage();
-	KBST *kbst = (KBST*)((uintptr_t)kbstAddr + info->HigherHalfMapping);
-	Memset(kbst, 0, PAGE_SIZE);
-
 	userProcess->HighestFree -= PAGE_SIZE;
 	VMM::MapMemory(userProcess->VirtualMemorySpace,
-			(void*)kbstAddr,
+			(void*)info->KernelBaseSystemTable,
 			(void*)userProcess->HighestFree,
 			VMM::VirtualMemoryFlags::VMM_PRESENT |
-			VMM::VirtualMemoryFlags::VMM_READWRITE |
 			VMM::VirtualMemoryFlags::VMM_USER |
 			VMM::VirtualMemoryFlags::VMM_NOEXECUTE);
 
-	PopulateKBST(kbst);
-
+	/* Kernel Base System Table */
 	systemTableList[0].Signature[0] = 'K';
 	systemTableList[0].Signature[1] = 'B';
 	systemTableList[0].Signature[2] = 'S';
 	systemTableList[0].Signature[3] = 'T';
 	systemTableList[0].TablePointer = (uintptr_t)userProcess->HighestFree;
 
+	/* Processes and Threads System Table */
 	systemTableList[1].Signature[0] = 'P';
 	systemTableList[1].Signature[1] = 'T';
 	systemTableList[1].Signature[2] = 'S';
 	systemTableList[1].Signature[3] = 'T';
 	systemTableList[1].TablePointer = 0;
 
+	userProcess->HighestFree -= PAGE_SIZE;
+	VMM::MapMemory(userProcess->VirtualMemorySpace,
+			(void*)info->BootFileSystemTable,
+			(void*)userProcess->HighestFree,
+			VMM::VirtualMemoryFlags::VMM_PRESENT |
+			VMM::VirtualMemoryFlags::VMM_USER |
+			VMM::VirtualMemoryFlags::VMM_NOEXECUTE);
+
+	/* Boot Files System Table */
+	systemTableList[2].Signature[0] = 'B';
+	systemTableList[2].Signature[1] = 'F';
+	systemTableList[2].Signature[2] = 'S';
+	systemTableList[2].Signature[3] = 'T';
+	systemTableList[2].TablePointer = (uintptr_t)userProcess->HighestFree;
+
 	size_t systemTableListSize = tcb->SystemTables * sizeof(TableListElement);
 	tcb->ServiceTableListOffset = tcb->SystemTableListOffset + systemTableListSize;
 
 	TableListElement *serviceTableList = (TableListElement*)((uintptr_t)tcb + tcb->ServiceTableListOffset);
 
+	/* Date and Time Interactive Table */
 	serviceTableList[0].Signature[0] = 'D';
 	serviceTableList[0].Signature[1] = 'T';
 	serviceTableList[0].Signature[2] = 'I';
@@ -348,25 +359,6 @@ void PopulateUserTCB(UserTCB *tcb, UserProcess *userProcess) {
 	tcb->Checksum = 0x100 - checksumDifference;
 }
 
-void PopulateKBST(KBST *kbst) {
-	kbst->Signature[0] = 'K';
-	kbst->Signature[1] = 'B';
-	kbst->Signature[2] = 'S';
-	kbst->Signature[3] = 'T';
-	kbst->Revision = 1;
 
-	kbst->FreePhysicalMemory = PMM::GetFreeMem();
-	kbst->UsedPhysicalMemory = PMM::GetUsedMem();
-	kbst->ReservedPhysicalMemory = PMM::GetReservedMem();
-
-	uint8_t checksumDifference = 0;
-	uint8_t *kbstByte = (uint8_t*)kbst;
-
-	while((uintptr_t)kbstByte < (uintptr_t)kbst + PAGE_SIZE) {
-		checksumDifference += *kbstByte++;
-	}
-
-	kbst->Checksum = 0x100 - checksumDifference;
-}
 
 }

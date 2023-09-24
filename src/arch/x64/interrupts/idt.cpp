@@ -166,21 +166,12 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 			PROC::ProcessBase *proc = GetProcess();
 			VMM::VirtualSpace *procSpace = GetVirtualSpace(proc);
 
-			PrintRegs(context);
 			uintptr_t page;
 			bool protectionViolation = context->ErrorCode & 0b1;
 			bool writeAccess = (context->ErrorCode & 0b10) >> 1;
 			bool byUser = (context->ErrorCode & 0b100) >> 2;
 			bool wasInstructionFetch = (context->ErrorCode & 0b1000) >> 4;
 			asm("mov %%cr2,%0" : "=r"(page));
-			PRINTK::PrintK("Page fault in page 0x%x because of a %s.\r\nIt was caused by a %s from %s.\r\nIt %s because of an instruction fetch.\r\n",
-					page,
-					protectionViolation ? "page protection violation" : "non-present page",
-					writeAccess ? "write" : "read",
-					byUser ? "userspace" : "Kernelspace",
-					wasInstructionFetch ? "was" : "wasn't"
-					);
-
 
 			VMM::PageList *pages = NULL;
 			if (proc != NULL) {
@@ -200,10 +191,10 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 				for(pageSelector = 0; pageSelector < pages->PageCount; ++pageSelector) {
 					if(!pages->Pages[pageSelector].IsCOW) continue;
 					if(pages->Pages[pageSelector].Data.COW->PhysicalAddressOfCopy != 0) continue;
-					PRINTK::PrintK("Page %d.\r\n", pageSelector);
+					//PRINTK::PrintK("Page %d.\r\n", pageSelector);
 
 					for(virtualReference = 0; virtualReference < pages->Pages[pageSelector].Data.COW->VirtualReferences; ++virtualReference) {
-						PRINTK::PrintK(" %d. 0x%x vs 0x%x\r\n", virtualReference, pages->Pages[pageSelector].Data.COW->VirtualAddresses[virtualReference], roundedPage);
+						//PRINTK::PrintK(" %d. 0x%x vs 0x%x\r\n", virtualReference, pages->Pages[pageSelector].Data.COW->VirtualAddresses[virtualReference], roundedPage);
 						if(pages->Pages[pageSelector].Data.COW->VirtualAddresses[virtualReference] == roundedPage) {
 							found = true;
 							break;
@@ -214,22 +205,31 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 				}
 			}
 
-			if(!found) PANIC("Page fault");
-			else {
+			if(!found) {
+				PrintRegs(context);
+				PRINTK::PrintK("Page fault in page 0x%x because of a %s.\r\nIt was caused by a %s from %s.\r\nIt %s because of an instruction fetch.\r\n",
+					page,
+					protectionViolation ? "page protection violation" : "non-present page",
+					writeAccess ? "write" : "read",
+					byUser ? "userspace" : "Kernelspace",
+					wasInstructionFetch ? "was" : "wasn't"
+					);
+				PANIC("Page fault");
+			} else {
 				uintptr_t copy = (uintptr_t)PMM::RequestPage();
 				Memset((void*)(copy + info->HigherHalfMapping), 0, PAGE_SIZE);
 				Memcpy((void*)(copy + info->HigherHalfMapping),
 				       (void*)(pages->Pages[pageSelector].Data.COW->PhysicalAddressOfOriginal + info->HigherHalfMapping),
 				       PAGE_SIZE);
-
+/*
 				PRINTK::PrintK("COW!!\r\n"
 					       " Original: 0x%x\r\n"
 					       " Copy:     0x%x\r\n", pages->Pages[pageSelector].Data.COW->PhysicalAddressOfOriginal, copy);
-
+*/
 
 				pages->Pages[pageSelector].Data.COW->PhysicalAddressOfCopy = copy;
 				VMM::MapMemory(procSpace, (void*)copy, (void*)roundedPage, VMM::VMM_PRESENT | VMM::VMM_USER | VMM::VMM_READWRITE);
-				PRINTK::PrintK("Cow, out.\r\n");
+/*				PRINTK::PrintK("Cow, out.\r\n");*/
 			}
 
 			}
@@ -257,6 +257,8 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 				x86_64::UpdateLocalCPUStruct(info->KernelScheduler->CurrentThread->Thread->KernelStack);
 
 				VMM::LoadVirtualSpace(proc->VirtualMemorySpace);
+				
+				UpdateKernelTables();
 			}
 
 			x86_64::SendAPICEOI();
