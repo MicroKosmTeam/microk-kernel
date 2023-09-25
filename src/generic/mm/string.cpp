@@ -1,4 +1,5 @@
 #include <mm/string.hpp>
+#include <stdint.h>
 
 size_t Strnlen(const char *str, size_t maxLength) {
         const char *strEnd = str;
@@ -7,13 +8,13 @@ size_t Strnlen(const char *str, size_t maxLength) {
 	     current < maxLength && strEnd[current];
 	     ++strEnd, ++current);
 
-        return (s - str);
+        return (strEnd - str);
 }
 
 char *Strncpy(char *dest, const char *src, size_t maxLength){
         if(dest == NULL || src == NULL) return NULL;
 
-        char *destStart = strDest;
+        char *destStart = dest;
 
         for (size_t current = 0;
 	    current < maxLength && (*dest++ = *src++);
@@ -29,15 +30,15 @@ int Strncmp(const char *first, const char *second, size_t maxLength) {
         for (size_t current = 0;
 	     current < maxLength && (*first != '\0');
 	     ++current) {
-                if (*first == '\0') return  1;
-                if (*second > *first)   return -1;
-                if (*first > *second)   return  1;
+                if (*firstCurrent == '\0') return  1;
+                if (*secondCurrent > *firstCurrent)   return -1;
+                if (*firstCurrent > *secondCurrent)   return  1;
 
-                ++first;
-                ++second;
+                ++firstCurrent;
+                ++secondCurrent;
         }
 
-        if (*second != '\0') return -1;
+        if (*secondCurrent != '\0') return -1;
 
         return 0;
 }
