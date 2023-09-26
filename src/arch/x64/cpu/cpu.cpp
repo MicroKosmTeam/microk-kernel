@@ -20,6 +20,8 @@ extern "C" void EnableSCE(void *compatSyscallEntry, void *syscallEntry);
 
 extern "C" void SetIOPL();
 
+#define CPU_VENDOR_LENGTH 13 /* 12 + NULL */
+
 static const char *CPUVendorStrings[] {
 	"AuthenticAMD",
 	"AMDisbetter!",
@@ -158,7 +160,7 @@ const char *GetCPUVendor() {
 	uint32_t ebx, edx, ecx, unused;
 	__cpuid(0, unused, ebx, ecx, edx);
 
-	char string[13] = { 0 };
+	char string[CPU_VENDOR_LENGTH] = { 0 };
 
 	/* This bitshift logic is used to get the correct 8-bit characters
 	 * from the 32 bit registers. The vendor name is 12 characters + NULL
@@ -179,7 +181,7 @@ const char *GetCPUVendor() {
 
 	size_t index = 0;
 	while(CPUVendorStrings[index] != NULL) {
-		if(Strncmp(string, CPUVendorStrings[index]) == 0) return CPUVendorStrings[index];
+		if(Strncmp(string, CPUVendorStrings[index], CPU_VENDOR_LENGTH) == 0) return CPUVendorStrings[index];
 
 		++index;
 	}

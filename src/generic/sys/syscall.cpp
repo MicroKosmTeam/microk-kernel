@@ -433,18 +433,15 @@ size_t HandleSyscallModuleMessageSend(uint32_t vendorID, uint32_t productID, voi
 size_t HandleSyscallModuleSectionRegister(const char *sectionName) {
 	KInfo *info = GetInfo();
 
-	size_t sectionLength = Strnlen(sectionName);
-	sectionLength = sectionLength > 256 ? 256 : sectionLength;
-
-	char newSectionName[256] = { 0 };
-	Memcpy((void*)newSectionName, (void*)sectionName, sectionLength);
+	char parsedSectionName[MAX_SECTION_LENGTH] = { 0 };
+	Strncpy(parsedSectionName, sectionName, MAX_SECTION_LENGTH);
 
 	PROC::UserProcess *proc = GetProcess();
 
 	MODULE::Module *mod = info->KernelModuleManager->GetModule(proc->ID);
 	if (mod == NULL) return -1;
 
-	info->KernelSectionManager->RegisterSectionDriver(newSectionName, mod->GetVendor(), mod->GetProduct());
+	info->KernelSectionManager->RegisterSectionDriver(parsedSectionName, mod->GetVendor(), mod->GetProduct());
 
 	return 0;
 }
@@ -452,11 +449,12 @@ size_t HandleSyscallModuleSectionRegister(const char *sectionName) {
 size_t HandleSyscallModuleSectionGet(const char *sectionName, uint32_t *vendorID, uint32_t *productID) {
 	KInfo *info = GetInfo();
 
-	char newSectionName[256];
-	Strncpy(newSectionName, sectionName);
+	char parsedSectionName[MAX_SECTION_LENGTH] = { 0 };
+	Strncpy(parsedSectionName, sectionName, MAX_SECTION_LENGTH);
+
 	uint32_t newVendor, newProduct;
 
-	info->KernelSectionManager->GetSectionDriver(newSectionName, &newVendor, &newProduct);
+	info->KernelSectionManager->GetSectionDriver(parsedSectionName, &newVendor, &newProduct);
 	
 	*vendorID = newVendor;
 	*productID = newProduct;
@@ -467,18 +465,15 @@ size_t HandleSyscallModuleSectionGet(const char *sectionName, uint32_t *vendorID
 size_t HandleSyscallModuleSectionUnregister(const char *sectionName) {
 	KInfo *info = GetInfo();
 
-	size_t sectionLength = Strnlen(sectionName);
-	sectionLength = sectionLength > 256 ? 256 : sectionLength;
-
-	char newSectionName[256];
-	Memcpy((void*)newSectionName, (void*)sectionName, sectionLength);
+	char parsedSectionName[MAX_SECTION_LENGTH] = { 0 };
+	Strncpy(parsedSectionName, sectionName, MAX_SECTION_LENGTH);
 
 	PROC::UserProcess *proc = GetProcess();
 
 	MODULE::Module *mod = info->KernelModuleManager->GetModule(proc->ID);
 	if (mod == NULL) return 0;
 
-	info->KernelSectionManager->UnregisterSectionDriver(newSectionName, mod->GetVendor(), mod->GetProduct());
+	info->KernelSectionManager->UnregisterSectionDriver(parsedSectionName, mod->GetVendor(), mod->GetProduct());
 
 	return 0;
 }

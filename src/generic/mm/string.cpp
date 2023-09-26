@@ -5,7 +5,7 @@ size_t Strnlen(const char *str, size_t maxLength) {
         const char *strEnd = str;
 
         for (size_t current = 0;
-	     current < maxLength && strEnd[current];
+	     current < maxLength && *strEnd;
 	     ++strEnd, ++current);
 
         return (strEnd - str);
@@ -28,7 +28,7 @@ int Strncmp(const char *first, const char *second, size_t maxLength) {
         const uint8_t *secondCurrent = (const uint8_t*)second;
 
         for (size_t current = 0;
-	     current < maxLength && (*first != '\0');
+	     current < maxLength && (*firstCurrent != '\0');
 	     ++current) {
                 if (*firstCurrent == '\0') return  1;
                 if (*secondCurrent > *firstCurrent)   return -1;

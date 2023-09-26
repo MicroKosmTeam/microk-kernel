@@ -58,7 +58,7 @@ SectionNode *SectionManager::FindNode(const char *sectionName, uint32_t vendorID
 	bool areVendorProductGeneric = (vendorID == 0 && productID == 0) ? true : false;
 
 	while(true) {
-		if (Strncmp(node->SectionName, sectionName) == 0) {
+		if (Strncmp(node->SectionName, sectionName, MAX_SECTION_LENGTH) == 0) {
 			if (areVendorProductGeneric || (node->VendorID == vendorID && node->ProductID == productID)) {
 				*found = true;
 				*previous = prev;
@@ -85,7 +85,7 @@ int SectionManager::RegisterSectionDriver(const char *sectionName, uint32_t vend
 
 	if(node->VendorID != 0 || node->ProductID != 0) return -1;
 
-	Strncpy(node->SectionName, sectionName);
+	Strncpy(node->SectionName, sectionName, MAX_SECTION_LENGTH);
 	node->VendorID = vendorID;
 	node->ProductID = productID;
 

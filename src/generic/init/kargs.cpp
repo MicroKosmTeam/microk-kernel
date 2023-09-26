@@ -24,6 +24,7 @@
  */
 
 #include <mm/string.hpp>
+#include <sys/printk.hpp>
 #include <init/kargs.hpp>
 #include <init/kinfo.hpp>
 
@@ -43,10 +44,11 @@ void ParseArgs() {
 		/* Here we parse the IDs.
 		  For now, we just Strncmp what we desire,
 		  in the future a hashmap would be probably better */
-		if(Strncmp(id, "user") == 0) {
+		if(Strncmp(id, "user", MAX_CMDLINE_ARGUMENT_LENGTH) == 0) {
 			/* Select the user file */
-			Strncpy(info->UserModuleName, "/");
-			Strncpy(info->UserModuleName + 1, val);
+			info->UserModuleName[0] = '/';
+			Strncpy(info->UserModuleName + 1, val, MAX_FILE_NAME_LENGTH);
+			PRINTK::PrintK("USER MODULE: %s\r\n", info->UserModuleName);
 		} else {
 			/* Invalid argument */
 		}

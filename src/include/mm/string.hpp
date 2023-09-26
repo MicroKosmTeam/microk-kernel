@@ -1,4 +1,5 @@
 #include <stddef.h>
+#include <cdefs.h>
 
 size_t Strnlen(const char *str, size_t maxLength);
 char *Strncpy(char *dest, const char *src, size_t maxLength);
