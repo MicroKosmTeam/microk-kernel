@@ -1,20 +1,23 @@
-#include <sys/syscall.hpp>
+#include <cdefs.h>
 #include <stdint.h>
 #include <stddef.h>
-#include <cdefs.h>
-#include <init/kinfo.hpp>
 #include <mm/pmm.hpp>
-#include <sys/printk.hpp>
+#include <sys/io.hpp>
+#include <sys/file.hpp>
+#include <sys/user.hpp>
+#include <mm/string.hpp>
+#include <mm/memory.hpp>
+#include <sys/mutex.hpp>
 #include <sys/panic.hpp>
-#include <module/modulemanager.hpp>
+#include <init/kinfo.hpp>
+#include <sys/printk.hpp>
 #include <sys/loader.hpp>
+#include <sys/syscall.hpp>
+#include <proc/helpers.hpp>
 #include <module/module.hpp>
 #include <module/buffer.hpp>
 #include <module/message.hpp>
-#include <mm/string.hpp>
-#include <mm/memory.hpp>
-#include <sys/file.hpp>
-#include <sys/mutex.hpp>
+#include <module/modulemanager.hpp>
 
 #if defined(ARCH_x64)
 #include <arch/x64/io/io.hpp>
@@ -23,25 +26,26 @@
 /* Kernel syscall handlers */
 size_t HandleSyscallDebugPrintK(const char *string);
 
-size_t HandleSyscallMemoryVmalloc(uintptr_t base, size_t length, size_t flags);
+size_t HandleSyscallMemoryVMAlloc(uintptr_t base, size_t length, size_t flags);
 size_t HandleSyscallMemoryPMAlloc(uintptr_t *base, size_t length, size_t flags);
-size_t HandleSyscallMemoryVmfree(uintptr_t base, size_t length);
-size_t HandleSyscallMemoryMmap(uintptr_t src, uintptr_t dest, size_t length, size_t flags);
-size_t HandleSyscallMemoryUnmap(uintptr_t base, size_t length);
-size_t HandleSyscallMemoryInOut(uintptr_t port, bool out, size_t outData, size_t *inData, uint8_t size);
+size_t HandleSyscallMemoryVMFree(uintptr_t base, size_t length);
+size_t HandleSyscallMemoryMMap(uintptr_t src, uintptr_t dest, size_t length, size_t flags);
+size_t HandleSyscallMemoryMProtect(uintptr_t base, size_t length, size_t flags);
+size_t HandleSyscallMemoryUnMap(uintptr_t base, size_t length);
+size_t HandleSyscallMemoryInOut(const_userptr_t iorequests, size_t count);
 
-size_t HandleSyscallProcExec(uintptr_t executableBase, size_t executableSize);
+size_t HandleSyscallProcExec(userptr_t executableBase, size_t executableSize);
 size_t HandleSyscallProcFork(size_t TODO);
 size_t HandleSyscallProcReturn(size_t returnCode);
 size_t HandleSyscallProcExit(size_t exitCode);
 size_t HandleSyscallProcWait(size_t TODO);
-size_t HandleSyscallProcKill(size_t TODO);
+size_t HandleSyscallProcSendSig(size_t TODO);
 
 size_t HandleSyscallModuleRegister(size_t vendorID, size_t productID);
 size_t HandleSyscallModuleUnregister();
 size_t HandleSyscallModuleBufferCreate(size_t size, size_t type, uint32_t *id);
 size_t HandleSyscallModuleBufferMap(uintptr_t address, uint32_t id);
-size_t HandleSyscallModuleBufferUnmap(uintptr_t address, uint32_t id);
+size_t HandleSyscallModuleBufferUnMap(uintptr_t address, uint32_t id);
 size_t HandleSyscallModuleBufferDelete(uint32_t id);
 size_t HandleSyscallModuleMessageHandler(uintptr_t entry);
 size_t HandleSyscallModuleMessageSend(uint32_t vendorID, uint32_t productID, void *data, size_t size);
@@ -49,68 +53,30 @@ size_t HandleSyscallModuleSectionRegister(const char *sectionName);
 size_t HandleSyscallModuleSectionGet(const char *sectionName, uint32_t *vendorID, uint32_t *productID);
 size_t HandleSyscallModuleSectionUnregister(const char *sectionName);
 
-static inline PROC::UserProcess *GetProcess() {
-	KInfo *info = GetInfo();
+__attribute__((aligned(PAGE_SIZE))) __attribute__((section(".syscall")))
+SyscallFunctionCallback SyscallVector[SYSCALL_VECTOR_END];
 
-	LockMutex(&info->KernelScheduler->SchedulerLock);
-	PROC::UserProcess *proc = (PROC::UserProcess*)info->KernelScheduler->CurrentThread->Thread->Parent;
-	UnlockMutex(&info->KernelScheduler->SchedulerLock);
-
-	return proc;
-}
-
-static inline VMM::VirtualSpace *GetVirtualSpace(PROC::UserProcess *proc) {
-	KInfo *info = GetInfo();
-
-	LockMutex(&info->KernelScheduler->SchedulerLock);
-	VMM::VirtualSpace *procSpace = proc->VirtualMemorySpace;
-	UnlockMutex(&info->KernelScheduler->SchedulerLock);
-
-	return procSpace;
-}
-
-SyscallFunctionCallback *SyscallVector;
 void InitSyscalls() {
-	KInfo *info = GetInfo();
-	SyscallVector = (SyscallFunctionCallback*)((uintptr_t)PMM::RequestPage() + info->HigherHalfMapping);
-	if(SyscallVector == NULL) PANIC("Unable to allocate for the syscall vector");
-	
-	Memset(SyscallVector, 0, PAGE_SIZE);
+	Memset(SyscallVector, 0, SYSCALL_VECTOR_END * sizeof(SyscallFunctionCallback));
 
 	PRINTK::PrintK("Initializing system call API.\r\n");
 
 	SyscallVector[SYSCALL_DEBUG_PRINTK] = (SyscallFunctionCallback)(void*)HandleSyscallDebugPrintK;
 
-	SyscallVector[SYSCALL_MEMORY_VMALLOC] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryVmalloc;
+	SyscallVector[SYSCALL_MEMORY_VMALLOC] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryVMAlloc;
 	SyscallVector[SYSCALL_MEMORY_PMALLOC] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryPMAlloc;
-	SyscallVector[SYSCALL_MEMORY_VMFREE] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryVmfree;
-	SyscallVector[SYSCALL_MEMORY_MMAP] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryMmap;
-	SyscallVector[SYSCALL_MEMORY_UNMAP] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryUnmap;
+	SyscallVector[SYSCALL_MEMORY_VMFREE] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryVMFree;
+	SyscallVector[SYSCALL_MEMORY_MMAP] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryMMap;
+	SyscallVector[SYSCALL_MEMORY_UNMAP] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryUnMap;
 	SyscallVector[SYSCALL_MEMORY_INOUT] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryInOut;
 
 	SyscallVector[SYSCALL_PROC_EXEC] = (SyscallFunctionCallback)(void*)HandleSyscallProcExec;
-	SyscallVector[SYSCALL_PROC_FORK] = (SyscallFunctionCallback)(void*)HandleSyscallProcFork;
 	SyscallVector[SYSCALL_PROC_RETURN] = (SyscallFunctionCallback)(void*)HandleSyscallProcReturn;
-	SyscallVector[SYSCALL_PROC_EXIT] = (SyscallFunctionCallback)(void*)HandleSyscallProcExit;
-	SyscallVector[SYSCALL_PROC_WAIT] = (SyscallFunctionCallback)(void*)HandleSyscallProcWait;
-	SyscallVector[SYSCALL_PROC_KILL] = (SyscallFunctionCallback)(void*)HandleSyscallProcKill;
-
-	SyscallVector[SYSCALL_MODULE_REGISTER] = (SyscallFunctionCallback)(void*)HandleSyscallModuleRegister;
-	SyscallVector[SYSCALL_MODULE_UNREGISTER] = (SyscallFunctionCallback)(void*)HandleSyscallModuleUnregister;
-	SyscallVector[SYSCALL_MODULE_BUFFER_CREATE] = (SyscallFunctionCallback)(void*)HandleSyscallModuleBufferCreate;
-	SyscallVector[SYSCALL_MODULE_BUFFER_MAP] = (SyscallFunctionCallback)(void*)HandleSyscallModuleBufferMap;
-	SyscallVector[SYSCALL_MODULE_BUFFER_UNMAP] = (SyscallFunctionCallback)(void*)HandleSyscallModuleBufferUnmap;
-	SyscallVector[SYSCALL_MODULE_BUFFER_DELETE] = (SyscallFunctionCallback)(void*)HandleSyscallModuleBufferDelete;
-	SyscallVector[SYSCALL_MODULE_MESSAGE_HANDLER] = (SyscallFunctionCallback)(void*)HandleSyscallModuleMessageHandler;
-	SyscallVector[SYSCALL_MODULE_MESSAGE_SEND] = (SyscallFunctionCallback)(void*)HandleSyscallModuleMessageSend;
-	SyscallVector[SYSCALL_MODULE_SECTION_REGISTER] = (SyscallFunctionCallback)(void*)HandleSyscallModuleSectionRegister;
-	SyscallVector[SYSCALL_MODULE_SECTION_GET] = (SyscallFunctionCallback)(void*)HandleSyscallModuleSectionGet;
-	SyscallVector[SYSCALL_MODULE_SECTION_UNREGISTER] = (SyscallFunctionCallback)(void*)HandleSyscallModuleSectionUnregister;
 }
 
 extern "C" size_t HandleSyscall(size_t syscallNumber, size_t arg1, size_t arg2, size_t arg3, size_t arg4, size_t arg5, size_t arg6) {
-	if(syscallNumber < 1 ||
-	   syscallNumber >= PAGE_SIZE / sizeof(SyscallFunctionCallback) ||
+	if(syscallNumber <= SYSCALL_VECTOR_START ||
+	   syscallNumber >= SYSCALL_VECTOR_END ||
 	   SyscallVector[syscallNumber] == NULL) return -ENOTPRESENT;
 
 	return SyscallVector[syscallNumber](arg1, arg2, arg3, arg4, arg5, arg6);
@@ -122,14 +88,14 @@ size_t HandleSyscallDebugPrintK(const char *string) {
 	return 0;
 }
 
-size_t HandleSyscallMemoryVmalloc(uintptr_t base, size_t length, size_t flags) {
+size_t HandleSyscallMemoryVMAlloc(uintptr_t base, size_t length, size_t flags) {
 	if (base <= 0x1000 || base + length >= 0x00007FFFFFFFF000)
 		return -1;
 
 	KInfo *info = GetInfo();
 
-	PROC::UserProcess *proc = GetProcess();
-	VMM::VirtualSpace *procSpace = GetVirtualSpace(proc);
+	PROC::UserProcess *proc = (PROC::UserProcess*)PROC::GetProcess();
+	VMM::VirtualSpace *procSpace = GetVirtualSpace((PROC::ProcessBase*)proc);
 
 	if (base % PAGE_SIZE) base -= base % PAGE_SIZE;
 	if (length % PAGE_SIZE) length += PAGE_SIZE - length % PAGE_SIZE;
@@ -160,12 +126,12 @@ size_t HandleSyscallMemoryPMAlloc(uintptr_t *base, size_t length, size_t flags) 
 	return 0;
 }
 
-size_t HandleSyscallMemoryVmfree(uintptr_t base, size_t length) {
+size_t HandleSyscallMemoryVMFree(uintptr_t base, size_t length) {
 	if (base <= 0x1000 || base + length >= 0x00007FFFFFFFF000)
 		return -1;
 
-	PROC::UserProcess *proc = GetProcess();
-	VMM::VirtualSpace *procSpace = GetVirtualSpace(proc);
+	PROC::UserProcess *proc = (PROC::UserProcess*)PROC::GetProcess();
+	VMM::VirtualSpace *procSpace = GetVirtualSpace((PROC::ProcessBase*)proc);
 
 	if (base % PAGE_SIZE) base -= base % PAGE_SIZE;
 	if (length % PAGE_SIZE) length += PAGE_SIZE - length % PAGE_SIZE;
@@ -181,9 +147,9 @@ size_t HandleSyscallMemoryVmfree(uintptr_t base, size_t length) {
 	return 0;
 }
 
-size_t HandleSyscallMemoryMmap(uintptr_t src, uintptr_t dest, size_t length, size_t flags) {
-	PROC::UserProcess *proc = GetProcess();
-	VMM::VirtualSpace *procSpace = GetVirtualSpace(proc);
+size_t HandleSyscallMemoryMMap(uintptr_t src, uintptr_t dest, size_t length, size_t flags) {
+	PROC::UserProcess *proc = (PROC::UserProcess*)PROC::GetProcess();
+	VMM::VirtualSpace *procSpace = GetVirtualSpace((PROC::ProcessBase*)proc);
 
 	if (src % PAGE_SIZE) src -= src % PAGE_SIZE;
 	if (dest % PAGE_SIZE) dest -= dest % PAGE_SIZE;
@@ -198,12 +164,12 @@ size_t HandleSyscallMemoryMmap(uintptr_t src, uintptr_t dest, size_t length, siz
 	return 0;
 }
 
-size_t HandleSyscallMemoryUnmap(uintptr_t base, size_t length) {
+size_t HandleSyscallMemoryUnMap(uintptr_t base, size_t length) {
 	if (base <= 0x1000 || base + length >= 0x00007FFFFFFFF000)
 		return -1; /* Make sure it is in valid memory */
 
-	PROC::UserProcess *proc = GetProcess();
-	VMM::VirtualSpace *procSpace = GetVirtualSpace(proc);
+	PROC::UserProcess *proc = (PROC::UserProcess*)PROC::GetProcess();
+	VMM::VirtualSpace *procSpace = GetVirtualSpace((PROC::ProcessBase*)proc);
 
 	if (base % PAGE_SIZE) base -= base % PAGE_SIZE;
 	if (length % PAGE_SIZE) length += PAGE_SIZE - length % PAGE_SIZE;
@@ -215,61 +181,25 @@ size_t HandleSyscallMemoryUnmap(uintptr_t base, size_t length) {
 	return 0;
 }
 
-size_t HandleSyscallMemoryInOut(uintptr_t port, bool out, size_t outData, size_t *inData, uint8_t size) {
-	size_t tmpInData = 0;
-	
-	if(!out && inData == NULL) return -1;
+size_t HandleSyscallMemoryInOut(const_userptr_t iorequests, size_t count) {
+	if (count > 128) return -EINVALID;
 
-#if defined(ARCH_x64)
-	using namespace x86_64;
-
-	switch(size) {
-		case 8:
-			if(out) OutB(port, outData);
-			else tmpInData = InB(port);
-			break;
-		case 16:
-			if(out) OutW(port, outData);
-			else tmpInData = InW(port);
-			break;
-		case 32:
-			if(out) OutD(port, outData);
-			else tmpInData = InD(port);
-			break;
-		case 64:
-			if(out) {
-				OutD(port, outData && 0xFFFFFFFF);
-				OutD(port + 4, outData >> 32);
-			} else {
-				tmpInData = (size_t)InD(port);
-				tmpInData |= (size_t)InD(port + 4) >> 32;
-			}
-			break;
-		default:
-			if(!out) tmpInData = -1;
-			break;
-	}
-#else
-	(void)port;
-	(void)out;
-	(void)outData;
-	(void)size;
-#endif
-	
-	if(!out) *inData = tmpInData;
+	IORequest requests[count];
+	CopyFromUser(requests, iorequests, count * sizeof(IORequest));
+	ExecuteIORequest(requests, count);
 
 	return 0;
 }
 
 
-size_t HandleSyscallProcExec(uintptr_t executableBase, size_t executableSize) {
-	size_t heapSize = (executableSize + (PAGE_SIZE - executableSize % PAGE_SIZE));
-	uint8_t *heapAddr = (uint8_t*)Malloc(heapSize);
-	Memset(heapAddr, 0, heapSize);
-	Memcpy(heapAddr, (void*)executableBase, executableSize);
+size_t HandleSyscallProcExec(userptr_t executableBase, size_t executableSize) {
+	uint8_t *heapAddr = (uint8_t*)Malloc(executableSize);
+
+	CopyFromUser(heapAddr, executableBase, executableSize);
 	
 	size_t pid = LoadExecutableFile((uint8_t*)heapAddr, executableSize);
 	PRINTK::PrintK("New process is PID: 0x%x\r\n", pid);
+
 	Free(heapAddr);
 
 	/* TODO: fix, Buggy, do not use
@@ -279,8 +209,37 @@ size_t HandleSyscallProcExec(uintptr_t executableBase, size_t executableSize) {
 	return 0;
 }
 
-size_t HandleSyscallProcFork(size_t TODO) {
-	(void)TODO;
+size_t HandleSyscallProcFork(uintptr_t entrypoint) {
+	KInfo *info = GetInfo();
+
+	PROC::UserProcess *parentProc = NULL, *childProc = NULL;
+	VMM::VirtualSpace *parentSpace = NULL, *childSpace = NULL;
+	VMM::PageList *parentPages = NULL, *childPages = NULL;
+
+	parentProc = (PROC::UserProcess*)(PROC::UserProcess*)PROC::GetProcess();
+	parentSpace = GetVirtualSpace((PROC::ProcessBase*)(PROC::ProcessBase*)parentProc);
+	parentPages = GetPageList((PROC::ProcessBase*)parentProc);
+
+	parentSpace->Fork(childSpace, false);
+
+	childPages = (VMM::PageList*)Malloc(parentPages->AllocatedSize);
+	childPages->PageCount = parentPages->PageCount;
+	childPages->AllocatedSize = parentPages->AllocatedSize;/*
+	for (size_t currentPage = 0; currentPage < parentPages->PageCount; ++currentPage) {
+		childPages->Pages[currentPage].IsCOW = true;
+		if(parentPages->Pages[currentPage].Data.
+		childPages->Pages[currentPage].Data.COW = (VMM::COWMetadata*)Malloc(sizeof(VMM::COWMetadata) + sizeof(uintptr_t));
+		childPages->Pages[currentPage].Data.COW->PhysicalAddressOfOriginal = (uintptr_t)lastPhysicalPage;
+		childPages->Pages[currentPage].Data.COW->PhysicalAddressOfCopy = 0;
+		childPages->Pages[currentPage].Data.COW->VirtualReferences = 1;
+		childPages->Pages[currentPage].Data.COW->VirtualAddresses[0] = (addr - addr % PAGE_SIZE);
+	}*/
+
+	childProc = (PROC::UserProcess*)PROC::CreateProcess((PROC::ProcessBase*)parentProc, PROC::ExecutableUnitType::PT_USER, childSpace, childPages, 0, 0);
+	PROC::UserThread *thread = (PROC::UserThread*)PROC::CreateThread((PROC::ProcessBase*)childProc, entrypoint, 64 * 1024, 0, 0);
+
+	PROC::AddThreadToQueue(info->KernelScheduler, SCHEDULER_RUNNING_QUEUE, thread);
+
 	return 0;
 }
 
@@ -340,7 +299,7 @@ size_t HandleSyscallProcWait(size_t TODO) {
 	return 0;
 }
 
-size_t HandleSyscallProcKill(size_t TODO) {
+size_t HandleSyscallProcSendSig(size_t TODO) {
 	(void)TODO;
 	return 0;
 }
@@ -348,7 +307,7 @@ size_t HandleSyscallProcKill(size_t TODO) {
 size_t HandleSyscallModuleRegister(size_t vendorID, size_t productID) {
 	KInfo *info = GetInfo();
 
-	PROC::UserProcess *proc = GetProcess();
+	PROC::UserProcess *proc = (PROC::UserProcess*)PROC::GetProcess();
 
 	info->KernelModuleManager->RegisterModule(proc, vendorID, productID);
 
@@ -358,7 +317,7 @@ size_t HandleSyscallModuleRegister(size_t vendorID, size_t productID) {
 size_t HandleSyscallModuleUnregister() {
 	KInfo *info = GetInfo();
 
-	PROC::UserProcess *proc = GetProcess();
+	PROC::UserProcess *proc = (PROC::UserProcess*)PROC::GetProcess();
 
 	MODULE::Module *mod = info->KernelModuleManager->GetModule(proc->ID);
 	if (mod != NULL) info->KernelModuleManager->UnregisterModule(mod->GetVendor(), mod->GetProduct());
@@ -369,7 +328,7 @@ size_t HandleSyscallModuleUnregister() {
 size_t HandleSyscallModuleBufferCreate(size_t size, size_t type, uint32_t *id) {
 	KInfo *info = GetInfo();
 
-	PROC::UserProcess *proc = GetProcess();
+	PROC::UserProcess *proc = (PROC::UserProcess*)PROC::GetProcess();
 
 	MODULE::Module *mod = info->KernelModuleManager->GetModule(proc->ID);
 	if (mod == NULL) {
@@ -387,8 +346,8 @@ size_t HandleSyscallModuleBufferCreate(size_t size, size_t type, uint32_t *id) {
 size_t HandleSyscallModuleBufferMap(uintptr_t address, uint32_t id) {
 	KInfo *info = GetInfo();
 
-	PROC::UserProcess *proc = GetProcess();
-	VMM::VirtualSpace *procSpace = GetVirtualSpace(proc);
+	PROC::UserProcess *proc = (PROC::UserProcess*)PROC::GetProcess();
+	VMM::VirtualSpace *procSpace = GetVirtualSpace((PROC::ProcessBase*)proc);
 	MODULE::Module *mod = info->KernelModuleManager->GetModule(proc->ID);
 	if (mod == NULL) return 0;
 
@@ -397,7 +356,7 @@ size_t HandleSyscallModuleBufferMap(uintptr_t address, uint32_t id) {
 	return result;
 }
 
-size_t HandleSyscallModuleBufferUnmap(uintptr_t address, uint32_t id) {
+size_t HandleSyscallModuleBufferUnMap(uintptr_t address, uint32_t id) {
 	(void)address;
 	(void)id;
 	return 0;
@@ -409,7 +368,7 @@ size_t HandleSyscallModuleBufferDelete(uint32_t id) {
 }
 
 size_t HandleSyscallModuleMessageHandler(uintptr_t entry) {
-	PROC::UserProcess *proc = GetProcess();
+	PROC::UserProcess *proc = (PROC::UserProcess*)PROC::GetProcess();
 	(void)proc;
 
 	(void)entry;
@@ -436,7 +395,7 @@ size_t HandleSyscallModuleSectionRegister(const char *sectionName) {
 	char parsedSectionName[MAX_SECTION_LENGTH] = { 0 };
 	Strncpy(parsedSectionName, sectionName, MAX_SECTION_LENGTH);
 
-	PROC::UserProcess *proc = GetProcess();
+	PROC::UserProcess *proc = (PROC::UserProcess*)PROC::GetProcess();
 
 	MODULE::Module *mod = info->KernelModuleManager->GetModule(proc->ID);
 	if (mod == NULL) return -1;
@@ -468,7 +427,7 @@ size_t HandleSyscallModuleSectionUnregister(const char *sectionName) {
 	char parsedSectionName[MAX_SECTION_LENGTH] = { 0 };
 	Strncpy(parsedSectionName, sectionName, MAX_SECTION_LENGTH);
 
-	PROC::UserProcess *proc = GetProcess();
+	PROC::UserProcess *proc = (PROC::UserProcess*)PROC::GetProcess();
 
 	MODULE::Module *mod = info->KernelModuleManager->GetModule(proc->ID);
 	if (mod == NULL) return 0;

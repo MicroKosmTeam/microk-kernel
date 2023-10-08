@@ -187,22 +187,26 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 
 			bool found = false;
 
-			if(protectionViolation && writeAccess && byUser) {
-				for(pageSelector = 0; pageSelector < pages->PageCount; ++pageSelector) {
-					if(!pages->Pages[pageSelector].IsCOW) continue;
-					if(pages->Pages[pageSelector].Data.COW->PhysicalAddressOfCopy != 0) continue;
-					//PRINTK::PrintK("Page %d.\r\n", pageSelector);
+			if(byUser) {
+				if(protectionViolation && writeAccess) {
+					for(pageSelector = 0; pageSelector < pages->PageCount; ++pageSelector) {
+						if(!pages->Pages[pageSelector].IsCOW) continue;
+						if(pages->Pages[pageSelector].Data.COW->PhysicalAddressOfCopy != 0) continue;
+						//PRINTK::PrintK("Page %d.\r\n", pageSelector);
 
-					for(virtualReference = 0; virtualReference < pages->Pages[pageSelector].Data.COW->VirtualReferences; ++virtualReference) {
-						//PRINTK::PrintK(" %d. 0x%x vs 0x%x\r\n", virtualReference, pages->Pages[pageSelector].Data.COW->VirtualAddresses[virtualReference], roundedPage);
-						if(pages->Pages[pageSelector].Data.COW->VirtualAddresses[virtualReference] == roundedPage) {
-							found = true;
-							break;
+						for(virtualReference = 0; virtualReference < pages->Pages[pageSelector].Data.COW->VirtualReferences; ++virtualReference) {
+							//PRINTK::PrintK(" %d. 0x%x vs 0x%x\r\n", virtualReference, pages->Pages[pageSelector].Data.COW->VirtualAddresses[virtualReference], roundedPage);
+							if(pages->Pages[pageSelector].Data.COW->VirtualAddresses[virtualReference] == roundedPage) {
+								found = true;
+								break;
+							}
 						}
-					}
 
-					if(found) break;
+						if(found) break;
+					}
 				}
+			} else {
+
 			}
 
 			if(!found) {
