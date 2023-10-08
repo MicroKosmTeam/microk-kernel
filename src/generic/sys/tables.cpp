@@ -28,6 +28,8 @@ int UpdateKernelTables() {
 }
 
 void PopulateKBST(KBST *kbst) {
+	KInfo *info = GetInfo();
+
 	kbst->Signature[0] = 'K';
 	kbst->Signature[1] = 'B';
 	kbst->Signature[2] = 'S';
@@ -37,6 +39,8 @@ void PopulateKBST(KBST *kbst) {
 	kbst->FreePhysicalMemory = PMM::GetFreeMem();
 	kbst->UsedPhysicalMemory = PMM::GetUsedMem();
 	kbst->ReservedPhysicalMemory = PMM::GetReservedMem();
+
+	kbst->RSDP = (uintptr_t)info->RSDP;
 
 	uint8_t checksumDifference = 0;
 	uint8_t *kbstByte = (uint8_t*)kbst;
