@@ -4,6 +4,7 @@
 #include <mm/bootmem.hpp>
 #include <sys/printk.hpp>
 #include <init/kinfo.hpp>
+#include <dev/earlycon.hpp>
 
 #ifdef CONFIG_HW_UART
 UARTDevice *KernelPort = NULL;

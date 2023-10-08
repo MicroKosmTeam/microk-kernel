@@ -36,7 +36,7 @@
 #include <module/modulemanager.hpp>
 #include <module/buffer.hpp>
 #include <module/section.hpp>
-#include <dev/uart.hpp>
+#include <dev/earlycon.hpp>
 
 /*
  * struct: Framebuffer 
