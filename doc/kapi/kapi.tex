@@ -24,21 +24,70 @@
 \chapter{Core Syscall API}
 \section{Comprehensive list of syscalls}
 
-\begin{tabular}{ |c|c|c|c| }
-	Vector number & Name & Arguments & Descritpion \\ 
-	1 & PrintK & const char *message & Prints a debug message to the kernel log. \\
-\end{tabular}
-\section{Debug syscalls}
-\textit{\textbf{WARNING:} the all the following syscalls are for debug purposes only. On production systems, their presence is not guaranteed and not recomended. They are inherently more insecure than normal syscalls, so it is advised to remove them if the system isn't meant for debugging and testing of critical modules.}
-\subsection{PrintK}
-\begin{tabular}{ |c|c|c|c| }
-	Vector number & Name & Arguments & Descritpion \\ 
-	1 & PrintK & const char *message & Prints a debug message to the kernel log. \\
+\begin{tabular}{ |c|c|c| }
+	Vector number & Name & Arguments \\ 
+	1 & PrintK & const char *message \\
+	3 & VMalloc & uptr base, usize length, usize flags \\
+	4 & PMAlloc & uptr *base, usize length, usize flags \\
+	5 & VMFree & uptr base, usize length \\
 \end{tabular}
 
+\section{Debug syscalls}
+
+\textit{\textbf{WARNING:} the all the following syscalls are for debug purposes only. On production systems, their presence is not guaranteed and not recomended. They are inherently more insecure than normal syscalls, so it is advised to remove them if the system isn't meant for debugging and testing of critical modules.}
+
+\subsection{PrintK}
+\begin{tabular}{ |c|c|c| }
+	Vector number & Name & Arguments \\ 
+	1 & PrintK & const char *message \\
+\end{tabular}
+
+\paragraph{TLDR} 
+Prints a debug message to the kernel log.
+d
+\paragraph{Explaination}
 The mechanism of this syscall is identical to the kernel function. It takes as an argument a NULL-terminated string. There are no checks associated with the function.
 
-\chapter{Extra APIs}
+\section{Memory syscalls}
+
+\subsection{VMalloc}
+\begin{tabular}{ |c|c|c| }
+	Vector number & Name & Arguments \\ 
+	3 & VMalloc & uptr base, usize length, usize flags \\
+\end{tabular}
+
+\paragraph{TLDR} 
+Allocates a virtually continuous swath of memory from the virtual address defined in \textit{base} with the length defined in \textit{length}. Flags are passed through the \textit{flags} parameter.
+
+\paragraph{Explaination}
+
+
+\subsection{PMalloc}
+\begin{tabular}{ |c|c|c| }
+	Vector number & Name & Arguments \\ 
+	4 & PMAlloc & uptr *base, usize length, usize flags \\
+\end{tabular}
+
+\paragraph{TLDR} 
+Allocates a physically continuous swath of memory with the length defined in \textit{length}. The virtual address is returned in the \textit{uptr} pointed to by \textit{base}. Flags are passed through the \textit{flags} parameter.
+
+\paragraph{Explaination}
+
+\subsection{VMFree}
+\begin{tabular}{ |c|c|c| }
+	Vector number & Name & Arguments \\ 
+	5 & VMFree & uptr base, usize length \\
+\end{tabular}
+
+\paragraph{TLDR} 
+Frees a virtually continuous swath of memory with base of \textit[base] and the length defined in \textit{length}. It can free memory allocated both by the VMAlloc and the PMalloc syscalls.
+
+\paragraph{Explaination}
+
+\chapter{Tables API}
 \section{User TCB}
+
+\chapter{Extra APIs}
+
 
 \end{document}

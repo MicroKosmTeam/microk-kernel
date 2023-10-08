@@ -4,5 +4,18 @@
 \contentsline {section}{\numberline {2.1}Comprehensive list of syscalls}{3}{}%
 \contentsline {section}{\numberline {2.2}Debug syscalls}{3}{}%
 \contentsline {subsection}{\numberline {2.2.1}PrintK}{3}{}%
-\contentsline {chapter}{\numberline {3}Extra APIs}{4}{}%
-\contentsline {section}{\numberline {3.1}User TCB}{4}{}%
+\contentsline {paragraph}{TLDR}{3}{}%
+\contentsline {paragraph}{Explaination}{3}{}%
+\contentsline {section}{\numberline {2.3}Memory syscalls}{4}{}%
+\contentsline {subsection}{\numberline {2.3.1}VMalloc}{4}{}%
+\contentsline {paragraph}{TLDR}{4}{}%
+\contentsline {paragraph}{Explaination}{4}{}%
+\contentsline {subsection}{\numberline {2.3.2}PMalloc}{4}{}%
+\contentsline {paragraph}{TLDR}{4}{}%
+\contentsline {paragraph}{Explaination}{4}{}%
+\contentsline {subsection}{\numberline {2.3.3}VMFree}{4}{}%
+\contentsline {paragraph}{TLDR}{4}{}%
+\contentsline {paragraph}{Explaination}{4}{}%
+\contentsline {chapter}{\numberline {3}Tables API}{5}{}%
+\contentsline {section}{\numberline {3.1}User TCB}{5}{}%
+\contentsline {chapter}{\numberline {4}Extra APIs}{6}{}%
