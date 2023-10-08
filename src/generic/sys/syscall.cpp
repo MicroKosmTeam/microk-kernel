@@ -102,7 +102,7 @@ size_t HandleSyscallMemoryVMAlloc(uintptr_t base, size_t length, size_t flags) {
 
 	for (uintptr_t vaddr = base; vaddr < base + length; vaddr += PAGE_SIZE) {
 		uintptr_t paddr = (uintptr_t)PMM::RequestPage();
-		if (paddr == 0) PANIC("Out of memory");
+		if (paddr == 0) /* TODO: do something better than calling */ MEM::InvokeOOM();
 
 		Memset((void*)(paddr + info->HigherHalfMapping), 0, PAGE_SIZE);
 

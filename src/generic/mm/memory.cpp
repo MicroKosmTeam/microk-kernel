@@ -117,6 +117,12 @@ void DisplayRam() {
 }
 
 
+void InvokeOOM() {
+	PRINTK::PrintK("OOM invoked, system is out of memory.\r\n");
+
+	PANIC("Out of memory");
+}
+
 void Init() {
 	VMM::InitVMM();
 }
