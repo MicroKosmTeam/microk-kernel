@@ -20,6 +20,13 @@ void OutD(uint16_t port, uint32_t val) {
         asm volatile ( "outl %0, %1" : : "a"(val), "Nd"(port));
 }
 
+/* Puts out a quadruple word to the IO bus via two writes */
+void OutQ(uint16_t port, uint64_t val) {
+	OutD(port, val && 0xFFFFFFFF);
+	OutD(port + 4, val >> 32);
+}
+
+
 /* Gets a byte from the IO bus */
 uint8_t InB(uint16_t port) {
         uint8_t ret;
@@ -39,6 +46,14 @@ uint32_t InD(uint16_t port) {
         uint32_t ret;
         asm volatile ( "inl %1, %0" : "=a"(ret) : "Nd"(port));
         return ret;
+}
+
+/* Gets a quadruple word from the IO bus via two reads */
+uint64_t InQ(uint16_t port) {
+	uint64_t ret;
+	ret = InD(port);
+	ret |= (uint64_t)InD(port + 4) >> 32;
+	return ret;
 }
 
 /* Wastes a cycle of the IO bus */
