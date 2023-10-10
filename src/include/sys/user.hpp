@@ -9,8 +9,12 @@ typedef __userptr *userptr_t;
 typedef const __userptr *const_userptr_t;
 
 int CheckUserMemory(const_userptr_t userAddress, size_t length);
+
 void CopyFromUser(void *kernelAddress, const_userptr_t userAddress, size_t length);
+void CopyStringFromUser(char *kernelAddress, const_userptr_t userAddress, size_t maxLength);
+
 void CopyToUser(const void *kernelAddress, userptr_t userAddress, size_t length);
+void CopyStringToUser(const char *kernelAddress, userptr_t userAddress, size_t maxLength);
 
 extern "C" void EnterUserspace(void *function, void *stack);
 extern "C" void ExitUserspace();
