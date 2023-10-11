@@ -66,3 +66,29 @@ pop rax
 %macro exitisr 0
 o64 iret
 %endmacro
+
+%macro switch_to_kernel_cr3 0
+mov gs:40, rax
+mov rax, gs:32
+mov cr3, rax
+mov rax, gs:40
+%endmacro
+
+%macro switch_to_user_cr3 0
+mov gs:40, rax
+mov rax, gs:24
+mov cr3, rax
+mov rax, gs:40
+%endmacro
+
+%macro switch_to_kernel_stack 0
+mov gs:8, rsp   ; Save the user stack pointer
+mov gs:16, rbp  ; Save the user stack base pointer
+mov rsp, gs:0	; Load the kernel stack pointer
+%endmacro
+
+%macro switch_to_user_stack 0
+mov rsp, gs:8   ; Load the user stack pointer
+mov rbp, gs:16  ; Load the user stack base pointer
+%endmacro
+

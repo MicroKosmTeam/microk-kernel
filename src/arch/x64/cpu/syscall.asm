@@ -10,18 +10,11 @@ global SyscallEntry
 SyscallEntry:
 	swapgs
 
-	; Save and restore RAX, switch to the new CR3
-	mov gs:40, rax
-	mov rax, gs:32
-	mov cr3, rax
-	mov rax, gs:40
-
-	; Save the stack pointer
-	mov gs:8, rsp
-	mov gs:16, rbp
+	; Switch to the new CR3
+	switch_to_kernel_cr3
 
 	; Switch to a new stack
-	mov rsp, gs:0	
+	switch_to_kernel_stack
 
 	; Save mandatory registers
 	push rbx
@@ -61,14 +54,10 @@ SyscallEntry:
 	pop rbx
 
 	; Restore stack pointer
-	mov rsp, gs:8
-	mov rbp, gs:16
+	switch_to_user_stack
 
 	; Save and restore RAX, get back the old CR3
-	mov gs:40, rax
-	mov rax, gs:24
-	mov cr3, rax
-	mov rax, gs:40
+	switch_to_user_cr3
 	
 	swapgs
 
