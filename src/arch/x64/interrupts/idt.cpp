@@ -258,7 +258,9 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 
 				Memcpy(context, info->KernelScheduler->CurrentThread->Thread->Context, sizeof(CPUStatus));
 
-				x86_64::UpdateLocalCPUStruct(info->KernelScheduler->CurrentThread->Thread->KernelStack);
+				x86_64::UpdateLocalCPUStruct(info->KernelScheduler->CurrentThread->Thread->KernelStack,
+						             (uintptr_t)proc->VirtualMemorySpace->GetTopAddress() - info->HigherHalfMapping,
+							     (uintptr_t)proc->VirtualMemorySpace->GetTopAddress() - info->HigherHalfMapping);
 
 				VMM::LoadVirtualSpace(proc->VirtualMemorySpace);
 				

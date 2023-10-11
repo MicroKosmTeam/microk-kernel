@@ -144,13 +144,15 @@ void CPUInit() {
 	localCPUStruct = (uintptr_t)PMM::RequestPage() + info->HigherHalfMapping;
 	SetMSR(MSR_KERNELGSBASE, localCPUStruct, localCPUStruct >> 32);
 
-	UpdateLocalCPUStruct(0xDEADC0DECAFEBABE);
+	UpdateLocalCPUStruct(0xDEADC0DECAFEBABE, 0xDEADC0DECAFEBABE, 0xDEADC0DECAFEBABE);
 }
 
-void UpdateLocalCPUStruct(uintptr_t taskKernelStack) {
+void UpdateLocalCPUStruct(uintptr_t taskKernelStack, uintptr_t userCR3, uintptr_t kernelCR3) {
 	LocalCPUStruct *cpuStruct = (LocalCPUStruct*)localCPUStruct;
 
 	cpuStruct->TaskKernelStack = taskKernelStack;
+	cpuStruct->UserCR3 = userCR3;
+	cpuStruct->KernelCR3 = kernelCR3;
 }
 
 /*

@@ -2,13 +2,19 @@
 
 %include "src/arch/x64/cpu/macros.asm"
 
-extern HandleSyscall 
-
 section .syscall
+
+extern HandleSyscall 
 
 global SyscallEntry
 SyscallEntry:
 	swapgs
+
+	; Save and restore RAX, switch to the new CR3
+	mov gs:40, rax
+	mov rax, gs:32
+	mov cr3, rax
+	mov rax, gs:40
 
 	; Save the stack pointer
 	mov gs:8, rsp
@@ -57,6 +63,12 @@ SyscallEntry:
 	; Restore stack pointer
 	mov rsp, gs:8
 	mov rbp, gs:16
+
+	; Save and restore RAX, get back the old CR3
+	mov gs:40, rax
+	mov rax, gs:24
+	mov cr3, rax
+	mov rax, gs:40
 	
 	swapgs
 
