@@ -24,18 +24,19 @@
 #endif
 
 /* Kernel syscall handlers */
-size_t HandleSyscallDebugPrintK(const char *string);
+size_t HandleSyscallDebugPrintK(const_userptr_t userString);
 
-size_t HandleSyscallMemoryVMAlloc(uintptr_t base, size_t length, size_t flags);
-size_t HandleSyscallMemoryPMAlloc(uintptr_t *base, size_t length, size_t flags);
-size_t HandleSyscallMemoryVMFree(uintptr_t base, size_t length);
+size_t HandleSyscallMemoryVMAlloc(const_userptr_t userBase, size_t length, size_t flags);
+size_t HandleSyscallMemoryPMAlloc(userptr_t baseDestination, size_t length, size_t flags);
+size_t HandleSyscallMemoryVMFree(const_userptr_t userBase, size_t length);
 size_t HandleSyscallMemoryMMap(uintptr_t src, uintptr_t dest, size_t length, size_t flags);
 size_t HandleSyscallMemoryMProtect(uintptr_t base, size_t length, size_t flags);
 size_t HandleSyscallMemoryUnMap(uintptr_t base, size_t length);
 size_t HandleSyscallMemoryInOut(const_userptr_t iorequests, size_t count);
+size_t HandleSyscallMemoryRequestResources(const_userptr_t requests, size_t count);
 
+size_t HandleSyscallProcFork();
 size_t HandleSyscallProcExec(userptr_t executableBase, size_t executableSize);
-size_t HandleSyscallProcFork(size_t TODO);
 size_t HandleSyscallProcReturn(size_t returnCode);
 size_t HandleSyscallProcExit(size_t exitCode);
 size_t HandleSyscallProcWait(size_t TODO);
@@ -53,8 +54,7 @@ size_t HandleSyscallModuleSectionRegister(const char *sectionName);
 size_t HandleSyscallModuleSectionGet(const char *sectionName, uint32_t *vendorID, uint32_t *productID);
 size_t HandleSyscallModuleSectionUnregister(const char *sectionName);
 
-__attribute__((aligned(PAGE_SIZE))) __attribute__((section(".syscall")))
-SyscallFunctionCallback SyscallVector[SYSCALL_VECTOR_END];
+__attribute__((aligned(PAGE_SIZE))) SyscallFunctionCallback SyscallVector[SYSCALL_VECTOR_END];
 
 void InitSyscalls() {
 	Memset(SyscallVector, 0, SYSCALL_VECTOR_END * sizeof(SyscallFunctionCallback));
@@ -82,17 +82,22 @@ extern "C" size_t HandleSyscall(size_t syscallNumber, size_t arg1, size_t arg2, 
 	return SyscallVector[syscallNumber](arg1, arg2, arg3, arg4, arg5, arg6);
 }
 
-size_t HandleSyscallDebugPrintK(const char *string) {
+size_t HandleSyscallDebugPrintK(const_userptr_t userString) {
+	char string[MAX_PRINTK_SYSCALL_MESSAGE_LENGTH + 1] = { '\0' };
+	CopyStringFromUser(string, userString, MAX_PRINTK_SYSCALL_MESSAGE_LENGTH);
+
 	PRINTK::PrintK("%s", string);
 
 	return 0;
 }
 
-size_t HandleSyscallMemoryVMAlloc(uintptr_t base, size_t length, size_t flags) {
-	if (base <= 0x1000 || base + length >= 0x00007FFFFFFFF000)
-		return -1;
-
+size_t HandleSyscallMemoryVMAlloc(const_userptr_t userBase, size_t length, size_t flags) {
 	KInfo *info = GetInfo();
+
+	if(CheckUserMemory(userBase, length) != 0)
+		return -EBADREQUEST;
+
+	uintptr_t base = (uintptr_t)userBase;
 
 	PROC::UserProcess *proc = (PROC::UserProcess*)PROC::GetProcess();
 	VMM::VirtualSpace *procSpace = GetVirtualSpace((PROC::ProcessBase*)proc);
@@ -102,39 +107,55 @@ size_t HandleSyscallMemoryVMAlloc(uintptr_t base, size_t length, size_t flags) {
 
 	for (uintptr_t vaddr = base; vaddr < base + length; vaddr += PAGE_SIZE) {
 		uintptr_t paddr = (uintptr_t)PMM::RequestPage();
-		if (paddr == 0) /* TODO: do something better than calling */ MEM::InvokeOOM();
+		if (paddr == 0) {
+			MEM::InvokeOOM();
+		}
 
 		Memset((void*)(paddr + info->HigherHalfMapping), 0, PAGE_SIZE);
 
-		if (flags == 0) VMM::MapMemory(procSpace, (void*)paddr, (void*)vaddr);
-		else VMM::MapMemory(procSpace, (void*)paddr, (void*)vaddr, flags);
+		if (flags == 0) {
+			VMM::MapMemory(procSpace, (void*)paddr, (void*)vaddr);
+		} else {
+			VMM::MapMemory(procSpace, (void*)paddr, (void*)vaddr, flags);
+		}
 	}
 
 	return 0;
 }
 
-size_t HandleSyscallMemoryPMAlloc(uintptr_t *base, size_t length, size_t flags) {
-	(void)flags;
-	uintptr_t newBase = 0;
+size_t HandleSyscallMemoryPMAlloc(userptr_t baseDestination, size_t length, size_t flags) {
+	(void) flags;
 
+	uintptr_t base = 0;
 	size_t roundedLength = length / PAGE_SIZE + 1;
-	if (length % PAGE_SIZE == 0) newBase = (uintptr_t)PMM::RequestPage();
-	else newBase = (uintptr_t)PMM::RequestPages(roundedLength);
 
-	*base = newBase;
+	if (length % PAGE_SIZE) {
+		base = (uintptr_t)PMM::RequestPages(roundedLength);
+	} else {
+		base = (uintptr_t)PMM::RequestPage();
+	}
+
+	CopyToUser(&base, baseDestination, sizeof(uintptr_t));
 
 	return 0;
 }
 
-size_t HandleSyscallMemoryVMFree(uintptr_t base, size_t length) {
-	if (base <= 0x1000 || base + length >= 0x00007FFFFFFFF000)
-		return -1;
+size_t HandleSyscallMemoryVMFree(const_userptr_t userBase, size_t length) {
+	if(int code = CheckUserMemory(userBase, length) != 0)
+		return code;
+
+	uintptr_t base = (uintptr_t)userBase;
 
 	PROC::UserProcess *proc = (PROC::UserProcess*)PROC::GetProcess();
 	VMM::VirtualSpace *procSpace = GetVirtualSpace((PROC::ProcessBase*)proc);
 
-	if (base % PAGE_SIZE) base -= base % PAGE_SIZE;
-	if (length % PAGE_SIZE) length += PAGE_SIZE - length % PAGE_SIZE;
+	if (base % PAGE_SIZE) {
+		base -= base % PAGE_SIZE;
+	}
+
+	if (length % PAGE_SIZE) {
+		length += PAGE_SIZE - length % PAGE_SIZE;
+	}
 
 	for (uintptr_t vaddr = base; vaddr < base + length; vaddr += PAGE_SIZE) {
 		uintptr_t paddr = (uintptr_t)procSpace->GetPhysicalAddress((void*)vaddr);
@@ -151,9 +172,17 @@ size_t HandleSyscallMemoryMMap(uintptr_t src, uintptr_t dest, size_t length, siz
 	PROC::UserProcess *proc = (PROC::UserProcess*)PROC::GetProcess();
 	VMM::VirtualSpace *procSpace = GetVirtualSpace((PROC::ProcessBase*)proc);
 
-	if (src % PAGE_SIZE) src -= src % PAGE_SIZE;
-	if (dest % PAGE_SIZE) dest -= dest % PAGE_SIZE;
-	if (length % PAGE_SIZE) length += PAGE_SIZE - length % PAGE_SIZE;
+	if (src % PAGE_SIZE) {
+		src -= src % PAGE_SIZE;
+	}
+
+	if (dest % PAGE_SIZE) {
+		dest -= dest % PAGE_SIZE;
+	}
+
+	if (length % PAGE_SIZE) {
+		length += PAGE_SIZE - length % PAGE_SIZE;
+	}
 
 	uintptr_t end = src + length;
 	for (; src < end; src += PAGE_SIZE, dest += PAGE_SIZE) {
@@ -209,8 +238,10 @@ size_t HandleSyscallProcExec(userptr_t executableBase, size_t executableSize) {
 	return 0;
 }
 
-size_t HandleSyscallProcFork(uintptr_t entrypoint) {
+size_t HandleSyscallProcFork() {
 	KInfo *info = GetInfo();
+
+	uintptr_t entrypoint = 0;
 
 	PROC::UserProcess *parentProc = NULL, *childProc = NULL;
 	VMM::VirtualSpace *parentSpace = NULL, *childSpace = NULL;
