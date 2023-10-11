@@ -97,10 +97,13 @@ size_t HandleSyscallMemoryVMAlloc(const_userptr_t userBase, size_t length, size_
 	if(CheckUserMemory(userBase, length) != 0)
 		return -EBADREQUEST;
 
+
 	uintptr_t base = (uintptr_t)userBase;
 
 	PROC::UserProcess *proc = (PROC::UserProcess*)PROC::GetProcess();
 	VMM::VirtualSpace *procSpace = GetVirtualSpace((PROC::ProcessBase*)proc);
+	
+	PRINTK::PrintK("Calling VMAlloc for PID %d. Base: 0x%x, Length: %d bytes, Flags: 0x%x.\r\n", proc->ID, base, length, flags);
 
 	if (base % PAGE_SIZE) base -= base % PAGE_SIZE;
 	if (length % PAGE_SIZE) length += PAGE_SIZE - length % PAGE_SIZE;
@@ -119,6 +122,8 @@ size_t HandleSyscallMemoryVMAlloc(const_userptr_t userBase, size_t length, size_
 			VMM::MapMemory(procSpace, (void*)paddr, (void*)vaddr, flags);
 		}
 	}
+
+	PRINTK::PrintK("Executing VMAlloc for PID %d completed successfully.\r\n", proc->ID);
 
 	return 0;
 }

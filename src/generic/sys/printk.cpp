@@ -16,10 +16,33 @@ namespace PRINTK {
 
 static char TerminalColumn[TERMINAL_SIZE + 1];
 static size_t TerminalPosition;
+static uint64_t Divider, StartValue;
+
+void SetPrintKTimerDivider(uint64_t divider) {
+	Divider = divider;
+}
 
 void FlushBuffer() {
 #ifdef CONFIG_HW_UART
-	if(KernelPort != NULL) KernelPort->PutStr(TerminalColumn);
+	if(KernelPort != NULL) {
+		if(Divider != 0) {
+			char integer[64] = { '\0' };
+			char decimal[64] = { '\0' };
+
+			uint64_t tsc = __builtin_ia32_rdtsc() - StartValue;
+			Itoa(integer, 'd', tsc / Divider);
+			Itoa(decimal, 'd', tsc % Divider);
+
+			KernelPort->PutStr("[");
+			KernelPort->PutStr(integer);
+			KernelPort->PutStr(".");
+			KernelPort->PutStr(decimal);
+			KernelPort->PutStr("] ");
+		} else {
+			KernelPort->PutStr("[0.00000000] ");
+		}
+		KernelPort->PutStr(TerminalColumn);
+	}
 #endif
 	Memset(TerminalColumn, 0, TERMINAL_SIZE + 1);
 	TerminalPosition = 0;
@@ -92,6 +115,9 @@ void EarlyInit() {
 	KInfo *info = GetInfo();
 
 	Memset(TerminalColumn, 0, TERMINAL_SIZE + 1);
+
+	Divider = 0;
+	StartValue = __builtin_ia32_rdtsc();
 
 #ifdef CONFIG_HW_UART
 	info->KernelPort = (UARTDevice*)BOOTMEM::Malloc(sizeof(UARTDevice));
