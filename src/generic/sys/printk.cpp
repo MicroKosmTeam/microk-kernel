@@ -27,19 +27,15 @@ void FlushBuffer() {
 	if(KernelPort != NULL) {
 		if(Divider != 0) {
 			char integer[64] = { '\0' };
-			char decimal[64] = { '\0' };
 
 			uint64_t tsc = __builtin_ia32_rdtsc() - StartValue;
 			Itoa(integer, 'd', tsc / Divider);
-			Itoa(decimal, 'd', tsc % Divider);
 
 			KernelPort->PutStr("[");
 			KernelPort->PutStr(integer);
-			KernelPort->PutStr(".");
-			KernelPort->PutStr(decimal);
 			KernelPort->PutStr("] ");
 		} else {
-			KernelPort->PutStr("[0.00000000] ");
+			KernelPort->PutStr("[000000] ");
 		}
 		KernelPort->PutStr(TerminalColumn);
 	}
