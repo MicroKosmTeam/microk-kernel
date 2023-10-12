@@ -39,9 +39,6 @@
 #include <sys/loader.hpp>
 #include <sys/syscall.hpp>
 #include <proc/scheduler.hpp>
-#include <module/modulemanager.hpp>
-#include <module/buffer.hpp>
-#include <module/section.hpp>
 
 #if defined(ARCH_x64)
 #include <arch/x64/main.hpp>
@@ -143,13 +140,6 @@ __attribute__((noreturn)) void KernelStart() {
 	PROC::KernelThread *kernelThread = (PROC::KernelThread*)PROC::CreateThread((PROC::ProcessBase*)info->KernelProcess, (uintptr_t)&RestInit, 64 * 1024, 0, 0);
 	PROC::AddThreadToQueue(info->KernelScheduler, SCHEDULER_RUNNING_QUEUE, kernelThread);
 */
-	/* Initialize the kernel's module manager */
-	info->KernelModuleManager = new MODULE::Manager();
-	info->KernelBufferManager = new MODULE::BufferManager();
-	info->KernelSectionManager = new MODULE::SectionManager();
-
-	PRINTK::PrintK("Module managment initialized.\r\n");
-	
 	/* Load all the files we are told to load */
 	size_t moduleSize;
 	uint8_t *addr;

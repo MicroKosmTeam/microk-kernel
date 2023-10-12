@@ -33,9 +33,6 @@
 #include <mm/vmm.hpp>
 #include <proc/process.hpp>
 #include <proc/scheduler.hpp>
-#include <module/modulemanager.hpp>
-#include <module/buffer.hpp>
-#include <module/section.hpp>
 #include <dev/earlycon.hpp>
 
 /*
@@ -87,10 +84,6 @@ struct KInfo {
 	size_t FileCount; /* Number of modules provided */
 
 	char UserModuleName[256];
-
-	MODULE::Manager *KernelModuleManager;
-	MODULE::BufferManager *KernelBufferManager;
-	MODULE::SectionManager *KernelSectionManager;
 
 	uintptr_t KernelBaseSystemTable;
 	uintptr_t BootFileSystemTable;

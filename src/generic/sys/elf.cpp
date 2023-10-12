@@ -9,8 +9,6 @@
 #include <mm/pmm.hpp>
 #include <mm/vmm.hpp>
 #include <init/kinfo.hpp>
-#include <module/modulemanager.hpp>
-#include <module/buffer.hpp>
 #include <proc/process.hpp>
 #include <proc/scheduler.hpp>
 

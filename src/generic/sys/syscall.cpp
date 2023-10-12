@@ -14,10 +14,6 @@
 #include <sys/loader.hpp>
 #include <sys/syscall.hpp>
 #include <proc/helpers.hpp>
-#include <module/module.hpp>
-#include <module/buffer.hpp>
-#include <module/message.hpp>
-#include <module/modulemanager.hpp>
 
 #if defined(ARCH_x64)
 #include <arch/x64/io/io.hpp>
@@ -41,18 +37,6 @@ size_t HandleSyscallProcReturn(size_t returnCode);
 size_t HandleSyscallProcExit(size_t exitCode);
 size_t HandleSyscallProcWait(size_t TODO);
 size_t HandleSyscallProcSendSig(size_t TODO);
-
-size_t HandleSyscallModuleRegister(size_t vendorID, size_t productID);
-size_t HandleSyscallModuleUnregister();
-size_t HandleSyscallModuleBufferCreate(size_t size, size_t type, uint32_t *id);
-size_t HandleSyscallModuleBufferMap(uintptr_t address, uint32_t id);
-size_t HandleSyscallModuleBufferUnMap(uintptr_t address, uint32_t id);
-size_t HandleSyscallModuleBufferDelete(uint32_t id);
-size_t HandleSyscallModuleMessageHandler(uintptr_t entry);
-size_t HandleSyscallModuleMessageSend(uint32_t vendorID, uint32_t productID, void *data, size_t size);
-size_t HandleSyscallModuleSectionRegister(const char *sectionName);
-size_t HandleSyscallModuleSectionGet(const char *sectionName, uint32_t *vendorID, uint32_t *productID);
-size_t HandleSyscallModuleSectionUnregister(const char *sectionName);
 
 __attribute__((aligned(PAGE_SIZE))) SyscallFunctionCallback SyscallVector[SYSCALL_VECTOR_END];
 
@@ -337,138 +321,5 @@ size_t HandleSyscallProcWait(size_t TODO) {
 
 size_t HandleSyscallProcSendSig(size_t TODO) {
 	(void)TODO;
-	return 0;
-}
-
-size_t HandleSyscallModuleRegister(size_t vendorID, size_t productID) {
-	KInfo *info = GetInfo();
-
-	PROC::UserProcess *proc = (PROC::UserProcess*)PROC::GetProcess();
-
-	info->KernelModuleManager->RegisterModule(proc, vendorID, productID);
-
-	return 0;
-}
-
-size_t HandleSyscallModuleUnregister() {
-	KInfo *info = GetInfo();
-
-	PROC::UserProcess *proc = (PROC::UserProcess*)PROC::GetProcess();
-
-	MODULE::Module *mod = info->KernelModuleManager->GetModule(proc->ID);
-	if (mod != NULL) info->KernelModuleManager->UnregisterModule(mod->GetVendor(), mod->GetProduct());
-	
-	return 0;
-}
-
-size_t HandleSyscallModuleBufferCreate(size_t size, size_t type, uint32_t *id) {
-	KInfo *info = GetInfo();
-
-	PROC::UserProcess *proc = (PROC::UserProcess*)PROC::GetProcess();
-
-	MODULE::Module *mod = info->KernelModuleManager->GetModule(proc->ID);
-	if (mod == NULL) {
-		return 0;
-	}
-
-	MODULE::Buffer *buf = info->KernelBufferManager->CreateBuffer(mod->GetVendor(), mod->GetProduct(), static_cast<MODULE::BufferType>(type), size);
-	uint32_t tmpID = buf->ID;
-
-	*id = tmpID;
-
-	return 0;
-}
-
-size_t HandleSyscallModuleBufferMap(uintptr_t address, uint32_t id) {
-	KInfo *info = GetInfo();
-
-	PROC::UserProcess *proc = (PROC::UserProcess*)PROC::GetProcess();
-	VMM::VirtualSpace *procSpace = GetVirtualSpace((PROC::ProcessBase*)proc);
-	MODULE::Module *mod = info->KernelModuleManager->GetModule(proc->ID);
-	if (mod == NULL) return 0;
-
-	int result = info->KernelBufferManager->MapBuffer(mod->GetVendor(), mod->GetProduct(), id, procSpace, address);
-
-	return result;
-}
-
-size_t HandleSyscallModuleBufferUnMap(uintptr_t address, uint32_t id) {
-	(void)address;
-	(void)id;
-	return 0;
-}
-
-size_t HandleSyscallModuleBufferDelete(uint32_t id) {
-	(void)id;
-	return 0;
-}
-
-size_t HandleSyscallModuleMessageHandler(uintptr_t entry) {
-	PROC::UserProcess *proc = (PROC::UserProcess*)PROC::GetProcess();
-	(void)proc;
-
-	(void)entry;
-	/* TODO: fix this
-	proc->SetMessageThread(entry);
-	*/
-
-	return 0;
-}
-
-size_t HandleSyscallModuleMessageSend(uint32_t vendorID, uint32_t productID, void *data, size_t size) {
-	if(size == 0) return -1;
-	(void)vendorID;
-	(void)productID;
-	(void)data;
-	(void)size;
-
-	return 0;
-}
-
-size_t HandleSyscallModuleSectionRegister(const char *sectionName) {
-	KInfo *info = GetInfo();
-
-	char parsedSectionName[MAX_SECTION_LENGTH] = { 0 };
-	Strncpy(parsedSectionName, sectionName, MAX_SECTION_LENGTH);
-
-	PROC::UserProcess *proc = (PROC::UserProcess*)PROC::GetProcess();
-
-	MODULE::Module *mod = info->KernelModuleManager->GetModule(proc->ID);
-	if (mod == NULL) return -1;
-
-	info->KernelSectionManager->RegisterSectionDriver(parsedSectionName, mod->GetVendor(), mod->GetProduct());
-
-	return 0;
-}
-
-size_t HandleSyscallModuleSectionGet(const char *sectionName, uint32_t *vendorID, uint32_t *productID) {
-	KInfo *info = GetInfo();
-
-	char parsedSectionName[MAX_SECTION_LENGTH] = { 0 };
-	Strncpy(parsedSectionName, sectionName, MAX_SECTION_LENGTH);
-
-	uint32_t newVendor, newProduct;
-
-	info->KernelSectionManager->GetSectionDriver(parsedSectionName, &newVendor, &newProduct);
-	
-	*vendorID = newVendor;
-	*productID = newProduct;
-
-	return 0;
-}
-
-size_t HandleSyscallModuleSectionUnregister(const char *sectionName) {
-	KInfo *info = GetInfo();
-
-	char parsedSectionName[MAX_SECTION_LENGTH] = { 0 };
-	Strncpy(parsedSectionName, sectionName, MAX_SECTION_LENGTH);
-
-	PROC::UserProcess *proc = (PROC::UserProcess*)PROC::GetProcess();
-
-	MODULE::Module *mod = info->KernelModuleManager->GetModule(proc->ID);
-	if (mod == NULL) return 0;
-
-	info->KernelSectionManager->UnregisterSectionDriver(parsedSectionName, mod->GetVendor(), mod->GetProduct());
-
 	return 0;
 }
