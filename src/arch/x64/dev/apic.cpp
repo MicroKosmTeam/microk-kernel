@@ -51,12 +51,21 @@ void WaitAPIC() {
 }
 
 void EnableAPIC() {	
-	SetAPICBase(GetAPICBase());
+	APIC *apic = new APIC;
+	apic->Initialize = NULL;
+	apic->Deinitialize = NULL;
+	apic->Ioctl = NULL;
 
-	PRINTK::PrintK("APIC at 0x%x\r\n", GetAPICBase());
+	apic->Base = GetAPICBase();
+
+	SetAPICBase(apic->Base);
+	PRINTK::PrintK("APIC at 0x%x\r\n", apic->Base);
 
 	WriteAPICRegister(0xF0, 0x100 + 39);
 	WriteAPICRegister(0x80, 0x1);
+
+	APICTimer *timer = apic->Timer = new APICTimer;
+	timer->Initialize = InitializeAPICTimer;
 
 	WriteAPICRegister(0x320, 32);
 	WriteAPICRegister(0x340, 0x10000);
