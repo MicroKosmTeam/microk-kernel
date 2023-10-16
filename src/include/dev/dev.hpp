@@ -7,21 +7,19 @@
 typedef intmax_t request_t;
 
 namespace DEV {
+	struct DeviceMemory {
+		uintptr_t Address;
+		int Type;
+	};
+
 	struct Device {
-		int (*Initialize)(Device *device);
-		int (*Deinitialize)(Device *device);
+		int (*Initialize)(Device *device, va_list ap);
+		int (*Deinitialize)(Device *device, va_list ap);
 
 		intmax_t (*Ioctl)(Device *device, request_t request, va_list ap);
 	};
 
-	int InitializeDevice(Device *device);
-	int DeinitializeDevice(Device *device);
+	int InitializeDevice(Device *device, ...);
+	int DeinitializeDevice(Device *device, ...);
 	intmax_t Ioctl(Device *device, request_t request, ...);
 }
-
-class Device {
-public:
-	virtual ~Device() { };
-	virtual uintmax_t Ioctl(uintmax_t request, ...) = 0;
-protected:
-};
