@@ -1,6 +1,7 @@
 #include <arch/x64/dev/pit.hpp>
-
 #include <arch/x64/io/io.hpp>
+
+#ifdef UNDEF
 
 #define PIT_IO_PORT_CHANNEL_0        0x40 /* Read and write */
 #define PIT_IO_PORT_CHANNEL_1        0x41 /* Read and write */
@@ -27,3 +28,4 @@ uintmax_t PIT::Ioctl(uintmax_t request, ...) {
 	return result;
 }
 }
+#endif

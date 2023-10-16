@@ -1,5 +1,6 @@
 #include <arch/x64/dev/ioapic.hpp>
 
+#ifdef UNDEF
 namespace x86_64 {
 IOAPIC::IOAPIC(uintptr_t address) {
 	Address = address;
@@ -42,3 +43,4 @@ void IOAPIC::WriteIOAPIC(uint32_t reg, uint32_t value) {
 	ioapic[4] = value; /* Write to selected register */
 }
 }
+#endif

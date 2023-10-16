@@ -7,6 +7,11 @@
 #define IOAPIC_IOCTL_REQUEST_WRITE_IOAPIC 0x02
 
 namespace x86_64 {
+	struct IOAPOC : public DEV::Device {
+
+	};
+
+#ifdef UNDEF
 	class IOAPIC : public Device {
 		public:
 			IOAPIC(uintptr_t address);
@@ -18,4 +23,5 @@ namespace x86_64 {
 		private:
 			uintptr_t Address;
 	};
+#endif
 }
