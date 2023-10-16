@@ -79,16 +79,16 @@ namespace MEM {
 void DisplayRam() {
 	KInfo *info = GetInfo();
 
-	PRINTK::PrintK("Provided physical RAM map:\r\n");
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Provided physical RAM map:\r\n");
 
 	for (size_t i = 0; i < info->MemoryMapEntryCount; i++) {
-		PRINTK::PrintK(" [0x%x - 0x%x] -> %s\r\n",
+		PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, " [0x%x - 0x%x] -> %s\r\n",
 				info->MemoryMap[i].base,
 				info->MemoryMap[i].base + info->MemoryMap[i].length,
 				memTypeStrings[info->MemoryMap[i].type]);
 	}
 
-	PRINTK::PrintK("Contiguous regions:\r\n");
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Contiguous regions:\r\n");
 	bool isAllUnusable = true;
 	uintptr_t base = info->MemoryMap[0].base;
 	size_t length = info->MemoryMap[0].length;
@@ -98,7 +98,7 @@ void DisplayRam() {
 			length += info->MemoryMap[region].length;
 			if(isAllUnusable) isAllUnusable = info->MemoryMap[region].type == MEMMAP_USABLE ? false : true;
 		} else {
-			PRINTK::PrintK(" %s area: [0x%x - 0x%x]\r\n",
+			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, " %s area: [0x%x - 0x%x]\r\n",
 				isAllUnusable ? "Unusable" : "Usable",
 				base,
 				base + length);
@@ -109,7 +109,7 @@ void DisplayRam() {
 		}
 	}
 
-	PRINTK::PrintK(" %s area: [0x%x - 0x%x]\r\n",
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, " %s area: [0x%x - 0x%x]\r\n",
 				isAllUnusable ? "Unusable" : "Usable",
 				base,
 				base + length);
@@ -118,7 +118,7 @@ void DisplayRam() {
 
 
 void InvokeOOM() {
-	PRINTK::PrintK("OOM invoked, system is out of memory.\r\n");
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "OOM invoked, system is out of memory.\r\n");
 
 	PANIC("Out of memory");
 }

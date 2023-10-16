@@ -170,7 +170,7 @@ int InitDevices() {
 }
 
 int HandleMADT(MADTHeader *madt) {
-	PRINTK::PrintK("Local APIC detected at 0x%x.\r\n", madt->LocalAPICAddress);
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Local APIC detected at 0x%x.\r\n", madt->LocalAPICAddress);
 
 	MADTRecord *record;
 	uintptr_t offset = MADT_RECORD_START_OFFSET;
@@ -181,7 +181,7 @@ int HandleMADT(MADTHeader *madt) {
 		switch(record->EntryType) {
 			case MADT_RECORD_TYPE_PROCESSOR_LOCAL_APIC: {
 				MADTRecordProcessorLocalAPIC *plapic = (MADTRecordProcessorLocalAPIC*)record;
-				PRINTK::PrintK("Processor Local APIC:\r\n"
+				PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Processor Local APIC:\r\n"
 					       " - ACPI Processor ID: %d\r\n"
 				               " - APIC ID: %d\r\n"
 					       " - Flags: %d\r\n",
@@ -190,7 +190,7 @@ int HandleMADT(MADTHeader *madt) {
 				break;
 			case MADT_RECORD_TYPE_IOAPIC: {
 				MADTRecordIOAPIC *ioapic = (MADTRecordIOAPIC*)record;
-				PRINTK::PrintK("IOAPIC:\r\n"
+				PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "IOAPIC:\r\n"
 					       " - IOAPIC ID: %d\r\n"
 					       " - IOAPIC Address: 0x%x\r\n"
 					       " - Global System Interrupt Base: 0x%x\r\n",
@@ -199,7 +199,7 @@ int HandleMADT(MADTHeader *madt) {
 				break;
 			case MADT_RECORD_TYPE_IOAPIC_INTERRUPT_SOURCE_OVERRIDE: {
 				MADTRecordIOAPICInterruptSourceOverride *ioapic = (MADTRecordIOAPICInterruptSourceOverride*)record;
-				PRINTK::PrintK("IOAPIC Interrupt Source Override:\r\n"
+				PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "IOAPIC Interrupt Source Override:\r\n"
 					       " - Bus source: %d\r\n"
 					       " - IRQ source: %d\r\n"
 					       " - Global System Interrupt: 0x%x\r\n"
@@ -209,7 +209,7 @@ int HandleMADT(MADTHeader *madt) {
 				break;
 			case MADT_RECORD_TYPE_IOAPIC_NON_MASKABLE_INTERRUPT_SOURCE: {
 				MADTRecordIOAPICNonMaskableInterruptSource *ioapic = (MADTRecordIOAPICNonMaskableInterruptSource*)record;
-				PRINTK::PrintK("IOAPIC Non Maskable Interrupt Source:\r\n"
+				PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "IOAPIC Non Maskable Interrupt Source:\r\n"
 					       " - NMI source: %d\r\n"
 					       " - Flags : 0x%x\r\n"
 					       " - Global System Interrupt: 0x%x\r\n",
@@ -218,7 +218,7 @@ int HandleMADT(MADTHeader *madt) {
 				break;
 			case MADT_RECORD_TYPE_LOCAL_APIC_NON_MASKABLE_INTERRUPTS: {
 				MADTRecordLocalAPICNonMaskableInterrupts *lapic = (MADTRecordLocalAPICNonMaskableInterrupts*)record;
-				PRINTK::PrintK("Local APIC Non Maskable Interrupts:\r\n"
+				PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Local APIC Non Maskable Interrupts:\r\n"
 					       " - ACPI Processor ID: %d\r\n"
 					       " - Flags : %d\r\n"
 					       " - LINT#: %d\r\n",
@@ -227,14 +227,14 @@ int HandleMADT(MADTHeader *madt) {
 				break;
 			case MADT_RECORD_TYPE_LOCAL_APIC_ADDRESS_OVERRIDE: {
 				MADTRecordLocalAPICAddressOverride *lapic = (MADTRecordLocalAPICAddressOverride*)record;
-				PRINTK::PrintK("Local APIC Address Override:\r\n"
+				PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Local APIC Address Override:\r\n"
 					       " - Address: 0x%x\r\n",
 					       lapic->LocalAPICAddress);
 				}
 				break;
 			case MADT_RECORD_TYPE_PROCESSOR_LOOCAL_x2APIC: {
 				MADTRecordProcessorLocalx2APIC *x2apic = (MADTRecordProcessorLocalx2APIC*)record;
-				PRINTK::PrintK("Processor Local x2APIC:\r\n"
+				PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Processor Local x2APIC:\r\n"
 					       " - Local x2APIC ID: %d\r\n"
 					       " - Flags: %d\r\n"
 					       " - ACPI Processor ID: %d\r\n",
@@ -242,7 +242,7 @@ int HandleMADT(MADTHeader *madt) {
 				}
 				break;
 			default:
-				PRINTK::PrintK("Unknown MADT Record: %d\r\n", record->EntryType);
+				PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Unknown MADT Record: %d\r\n", record->EntryType);
 				break;
 		}
 	}
@@ -259,7 +259,7 @@ int HandleSRAT(SDTHeader *srat) {
 		
 		switch(record->EntryType) {
 			default:
-				PRINTK::PrintK("Unknown SRAT Record. %d\r\n", record->EntryType);
+				PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Unknown SRAT Record. %d\r\n", record->EntryType);
 				break;
 		}
 	}
@@ -268,7 +268,7 @@ int HandleSRAT(SDTHeader *srat) {
 }
 
 int HandleHPET(HPETHeader *hpet) {
-	PRINTK::PrintK("HPET:\r\n"
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "HPET:\r\n"
 			" - Hardware Revision ID: %d\r\n"
 			" - Comparator Count: %d\r\n"
 			" - Counter Size: %d\r\n"
@@ -283,8 +283,7 @@ int HandleHPET(HPETHeader *hpet) {
 
 	uint64_t tscPerSecond = 0;
 	CalibrateTSCWithHPET(hpet->Address.Address, &tscPerSecond);
-	PRINTK::SetPrintKTimerDivider(tscPerSecond / 1000000);
-	PRINTK::PrintK("CPU is running at %d.%dMHz\r\n", tscPerSecond / 1000000, tscPerSecond % 1000000 / 1000);
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "CPU is running at %d.%dMHz\r\n", tscPerSecond / 1000000, tscPerSecond % 1000000 / 1000);
 
 	SetAPICTimer(tscPerSecond / 2000);
 	EnableAPIC();

@@ -31,7 +31,7 @@ namespace __cxxabiv1 {
 void *__dso_handle = 0; /* Attention! Optimally, we should remove the '= 0' part and define this in your asm script. */
 
 extern "C" void __cxa_pure_virtual() {
-	PRINTK::PrintK(PREFIX "Failed to call virtual function.\r\n");
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Failed to call virtual function.\r\n");
 }
 
 extern "C" int __cxa_atexit(void (*f)(void *), void *objptr, void *dso) {

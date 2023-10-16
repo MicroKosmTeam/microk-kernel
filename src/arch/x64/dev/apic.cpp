@@ -59,7 +59,7 @@ void EnableAPIC() {
 	apic->Base = GetAPICBase();
 
 	SetAPICBase(apic->Base);
-	PRINTK::PrintK("APIC at 0x%x\r\n", apic->Base);
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "APIC at 0x%x\r\n", apic->Base);
 
 	WriteAPICRegister(0xF0, 0x100 + 39);
 	WriteAPICRegister(0x80, 0x1);
@@ -71,7 +71,7 @@ void EnableAPIC() {
 	WriteAPICRegister(0x340, 0x10000);
 	WriteAPICRegister(0x380, 0x0);
 
-	PRINTK::PrintK("APIC enabled.\r\n");
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "APIC enabled.\r\n");
 }
 
 void SendAPICEOI() {

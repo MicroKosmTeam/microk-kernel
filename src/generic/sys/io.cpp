@@ -1,7 +1,5 @@
 #include <sys/io.hpp>
 
-#include <arch/x64/io/io.hpp>
-
 static inline int HandleSYSIORequest(IORequest *request);
 static inline int HandleSYSGENERALRequest(IORequest *request);
 

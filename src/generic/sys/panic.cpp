@@ -5,7 +5,7 @@
 __attribute__((noreturn))
 void Panic(const char *message, const char *file, const char *function, unsigned int line) {
         // Printing the panic message
-	PRINTK::PrintK("\r\n\r\n"
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "\r\n\r\n"
 		       " [PANIC] KERNEL PANIC\r\n"
 		       " [PANIC] Irrecoverable error in the kernel.\r\n"
 		       " [PANIC] %s in function %s at line %d\r\n"
@@ -14,14 +14,14 @@ void Panic(const char *message, const char *file, const char *function, unsigned
 
 	UnwindStack(64);
 
-	PRINTK::PrintK("\r\n [Hanging now...]\r\n\r\n");
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "\r\n [Hanging now...]\r\n\r\n");
 
         while (true);
 }
 
 void Oops(const char *message, const char *file, const char *function, unsigned int line) {
         // Printing the panic message
-	PRINTK::PrintK("\r\n\r\n"
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "\r\n\r\n"
 		       " [OOPS] KERNEL OOPS\r\n"
 		       " [OOPS] Error in the kernel.\r\n"
 		       " [OOPS] %s in function %s at line %d\r\n"
@@ -30,5 +30,5 @@ void Oops(const char *message, const char *file, const char *function, unsigned 
 
 	UnwindStack(64);
 
-	PRINTK::PrintK("\r\n [Continuing execution...]\r\n\r\n");
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "\r\n [Continuing execution...]\r\n\r\n");
 }

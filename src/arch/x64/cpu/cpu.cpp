@@ -134,9 +134,9 @@ void CPUInit() {
 	SetIOPL();
 
 	uint16_t sseFeatures = EnableSMID();
-	PRINTK::PrintK("SSE features: %x\r\n", sseFeatures);
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "SSE features: %x\r\n", sseFeatures);
 
-	PRINTK::PrintK("Syscall entries at 00x%x\r\n", &SyscallEntry);
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Syscall entries at 00x%x\r\n", &SyscallEntry);
 	EnableSCE(NULL, (void*)&SyscallEntry);
 
 	SetMSR(MSR_GSBASE, 0xDEADDEAD, 0xDEADDEAD);

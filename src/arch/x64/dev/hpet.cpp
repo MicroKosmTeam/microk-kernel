@@ -29,7 +29,7 @@ int CalibrateTSCWithHPET(uintptr_t hpetAddress, uint64_t *tscTicksPerSecond) {
 	// Calculate the desired HPET timer resolution (e.g., 1 millisecond)
 	uint64_t counterClkPeriod = *capabilities >> 32;
 	if (counterClkPeriod > 0x05F5E100) {
-		PRINTK::PrintK("Invalid clk period\r\n");
+		PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Invalid clk period\r\n");
 		return 0;
 	}
 	

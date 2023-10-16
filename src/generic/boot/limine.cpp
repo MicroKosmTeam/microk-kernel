@@ -174,13 +174,13 @@ void LimineEntry() {
 	}
 	
 	/* Transporting the MMAP */
-	PRINTK::PrintK(PREFIX "Getting the memory map from Limine...\r\n");
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Get the memory map from Limine.\r\n");
 
 	int MemoryMapEntryCount = MemoryMapRequest.response->entry_count;
 	info->MemoryMapEntryCount = MemoryMapEntryCount;
 	info->MemoryMap = (MEM::MMapEntry*)BOOTMEM::Malloc(sizeof(MEM::MMapEntry) * MemoryMapEntryCount + 1);
 
-	PRINTK::PrintK(PREFIX "Allocating for %d memory map entries.\r\n", MemoryMapEntryCount);
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Allocating for %d memory map entries.\r\n", MemoryMapEntryCount);
 	for (int i = 0; i < MemoryMapEntryCount; i++) {
 		info->MemoryMap[i].base = MemoryMapRequest.response->entries[i]->base;
 		info->MemoryMap[i].length = MemoryMapRequest.response->entries[i]->length;
@@ -204,7 +204,7 @@ void LimineEntry() {
 
 		info->BootFiles = (BootFile*)BOOTMEM::Malloc(moduleCount * sizeof(BootFile));
 
-		PRINTK::PrintK(PREFIX "Allocating for %d modules.\r\n", moduleCount);
+		PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Allocating for %d modules.\r\n", moduleCount);
 
 		for (int i = 0; i < moduleCount; i++) {
 			info->BootFiles[i].Address = (uintptr_t)ModuleRequest.response->modules[i]->address;
@@ -218,70 +218,70 @@ void LimineEntry() {
 	}
 
 	if(SMPRequest.response == NULL) {
-		PRINTK::PrintK(PREFIX "WARNING: no SMP detected, assuming single core processor.\r\n");
+		PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "WARNING: no SMP detected, assuming single core processor.\r\n");
 	} else {
 		if(SMPRequest.response->cpu_count > 1 && SMPRequest.response->cpus != NULL) {
-			PRINTK::PrintK(PREFIX "SMP detected with %d processors.\r\n", SMPRequest.response->cpu_count);
+			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "SMP detected with %d processors.\r\n", SMPRequest.response->cpu_count);
 			for (size_t i = 0; i < SMPRequest.response->cpu_count; ++i) {
 				SMPRequest.response->cpus[i]->goto_address = &LimineSMPEntry;
 			}
 		} else {
-			PRINTK::PrintK(PREFIX "WARNING: no SMP detected, assuming single core processor.\r\n");
+			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "WARNING: no SMP detected, assuming single core processor.\r\n");
 		}
 	}
 
 	if(RSDPRequest.response == NULL) {
-		PRINTK::PrintK(PREFIX "WARNING: no RSDP found.\r\n");
+		PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "WARNING: no RSDP found.\r\n");
 		info->RSDP = NULL;
 	} else {
 		if(RSDPRequest.response->address != NULL) {
-			PRINTK::PrintK(PREFIX "RSDP found at 0x%x\r\n", RSDPRequest.response->address);
+			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "RSDP found at 0x%x\r\n", RSDPRequest.response->address);
 			info->RSDP = RSDPRequest.response->address;
 		} else {
-			PRINTK::PrintK(PREFIX "WARNING: no RSDP found.\r\n");
+			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "WARNING: no RSDP found.\r\n");
 			info->RSDP = NULL;
 		}
 	}
 
 	if(SMBIOSRequest.response == NULL) {
-		PRINTK::PrintK(PREFIX "WARNING: no viable SMBIOS entry found.\r\n");
+		PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "WARNING: no viable SMBIOS entry found.\r\n");
 	} else {
 		if(SMBIOSRequest.response->entry_64 != NULL) {
-			PRINTK::PrintK(PREFIX "SMBIOS 64 entry at 0x%x\r\n", SMBIOSRequest.response->entry_64);
+			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "SMBIOS 64 entry at 0x%x\r\n", SMBIOSRequest.response->entry_64);
 		} else if (SMBIOSRequest.response->entry_32 != NULL) {
-			PRINTK::PrintK(PREFIX "SMBIOS 32 entry at 0x%x\r\n", SMBIOSRequest.response->entry_32);
+			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "SMBIOS 32 entry at 0x%x\r\n", SMBIOSRequest.response->entry_32);
 		} else {
-			PRINTK::PrintK(PREFIX "WARNING: no viable SMBIOS entry found.\r\n");
+			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "WARNING: no viable SMBIOS entry found.\r\n");
 		}
 	}
 
 	if(EFITableRequest.response == NULL) {
-		PRINTK::PrintK(PREFIX "WARNING: EFI system table not found, assuming we're running on a BIOS system.\r\n");
+		PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "WARNING: EFI system table not found, assuming we're running on a BIOS system.\r\n");
 	} else {
 		if(EFITableRequest.response->address != NULL) {
-			PRINTK::PrintK(PREFIX "EFI system table found at 0x%x\r\n", EFITableRequest.response->address);
+			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "EFI system table found at 0x%x\r\n", EFITableRequest.response->address);
 		} else {
-			PRINTK::PrintK(PREFIX "WARNING: EFI system table not found, assuming we're running on a BIOS system.\r\n");
+			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "WARNING: EFI system table not found, assuming we're running on a BIOS system.\r\n");
 		}
 	}
 
 	if(DTBRequest.response == NULL) {
-		PRINTK::PrintK(PREFIX "WARNING: No DTB found.\r\n");
+		PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "WARNING: No DTB found.\r\n");
 	} else {
 		if(DTBRequest.response->dtb_ptr != NULL) {
-			PRINTK::PrintK(PREFIX "DTB found at 0x%x\r\n", DTBRequest.response->dtb_ptr);
+			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "DTB found at 0x%x\r\n", DTBRequest.response->dtb_ptr);
 		} else {
-			PRINTK::PrintK(PREFIX "WARNING: No DTB found.\r\n");
+			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "WARNING: No DTB found.\r\n");
 		}
 	}
 	
 	if (FramebufferRequest.response == NULL) {
-		PRINTK::PrintK(PREFIX "WARNING: No framebuffers detected.\r\n");
+		PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "WARNING: No framebuffers detected.\r\n");
 		info->FramebufferCount = 0;
 		info->Framebuffers = NULL;
 	} else {
 		int framebufferCount = FramebufferRequest.response->framebuffer_count;
-		PRINTK::PrintK(PREFIX "%d framebuffers detected.\r\n", framebufferCount);
+		PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "%d framebuffers detected.\r\n", framebufferCount);
 		info->FramebufferCount = framebufferCount;
 		info->Framebuffers = (Framebuffer*)BOOTMEM::Malloc(sizeof(Framebuffer) * framebufferCount);
 

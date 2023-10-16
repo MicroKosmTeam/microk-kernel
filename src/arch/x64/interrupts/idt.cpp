@@ -66,7 +66,7 @@ void IDTInit() {
 }
 
 static inline void PrintRegs(CPUStatus *context) {
-	PRINTK::PrintK(" -> RAX: 0x%x\r\n"
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, " -> RAX: 0x%x\r\n"
 			" -> RBX: 0x%x\r\n"
 			" -> RCX: 0x%x\r\n"
 			" -> RDX: 0x%x\r\n"
@@ -147,18 +147,18 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 */
 	switch(context->VectorNumber) {
 		case 0:
-			PRINTK::PrintK("Division by zero.\r\n");
+			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Division by zero.\r\n");
 			break;
 		case 6:
 			PrintRegs(context);
-			PRINTK::PrintK("Invalid opcode.\r\n");
+			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Invalid opcode.\r\n");
 			break;
 		case 8:
 			PANIC("Double fault");
 			break;
 		case 13: {
 			PrintRegs(context);
-			PRINTK::PrintK("General protection fault.\r\n");
+			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "General protection fault.\r\n");
 			PANIC("General protection fault");
 			break;
 			}
@@ -192,10 +192,10 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 					for(pageSelector = 0; pageSelector < pages->PageCount; ++pageSelector) {
 						if(!pages->Pages[pageSelector].IsCOW) continue;
 						if(pages->Pages[pageSelector].Data.COW->PhysicalAddressOfCopy != 0) continue;
-						//PRINTK::PrintK("Page %d.\r\n", pageSelector);
+						//PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Page %d.\r\n", pageSelector);
 
 						for(virtualReference = 0; virtualReference < pages->Pages[pageSelector].Data.COW->VirtualReferences; ++virtualReference) {
-							//PRINTK::PrintK(" %d. 0x%x vs 0x%x\r\n", virtualReference, pages->Pages[pageSelector].Data.COW->VirtualAddresses[virtualReference], roundedPage);
+							//PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, " %d. 0x%x vs 0x%x\r\n", virtualReference, pages->Pages[pageSelector].Data.COW->VirtualAddresses[virtualReference], roundedPage);
 							if(pages->Pages[pageSelector].Data.COW->VirtualAddresses[virtualReference] == roundedPage) {
 								found = true;
 								break;
@@ -211,7 +211,7 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 
 			if(!found) {
 				PrintRegs(context);
-				PRINTK::PrintK("Page fault in page 0x%x because of a %s.\r\nIt was caused by a %s from %s.\r\nIt %s because of an instruction fetch.\r\n",
+				PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Page fault in page 0x%x because of a %s.\r\nIt was caused by a %s from %s.\r\nIt %s because of an instruction fetch.\r\n",
 					page,
 					protectionViolation ? "page protection violation" : "non-present page",
 					writeAccess ? "write" : "read",
@@ -226,14 +226,14 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 				       (void*)(pages->Pages[pageSelector].Data.COW->PhysicalAddressOfOriginal + info->HigherHalfMapping),
 				       PAGE_SIZE);
 /*
-				PRINTK::PrintK("COW!!\r\n"
+				PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "COW!!\r\n"
 					       " Original: 0x%x\r\n"
 					       " Copy:     0x%x\r\n", pages->Pages[pageSelector].Data.COW->PhysicalAddressOfOriginal, copy);
 */
 
 				pages->Pages[pageSelector].Data.COW->PhysicalAddressOfCopy = copy;
 				VMM::MapMemory(procSpace, (void*)copy, (void*)roundedPage, VMM::VMM_PRESENT | VMM::VMM_USER | VMM::VMM_READWRITE);
-/*				PRINTK::PrintK("Cow, out.\r\n");*/
+/*				PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Cow, out.\r\n");*/
 			}
 
 			}
@@ -274,7 +274,7 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 			HandleSyscall(context->RAX, context->RDI, context->RSI, context->RDX, context->RCX, context->R8, context->R9);
 			break;
 		default:
-			PRINTK::PrintK("Unhandled interrupt: 0x%x\r\n", context->VectorNumber);
+			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Unhandled interrupt: 0x%x\r\n", context->VectorNumber);
 			OOPS("Unhandled interrupt");
 			break;
 	}

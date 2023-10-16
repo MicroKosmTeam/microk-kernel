@@ -5,7 +5,7 @@
 extern "C" void EfiMain() {
 	EarlyKernelInit();
 
-	PRINTK::PrintK("Hello from MicroK EFI Stub.\r\n");
+	PRINTK::PrintK(PRINTK::INFO, MODULE_NAME, "Hello from MicroK EFI Stub.\r\n");
 
 	return;
 }

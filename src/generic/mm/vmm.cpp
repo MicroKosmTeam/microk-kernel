@@ -12,7 +12,7 @@ void InitVMM() {
 
 	LoadVirtualSpace(info->KernelVirtualSpace);
 
-	PRINTK::PrintK("Virtual memory subsystem initialized.\r\n");
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Virtual memory subsystem initialized.\r\n");
 
 }
 
@@ -82,7 +82,7 @@ VirtualSpace *AllocateVirtualSpace() {
 #if defined(ARCH_x64)
 	return x86_64::NewVirtualSpace();
 #elif defined(ARCH_aarch64)
-	PRINTK::PrintK("TODO: Implement arm virtual memory.\r\n");
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "TODO: Implement arm virtual memory.\r\n");
 	return NULL;
 #endif
 }

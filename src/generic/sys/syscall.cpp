@@ -43,7 +43,7 @@ __attribute__((aligned(PAGE_SIZE))) SyscallFunctionCallback SyscallVector[SYSCAL
 void InitSyscalls() {
 	Memset(SyscallVector, 0, SYSCALL_VECTOR_END * sizeof(SyscallFunctionCallback));
 
-	PRINTK::PrintK("Initializing system call API.\r\n");
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Initializing system call API.\r\n");
 
 	SyscallVector[SYSCALL_DEBUG_PRINTK] = (SyscallFunctionCallback)(void*)HandleSyscallDebugPrintK;
 
@@ -70,7 +70,7 @@ size_t HandleSyscallDebugPrintK(const_userptr_t userString) {
 	char string[MAX_PRINTK_SYSCALL_MESSAGE_LENGTH + 1] = { '\0' };
 	CopyStringFromUser(string, userString, MAX_PRINTK_SYSCALL_MESSAGE_LENGTH);
 
-	PRINTK::PrintK("%s", string);
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "%s", string);
 
 	return 0;
 }
@@ -87,7 +87,7 @@ size_t HandleSyscallMemoryVMAlloc(const_userptr_t userBase, size_t length, size_
 	PROC::UserProcess *proc = (PROC::UserProcess*)PROC::GetProcess();
 	VMM::VirtualSpace *procSpace = GetVirtualSpace((PROC::ProcessBase*)proc);
 	
-	PRINTK::PrintK("Calling VMAlloc for PID %d. Base: 0x%x, Length: %d bytes, Flags: 0x%x.\r\n", proc->ID, base, length, flags);
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Calling VMAlloc for PID %d. Base: 0x%x, Length: %d bytes, Flags: 0x%x.\r\n", proc->ID, base, length, flags);
 
 	if (base % PAGE_SIZE) base -= base % PAGE_SIZE;
 	if (length % PAGE_SIZE) length += PAGE_SIZE - length % PAGE_SIZE;
@@ -107,7 +107,7 @@ size_t HandleSyscallMemoryVMAlloc(const_userptr_t userBase, size_t length, size_
 		}
 	}
 
-	PRINTK::PrintK("Executing VMAlloc for PID %d completed successfully.\r\n", proc->ID);
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Executing VMAlloc for PID %d completed successfully.\r\n", proc->ID);
 
 	return 0;
 }
@@ -216,7 +216,7 @@ size_t HandleSyscallProcExec(userptr_t executableBase, size_t executableSize) {
 	CopyFromUser(heapAddr, executableBase, executableSize);
 	
 	size_t pid = LoadExecutableFile((uint8_t*)heapAddr, executableSize);
-	PRINTK::PrintK("New process is PID: 0x%x\r\n", pid);
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "New process is PID: 0x%x\r\n", pid);
 
 	Free(heapAddr);
 
@@ -290,7 +290,7 @@ size_t HandleSyscallProcReturn(size_t returnCode) {
 */
 #endif
 
-	PRINTK::PrintK("Returning in 0x%x: %d form 0x%x (0x%x)\r\n", kernelStack, returnCode, userStack, userStackBase); 
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Returning in 0x%x: %d form 0x%x (0x%x)\r\n", kernelStack, returnCode, userStack, userStackBase); 
 
 	//PROC::SetExecutableUnitState(info->KernelScheduler->CurrentThread->Thread, PROC::ExecutableUnitState::P_WAITING);
 
@@ -307,7 +307,7 @@ size_t HandleSyscallProcReturn(size_t returnCode) {
 
 size_t HandleSyscallProcExit(size_t exitCode) {
 	uintptr_t stack = 0;
-	PRINTK::PrintK("Exiting: %d form 0x%x\r\n", exitCode, stack); 
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Exiting: %d form 0x%x\r\n", exitCode, stack); 
 	
 	while(true);
 

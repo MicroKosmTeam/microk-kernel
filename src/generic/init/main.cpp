@@ -70,7 +70,7 @@ void PrintBanner() {
 	KInfo *info = GetInfo();
 
 	/* Printing banner */
-	PRINTK::PrintK(" __  __  _                _  __\r\n"
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, " __  __  _                _  __\r\n"
 		       "|  \\/  |(_) __  _ _  ___ | |/ /\r\n"
 		       "| |\\/| || |/ _|| '_|/ _ \\|   < \r\n"
 		       "|_|  |_||_|\\__||_|  \\___/|_|\\_\\\r\n"
@@ -93,7 +93,7 @@ void PrintBanner() {
 }
 
 void RestInit() {
-	PRINTK::PrintK("The kernel is resting.\r\n");
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "The kernel is resting.\r\n");
 	
 	while(true) {
 		asm volatile("hlt");
@@ -104,7 +104,7 @@ void RestInit() {
 __attribute__((noreturn)) void KernelStart() {
 	KInfo *info = GetInfo();
 
-	PRINTK::PrintK("MicroKosm is booted. Cmdline: %s\r\n", info->KernelArgs);
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "MicroKosm is booted. Cmdline: %s\r\n", info->KernelArgs);
 	ParseArgs();
 
 	/* Enabling the page frame allocator */
@@ -149,21 +149,21 @@ __attribute__((noreturn)) void KernelStart() {
 	
 	/* Check if it is present */
 	if (addr != NULL) {
-		PRINTK::PrintK("Loading user module from 0x%x\r\n", addr);
+		PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Loading user module from 0x%x\r\n", addr);
 
 		/* Create the process and set it to a ready state */
 		size_t pid = LoadExecutableFile(addr, moduleSize);
 		PROC::SetExecutableUnitState(PROC::GetThread(info->KernelScheduler, pid, 0), PROC::ExecutableUnitState::P_READY);
 
 		/* Recalculate the scheduler and wait for the context switch */
-		PRINTK::PrintK("Switching to user module.\r\n");
+		PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Switching to user module.\r\n");
 #if defined(ARCH_x64)
 		x86_64::WaitAPIC();
 #endif
 	} else PANIC("Could not find User Module");
 #endif
 
-	PRINTK::PrintK("Kernel startup complete.\r\n");
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Kernel startup complete.\r\n");
 
 	/* We are done */
 	while (true) CPUPause();

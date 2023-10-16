@@ -26,29 +26,29 @@ void EarlyInit() {
 	 * be a thing.
 	 */
 	info->KernelStack = (0x800000/* + info->HigherHalfMapping*/);
-	PRINTK::PrintK("Kernel stack: 0x%x\r\n", info->KernelStack);
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Kernel stack: 0x%x\r\n", info->KernelStack);
 
 	/* Initialize the GDT */
 	LoadGDT();
-	PRINTK::PrintK("GDT Loaded.\r\n");
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "GDT Loaded.\r\n");
 
 	/* Initialization of the TSS */
 	TSSInit(info->KernelStack);
 	FlushTSS();
 
 	/* Jumpstart interrupts */
-	PRINTK::PrintK("Loading x86_64 IDT\r\n");
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Loading x86_64 IDT\r\n");
 	IDTInit();
-	PRINTK::PrintK("IDT Loaded.\r\n");
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "IDT Loaded.\r\n");
 }
 
 void Init() {
 	/* x86 CPU initialization */
-	PRINTK::PrintK("Setting up CPU features\r\n");
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Setting up CPU features\r\n");
 	CPUInit();
 
 	/* We get the CPU vendor */
-	PRINTK::PrintK("CPU Vendor: %s\r\n", GetCPUVendor());
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "CPU Vendor: %s\r\n", GetCPUVendor());
 
 	InitDevices();
 }

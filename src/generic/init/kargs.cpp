@@ -48,7 +48,7 @@ void ParseArgs() {
 			/* Select the user file */
 			info->UserModuleName[0] = '/';
 			Strncpy(info->UserModuleName + 1, val, MAX_FILE_NAME_LENGTH);
-			PRINTK::PrintK("USER MODULE: %s\r\n", info->UserModuleName);
+			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "USER MODULE: %s\r\n", info->UserModuleName);
 		} else {
 			/* Invalid argument */
 		}

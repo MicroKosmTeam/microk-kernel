@@ -63,7 +63,7 @@ VMM::PageList *LoadProgramHeaders(uint8_t *data, size_t size, Elf64_Ehdr *elfHea
 		}
 	}
 
-	PRINTK::PrintK("%d pages in list.\r\n", pageCount);
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "%d pages in list.\r\n", pageCount);
 	size_t pageListSize = sizeof(VMM::PageList) + pageCount * sizeof(VMM::PageMetadata);
 	VMM::PageList *elfPages = NULL;
 	elfPages = (VMM::PageList*)Malloc(pageListSize);
@@ -122,7 +122,7 @@ VMM::PageList *LoadProgramHeaders(uint8_t *data, size_t size, Elf64_Ehdr *elfHea
 		progSize += programHeader->p_memsz;
 	}
 
-	PRINTK::PrintK("Loading Complete. Program is %d bytes.\r\n", progSize);
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Loading Complete. Program is %d bytes.\r\n", progSize);
 
 	return elfPages;
 }
@@ -142,7 +142,7 @@ VMM::PageList *LoadProgramHeaders(uint8_t *data, size_t size, Elf64_Ehdr *elfHea
 	for (size_t i = 0; i < sectionHeaderNumber; i++) {
 		sectionHeader = (Elf64_Shdr*)(data + sectionHeaderOffset + sectionHeaderSize * i);
 
-		//PRINTK::PrintK("Section: %s\r\n", &sectionStrtabData[sectionHeader->sh_name]);
+		//PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Section: %s\r\n", &sectionStrtabData[sectionHeader->sh_name]);
 
 		switch(sectionHeader->sh_type) {
 			case SHT_SYMTAB: {
@@ -160,8 +160,8 @@ VMM::PageList *LoadProgramHeaders(uint8_t *data, size_t size, Elf64_Ehdr *elfHea
 	size_t symbolNumber = symtab->sh_size / symtab->sh_entsize;
 	const char *strtabData = (const char*)(data + strtab->sh_offset);
 
-	//PRINTK::PrintK("Symbol table: 0x%x\r\n", symtab);
-	//PRINTK::PrintK("There are %d symbols.\r\n", symbolNumber);
+	//PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Symbol table: 0x%x\r\n", symtab);
+	//PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "There are %d symbols.\r\n", symbolNumber);
 
 	Elf64_Sym *symbol;
 
@@ -179,7 +179,7 @@ size_t LoadProcess(Elf64_Ehdr *elfHeader, VMM::VirtualSpace *space, VMM::PageLis
 
 	PROC::AddThreadToQueue(info->KernelScheduler, SCHEDULER_RUNNING_QUEUE, thread);
 
-	PRINTK::PrintK("Process created with PID: 0x%x\r\n", proc->ID);
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Process created with PID: 0x%x\r\n", proc->ID);
 	
 	return proc->ID;
 }

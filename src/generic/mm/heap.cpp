@@ -71,7 +71,7 @@ void InitializeHeap(void *heapAddress, size_t pageCount) {
 	KInfo *info = GetInfo();
 
         void *pos = heapAddress;
-	PRINTK::PrintK("Initializing the heap at 0x%x with %d pages.\r\n", heapAddress, pageCount);
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Initializing the heap at 0x%x with %d pages.\r\n", heapAddress, pageCount);
 
 	size_t pageListSize = sizeof(VMM::PageList) + pageCount * sizeof(VMM::PageMetadata);
 	pageListSize += PAGE_SIZE - pageListSize % PAGE_SIZE;
@@ -215,6 +215,6 @@ void ExpandHeap(size_t length) {
 	totalMem += length;
 	freeMem += length;
 
-	PRINTK::PrintK("%d bytes memory allocated.\r\n", length);
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "%d bytes memory allocated.\r\n", length);
 }
 }
