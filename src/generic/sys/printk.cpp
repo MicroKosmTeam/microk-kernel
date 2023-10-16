@@ -1,78 +1,76 @@
-#include <cdefs.h>
-#include <stdint.h>
 #include <mm/string.hpp>
-#include <mm/bootmem.hpp>
+#include <mm/memory.hpp>
 #include <sys/printk.hpp>
 #include <init/kinfo.hpp>
-#include <dev/earlycon.hpp>
 
 #ifdef CONFIG_HW_UART
-UARTDevice *KernelPort = NULL;
+#include <dev/earlycon.hpp>
 #endif
+
+
+#ifdef CONFIG_HW_UART
+static DEV::EARLYCON::UARTDevice *KernelPort = NULL;
+#endif
+
+static PRINTK::LogMessage LastMessage;
+static PRINTK::Loglevel GlobalLoglevel;
 
 namespace PRINTK {
-
-#define TERMINAL_SIZE 240
-
-static char TerminalColumn[TERMINAL_SIZE + 1];
-static size_t TerminalPosition;
-static uint64_t Divider, StartValue;
-
-void SetPrintKTimerDivider(uint64_t divider) {
-	Divider = divider;
-}
-
-void FlushBuffer() {
+static void FlushMessage() {
+	if(GlobalLoglevel >= LastMessage.Level) {
 #ifdef CONFIG_HW_UART
-	if(KernelPort != NULL) {
-		if(Divider != 0) {
-			char integer[64] = { '\0' };
-
-			uint64_t tsc = __builtin_ia32_rdtsc() - StartValue;
-			Itoa(integer, 'd', tsc / Divider);
-
-			KernelPort->PutStr("[");
-			KernelPort->PutStr(integer);
-			KernelPort->PutStr("] ");
-		} else {
-			KernelPort->PutStr("[000000] ");
+		if(KernelPort != NULL) {/*
+			DEV::EARLYCON::PutString(KernelPort, LastMessage.Module);
+			DEV::EARLYCON::PutString(KernelPort, " -> ");*/
+			DEV::EARLYCON::PutString(KernelPort, LastMessage.Message);
 		}
-		KernelPort->PutStr(TerminalColumn);
-	}
 #endif
-	Memset(TerminalColumn, 0, TERMINAL_SIZE + 1);
-	TerminalPosition = 0;
+	}
+
+	Memset(&LastMessage, 0, sizeof(LogMessage));
 }
 
-void PutChar(char ch) {
+static void PutChar(char ch) {
 	bool justNewline = false;
 
-	if (TerminalPosition + 1 > TERMINAL_SIZE) {
-		FlushBuffer();
+	if (LastMessage.Length + 1 > MAX_PRINTK_MESSAGE_LENGTH) {
+		FlushMessage();
 		justNewline = true;
 	}
 
-	TerminalColumn[TerminalPosition++] = ch;
+	LastMessage.Message[LastMessage.Length++] = ch;
 
-	if ((ch == '\n' || ch == '\r') && !justNewline) {
-		FlushBuffer();
+	if (ch == '\n' && !justNewline) {
+		FlushMessage();
 		justNewline = true;
 	}
 }
 
-void PutStr(char *str) {
-	while(*str) PutChar(*str++);
+static void PutStr(char *str) {
+	while(*str) PRINTK::PutChar(*str++);
 }
 
-void PrintK(char *format, ...) {
+void PrintK(Loglevel loglevel, const char *moduleName, char *format, ...) {
+	(void)moduleName;
+
         va_list ap;
         va_start(ap, format);
 
+	if(LastMessage.Level > loglevel) {
+		LastMessage.Level = loglevel;
+	}
+/*
+	if(LastMessage.Module[0] != '\0' && Strncmp(LastMessage.Module, moduleName, MAX_KERNEL_MODULE_NAME_LENGTH) != 0) {
+		FlushMessage();
+		Memset(LastMessage.Module, 0, MAX_KERNEL_MODULE_NAME_LENGTH);
+	}
+	Strncpy(LastMessage.Module, moduleName, MAX_KERNEL_MODULE_NAME_LENGTH);
+*/
 	VPrintK(format, ap);
 
         va_end(ap);
 }
-
+	
 void VPrintK(char *format, va_list ap) {
         char *ptr = format;
         char buf[128];
@@ -82,27 +80,27 @@ void VPrintK(char *format, va_list ap) {
                         ptr++;
                         switch (*ptr++) {
                                 case 's':
-					PutStr(va_arg(ap, char *));
+					PRINTK::PutStr(va_arg(ap, char *));
                                         break;
                                 case 'd':
                                 case 'u':
                                         Itoa(buf, 'd', va_arg(ap, int64_t));
-                                        PutStr(buf);
+                                        PRINTK::PutStr(buf);
                                         break;
                                 case 'x':
                                         Itoa(buf, 'x', va_arg(ap, int64_t));
-                                        PutStr(buf);
+                                        PRINTK::PutStr(buf);
                                         break;
                                 case '%':
-                                        PutChar('%');
+                                        PRINTK::PutChar('%');
                                         break;
                                 case 'c':
-                                        PutChar((va_arg(ap, int32_t)));
+                                        PRINTK::PutChar((va_arg(ap, int32_t)));
                                         break;
 
                         }
                 } else {
-                        PutChar(*ptr++);
+                        PRINTK::PutChar(*ptr++);
                 }
         }
 }
@@ -110,22 +108,20 @@ void VPrintK(char *format, va_list ap) {
 void EarlyInit() {
 	KInfo *info = GetInfo();
 
-	Memset(TerminalColumn, 0, TERMINAL_SIZE + 1);
-
-	Divider = 0;
-	StartValue = __builtin_ia32_rdtsc();
+	LastMessage.Level = PRINTK::DEBUG;
+	GlobalLoglevel = PRINTK::DEBUG;
 
 #ifdef CONFIG_HW_UART
-	info->KernelPort = (UARTDevice*)BOOTMEM::Malloc(sizeof(UARTDevice));
+	info->KernelPort = (DEV::EARLYCON::UARTDevice*)DEV::EARLYCON::CreateUARTDevice();
 #if defined(ARCH_x64)
-	info->KernelPort->Init(COM1);
+	DEV::InitializeDevice((DEV::Device*)info->KernelPort, (uintptr_t)DEV::EARLYCON::COM1, MEMORY_SYSIO);
 #elif defined(ARCH_aarch64)
-	info->KernelPort->Init(0x09000000);
+	DEV::InitializeDevice((DEV::Device*)info->KernelPort, 0x09000000);
 #endif
 	KernelPort = info->KernelPort;
-
-	PrintK("Serial PrintK started.\n");
 #endif
+
+	PrintK(DEBUG, MODULE_NAME, "Serial PrintK started.\n");
 }
 }
 

@@ -1,11 +1,33 @@
 #pragma once
+#include <cdefs.h>
 #include <stdint.h>
+#include <stddef.h>
 #include <stdarg.h>
+#include <sys/time.hpp>
 
 namespace PRINTK {
-	void PrintK(char *format, ...);
-	void VPrintK(char *format, va_list ap);
-	void EarlyInit();
+	enum Loglevel {
+		CRITICAL = 0,
+		ERROR,
+		WARNING,
+		ISSUE,
+		INFO,
+		DEBUG,
+	};
 
-	void SetPrintKTimerDivider(uint64_t divider);
+	struct LogMessage {
+		LogMessage *Next;
+
+		Loglevel Level;
+		time_t Timestamp;
+		size_t Length;
+
+		char Module[MAX_KERNEL_MODULE_NAME_LENGTH];
+		char Message[MAX_PRINTK_MESSAGE_LENGTH];
+	};
+
+	void PrintK(Loglevel loglevel, const char *moduleName, char *format, ...);
+	void VPrintK(char *format, va_list ap);
+
+	void EarlyInit();
 }
