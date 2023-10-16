@@ -2,142 +2,144 @@
 #ifdef CONFIG_HW_UART
 #include <stdarg.h>
 
-#if defined(ARCH_x64)
-#include <arch/x64/io/io.hpp>
+#include <sys/io.hpp>
 
-inline void OutB(uint16_t port, uint8_t value) {
-	return x86_64::OutB(port, value);
+namespace DEV {
+namespace EARLYCON {
+
+static inline void UARTOut(DeviceMemory *port, size_t offset, uint8_t data) {
+	switch(port->Type) {
+		case MEMORY_SYSGENERAL:
+			break;
+		case MEMORY_SYSIO:
+			OutB(port->Address + offset, data);
+			break;
+	}
 }
 
-inline uint8_t InB(uint16_t port) {
-	return x86_64::InB(port);
-}
-
-#elif defined(ARCH_aarch64)
-
-inline void OutB(uintptr_t port, uint8_t value) {
-	volatile uint8_t *data = (volatile uint8_t*)port;
-	*data = value;
-}
-
-inline uint8_t InB(uintptr_t port) {
-	return *(uint8_t*)port;
-}
-
-#endif
-
-uintmax_t UARTDevice::Ioctl(uintmax_t request, ...) {
-	va_list ap;
-	va_start(ap, request);
-
-	uintmax_t result;
-
-	switch (request) {
-		case 0: // Init();
-#if defined(ARCH_x64)
-			result = Init(static_cast<SerialPorts>(va_arg(ap, size_t)));
-#elif defined(ARCH_aarch64)
-			result = Init(va_arg(ap, uintptr_t));
-#endif
-			break;
-		case 1: // PutChar();
-			PutChar((char)va_arg(ap, int));
-			result = 0;
-			break;
-		case 2: // PutStr();
-			PutStr((char*)va_arg(ap, int*));
-			result = 0;
-			break;
-		case 3: // GetChar();
-			result = GetChar();
-			break;
-		default:
-			result = 0;
+static inline uint8_t UARTIn(DeviceMemory *port, size_t offset) {
+	switch(port->Type) {
+		case MEMORY_SYSGENERAL:
+			return '\0';
+		case MEMORY_SYSIO:
+			return InB(port->Address + offset);
 	}
 
-	va_end(ap);
-
-	return result;
+	return '\0';
 }
 
+static inline int IsTransmitEmpty(UARTDevice *device) {
 #if defined(ARCH_x64)
-uint64_t UARTDevice::Init(SerialPorts serialPort) {
-	port = (uintptr_t)serialPort;
+	return UARTIn(&device->Port, 5) & 0x20;
+#else
+	return 0;
+#endif
+}
 
-        OutB(port + 1, 0x00);    // Disable all interrupts
-        OutB(port + 3, 0x80);    // Enable DLAB (set baud rate divisor)
-        OutB(port + 0, 0x03);    // Set divisor to 3 (lo byte) 38400 baud
-        OutB(port + 1, 0x00);    //                  (hi byte)
-        OutB(port + 3, 0x03);    // 8 bits, no parity, one stop bit
-        OutB(port + 2, 0xC7);    // Enable FIFO, clear them, with 14-byte threshold
-        OutB(port + 4, 0x0B);    // IRQs enabled, RTS/DSR set
-        OutB(port + 4, 0x1E);    // Set in loopback mode, test the serial chip
-        OutB(port + 0, 0xAE);    // Test serial chip (send byte 0xAE and check if serial returns same byte)
+static inline int SerialReceived(UARTDevice *device) {
+#if defined(ARCH_x64)
+	return UARTIn(&device->Port, 5) & 1;
+#else
+	return 0;
+#endif
+}
+
+Device *CreateUARTDevice() {
+	UARTDevice *device = new DEV::EARLYCON::UARTDevice;
+
+	device->Initialize = InitializeDevice;
+	device->Deinitialize = NULL;
+	device->Ioctl = NULL;
+
+	return (Device*)device;
+}
+
+int InitializeDevice(Device *device, va_list ap) {
+	UARTDevice *uartDevice = (UARTDevice*)device;
+
+	uintptr_t port = va_arg(ap, uintptr_t);
+	int type = va_arg(ap, int);
+
+	uartDevice->Timeout = -1;
+
+	uartDevice->Port.Address = port;
+	uartDevice->Port.Type = type;
+
+#if defined(ARCH_x64)
+        UARTOut(&uartDevice->Port, 1, 0x00);    // Disable all interrupts
+        UARTOut(&uartDevice->Port, 3, 0x80);    // Enable DLAB (set baud rate divisor)
+        UARTOut(&uartDevice->Port, 0, 0x03);    // Set divisor to 3 (lo byte) 38400 baud
+        UARTOut(&uartDevice->Port, 1, 0x00);    //                  (hi byte)
+        UARTOut(&uartDevice->Port, 3, 0x03);    // 8 bits, no parity, one stop bit
+        UARTOut(&uartDevice->Port, 2, 0xC7);    // Enable FIFO, clear them, with 14-byte threshold
+        UARTOut(&uartDevice->Port, 4, 0x0B);    // IRQs enabled, RTS/DSR set
+        UARTOut(&uartDevice->Port, 4, 0x1E);    // Set in loopback mode, test the serial chip
+        UARTOut(&uartDevice->Port, 0, 0xAE);    // Test serial chip (send byte 0xAE and check if serial returns same byte)
 
         // Check if serial is faulty (i.e: not same byte as sent)
-        if(InB(port + 0) != 0xAE) {
-		active = false;
-                return 1;
+        if (UARTIn(&uartDevice->Port, 0) != 0xAE) {
+		uartDevice->Active = false;
+                return -EFAULT;
         }
+	
+	uartDevice->Active = true;
 
         // If serial is not faulty set it in normal operation mode
         // (not-loopback with IRQs enabled and OUT#1 and OUT#2 bits enabled)
-        OutB(port + 4, 0x0F);
-
-	active = true;
-        return 0;
-}
-
-#elif defined(ARCH_aarch64)
-uint64_t UARTDevice::Init(uintptr_t address) {
-	port = address;
-	active = true;
-
+        UARTOut(&uartDevice->Port, 4, 0x0F);
+#else
+	uartDevice->Active = false
+#endif
+	
 	return 0;
 }
-#endif
 
+int PutString(UARTDevice *device, const char* str) {
+	if (device == NULL || !device->Active) return -EINVALID;
 
-void UARTDevice::PutStr(const char* str) {
-	if (!active) return;
-        for (size_t i = 0; 1; i++) {
-                char character = (uint8_t) str[i];
-
-                if (character == '\0') {
-                        return;
-                }
-
-                PutChar(character);
+	char *character = (char*)str;
+	while(*character) {
+                if(int ret = PutChar(device, *character++)) {
+			return ret;
+		}
         }
-}
 
-void UARTDevice::PutChar(const char ch) {
-	if (!active) return;
-        while (isTransmitEmpty() == 0);
-
-        OutB(port, ch);
-}
-
-int UARTDevice::GetChar() {
-	if(!active) return 0;
-	while (serialReceived() == 0);
-
-	return InB(port);
-}
-
-int UARTDevice::isTransmitEmpty() {
-#if defined(ARCH_x64)
-	return InB(port + 5) & 0x20;
-#else
-	return 1;
-#endif
-}
-
-int UARTDevice::serialReceived() {
-#if defined(ARCH_x64)
-	return InB(port + 5) & 1;
-#else
 	return 0;
-#endif
 }
+
+int PutChar(UARTDevice *device, const char ch) {
+	if (device == NULL || !device->Active) return -EINVALID;
+
+        for(size_t time = 0; time < device->Timeout; ++time) {
+		if(IsTransmitEmpty(device)) {
+        		UARTOut(&device->Port, 0, ch);
+			return 0;
+		}
+	}
+
+	return -EBUSY;
+
+}
+
+int GetChar(UARTDevice *device) {
+	if (device == NULL || !device->Active) return -EINVALID;
+        
+	for(size_t time = 0; time < device->Timeout; ++time) {
+		if(SerialReceived(device)) {
+			return UARTIn(&device->Port, 0);
+		}
+	}
+
+	return -EAGAIN;
+}
+
+
+}
+}
+
+
+
+
+
+
 #endif
