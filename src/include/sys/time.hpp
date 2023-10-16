@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
+typedef intmax_t time_t;
 typedef intmax_t ticks_t;
 
 namespace TIME {
