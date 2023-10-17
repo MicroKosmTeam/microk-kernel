@@ -1,6 +1,6 @@
 #pragma once
-#include <stdint.h>
-#include <stddef.h>
+#include <cstdint.hpp>
+
 #include <sys/time.hpp>
 #include <dev/dev.hpp>
 
@@ -9,7 +9,7 @@ namespace x86_64 {
 	};
 
 	struct APIC : public DEV::Device {
-		uintptr_t Base;
+		uptr Base;
 
 		APICTimer *Timer;
 	};
@@ -17,11 +17,11 @@ namespace x86_64 {
 	int InitializeAPICTimer(TIME::Timer *timer);
 
 	void EnableAPIC();
-	uintptr_t GetAPICBase();
-	void SetAPICBase(uintptr_t apic);
-	void WriteAPICRegister(uint16_t offset, uint32_t data);
+	uptr GetAPICBase();
+	void SetAPICBase(uptr apic);
+	void WriteAPICRegister(u16 offset, u32 data);
 	void WaitAPIC();
 	void SendAPICEOI();
-	void SetAPICTimer(uint64_t newCycles);
-	uint32_t ReadAPICRegister(uint16_t offset);
+	void SetAPICTimer(u64 newCycles);
+	u32 ReadAPICRegister(u16 offset);
 }

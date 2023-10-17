@@ -1,6 +1,6 @@
 #pragma once
-#include <stdint.h>
-#include <stddef.h>
+#include <cstdint.hpp>
+
 #include <cdefs.h>
 #include <sys/user.hpp>
 #include <sys/printk.hpp>
@@ -10,21 +10,21 @@
 #endif
 
 struct IORequest {
-	uint8_t MemoryAccessType;
-	uintptr_t Address;
+	u8 MemoryAccessType;
+	uptr Address;
 	userptr_t Data;
 }__attribute__((packed));
 
-int ExecuteIORequest(IORequest requests[], size_t requestCount);
+int ExecuteIORequest(IORequest requests[], usize requestCount);
 
 #if !defined(ARCH_AArch64)
-inline void OutB(uintptr_t port, uint8_t byte) {
+inline void OutB(uptr port, u8 byte) {
 #if defined(ARCH_x64)
 	x86_64::OutB(port, byte);
 #endif
 }
 
-inline uint8_t InB(uintptr_t port) {
+inline u8 InB(uptr port) {
 #if defined(ARCH_x64)
 	return x86_64::InB(port);
 #endif

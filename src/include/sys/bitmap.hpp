@@ -1,12 +1,12 @@
 #pragma once
-#include <stddef.h>
-#include <stdint.h>
+
+#include <cstdint.hpp>
 
 class Bitmap {
 public:
-	bool operator[](uint64_t index);
-	bool Get(uint64_t index);
-	bool Set(uint64_t index, bool value);
-	size_t size;
-	uint8_t *buffer;
+	bool operator[](u64 index);
+	bool Get(u64 index);
+	bool Set(u64 index, bool value);
+	usize size;
+	u8 *buffer;
 };

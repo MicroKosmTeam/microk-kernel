@@ -2,7 +2,7 @@
 #include <mm/memory.hpp>
 #include <arch/x64/mm/pageindexer.hpp>
 #include <arch/x64/mm/pagetable.hpp>
-#include <stdint.h>
+#include <cstdint.hpp>
 #include <init/kinfo.hpp>
 
 #define ENTRIES 512
@@ -23,13 +23,13 @@ void PageTableManager::Fork(VMM::VirtualSpace *space, bool higherHalf) {
 		PDE = PML4->entries[PDP_i];
 		newPDE = newPML4->entries[PDP_i];
 
-		PageTable *PDP = (PageTable*)((uint64_t)PDE.GetAddress() << 12);
+		PageTable *PDP = (PageTable*)((u64)PDE.GetAddress() << 12);
 		PageTable *newPDP;
 		if (PDE.GetFlag(PT_Flag::Present)) {
 			newPDP = (PageTable*)PMM::RequestPage();
 			Memset(newPDP, 0, 0x1000);
 
-			newPDE.SetAddress((uint64_t)newPDP >> 12);
+			newPDE.SetAddress((u64)newPDP >> 12);
 			newPDE.SetFlag(PT_Flag::Present, true);
 			newPDE.SetFlag(PT_Flag::ReadWrite, true);
 			newPDE.SetFlag(PT_Flag::UserSuper, true);
@@ -40,13 +40,13 @@ void PageTableManager::Fork(VMM::VirtualSpace *space, bool higherHalf) {
 				PDE = PDP->entries[PD_i];
 				newPDE = newPDP->entries[PD_i];
 
-				PageTable *PD = (PageTable*)((uint64_t)PDE.GetAddress() << 12);
+				PageTable *PD = (PageTable*)((u64)PDE.GetAddress() << 12);
 				PageTable *newPD;
 				if (PDE.GetFlag(PT_Flag::Present)) {
 					newPD = (PageTable*)PMM::RequestPage();
 					Memset(newPD, 0, 0x1000);
 					
-					newPDE.SetAddress((uint64_t)newPD >> 12);
+					newPDE.SetAddress((u64)newPD >> 12);
 					newPDE.SetFlag(PT_Flag::Present, true);
 					newPDE.SetFlag(PT_Flag::ReadWrite, true);
 					newPDE.SetFlag(PT_Flag::UserSuper, true);
@@ -57,12 +57,12 @@ void PageTableManager::Fork(VMM::VirtualSpace *space, bool higherHalf) {
 						PDE = PD->entries[PT_i];
 						newPDE = newPD->entries[PT_i];
 
-						PageTable *PT = (PageTable*)((uint64_t)PDE.GetAddress() << 12);
+						PageTable *PT = (PageTable*)((u64)PDE.GetAddress() << 12);
 						PageTable *newPT;
 						if (PDE.GetFlag(PT_Flag::Present)) {
 							newPT = (PageTable*)PMM::RequestPage();
 							Memset(newPT, 0, 0x1000);
-							newPDE.SetAddress((uint64_t)newPT >> 12);
+							newPDE.SetAddress((u64)newPT >> 12);
 							newPDE.SetFlag(PT_Flag::Present, true);
 							newPDE.SetFlag(PT_Flag::ReadWrite, true);
 							newPDE.SetFlag(PT_Flag::UserSuper, true);
@@ -96,18 +96,18 @@ void PageTableManager::Fork(VMM::VirtualSpace *space, bool higherHalf) {
 	}
 }
 
-void PageTableManager::MapMemory(void *physicalMemory, void *virtualMemory, uint64_t flags){
+void PageTableManager::MapMemory(void *physicalMemory, void *virtualMemory, u64 flags){
 	KInfo *info = GetInfo();
 
-	PageMapIndexer indexer = PageMapIndexer((uint64_t)virtualMemory);
+	PageMapIndexer indexer = PageMapIndexer((u64)virtualMemory);
 	PageDirectoryEntry PDE;
 
 	PDE = PML4->entries[indexer.PDP_i];
 	PageTable* PDP;
 	if (!PDE.GetFlag(PT_Flag::Present)) {
 		PDP = (PageTable*)PMM::RequestPage();
-		PDE.SetAddress((uint64_t)PDP >> 12);
-		PDP = (PageTable*)((uintptr_t)PDP + info->HigherHalfMapping);
+		PDE.SetAddress((u64)PDP >> 12);
+		PDP = (PageTable*)((uptr)PDP + info->HigherHalfMapping);
 		Memset(PDP, 0, 0x1000);
 		PDE.SetFlag(PT_Flag::Present, true);
 		PDE.SetFlag(PT_Flag::ReadWrite, true);
@@ -115,16 +115,16 @@ void PageTableManager::MapMemory(void *physicalMemory, void *virtualMemory, uint
 		PDE.SetFlag(PT_Flag::Global, true);
 		PML4->entries[indexer.PDP_i] = PDE;
 	} else {
-		PDP = (PageTable*)(((uintptr_t)PDE.GetAddress() << 12) + info->HigherHalfMapping);
+		PDP = (PageTable*)(((uptr)PDE.GetAddress() << 12) + info->HigherHalfMapping);
 	}
 
 	PDE = PDP->entries[indexer.PD_i];
 	PageTable* PD;
 	if (!PDE.GetFlag(PT_Flag::Present)) {
 		PD = (PageTable*)PMM::RequestPage();
-		PDE.SetAddress((uint64_t)PD >> 12);
+		PDE.SetAddress((u64)PD >> 12);
 
-		PD = (PageTable*)((uintptr_t)PD + info->HigherHalfMapping);
+		PD = (PageTable*)((uptr)PD + info->HigherHalfMapping);
 		Memset(PD, 0, 0x1000);
 		PDE.SetFlag(PT_Flag::Present, true);
 		PDE.SetFlag(PT_Flag::ReadWrite, true);
@@ -132,16 +132,16 @@ void PageTableManager::MapMemory(void *physicalMemory, void *virtualMemory, uint
 		PDE.SetFlag(PT_Flag::Global, true);
 		PDP->entries[indexer.PD_i] = PDE;
 	} else {
-		PD = (PageTable*)(((uintptr_t)PDE.GetAddress() << 12) + info->HigherHalfMapping);
+		PD = (PageTable*)(((uptr)PDE.GetAddress() << 12) + info->HigherHalfMapping);
 	}
 
 	PDE = PD->entries[indexer.PT_i];
 	PageTable* PT;
 	if (!PDE.GetFlag(PT_Flag::Present)) {
 		PT = (PageTable*)PMM::RequestPage();
-		PDE.SetAddress((uint64_t)PT >> 12);
+		PDE.SetAddress((u64)PT >> 12);
 		
-		PT = (PageTable*)((uintptr_t)PT + info->HigherHalfMapping);
+		PT = (PageTable*)((uptr)PT + info->HigherHalfMapping);
 		Memset(PT, 0, 0x1000);
 		PDE.SetFlag(PT_Flag::Present, true);
 		PDE.SetFlag(PT_Flag::ReadWrite, true);
@@ -149,11 +149,11 @@ void PageTableManager::MapMemory(void *physicalMemory, void *virtualMemory, uint
 		PDE.SetFlag(PT_Flag::Global, true);
 		PD->entries[indexer.PT_i] = PDE;
 	} else {
-		PT = (PageTable*)(((uintptr_t)PDE.GetAddress() << 12) + info->HigherHalfMapping);
+		PT = (PageTable*)(((uptr)PDE.GetAddress() << 12) + info->HigherHalfMapping);
 	}
 
 	PDE = PT->entries[indexer.P_i];
-	PDE.SetAddress((uint64_t)physicalMemory >> 12);
+	PDE.SetAddress((u64)physicalMemory >> 12);
 	
 	if (flags & VMM::VMM_PRESENT) PDE.SetFlag(PT_Flag::Present, true);
 	else PDE.SetFlag(PT_Flag::Present, false);
@@ -170,25 +170,25 @@ void PageTableManager::MapMemory(void *physicalMemory, void *virtualMemory, uint
 }
 	
 void PageTableManager::UnmapMemory(void *virtualMemory) {
-	PageMapIndexer indexer = PageMapIndexer((uint64_t)virtualMemory);
+	PageMapIndexer indexer = PageMapIndexer((u64)virtualMemory);
 	PageDirectoryEntry PDE;
 
 	PDE = PML4->entries[indexer.PDP_i];
 	PageTable* PDP;
 	if (PDE.GetFlag(PT_Flag::Present)) {
-		PDP = (PageTable*)((uint64_t)PDE.GetAddress() << 12);
+		PDP = (PageTable*)((u64)PDE.GetAddress() << 12);
 	} else return;
 
 	PDE = PDP->entries[indexer.PD_i];
 	PageTable* PD;
 	if (PDE.GetFlag(PT_Flag::Present)) {
-		PD = (PageTable*)((uint64_t)PDE.GetAddress() << 12);
+		PD = (PageTable*)((u64)PDE.GetAddress() << 12);
 	} else return;
 
 	PDE = PD->entries[indexer.PT_i];
 	PageTable* PT;
 	if (PDE.GetFlag(PT_Flag::Present)) {
-		PT = (PageTable*)((uint64_t)PDE.GetAddress() << 12);
+		PT = (PageTable*)((u64)PDE.GetAddress() << 12);
 	} else return;
 
 	PDE = PT->entries[indexer.P_i];
@@ -202,34 +202,34 @@ void PageTableManager::UnmapMemory(void *virtualMemory) {
 /* This workn't */
 void *PageTableManager::GetPhysicalAddress(void *virtualMemory) {
 	/* TODO: FIX FIX FIX FIX FIX */
-	PageMapIndexer indexer = PageMapIndexer((uintptr_t)virtualMemory - (uintptr_t)virtualMemory % PAGE_SIZE);
+	PageMapIndexer indexer = PageMapIndexer((uptr)virtualMemory - (uptr)virtualMemory % PAGE_SIZE);
 	PageDirectoryEntry PDE;
 	void *address = 0;
 
 	PDE = PML4->entries[indexer.PDP_i];
 	PageTable *PDP;
 	if (PDE.GetFlag(PT_Flag::Present)) {
-		PDP = (PageTable*)((uint64_t)PDE.GetAddress() << 12);
+		PDP = (PageTable*)((u64)PDE.GetAddress() << 12);
 	} else return NULL;
 
 	PDE = PDP->entries[indexer.PD_i];
 	PageTable *PD;
 	if (PDE.GetFlag(PT_Flag::Present)) {
-		PD = (PageTable*)((uint64_t)PDE.GetAddress() << 12);
+		PD = (PageTable*)((u64)PDE.GetAddress() << 12);
 	} else return NULL;
 
 	PDE = PD->entries[indexer.PT_i];
 	PageTable *PT;
 	if (PDE.GetFlag(PT_Flag::Present)) {
-		PT = (PageTable*)((uint64_t)PDE.GetAddress() << 12);
+		PT = (PageTable*)((u64)PDE.GetAddress() << 12);
 	} else return NULL;
 
 	PDE = PT->entries[indexer.P_i];
 	if (PDE.GetFlag(PT_Flag::Present)) {
-		address = (void*)((uint64_t)PDE.GetAddress() << 12);
+		address = (void*)((u64)PDE.GetAddress() << 12);
 	} else return NULL;
 
-	address = (void*)((uintptr_t)address + (uintptr_t)virtualMemory % PAGE_SIZE);
+	address = (void*)((uptr)address + (uptr)virtualMemory % PAGE_SIZE);
 
 	return address;
 }

@@ -84,18 +84,18 @@ void VPrintK(char *format, va_list ap) {
                                         break;
                                 case 'd':
                                 case 'u':
-                                        Itoa(buf, 'd', va_arg(ap, int64_t));
+                                        Itoa(buf, 'd', va_arg(ap, i64));
                                         PRINTK::PutStr(buf);
                                         break;
                                 case 'x':
-                                        Itoa(buf, 'x', va_arg(ap, int64_t));
+                                        Itoa(buf, 'x', va_arg(ap, i64));
                                         PRINTK::PutStr(buf);
                                         break;
                                 case '%':
                                         PRINTK::PutChar('%');
                                         break;
                                 case 'c':
-                                        PRINTK::PutChar((va_arg(ap, int32_t)));
+                                        PRINTK::PutChar((va_arg(ap, i32)));
                                         break;
 
                         }
@@ -114,7 +114,7 @@ void EarlyInit() {
 #ifdef CONFIG_HW_UART
 	info->KernelPort = (DEV::EARLYCON::UARTDevice*)DEV::EARLYCON::CreateUARTDevice();
 #if defined(ARCH_x64)
-	DEV::InitializeDevice((DEV::Device*)info->KernelPort, (uintptr_t)DEV::EARLYCON::COM1, MEMORY_SYSIO);
+	DEV::InitializeDevice((DEV::Device*)info->KernelPort, (uptr)DEV::EARLYCON::COM1, MEMORY_SYSIO);
 #elif defined(ARCH_aarch64)
 	DEV::InitializeDevice((DEV::Device*)info->KernelPort, 0x09000000);
 #endif

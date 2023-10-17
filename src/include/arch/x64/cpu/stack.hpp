@@ -1,30 +1,30 @@
 #pragma once
-#include <stdint.h>
-#include <stddef.h>
+#include <cstdint.hpp>
+
 
 struct SaveContext {
-	uint64_t RBP;
+	u64 RBP;
 
-	uint64_t R15;
-	uint64_t R14;
-	uint64_t R13;
-	uint64_t R12;
-	uint64_t R11;
-	uint64_t R10;
-	uint64_t R9;
-	uint64_t R8;
+	u64 R15;
+	u64 R14;
+	u64 R13;
+	u64 R12;
+	u64 R11;
+	u64 R10;
+	u64 R9;
+	u64 R8;
 
-	uint64_t RDX;
-	uint64_t RCX;
-	uint64_t RBX;
-	uint64_t RAX;
+	u64 RDX;
+	u64 RCX;
+	u64 RBX;
+	u64 RAX;
 
-	uint64_t RSI;
-	uint64_t RDI;
+	u64 RSI;
+	u64 RDI;
 	
-	uint64_t RBP2;
-	uint64_t ret;
+	u64 RBP2;
+	u64 ret;
 }__attribute__((packed));
 
 extern "C" void SwitchStack(void *oldStack, void *newStack);
-void InitializeStack(void *stack, uintptr_t function);
+void InitializeStack(void *stack, uptr function);

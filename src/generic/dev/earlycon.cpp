@@ -7,7 +7,7 @@
 namespace DEV {
 namespace EARLYCON {
 
-static inline void UARTOut(DeviceMemory *port, size_t offset, uint8_t data) {
+static inline void UARTOut(DeviceMemory *port, usize offset, u8 data) {
 	switch(port->Type) {
 		case MEMORY_SYSGENERAL:
 			break;
@@ -17,7 +17,7 @@ static inline void UARTOut(DeviceMemory *port, size_t offset, uint8_t data) {
 	}
 }
 
-static inline uint8_t UARTIn(DeviceMemory *port, size_t offset) {
+static inline u8 UARTIn(DeviceMemory *port, usize offset) {
 	switch(port->Type) {
 		case MEMORY_SYSGENERAL:
 			return '\0';
@@ -57,7 +57,7 @@ Device *CreateUARTDevice() {
 int InitializeDevice(Device *device, va_list ap) {
 	UARTDevice *uartDevice = (UARTDevice*)device;
 
-	uintptr_t port = va_arg(ap, uintptr_t);
+	uptr port = va_arg(ap, uptr);
 	int type = va_arg(ap, int);
 
 	uartDevice->Timeout = -1;
@@ -110,7 +110,7 @@ int PutString(UARTDevice *device, const char* str) {
 int PutChar(UARTDevice *device, const char ch) {
 	if (device == NULL || !device->Active) return -EINVALID;
 
-        for(size_t time = 0; time < device->Timeout; ++time) {
+        for(usize time = 0; time < device->Timeout; ++time) {
 		if(IsTransmitEmpty(device)) {
         		UARTOut(&device->Port, 0, ch);
 			return 0;
@@ -124,7 +124,7 @@ int PutChar(UARTDevice *device, const char ch) {
 int GetChar(UARTDevice *device) {
 	if (device == NULL || !device->Active) return -EINVALID;
         
-	for(size_t time = 0; time < device->Timeout; ++time) {
+	for(usize time = 0; time < device->Timeout; ++time) {
 		if(SerialReceived(device)) {
 			return UARTIn(&device->Port, 0);
 		}

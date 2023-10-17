@@ -1,27 +1,23 @@
 #pragma once
-#include <stdint.h>
-#include <stddef.h>
+#include <cstdint.hpp>
+
 #include <dev/dev.hpp>
 
 #define IOAPIC_IOCTL_REQUEST_READ_IOAPIC 0x01
 #define IOAPIC_IOCTL_REQUEST_WRITE_IOAPIC 0x02
 
 namespace x86_64 {
-	struct IOAPOC : public DEV::Device {
-
+	struct IOAPIC : public DEV::Device {
+		uptr Base;
+		uptr MappedAddress;
 	};
 
-#ifdef UNDEF
-	class IOAPIC : public Device {
-		public:
-			IOAPIC(uintptr_t address);
+	DEV::Device *CreateIOAPICDevice();
 
-			uintmax_t Ioctl(uintmax_t request, ...) override;
+	int InitializeDevice(DEV::Device *device, va_list ap);
+	int DeinitializeDevice(DEV::Device *device, va_list ap);
+	intmax_t Ioctl(DEV::Device *device, request_t request, va_list ap);
 
-			uint32_t ReadIOAPIC(uint32_t reg);
-			void WriteIOAPIC(uint32_t reg, uint32_t value);
-		private:
-			uintptr_t Address;
-	};
-#endif
+	int ReadIOAPIC(IOAPIC *device, usize registerSelector, u32 *value);
+	int WriteIOAPIC(IOAPIC *device, usize registerSelector, u32 value);
 }

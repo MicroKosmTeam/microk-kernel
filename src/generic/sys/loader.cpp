@@ -4,7 +4,7 @@
 #include <sys/shebang.hpp>
 #include <sys/printk.hpp>
 
-size_t LoadExecutableFile(uint8_t *data, size_t size) {
+usize LoadExecutableFile(u8 *data, usize size) {
 	/* Checking for the correct signature */
 	
 	if (data[0] == ELFMAG0 && data[1] == ELFMAG1 && data[2] == ELFMAG2 && data[3] == ELFMAG3)

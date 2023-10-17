@@ -24,8 +24,8 @@
  */
 
 #include <cdefs.h>
-#include <stdint.h>
-#include <stddef.h>
+#include <cstdint.hpp>
+
 #include <mm/pmm.hpp>
 #include <mm/heap.hpp>
 #include <init/main.hpp>
@@ -137,22 +137,22 @@ __attribute__((noreturn)) void KernelStart() {
 	InitializeKernelTables();
 /*
 	info->KernelProcess = (PROC::KernelProcess*)PROC::CreateProcess((PROC::ProcessBase*)info->KernelProcess, PROC::ExecutableUnitType::PT_KERNEL, info->KernelVirtualSpace, 0, 0);
-	PROC::KernelThread *kernelThread = (PROC::KernelThread*)PROC::CreateThread((PROC::ProcessBase*)info->KernelProcess, (uintptr_t)&RestInit, 64 * 1024, 0, 0);
+	PROC::KernelThread *kernelThread = (PROC::KernelThread*)PROC::CreateThread((PROC::ProcessBase*)info->KernelProcess, (uptr)&RestInit, 64 * 1024, 0, 0);
 	PROC::AddThreadToQueue(info->KernelScheduler, SCHEDULER_RUNNING_QUEUE, kernelThread);
 */
 	/* Load all the files we are told to load */
-	size_t moduleSize;
-	uint8_t *addr;
+	usize moduleSize;
+	u8 *addr;
 
 	/* Get the memory location of the user module */
-	addr = (uint8_t*)FindFile(info->UserModuleName, &moduleSize);
+	addr = (u8*)FindFile(info->UserModuleName, &moduleSize);
 	
 	/* Check if it is present */
 	if (addr != NULL) {
 		PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Loading user module from 0x%x\r\n", addr);
 
 		/* Create the process and set it to a ready state */
-		size_t pid = LoadExecutableFile(addr, moduleSize);
+		usize pid = LoadExecutableFile(addr, moduleSize);
 		PROC::SetExecutableUnitState(PROC::GetThread(info->KernelScheduler, pid, 0), PROC::ExecutableUnitState::P_READY);
 
 		/* Recalculate the scheduler and wait for the context switch */

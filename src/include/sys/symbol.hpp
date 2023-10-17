@@ -1,13 +1,13 @@
 #pragma once
-#include <stdint.h>
+#include <cstdint.hpp>
 
 typedef struct {
-    const uint64_t addr;
+    const u64 addr;
     const char *name;
 } Symbol;
 
 extern const Symbol symbols[];
-extern const uint64_t symbolCount;
+extern const u64 symbolCount;
 
 const Symbol *LookupSymbol(const char *name);
-const Symbol *LookupSymbol(const uint64_t addr);
+const Symbol *LookupSymbol(const u64 addr);

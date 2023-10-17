@@ -25,8 +25,8 @@
 
 #pragma once
 #include <cdefs.h>
-#include <stddef.h>
-#include <stdint.h>
+
+#include <cstdint.hpp>
 #include <sys/tables.hpp>
 #include <mm/memory.hpp>
 #include <sys/file.hpp>
@@ -43,12 +43,12 @@
  */
 struct Framebuffer {
 	void *Address;
-	uint32_t Width;
-	uint32_t Height;
-	uint16_t BPP;
-	uint8_t RedShift;
-	uint8_t GreenShift;
-	uint8_t BlueShift;
+	u32 Width;
+	u32 Height;
+	u16 BPP;
+	u8 RedShift;
+	u8 GreenShift;
+	u8 BlueShift;
 }__attribute__((packed));
 
 /*
@@ -64,29 +64,29 @@ struct KInfo {
 
 	/* Memory information */
 	MEM::MMapEntry *MemoryMap; /* Pointer to the memory map */
-	size_t MemoryMapEntryCount; /* Number of memory map regions */
+	usize MemoryMapEntryCount; /* Number of memory map regions */
 
-	uintptr_t HigherHalfMapping; /* Start of higher half mapping */
+	uptr HigherHalfMapping; /* Start of higher half mapping */
 
-	uintptr_t KernelPhysicalBase; /* Start of the kernel in physical memory */
-	uintptr_t KernelVirtualBase; /* Start of the kernel in virtual memory */
+	uptr KernelPhysicalBase; /* Start of the kernel in physical memory */
+	uptr KernelVirtualBase; /* Start of the kernel in virtual memory */
 
 	PROC::Scheduler *KernelScheduler;
 	VMM::VirtualSpace *KernelVirtualSpace; /* Kernel virtual memory space */
 	PROC::KernelProcess *KernelProcess;
-	uintptr_t KernelStack; /* Start of kernel stack */
+	uptr KernelStack; /* Start of kernel stack */
 
 	VMM::PageList *KernelHeapPageList;
 
 #ifdef CONFIG_KERNEL_MODULES
 	/* Module information */
 	BootFile *BootFiles; /* Pointer to the Limine modules */
-	size_t FileCount; /* Number of modules provided */
+	usize FileCount; /* Number of modules provided */
 
 	char UserModuleName[256];
 
-	uintptr_t KernelBaseSystemTable;
-	uintptr_t BootFileSystemTable;
+	uptr KernelBaseSystemTable;
+	uptr BootFileSystemTable;
 #endif
 
 #ifdef CONFIG_HW_UART
@@ -96,7 +96,7 @@ struct KInfo {
 
 	void *RSDP;
 
-	size_t FramebufferCount;
+	usize FramebufferCount;
 	Framebuffer *Framebuffers;
 };
 

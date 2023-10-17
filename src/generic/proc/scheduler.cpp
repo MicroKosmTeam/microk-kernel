@@ -9,7 +9,7 @@
 
 namespace PROC {
 
-Scheduler *InitializeScheduler(size_t queueCount) {
+Scheduler *InitializeScheduler(usize queueCount) {
 	Scheduler *scheduler = (Scheduler*)Malloc(sizeof(Scheduler) + queueCount * sizeof(SchedulerQueue));
 
 	scheduler->SchedulerLock = false;
@@ -17,7 +17,7 @@ Scheduler *InitializeScheduler(size_t queueCount) {
 	scheduler->QueueCount = queueCount;
 	scheduler->ElapsedQuantum = -1;
 
-	for (size_t currentQueue = 0; currentQueue < queueCount; ++currentQueue) { 
+	for (usize currentQueue = 0; currentQueue < queueCount; ++currentQueue) { 
 		scheduler->Queues[currentQueue] = new SchedulerQueue;
 		scheduler->Queues[currentQueue]->ThreadCount = 0;
 		scheduler->Queues[currentQueue]->Head = NULL;
@@ -31,7 +31,7 @@ int DeinitializeScheduler(Scheduler *scheduler) {
 	if(scheduler == NULL) return -1;
 	LockMutex(&scheduler->SchedulerLock);
 
-	for (size_t currentQueue = 0; currentQueue < scheduler->QueueCount; ++currentQueue) { 
+	for (usize currentQueue = 0; currentQueue < scheduler->QueueCount; ++currentQueue) { 
 		if(scheduler->Queues[currentQueue]->Head != NULL) {
 			SchedulerNode *node = scheduler->Queues[currentQueue]->Head;
 			while(node != scheduler->Queues[currentQueue]->Tail) {
@@ -50,7 +50,7 @@ int DeinitializeScheduler(Scheduler *scheduler) {
 	return 0;
 }
 
-int AddThreadToQueue(Scheduler *scheduler, size_t queue, ThreadBase *thread) {
+int AddThreadToQueue(Scheduler *scheduler, usize queue, ThreadBase *thread) {
 	if (scheduler == NULL || scheduler->Queues[queue] == NULL || thread == NULL) return -1;
 	LockMutex(&scheduler->SchedulerLock);
 
@@ -89,7 +89,7 @@ int AddThreadToQueue(Scheduler *scheduler, size_t queue, ThreadBase *thread) {
 	return 0;
 }
 
-ThreadBase *RemoveThreadFromQueue(Scheduler *scheduler, size_t queue, size_t pid, size_t tid) {
+ThreadBase *RemoveThreadFromQueue(Scheduler *scheduler, usize queue, usize pid, usize tid) {
 	if (scheduler == NULL || scheduler->Queues[queue] == NULL || scheduler->Queues[queue]->Head == NULL) return NULL;
 	LockMutex(&scheduler->SchedulerLock);
 
@@ -145,7 +145,7 @@ ThreadBase *RemoveThreadFromQueue(Scheduler *scheduler, size_t queue, size_t pid
 	return thread;
 }
 
-ThreadBase *GetThreadFromQueue(Scheduler *scheduler, size_t queue, size_t pid, size_t tid) {
+ThreadBase *GetThreadFromQueue(Scheduler *scheduler, usize queue, usize pid, usize tid) {
 	if (scheduler == NULL || scheduler->Queues[queue] == NULL || scheduler->Queues[queue]->Head == NULL) return NULL;
 	LockMutex(&scheduler->SchedulerLock);
 
@@ -174,12 +174,12 @@ ThreadBase *GetThreadFromQueue(Scheduler *scheduler, size_t queue, size_t pid, s
 	return thread;
 }
 	
-ThreadBase *GetThread(Scheduler *scheduler, size_t pid, size_t tid) {
+ThreadBase *GetThread(Scheduler *scheduler, usize pid, usize tid) {
 	if(scheduler == NULL) return NULL;
 	LockMutex(&scheduler->SchedulerLock);
 
 	ThreadBase *thread = NULL;
-	for (size_t currentQueue = 0; currentQueue < scheduler->QueueCount; ++currentQueue) { 
+	for (usize currentQueue = 0; currentQueue < scheduler->QueueCount; ++currentQueue) { 
 		SchedulerNode *node = scheduler->Queues[currentQueue]->Head;
 		while(node != scheduler->Queues[currentQueue]->Tail) {
 			if(node->Thread->Parent->ID == pid && node->Thread->ID == tid) {
@@ -269,7 +269,7 @@ void PrintSchedulerStatus(Scheduler *scheduler) {
 
 
 	ThreadBase *thread = NULL;
-	for (size_t currentQueue = 0; currentQueue < scheduler->QueueCount; ++currentQueue) { 
+	for (usize currentQueue = 0; currentQueue < scheduler->QueueCount; ++currentQueue) { 
 		PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "  Queue:                              0x%x\r\n", currentQueue);
 		SchedulerNode *node = scheduler->Queues[currentQueue]->Head;
 		if(node == NULL) PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "   Empty\r\n");

@@ -1,9 +1,9 @@
-#include <stddef.h>
+#include <cstdint.hpp>
 #include <cdefs.h>
 
-size_t Strnlen(const char *str, size_t maxLength);
-char *Strncpy(char *dest, const char *src, size_t maxLength);
-int Strncmp(const char *first, const char *second, size_t maxLength);
+usize Strnlen(const char *str, usize maxLength);
+char *Strncpy(char *dest, const char *src, usize maxLength);
+int Strncmp(const char *first, const char *second, usize maxLength);
 
 char *Strtok(char *s, char *delim);
 

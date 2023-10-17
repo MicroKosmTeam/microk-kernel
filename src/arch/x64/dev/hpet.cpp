@@ -7,16 +7,16 @@
 #define FRACTIONAL_TIME_TO_WAIT 100
 
 /* Function to calibrate the TSC using HPET */
-int CalibrateTSCWithHPET(uintptr_t hpetAddress, uint64_t *tscTicksPerSecond) {
+int CalibrateTSCWithHPET(uptr hpetAddress, u64 *tscTicksPerSecond) {
 	KInfo *info = GetInfo();
 
 	VMM::MapMemory(info->KernelVirtualSpace, (void*)hpetAddress, (void*)(hpetAddress + info->HigherHalfMapping));
 	hpetAddress += info->HigherHalfMapping;
 
 	// Typecast the HPET address to access the registers
-	volatile uint64_t *capabilities = (volatile uint64_t*)hpetAddress;
-	volatile uint64_t *configuration = (volatile uint64_t*)(hpetAddress + 0x10);
-	volatile uint64_t *counter = (volatile uint64_t*)(hpetAddress + 0xF0);
+	volatile u64 *capabilities = (volatile u64*)hpetAddress;
+	volatile u64 *configuration = (volatile u64*)(hpetAddress + 0x10);
+	volatile u64 *counter = (volatile u64*)(hpetAddress + 0xF0);
 
 	// Check if HPET is available (bit 0 of the capabilities register should be set)
 	if ((*capabilities & 0x1) == 0) {
@@ -27,32 +27,32 @@ int CalibrateTSCWithHPET(uintptr_t hpetAddress, uint64_t *tscTicksPerSecond) {
 	*configuration |= 0x1;
 
 	// Calculate the desired HPET timer resolution (e.g., 1 millisecond)
-	uint64_t counterClkPeriod = *capabilities >> 32;
+	u64 counterClkPeriod = *capabilities >> 32;
 	if (counterClkPeriod > 0x05F5E100) {
 		PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Invalid clk period\r\n");
 		return 0;
 	}
 	
-	uint64_t hpetTimerFrequency = 1000000000000000 / counterClkPeriod;
-	uint64_t hpetTimeToPass = hpetTimerFrequency / FRACTIONAL_TIME_TO_WAIT;
+	u64 hpetTimerFrequency = 1000000000000000 / counterClkPeriod;
+	u64 hpetTimeToPass = hpetTimerFrequency / FRACTIONAL_TIME_TO_WAIT;
 
 	// Set the main HPET counter to 0 for starting the calibration
 	*counter = 0;
 
 	// Read the initial value of the TSC
-	uint64_t tscStart = __builtin_ia32_rdtsc();
+	u64 tscStart = __builtin_ia32_rdtsc();
 
 	// Wait for the desired HPET timer resolution to elapse
 	while (*counter < hpetTimeToPass);
 
 	// Read the final value of the TSC after the specified interval has passed
-	uint64_t tscEnd = __builtin_ia32_rdtsc();
+	u64 tscEnd = __builtin_ia32_rdtsc();
 
 	// Disable HPET (clear bit 0 of the configuration register)
 	*configuration &= ~0x1;
 
 	// Calculate the TSC frequency in cycles per nanosecond
-	uint64_t elapsedTSCCcycles = (tscEnd - tscStart) * FRACTIONAL_TIME_TO_WAIT;
+	u64 elapsedTSCCcycles = (tscEnd - tscStart) * FRACTIONAL_TIME_TO_WAIT;
 
 	// Convert HPET time to microseconds and calculate the TSC frequency
 	*tscTicksPerSecond = elapsedTSCCcycles;

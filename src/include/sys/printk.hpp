@@ -1,7 +1,7 @@
 #pragma once
 #include <cdefs.h>
-#include <stdint.h>
-#include <stddef.h>
+#include <cstdint.hpp>
+
 #include <stdarg.h>
 #include <sys/time.hpp>
 
@@ -20,7 +20,7 @@ namespace PRINTK {
 
 		Loglevel Level;
 		time_t Timestamp;
-		size_t Length;
+		usize Length;
 
 		char Module[MAX_KERNEL_MODULE_NAME_LENGTH];
 		char Message[MAX_PRINTK_MESSAGE_LENGTH];

@@ -1,21 +1,21 @@
 #pragma once
-#include <stdint.h>
-#include <stddef.h>
+#include <cstdint.hpp>
 
-void *Memcpy(void *dest, void *src, size_t n);
-void *Memset(void *start, uint8_t value, uint64_t num);
-int Memcmp(const void* buf1, const void* buf2, size_t count);
-void *Memmove(void *dest, const void *src, size_t n);
 
-void *Malloc(size_t size);
+void *Memcpy(void *dest, void *src, usize n);
+void *Memset(void *start, u8 value, u64 num);
+int Memcmp(const void* buf1, const void* buf2, usize count);
+void *Memmove(void *dest, const void *src, usize n);
+
+void *Malloc(usize size);
 void Free(void *p);
 
-void *operator new(size_t size);
-void *operator new[](size_t size);
+void *operator new(usize size);
+void *operator new[](usize size);
 void operator delete(void* p);
-void operator delete(void* p, size_t size);
+void operator delete(void* p, usize size);
 void operator delete[](void* p);
-void operator delete[](void* p, size_t size);
+void operator delete[](void* p, usize size);
 
 namespace MEM {
 	#define MEMMAP_USABLE                 0
@@ -28,9 +28,9 @@ namespace MEM {
 	#define MEMMAP_FRAMEBUFFER            7
 
 	struct MMapEntry {
-		uintptr_t base;
-		uintptr_t length;
-		uintptr_t type;
+		uptr base;
+		uptr length;
+		uptr type;
 	};
 
 	void Init();

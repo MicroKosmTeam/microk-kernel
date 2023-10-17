@@ -1,11 +1,11 @@
-#include <stdint.h>
-#include <stddef.h>
+#include <cstdint.hpp>
+
 #include <debug/stack.hpp>
 #include <sys/panic.hpp>
 #include <sys/symbol.hpp>
 #include <sys/printk.hpp>
 
-uintptr_t __stack_chk_guard = 0;
+uptr __stack_chk_guard = 0;
 
 extern "C" __attribute__((noreturn))
 void __stack_chk_fail() {
@@ -15,7 +15,7 @@ void __stack_chk_fail() {
 /* Assume, as is often the case, that RBP is the first thing pushed. If not, we are in trouble. */
 struct StackFrame {
 	StackFrame *RBP;
-	uint64_t RIP;
+	u64 RIP;
 }__attribute__((packed));
 
 void UnwindStack(int MaxFrames) {
@@ -33,7 +33,7 @@ void UnwindStack(int MaxFrames) {
 			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "  0x%x   <unknown>\r\n", stk->RIP);
 		}
 
-		if(stk->RBP == NULL || ((uintptr_t)stk->RBP < (uintptr_t)(UINTPTR_MAX / 2) && (uintptr_t)stk->RBP > (uintptr_t)0x100000)) break;
+		if(stk->RBP == NULL || ((uptr)stk->RBP < (uptr)(UINTPTR_MAX / 2) && (uptr)stk->RBP > (uptr)0x100000)) break;
 		stk = stk->RBP;
 	}
 }

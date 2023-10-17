@@ -1,6 +1,6 @@
 #pragma once
-#include <stdint.h>
-#include <stddef.h>
+#include <cstdint.hpp>
+
 #include <mm/vmm.hpp>
 #include <sys/tables.hpp>
 #include <arch/x64/interrupts/idt.hpp>
@@ -22,9 +22,9 @@ namespace PROC {
 	};
 
 	struct ExecutableUnitHeader {
-		size_t ID = 0;
-		uint8_t Priority = 0;
-		uint16_t Flags = 0;
+		usize ID = 0;
+		u8 Priority = 0;
+		u16 Flags = 0;
 
 		bool IsThread = false;
 	
@@ -36,15 +36,15 @@ namespace PROC {
 
 	struct ThreadBase : public ExecutableUnitHeader {
 		CPUStatus *Context = NULL;
-		uintptr_t KernelStack = 0;
+		uptr KernelStack = 0;
 
 		ThreadBase *Next = NULL;
 		ThreadBase *Previous = NULL;
 	};
 
 	struct ThreadList {
-		size_t ThreadCount = 0;
-		size_t ThreadIDBase = 0;
+		usize ThreadCount = 0;
+		usize ThreadIDBase = 0;
 
 		ThreadBase *Head = NULL;
 		ThreadBase *Tail = NULL;
@@ -52,7 +52,7 @@ namespace PROC {
 
 	struct ProcessBase : public ExecutableUnitHeader {
 		VMM::VirtualSpace *VirtualMemorySpace = NULL;
-		uintptr_t HighestFree = 0;
+		uptr HighestFree = 0;
 		VMM::PageList *ExecutablePageList;
 
 		ThreadList Threads;
@@ -65,11 +65,11 @@ namespace PROC {
 	};
 
 	struct UserTCB : public TableHeader {
-		uint8_t SystemTables;
-		uint32_t SystemTableListOffset;
+		u8 SystemTables;
+		u32 SystemTableListOffset;
 
-		uint8_t ServiceTables;
-		uint32_t ServiceTableListOffset;
+		u8 ServiceTables;
+		u32 ServiceTableListOffset;
 	}__attribute__((packed));
 
 	struct UserProcess : public ProcessBase {
@@ -77,7 +77,7 @@ namespace PROC {
 	};
 
 	struct UserThread : public ThreadBase {
-		uintptr_t UserStack = 0;
+		uptr UserStack = 0;
 	};
 
 	struct RealtimeProcess : public ProcessBase {
@@ -92,11 +92,11 @@ namespace PROC {
 	struct VMThread : public ThreadBase {
 	};
 
-	ProcessBase *CreateProcess(ProcessBase *parent, ExecutableUnitType type, VMM::VirtualSpace *virtualMemorySpace, VMM::PageList *pageList, uint8_t priority, uint16_t flags);
+	ProcessBase *CreateProcess(ProcessBase *parent, ExecutableUnitType type, VMM::VirtualSpace *virtualMemorySpace, VMM::PageList *pageList, u8 priority, u16 flags);
 	int DeleteProcess(ProcessBase *process);
 
-	ThreadBase *CreateThread(ProcessBase *parent, uintptr_t entrypoint, size_t stackSize, uint8_t priority, uint16_t flags);
-	ThreadBase *FindThread(ProcessBase *process, size_t id);
+	ThreadBase *CreateThread(ProcessBase *parent, uptr entrypoint, usize stackSize, u8 priority, u16 flags);
+	ThreadBase *FindThread(ProcessBase *process, usize id);
 	int DeleteThread(ThreadBase *thread);
 
 	int SetExecutableUnitState(ExecutableUnitHeader *unit, ExecutableUnitState state);

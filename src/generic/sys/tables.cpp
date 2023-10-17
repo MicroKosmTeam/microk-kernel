@@ -5,12 +5,12 @@
 int InitializeKernelTables() {
 	KInfo *info = GetInfo();
 
-	info->KernelBaseSystemTable = (uintptr_t)PMM::RequestPage();
+	info->KernelBaseSystemTable = (uptr)PMM::RequestPage();
 	KBST *kbst = (KBST*)(info->KernelBaseSystemTable + info->HigherHalfMapping);
 	Memset(kbst, 0, PAGE_SIZE);
 	PopulateKBST(kbst);
 
-	info->BootFileSystemTable = (uintptr_t)PMM::RequestPage();
+	info->BootFileSystemTable = (uptr)PMM::RequestPage();
 	BFST *bfst = (BFST*)(info->BootFileSystemTable + info->HigherHalfMapping);
 	Memset(bfst, 0, PAGE_SIZE);
 	PopulateBFST(bfst);
@@ -40,12 +40,12 @@ void PopulateKBST(KBST *kbst) {
 	kbst->UsedPhysicalMemory = PMM::GetUsedMem();
 	kbst->ReservedPhysicalMemory = PMM::GetReservedMem();
 
-	kbst->RSDP = (uintptr_t)info->RSDP;
+	kbst->RSDP = (uptr)info->RSDP;
 
-	uint8_t checksumDifference = 0;
-	uint8_t *kbstByte = (uint8_t*)kbst;
+	u8 checksumDifference = 0;
+	u8 *kbstByte = (u8*)kbst;
 
-	while((uintptr_t)kbstByte < (uintptr_t)kbst + PAGE_SIZE) {
+	while((uptr)kbstByte < (uptr)kbst + PAGE_SIZE) {
 		checksumDifference += *kbstByte++;
 	}
 
@@ -66,10 +66,10 @@ void PopulateBFST(BFST *bfst) {
 	
 	Memcpy(bfst->Files, info->BootFiles, sizeof(BootFile) * info->FileCount);
 
-	uint8_t checksumDifference = 0;
-	uint8_t *bfstByte = (uint8_t*)bfst;
+	u8 checksumDifference = 0;
+	u8 *bfstByte = (u8*)bfst;
 
-	while((uintptr_t)bfstByte < (uintptr_t)bfst + PAGE_SIZE) {
+	while((uptr)bfstByte < (uptr)bfst + PAGE_SIZE) {
 		checksumDifference += *bfstByte++;
 	}
 

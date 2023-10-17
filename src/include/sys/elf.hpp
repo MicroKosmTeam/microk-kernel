@@ -1,5 +1,5 @@
 #pragma once
-#include <stdint.h>
-#include <stddef.h>
+#include <cstdint.hpp>
 
-uint64_t LoadELF(uint8_t *data, size_t size);
+
+u64 LoadELF(u8 *data, usize size);

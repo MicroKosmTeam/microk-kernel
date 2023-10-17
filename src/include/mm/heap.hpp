@@ -1,27 +1,27 @@
 #pragma once
-#include <stdint.h>
-#include <stddef.h>
+#include <cstdint.hpp>
+
 
 struct HeapSegHeader{
-        size_t length;
+        usize length;
         HeapSegHeader *next;
         HeapSegHeader *last;
         bool free;
 
         void CombineForward();
         void CombineBackward();
-        HeapSegHeader *Split(size_t splitLenght);
+        HeapSegHeader *Split(usize splitLenght);
 };
 
 namespace HEAP {
-	uint64_t GetFree();
-	uint64_t GetTotal();
+	u64 GetFree();
+	u64 GetTotal();
 
 	bool IsHeapActive();
 
-	void InitializeHeap(void *heapAddress, size_t pageCount);
-	void ExpandHeap(size_t lenght);
+	void InitializeHeap(void *heapAddress, usize pageCount);
+	void ExpandHeap(usize lenght);
 
-	void *Malloc(size_t size);
+	void *Malloc(usize size);
 	void Free(void *address);
 }

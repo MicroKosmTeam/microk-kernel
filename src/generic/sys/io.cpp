@@ -8,11 +8,11 @@ static inline int HandleSYSIOWord(IORequest *request);
 static inline int HandleSYSIODWord(IORequest *request);
 static inline int HandleSYSIOQWord(IORequest *request);
 
-int ExecuteIORequest(IORequest requests[], size_t requestCount) {
-	for (size_t currentRequest = 0; currentRequest < requestCount; ++currentRequest) {
+int ExecuteIORequest(IORequest requests[], usize requestCount) {
+	for (usize currentRequest = 0; currentRequest < requestCount; ++currentRequest) {
 		IORequest *request = &requests[currentRequest];
 
-		uint8_t memoryType = request->MemoryAccessType & MEMORY_MASK_TYPE;
+		u8 memoryType = request->MemoryAccessType & MEMORY_MASK_TYPE;
 
 		switch (memoryType) {
 			case MEMORY_SYSGENERAL:
@@ -30,7 +30,7 @@ int ExecuteIORequest(IORequest requests[], size_t requestCount) {
 }
 
 static inline int HandleSYSIORequest(IORequest *request) {
-	uint8_t accessLength = request->MemoryAccessType & MEMORY_MASK_SIZE;
+	u8 accessLength = request->MemoryAccessType & MEMORY_MASK_SIZE;
 
 	switch(accessLength) {
 		case MEMORY_ACCESS_BYTE:
@@ -59,17 +59,17 @@ static inline int HandleSYSGENERALRequest(IORequest *request) {
 
 
 static inline int HandleSYSIOByte(IORequest *request) {
-	uint8_t accessType = request->MemoryAccessType & MEMORY_MASK_ACCESS;
+	u8 accessType = request->MemoryAccessType & MEMORY_MASK_ACCESS;
 
 	switch(accessType) {
 		case MEMORY_ACCESS_READ: {
-			uint8_t inData = x86_64::InB(request->Address);
-			CopyToUser(&inData, request->Data, sizeof(uint8_t));
+			u8 inData = x86_64::InB(request->Address);
+			CopyToUser(&inData, request->Data, sizeof(u8));
 			}
 			break;
 		case MEMORY_ACCESS_WRITE:
-			uint8_t outData;
-			CopyFromUser(&outData, request->Data, sizeof(uint8_t));
+			u8 outData;
+			CopyFromUser(&outData, request->Data, sizeof(u8));
 			x86_64::OutB(request->Address, outData);
 			break;
 	}
@@ -78,17 +78,17 @@ static inline int HandleSYSIOByte(IORequest *request) {
 }
 
 static inline int HandleSYSIOWord(IORequest *request) {
-	uint8_t accessType = request->MemoryAccessType & MEMORY_MASK_ACCESS;
+	u8 accessType = request->MemoryAccessType & MEMORY_MASK_ACCESS;
 
 	switch(accessType) {
 		case MEMORY_ACCESS_READ: {
-			uint16_t inData = x86_64::InW(request->Address);
-			CopyToUser(&inData, request->Data, sizeof(uint16_t));
+			u16 inData = x86_64::InW(request->Address);
+			CopyToUser(&inData, request->Data, sizeof(u16));
 			}
 			break;
 		case MEMORY_ACCESS_WRITE:
-			uint16_t outData;
-			CopyFromUser(&outData, request->Data, sizeof(uint16_t));
+			u16 outData;
+			CopyFromUser(&outData, request->Data, sizeof(u16));
 			x86_64::OutW(request->Address, outData);
 			break;
 	}
@@ -97,17 +97,17 @@ static inline int HandleSYSIOWord(IORequest *request) {
 }
 
 static inline int HandleSYSIODWord(IORequest *request) {
-	uint8_t accessType = request->MemoryAccessType & MEMORY_MASK_ACCESS;
+	u8 accessType = request->MemoryAccessType & MEMORY_MASK_ACCESS;
 
 	switch(accessType) {
 		case MEMORY_ACCESS_READ: {
-			uint32_t inData = x86_64::InD(request->Address);
-			CopyToUser(&inData, request->Data, sizeof(uint32_t));
+			u32 inData = x86_64::InD(request->Address);
+			CopyToUser(&inData, request->Data, sizeof(u32));
 			}
 			break;
 		case MEMORY_ACCESS_WRITE:
-			uint32_t outData;
-			CopyFromUser(&outData, request->Data, sizeof(uint32_t));
+			u32 outData;
+			CopyFromUser(&outData, request->Data, sizeof(u32));
 			x86_64::OutD(request->Address, outData);
 			break;
 	}
@@ -116,17 +116,17 @@ static inline int HandleSYSIODWord(IORequest *request) {
 }
 
 static inline int HandleSYSIOQWord(IORequest *request) {
-	uint8_t accessType = request->MemoryAccessType & MEMORY_MASK_ACCESS;
+	u8 accessType = request->MemoryAccessType & MEMORY_MASK_ACCESS;
 
 	switch(accessType) {
 		case MEMORY_ACCESS_READ: {
-			uint64_t inData = x86_64::InB(request->Address);
-			CopyToUser(&inData, request->Data, sizeof(uint64_t));
+			u64 inData = x86_64::InB(request->Address);
+			CopyToUser(&inData, request->Data, sizeof(u64));
 			}
 			break;
 		case MEMORY_ACCESS_WRITE:
-			uint64_t outData;
-			CopyFromUser(&outData, request->Data, sizeof(uint64_t));
+			u64 outData;
+			CopyFromUser(&outData, request->Data, sizeof(u64));
 			x86_64::OutQ(request->Address, outData);
 			break;
 	}

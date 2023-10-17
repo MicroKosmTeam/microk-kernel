@@ -1,7 +1,7 @@
 #pragma once
 #include <cdefs.h>
-#include <stdint.h>
-#include <stddef.h>
+#include <cstdint.hpp>
+
 #include <proc/process.hpp>
 
 namespace PROC {
@@ -15,14 +15,14 @@ namespace PROC {
 
 	struct SchedulerNode {
 		ThreadBase *Thread = NULL;
-		size_t Quantum = 0;
+		usize Quantum = 0;
 
 		SchedulerNode *Next = NULL;
 		SchedulerNode *Previous = NULL;
 	};
 
 	struct SchedulerQueue {
-		size_t ThreadCount = 0;
+		usize ThreadCount = 0;
 
 		SchedulerNode *Head = NULL;
 		SchedulerNode *Tail = NULL;
@@ -31,21 +31,21 @@ namespace PROC {
 	struct Scheduler {
 		SchedulerNode *CurrentThread = NULL;
 
-		size_t ElapsedQuantum = 0;
+		usize ElapsedQuantum = 0;
 
 		bool SchedulerLock = false;
 
-		size_t QueueCount = 0;
+		usize QueueCount = 0;
 		SchedulerQueue *Queues[];
 	};
 
-	Scheduler *InitializeScheduler(size_t queueCount);
+	Scheduler *InitializeScheduler(usize queueCount);
 	int DeinitializeScheduler(Scheduler *scheduler);
 
-	int AddThreadToQueue(Scheduler *scheduler, size_t queue, ThreadBase *thread);
-	ThreadBase *RemoveThreadFromQueue(Scheduler *scheduler, size_t queue, size_t pid, size_t tid);
-	ThreadBase *GetThreadFromQueue(Scheduler *scheduler, size_t queue, size_t pid, size_t tid);
-	ThreadBase *GetThread(Scheduler *scheduler, size_t pid, size_t tid);
+	int AddThreadToQueue(Scheduler *scheduler, usize queue, ThreadBase *thread);
+	ThreadBase *RemoveThreadFromQueue(Scheduler *scheduler, usize queue, usize pid, usize tid);
+	ThreadBase *GetThreadFromQueue(Scheduler *scheduler, usize queue, usize pid, usize tid);
+	ThreadBase *GetThread(Scheduler *scheduler, usize pid, usize tid);
 
 	int RecalculateScheduler(Scheduler *scheduler);
 

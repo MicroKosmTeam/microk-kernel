@@ -25,7 +25,7 @@ extern "C" void SwitchStack(void *oldStack, void *newStack) {
 	while(true);
 }
 
-void InitializeStack(void *stack, uintptr_t function) {
+void InitializeStack(void *stack, uptr function) {
 	(void)stack;
 	(void)function;
 	while(true);

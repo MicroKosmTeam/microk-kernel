@@ -11,8 +11,8 @@ static void *heapEnd;
 static HeapSegHeader *lastHeader;
 static bool isHeapActive = false;
 
-static uint64_t freeMem;
-static uint64_t totalMem;
+static u64 freeMem;
+static u64 totalMem;
 
 static SpinLock HeapLock;
 
@@ -35,12 +35,12 @@ void HeapSegHeader::CombineBackward() {
         if (last != NULL && last->free) last->CombineForward();
 }
 
-HeapSegHeader *HeapSegHeader::Split(size_t splitlength) {
+HeapSegHeader *HeapSegHeader::Split(usize splitlength) {
         if (splitlength < 0x10) return NULL;
-        int64_t splitSeglength = length - splitlength - (sizeof(HeapSegHeader));
+        i64 splitSeglength = length - splitlength - (sizeof(HeapSegHeader));
         if (splitSeglength < 0x10) return NULL;
 
-        HeapSegHeader *newSplitHeader = (HeapSegHeader*)((size_t)this + splitlength + sizeof(HeapSegHeader));
+        HeapSegHeader *newSplitHeader = (HeapSegHeader*)((usize)this + splitlength + sizeof(HeapSegHeader));
 	if(next == NULL) next = newSplitHeader;
 	else next->last = newSplitHeader;            // Set the next segment's last segment to our new segment
         newSplitHeader->next = next;            // Set the new segment's next segment to our original next
@@ -59,38 +59,38 @@ bool IsHeapActive() {
 	return isHeapActive;
 }
 
-uint64_t GetFree() {
+u64 GetFree() {
 	return freeMem;
 }
 
-uint64_t GetTotal() {
+u64 GetTotal() {
 	return totalMem;
 }
 
-void InitializeHeap(void *heapAddress, size_t pageCount) {
+void InitializeHeap(void *heapAddress, usize pageCount) {
 	KInfo *info = GetInfo();
 
         void *pos = heapAddress;
 	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Initializing the heap at 0x%x with %d pages.\r\n", heapAddress, pageCount);
 
-	size_t pageListSize = sizeof(VMM::PageList) + pageCount * sizeof(VMM::PageMetadata);
+	usize pageListSize = sizeof(VMM::PageList) + pageCount * sizeof(VMM::PageMetadata);
 	pageListSize += PAGE_SIZE - pageListSize % PAGE_SIZE;
-	info->KernelHeapPageList = (VMM::PageList*)((uintptr_t)PMM::RequestPages(pageListSize / PAGE_SIZE) + info->HigherHalfMapping);
+	info->KernelHeapPageList = (VMM::PageList*)((uptr)PMM::RequestPages(pageListSize / PAGE_SIZE) + info->HigherHalfMapping);
 	info->KernelHeapPageList->PageCount = pageCount;
 	info->KernelHeapPageList->AllocatedSize = pageListSize;
 
-        for (size_t i = 0; i < pageCount; i++) {
+        for (usize i = 0; i < pageCount; i++) {
 		void *physical = PMM::RequestPage();
 		info->KernelHeapPageList->Pages[i].IsCOW = false;
-		info->KernelHeapPageList->Pages[i].Data.PhysicalAddress = (uintptr_t)physical;
+		info->KernelHeapPageList->Pages[i].Data.PhysicalAddress = (uptr)physical;
 		VMM::MapMemory(info->KernelVirtualSpace, physical, pos, VMM::VMM_PRESENT | VMM::VMM_READWRITE | VMM::VMM_GLOBAL | VMM::VMM_NOEXECUTE);
-                pos = (void*)((size_t)pos + 0x1000); // Advancing
+                pos = (void*)((usize)pos + 0x1000); // Advancing
         }
 
-        size_t heaplength = pageCount * 0x1000;
+        usize heaplength = pageCount * 0x1000;
 
         heapStart = heapAddress;
-        heapEnd = (void*)((size_t)heapStart + heaplength);
+        heapEnd = (void*)((usize)heapStart + heaplength);
 
         HeapSegHeader *startSeg = (HeapSegHeader*)heapAddress;
         startSeg->length = heaplength - sizeof(HeapSegHeader);
@@ -106,7 +106,7 @@ void InitializeHeap(void *heapAddress, size_t pageCount) {
 
 #define MAX_TRIES 4
 
-void *Malloc(size_t size) {
+void *Malloc(usize size) {
         if (size % 0x10 > 0){ // Not multiple of 0x10
                 size -= (size % 0x10);
                 size += 0x10;
@@ -125,12 +125,12 @@ void *Malloc(size_t size) {
 					currSeg->free = false;
 					freeMem -= size;
 					HeapLock.Unlock();
-					return (void*)((uint64_t)currSeg + sizeof(HeapSegHeader));
+					return (void*)((u64)currSeg + sizeof(HeapSegHeader));
 				} else if (currSeg->length == size) {
 					currSeg->free = false;
 					freeMem -= size;
 					HeapLock.Unlock();
-					return (void*)((uint64_t)currSeg + sizeof(HeapSegHeader));
+					return (void*)((u64)currSeg + sizeof(HeapSegHeader));
 				}
 			}
 
@@ -160,7 +160,7 @@ void Free(void *address) {
 	HeapLock.Unlock();
 }
 
-void ExpandHeap(size_t length) {
+void ExpandHeap(usize length) {
 	/* TODO: not yet implemented fully with KernelHeapPageList,
 	 * we would need to map the new pages in each virtual space */
 	PANIC("ExpandHeap not yet implemented fully");
@@ -171,22 +171,22 @@ void ExpandHeap(size_t length) {
                 length += 0x1000;
         }
 
-        size_t pageCount = length / 0x1000;
+        usize pageCount = length / 0x1000;
         HeapSegHeader *newSegment = (HeapSegHeader*)heapEnd;
 
-	size_t newPageListSize = sizeof(VMM::PageList) + (info->KernelHeapPageList->PageCount + pageCount) * sizeof(uintptr_t);
+	usize newPageListSize = sizeof(VMM::PageList) + (info->KernelHeapPageList->PageCount + pageCount) * sizeof(uptr);
 	if(newPageListSize < info->KernelHeapPageList->AllocatedSize) {
 		info->KernelHeapPageList->AllocatedSize = newPageListSize;
 
-		size_t initialPageCount = info->KernelHeapPageList->PageCount;
+		usize initialPageCount = info->KernelHeapPageList->PageCount;
 		info->KernelHeapPageList->PageCount += pageCount;
 
-		for (size_t i = initialPageCount; i < info->KernelHeapPageList->PageCount; i++) {
+		for (usize i = initialPageCount; i < info->KernelHeapPageList->PageCount; i++) {
 			void *physical = PMM::RequestPage();
 			info->KernelHeapPageList->Pages[i].IsCOW = false;
-			info->KernelHeapPageList->Pages[i].Data.PhysicalAddress = (uintptr_t)physical;
+			info->KernelHeapPageList->Pages[i].Data.PhysicalAddress = (uptr)physical;
 			VMM::MapMemory(info->KernelVirtualSpace, physical, heapEnd, VMM::VMM_PRESENT | VMM::VMM_READWRITE | VMM::VMM_GLOBAL | VMM::VMM_NOEXECUTE);
-			heapEnd = (void*)((size_t)heapEnd + 0x1000);
+			heapEnd = (void*)((usize)heapEnd + 0x1000);
 		}
 
 	} else {
@@ -195,11 +195,11 @@ void ExpandHeap(size_t length) {
 		info->KernelHeapPageList = (VMM::PageList*)PMM::RequestPages(pageListSize / PAGE_SIZE);
 		info->KernelHeapPageList->PageCount = pageCount;
 
-		for (size_t i = ; i < info->KernelHeapPageList->PageCount; i++) {
+		for (usize i = ; i < info->KernelHeapPageList->PageCount; i++) {
 			void *physical = PMM::RequestPage();
-			info->KernelHeapPageList->PhysicalAddresses[i] = (uintptr_t)physical;
+			info->KernelHeapPageList->PhysicalAddresses[i] = (uptr)physical;
 			VMM::MapMemory(info->KernelVirtualSpace, physical, heapEnd, VMM::VMM_PRESENT | VMM::VMM_READWRITE | VMM::VMM_GLOBAL | VMM::VMM_NOEXECUTE);
-			heapEnd = (void*)((size_t)heapEnd + 0x1000);
+			heapEnd = (void*)((usize)heapEnd + 0x1000);
 		} */
 
 	}

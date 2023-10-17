@@ -1,6 +1,6 @@
 #pragma once
-#include <stdint.h>
-#include <stddef.h>
+#include <cstdint.hpp>
+
 
 #define PAGE_SIZE 0x1000
 
@@ -18,31 +18,31 @@ namespace VMM {
 		virtual ~VirtualSpace() { };
 		virtual void *GetPhysicalAddress(void *virtualMemory) = 0;
 		virtual void Fork(VirtualSpace *space, bool higherHalf) = 0;
-		virtual void MapMemory(void *physicalMemory, void *virtualMemory, uint64_t flags) = 0;
+		virtual void MapMemory(void *physicalMemory, void *virtualMemory, u64 flags) = 0;
 		virtual void UnmapMemory(void *virtualMemory) = 0;
 		virtual void *GetTopAddress() = 0;
 	private:
 	};
 	
 	struct COWMetadata {
-		uintptr_t PhysicalAddressOfOriginal;
-		uintptr_t PhysicalAddressOfCopy;
+		uptr PhysicalAddressOfOriginal;
+		uptr PhysicalAddressOfCopy;
 
-		size_t VirtualReferences;
-		uintptr_t VirtualAddresses[];
+		usize VirtualReferences;
+		uptr VirtualAddresses[];
 	};
 
 	struct PageMetadata {
 		bool IsCOW;
 		union {
-			uintptr_t PhysicalAddress;
+			uptr PhysicalAddress;
 			COWMetadata *COW;
 		} Data;
 	};
 
 	struct PageList {
-		size_t PageCount;
-		size_t AllocatedSize;
+		usize PageCount;
+		usize AllocatedSize;
 		PageMetadata Pages[];
 	};
 
@@ -51,5 +51,5 @@ namespace VMM {
 	VirtualSpace *NewVirtualSpace();
 	void LoadVirtualSpace(VMM::VirtualSpace *space);
 	void MapMemory(VirtualSpace *space, void *physicalMemory, void *virtualMemory);
-	void MapMemory(VirtualSpace *space, void *physicalMemory, void *virtualMemory, uint64_t flags);
+	void MapMemory(VirtualSpace *space, void *physicalMemory, void *virtualMemory, u64 flags);
 }

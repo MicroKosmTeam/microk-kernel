@@ -1,7 +1,7 @@
 #pragma once
 #include <cdefs.h>
-#include <stdint.h>
-#include <stddef.h>
+#include <cstdint.hpp>
+
 
 typedef intmax_t time_t;
 typedef intmax_t ticks_t;

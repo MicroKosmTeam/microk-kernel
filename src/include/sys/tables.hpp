@@ -1,33 +1,33 @@
 #pragma once
-#include <stdint.h>
-#include <stddef.h>
+#include <cstdint.hpp>
+
 #include <sys/file.hpp>
 
 struct TableHeader {
-	uint8_t Signature[4];
-	uint8_t Revision;
+	u8 Signature[4];
+	u8 Revision;
 
-	uint8_t Checksum;
+	u8 Checksum;
 }__attribute__((packed));
 
 struct TableListElement {
-	uint8_t Signature[4];
-	uintptr_t TablePointer;
+	u8 Signature[4];
+	uptr TablePointer;
 }__attribute__((packed));
 
 struct KBST : public TableHeader {
-	size_t FreePhysicalMemory;
-	size_t UsedPhysicalMemory;
-	size_t ReservedPhysicalMemory;
+	usize FreePhysicalMemory;
+	usize UsedPhysicalMemory;
+	usize ReservedPhysicalMemory;
 
-	uintptr_t RSDP;
+	uptr RSDP;
 }__attribute__((packed));
 
 struct PTST: public TableHeader {
 }__attribute__((packed));
 
 struct BFST: public TableHeader {
-	size_t NumberOfFiles;
+	usize NumberOfFiles;
 	BootFile Files[];
 }__attribute__((packed));
 

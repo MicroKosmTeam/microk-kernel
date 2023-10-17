@@ -1,6 +1,6 @@
 #include <arch/x64/mm/pageindexer.hpp>
 
-PageMapIndexer::PageMapIndexer(uint64_t virtual_address) {
+PageMapIndexer::PageMapIndexer(u64 virtual_address) {
         virtual_address >>= 12;
         P_i = virtual_address & 0x1ff;
         virtual_address >>=9;

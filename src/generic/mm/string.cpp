@@ -1,33 +1,33 @@
 #include <mm/string.hpp>
-#include <stdint.h>
+#include <cstdint.hpp>
 
-size_t Strnlen(const char *str, size_t maxLength) {
+usize Strnlen(const char *str, usize maxLength) {
         const char *strEnd = str;
 
-        for (size_t current = 0;
+        for (usize current = 0;
 	     current < maxLength && *strEnd;
 	     ++strEnd, ++current);
 
         return (strEnd - str);
 }
 
-char *Strncpy(char *dest, const char *src, size_t maxLength){
+char *Strncpy(char *dest, const char *src, usize maxLength){
         if(dest == NULL || src == NULL) return NULL;
 
         char *destStart = dest;
 
-        for (size_t current = 0;
+        for (usize current = 0;
 	    current < maxLength && (*dest++ = *src++);
 	    ++current);
 
         return destStart;
 }
 
-int Strncmp(const char *first, const char *second, size_t maxLength) {
-        const uint8_t *firstCurrent = (const uint8_t*)first;
-        const uint8_t *secondCurrent = (const uint8_t*)second;
+int Strncmp(const char *first, const char *second, usize maxLength) {
+        const u8 *firstCurrent = (const u8*)first;
+        const u8 *secondCurrent = (const u8*)second;
 
-        for (size_t current = 0;
+        for (usize current = 0;
 	     current < maxLength && (*firstCurrent != '\0');
 	     ++current) {
                 if (*firstCurrent == '\0') return  1;

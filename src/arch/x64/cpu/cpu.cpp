@@ -6,9 +6,9 @@
 #include <sys/printk.hpp>
 #include <arch/x64/cpu/cpu.hpp>
 #include <sys/panic.hpp>
-#include <stdint.h>
+#include <cstdint.hpp>
 #include <mm/pmm.hpp>
-#include <stddef.h>
+
 #include <mm/string.hpp>
 #include <init/kinfo.hpp>
 
@@ -58,11 +58,11 @@ static const char *CPUVendorStrings[] {
 
 
 
-static uint16_t EnableSMID() {
+static u16 EnableSMID() {
 	unsigned int eax, ebx, ecx, edx;
 	__cpuid(1, eax, ebx, ecx, edx);
 
-	uint16_t result = 0;
+	u16 result = 0;
 
 	/* SSE */
 	if(edx & (1 << 25)) {
@@ -127,13 +127,13 @@ namespace x86_64 {
    Function that initializes the x86CPU class
 */
 
-uintptr_t localCPUStruct = 0;
+uptr localCPUStruct = 0;
 void CPUInit() {
 	KInfo *info = GetInfo();
 
 	SetIOPL();
 
-	uint16_t sseFeatures = EnableSMID();
+	u16 sseFeatures = EnableSMID();
 	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "SSE features: %x\r\n", sseFeatures);
 
 	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Syscall entries at 00x%x\r\n", &SyscallEntry);
@@ -141,15 +141,15 @@ void CPUInit() {
 
 	SetMSR(MSR_GSBASE, 0xDEADDEAD, 0xDEADDEAD);
 
-	localCPUStruct = (uintptr_t)PMM::RequestPage() + info->HigherHalfMapping;
+	localCPUStruct = (uptr)PMM::RequestPage() + info->HigherHalfMapping;
 	SetMSR(MSR_KERNELGSBASE, localCPUStruct, localCPUStruct >> 32);
 
 	UpdateLocalCPUStruct(0xDEADC0DECAFEBABE,
-			     (uintptr_t)info->KernelVirtualSpace->GetTopAddress() - info->HigherHalfMapping,
-			     (uintptr_t)info->KernelVirtualSpace->GetTopAddress() - info->HigherHalfMapping);
+			     (uptr)info->KernelVirtualSpace->GetTopAddress() - info->HigherHalfMapping,
+			     (uptr)info->KernelVirtualSpace->GetTopAddress() - info->HigherHalfMapping);
 }
 
-void UpdateLocalCPUStruct(uintptr_t taskKernelStack, uintptr_t userCR3, uintptr_t kernelCR3) {
+void UpdateLocalCPUStruct(uptr taskKernelStack, uptr userCR3, uptr kernelCR3) {
 	LocalCPUStruct *cpuStruct = (LocalCPUStruct*)localCPUStruct;
 
 	cpuStruct->TaskKernelStack = taskKernelStack;
@@ -161,7 +161,7 @@ void UpdateLocalCPUStruct(uintptr_t taskKernelStack, uintptr_t userCR3, uintptr_
    Function that gets the CPU vendor string from CPUID
 */
 const char *GetCPUVendor() {
-	uint32_t ebx, edx, ecx, unused;
+	u32 ebx, edx, ecx, unused;
 	__cpuid(0, unused, ebx, ecx, edx);
 
 	char string[CPU_VENDOR_LENGTH] = { 0 };
@@ -169,21 +169,21 @@ const char *GetCPUVendor() {
 	/* This bitshift logic is used to get the correct 8-bit characters
 	 * from the 32 bit registers. The vendor name is 12 characters + NULL
 	 */
-	string[0] = (uint8_t)(ebx & 0xFF);
-	string[1] = (uint8_t)((ebx >> 8) & 0xFF);
-	string[2] = (uint8_t)((ebx >> 16) & 0xFF);
-	string[3] = (uint8_t)((ebx >> 24) & 0xFF);
-	string[4] = (uint8_t)(edx & 0xFF);
-	string[5] = (uint8_t)((edx >> 8) & 0xFF);
-	string[6] = (uint8_t)((edx >> 16) & 0xFF);
-	string[7] = (uint8_t)((edx >> 24) & 0xFF);
-	string[8] = (uint8_t)(ecx & 0xFF);
-	string[9] = (uint8_t)((ecx >> 8) & 0xFF);
-	string[10] = (uint8_t)((ecx >> 16) & 0xFF);
-	string[11] = (uint8_t)((ecx >> 24) & 0xFF);
+	string[0] = (u8)(ebx & 0xFF);
+	string[1] = (u8)((ebx >> 8) & 0xFF);
+	string[2] = (u8)((ebx >> 16) & 0xFF);
+	string[3] = (u8)((ebx >> 24) & 0xFF);
+	string[4] = (u8)(edx & 0xFF);
+	string[5] = (u8)((edx >> 8) & 0xFF);
+	string[6] = (u8)((edx >> 16) & 0xFF);
+	string[7] = (u8)((edx >> 24) & 0xFF);
+	string[8] = (u8)(ecx & 0xFF);
+	string[9] = (u8)((ecx >> 8) & 0xFF);
+	string[10] = (u8)((ecx >> 16) & 0xFF);
+	string[11] = (u8)((ecx >> 24) & 0xFF);
 	string[12] = '\0';
 
-	size_t index = 0;
+	usize index = 0;
 	while(CPUVendorStrings[index] != NULL) {
 		if(Strncmp(string, CPUVendorStrings[index], CPU_VENDOR_LENGTH) == 0) return CPUVendorStrings[index];
 

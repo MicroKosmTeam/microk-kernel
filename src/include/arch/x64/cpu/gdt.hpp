@@ -1,37 +1,37 @@
 #pragma once
-#include <stddef.h>
-#include <stdint.h>
+
+#include <cstdint.hpp>
 
 struct GDTPointer{
-    uint16_t size;
-    uint64_t offset;
+    u16 size;
+    u64 offset;
 } __attribute__((packed));
 
 struct GDTEntry{
-    uint16_t limit;
-    uint16_t base_low16;
-    uint8_t base_mid8;
-    uint8_t access;
-    uint8_t granularity;
-    uint8_t base_high8;
+    u16 limit;
+    u16 base_low16;
+    u8 base_mid8;
+    u8 access;
+    u8 granularity;
+    u8 base_high8;
 } __attribute__((packed));
 
 struct TSS {
-	uint32_t reserved0;
-	uint64_t rsp0;
-	uint64_t rsp1;
-	uint64_t rsp2;
-	uint64_t reserved1;
-	uint64_t ist1;
-	uint64_t ist2;
-	uint64_t ist3;
-	uint64_t ist4;
-	uint64_t ist5;
-	uint64_t ist6;
-	uint64_t ist7;
-	uint64_t reserved2;
-	uint16_t reserved3;
-	uint16_t iopb_offset;
+	u32 reserved0;
+	u64 rsp0;
+	u64 rsp1;
+	u64 rsp2;
+	u64 reserved1;
+	u64 ist1;
+	u64 ist2;
+	u64 ist3;
+	u64 ist4;
+	u64 ist5;
+	u64 ist6;
+	u64 ist7;
+	u64 reserved2;
+	u16 reserved3;
+	u16 iopb_offset;
 } __attribute__((packed));
 
 struct GDT {
@@ -53,5 +53,5 @@ extern "C" void FlushTSS();
 
 namespace x86_64 {
 	void LoadGDT();
-	void TSSInit(uintptr_t stackPointer);
+	void TSSInit(uptr stackPointer);
 }

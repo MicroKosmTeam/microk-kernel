@@ -34,7 +34,7 @@ namespace x86_64 {
 /*
    Function that initializes the TSS given the current kernel stack
 */
-void TSSInit(uintptr_t stackPointer) {
+void TSSInit(uptr stackPointer) {
 	/* Cleaning the TSS struct */
 	Memset(&tss, 0, sizeof(tss));
 
@@ -52,7 +52,7 @@ void TSSInit(uintptr_t stackPointer) {
 	tss.iopb_offset = sizeof(tss);
 
 	/* Setting TSS parameters in the GDT */
-	uint64_t TSSBase = ((uint64_t)&tss);
+	u64 TSSBase = ((u64)&tss);
 	gdt.tss_low.base_low16 = TSSBase & 0xffff;
 	gdt.tss_low.base_mid8 = (TSSBase >> 16) & 0xff;
 	gdt.tss_low.base_high8 = (TSSBase >> 24) & 0xff;
@@ -67,7 +67,7 @@ void TSSInit(uintptr_t stackPointer) {
 void LoadGDT() {
 	/* Setting GDT pointer size and offset */
 	gdtPointer.size = sizeof(gdt) - 1;
-	gdtPointer.offset = (uint64_t)&gdt;
+	gdtPointer.offset = (u64)&gdt;
 
 	/* Call to asm functions that load the GDT and TSS */
 	FlushGDT(&gdtPointer);

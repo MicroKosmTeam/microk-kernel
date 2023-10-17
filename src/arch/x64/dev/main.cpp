@@ -9,103 +9,103 @@
 
 struct RSDP2 {
 	unsigned char Signature[8];
-	uint8_t Checksum;
-	uint8_t OEMID[6];
-	uint8_t Revision;
-	uint32_t RSDTAddress;
-	uint32_t Length;
-	uint64_t XSDTAddress;
-	uint8_t ExtendedChecksum;
-	uint8_t Reserved[3];
+	u8 Checksum;
+	u8 OEMID[6];
+	u8 Revision;
+	u32 RSDTAddress;
+	u32 Length;
+	u64 XSDTAddress;
+	u8 ExtendedChecksum;
+	u8 Reserved[3];
 }__attribute__((packed));
 
 struct SDTHeader {
 	unsigned char Signature[4];
-	uint32_t Length;
-	uint8_t Revision;
-	uint8_t Checksum;
-	uint8_t OEMID[6];
-	uint8_t OEMTableID[8];
-	uint32_t OEMRevision;
-	uint32_t CreatorID;
-	uint32_t CreatorRevision;
+	u32 Length;
+	u8 Revision;
+	u8 Checksum;
+	u8 OEMID[6];
+	u8 OEMTableID[8];
+	u32 OEMRevision;
+	u32 CreatorID;
+	u32 CreatorRevision;
 }__attribute__((packed));
 
 struct GenericAddressStructure {
-	uint8_t AddressSpace;
-	uint8_t BitWidth;
-	uint8_t BitOffset;
-	uint8_t AccessSize;
-	uint64_t Address;
+	u8 AddressSpace;
+	u8 BitWidth;
+	u8 BitOffset;
+	u8 AccessSize;
+	u64 Address;
 }__attribute__((packed));
 
 struct MADTHeader : public SDTHeader {
-	uint32_t LocalAPICAddress;
-	uint32_t Flags;
+	u32 LocalAPICAddress;
+	u32 Flags;
 }__attribute__((packed));
 
 #define MADT_RECORD_START_OFFSET 0x2C
 struct MADTRecord {
-	uint8_t EntryType;
-	uint8_t RecordLength;
+	u8 EntryType;
+	u8 RecordLength;
 }__attribute__((packed));
 
 #define MADT_RECORD_TYPE_PROCESSOR_LOCAL_APIC 0x00
 struct MADTRecordProcessorLocalAPIC : public MADTRecord {
-	uint8_t ACPIProcessorID;
-	uint8_t APICID;
-	uint32_t Flags;
+	u8 ACPIProcessorID;
+	u8 APICID;
+	u32 Flags;
 }__attribute__((packed));
 
 #define MADT_RECORD_TYPE_IOAPIC 0x01
 struct MADTRecordIOAPIC : public MADTRecord {
-	uint8_t  IOAPICID;
-	uint8_t Reserved0;
-	uint32_t IOAPICAddress;
-	uint32_t GlobalSystemInterruptBase;
+	u8  IOAPICID;
+	u8 Reserved0;
+	u32 IOAPICAddress;
+	u32 GlobalSystemInterruptBase;
 }__attribute__((packed));
 
 #define MADT_RECORD_TYPE_IOAPIC_INTERRUPT_SOURCE_OVERRIDE 0x02
 struct MADTRecordIOAPICInterruptSourceOverride : public MADTRecord {
-	uint8_t BusSource;
-	uint8_t IRQSource;
-	uint32_t GlobalSystemInterrupt;
-	uint16_t Flags;
+	u8 BusSource;
+	u8 IRQSource;
+	u32 GlobalSystemInterrupt;
+	u16 Flags;
 }__attribute__((packed));
 
 #define MADT_RECORD_TYPE_IOAPIC_NON_MASKABLE_INTERRUPT_SOURCE 0x03
 struct MADTRecordIOAPICNonMaskableInterruptSource : public MADTRecord {
-	uint8_t NMISource;
-	uint8_t Reserved0;
-	uint16_t Flags;
-	uint32_t GlobalSystemInterrupt;
+	u8 NMISource;
+	u8 Reserved0;
+	u16 Flags;
+	u32 GlobalSystemInterrupt;
 }__attribute__((packed));
 
 #define MADT_RECORD_TYPE_LOCAL_APIC_NON_MASKABLE_INTERRUPTS 0x04
 struct MADTRecordLocalAPICNonMaskableInterrupts: public MADTRecord {
-	uint8_t ACPIProcessorID;
-	uint16_t Flags;
-	uint8_t LINT;
+	u8 ACPIProcessorID;
+	u16 Flags;
+	u8 LINT;
 }__attribute__((packed));
 
 #define MADT_RECORD_TYPE_LOCAL_APIC_ADDRESS_OVERRIDE 0x05
 struct MADTRecordLocalAPICAddressOverride: public MADTRecord {
-	uint16_t Reserved0;
-	uint64_t LocalAPICAddress;
+	u16 Reserved0;
+	u64 LocalAPICAddress;
 }__attribute__((packed));
 
 #define MADT_RECORD_TYPE_PROCESSOR_LOOCAL_x2APIC 0x09
 struct MADTRecordProcessorLocalx2APIC: public MADTRecord {
-	uint16_t Reserved0;
-	uint32_t ProcessorLocalx2APICID;
-	uint32_t Flags;
-	uint32_t ACPIProcessorID;
+	u16 Reserved0;
+	u32 ProcessorLocalx2APICID;
+	u32 Flags;
+	u32 ACPIProcessorID;
 }__attribute__((packed));
 
 #define SRAT_RECORD_START_OFFSET 0x2C
 struct SRATRecord {
-	uint8_t EntryType;
-	uint8_t RecordLength;
+	u8 EntryType;
+	u8 RecordLength;
 }__attribute__((packed));
 
 #define SRAT_RECORD_TYPE_PROCESSOR_LOCAL_APIC_AFFINITY 0x00
@@ -121,16 +121,16 @@ struct SRATRecordProcessorLocalx2APICAffinity: public SRATRecord {
 }__attribute__((packed));
 
 struct HPETHeader : public SDTHeader {
-    uint8_t HardwareRevisionID;
-    uint8_t ComparatorCount : 5;
-    uint8_t CounterSize : 1;
-    uint8_t Reserved0 : 1;
-    uint8_t LegacyReplacement : 1;
-    uint16_t PCIVendorID;
+    u8 HardwareRevisionID;
+    u8 ComparatorCount : 5;
+    u8 CounterSize : 1;
+    u8 Reserved0 : 1;
+    u8 LegacyReplacement : 1;
+    u16 PCIVendorID;
     GenericAddressStructure Address;
-    uint8_t HPETNumber;
-    uint16_t MinimumTick;
-    uint8_t PageProtection;
+    u8 HPETNumber;
+    u16 MinimumTick;
+    u8 PageProtection;
 }__attribute__((packed));
 
 namespace x86_64 {
@@ -147,14 +147,14 @@ int InitDevices() {
 	if(rsdp->Revision < 2) return -1;
 
 	/* Select either the XSDT or the RSDT seeing whats available */
-	SDTHeader *sdtAddr = rsdp->XSDTAddress ? (SDTHeader*)rsdp->XSDTAddress : (SDTHeader*)(uintptr_t)rsdp->RSDTAddress;
-	sdtAddr = (SDTHeader*)((uintptr_t)sdtAddr + info->HigherHalfMapping);
-	uint8_t size = rsdp->XSDTAddress ? 8 : 4;
+	SDTHeader *sdtAddr = rsdp->XSDTAddress ? (SDTHeader*)rsdp->XSDTAddress : (SDTHeader*)(uptr)rsdp->RSDTAddress;
+	sdtAddr = (SDTHeader*)((uptr)sdtAddr + info->HigherHalfMapping);
+	u8 size = rsdp->XSDTAddress ? 8 : 4;
 
 	/* Scan through all the entries in the SDT */
-	size_t entries = (sdtAddr->Length - sizeof(SDTHeader)) / size;
-	for (size_t i = 0; i < entries; i++) {
-		uintptr_t addr = *(uintptr_t*)((uintptr_t)sdtAddr + sizeof(SDTHeader) + (i * size));
+	usize entries = (sdtAddr->Length - sizeof(SDTHeader)) / size;
+	for (usize i = 0; i < entries; i++) {
+		uptr addr = *(uptr*)((uptr)sdtAddr + sizeof(SDTHeader) + (i * size));
 		SDTHeader *newSDTHeader = (SDTHeader*)(addr + info->HigherHalfMapping);
 
 		if (Memcmp(newSDTHeader->Signature, "APIC", 4) == 0) {
@@ -173,9 +173,9 @@ int HandleMADT(MADTHeader *madt) {
 	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Local APIC detected at 0x%x.\r\n", madt->LocalAPICAddress);
 
 	MADTRecord *record;
-	uintptr_t offset = MADT_RECORD_START_OFFSET;
+	uptr offset = MADT_RECORD_START_OFFSET;
 	while(offset < madt->Length) {
-		record = (MADTRecord*)((uintptr_t)madt + offset);
+		record = (MADTRecord*)((uptr)madt + offset);
 		offset += record->RecordLength;
 
 		switch(record->EntryType) {
@@ -252,9 +252,9 @@ int HandleMADT(MADTHeader *madt) {
 
 int HandleSRAT(SDTHeader *srat) {
 	SRATRecord *record;
-	uintptr_t offset = SRAT_RECORD_START_OFFSET;
+	uptr offset = SRAT_RECORD_START_OFFSET;
 	while(offset < srat->Length) {
-		record = (SRATRecord*)((uintptr_t)srat + offset);
+		record = (SRATRecord*)((uptr)srat + offset);
 		offset += record->RecordLength;
 		
 		switch(record->EntryType) {
@@ -281,7 +281,7 @@ int HandleHPET(HPETHeader *hpet) {
 			hpet->HardwareRevisionID, hpet->ComparatorCount, hpet->CounterSize, hpet->LegacyReplacement,
 			hpet->PCIVendorID, hpet->Address.Address, hpet->HPETNumber, hpet->MinimumTick, hpet->PageProtection);
 
-	uint64_t tscPerSecond = 0;
+	u64 tscPerSecond = 0;
 	CalibrateTSCWithHPET(hpet->Address.Address, &tscPerSecond);
 	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "CPU is running at %d.%dMHz\r\n", tscPerSecond / 1000000, tscPerSecond % 1000000 / 1000);
 

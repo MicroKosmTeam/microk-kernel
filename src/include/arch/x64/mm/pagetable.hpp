@@ -1,5 +1,5 @@
 #pragma once
-#include <stdint.h>
+#include <cstdint.hpp>
 #include <arch/x64/mm/paging.hpp>
 #include <mm/vmm.hpp>
 
@@ -9,7 +9,7 @@ public:
 
 	void *GetPhysicalAddress(void *virtualMemory) override;
 	void Fork(VMM::VirtualSpace *space, bool higherHalf) override;
-	void MapMemory(void *physicalMemory, void *virtualMemory, uint64_t flags) override;
+	void MapMemory(void *physicalMemory, void *virtualMemory, u64 flags) override;
 	void UnmapMemory(void *virtualMemory) override;
 
 	void *GetTopAddress() override {

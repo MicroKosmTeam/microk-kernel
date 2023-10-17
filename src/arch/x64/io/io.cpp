@@ -6,53 +6,53 @@
 
 namespace x86_64 {
 /* Puts out a byte to the IO bus */
-void OutB(uint16_t port, uint8_t val) {
+void OutB(u16 port, u8 val) {
         asm volatile ( "outb %0, %1" : : "a"(val), "Nd"(port));
 }
 
 /* Puts out a word to the IO bus */
-void OutW(uint16_t port, uint16_t val) {
+void OutW(u16 port, u16 val) {
         asm volatile ( "outw %0, %1" : : "a"(val), "Nd"(port));
 }
 
 /* Puts out a double word to the IO bus */
-void OutD(uint16_t port, uint32_t val) {
+void OutD(u16 port, u32 val) {
         asm volatile ( "outl %0, %1" : : "a"(val), "Nd"(port));
 }
 
 /* Puts out a quadruple word to the IO bus via two writes */
-void OutQ(uint16_t port, uint64_t val) {
+void OutQ(u16 port, u64 val) {
 	OutD(port, val && 0xFFFFFFFF);
 	OutD(port + 4, val >> 32);
 }
 
 
 /* Gets a byte from the IO bus */
-uint8_t InB(uint16_t port) {
-        uint8_t ret;
+u8 InB(u16 port) {
+        u8 ret;
         asm volatile ( "inb %1, %0" : "=a"(ret) : "Nd"(port));
         return ret;
 }
 
 /* Gets a word from the IO bus */
-uint16_t InW(uint16_t port) {
-        uint16_t ret;
+u16 InW(u16 port) {
+        u16 ret;
         asm volatile ( "inw %1, %0" : "=a"(ret) : "Nd"(port));
         return ret;
 }
 
 /* Gets a double word from the IO bus */
-uint32_t InD(uint16_t port) {
-        uint32_t ret;
+u32 InD(u16 port) {
+        u32 ret;
         asm volatile ( "inl %1, %0" : "=a"(ret) : "Nd"(port));
         return ret;
 }
 
 /* Gets a quadruple word from the IO bus via two reads */
-uint64_t InQ(uint16_t port) {
-	uint64_t ret;
+u64 InQ(u16 port) {
+	u64 ret;
 	ret = InD(port);
-	ret |= (uint64_t)InD(port + 4) >> 32;
+	ret |= (u64)InD(port + 4) >> 32;
 	return ret;
 }
 

@@ -1,6 +1,6 @@
 #pragma once
-#include <stdint.h>
+#include <cstdint.hpp>
 
-typedef intptr_t *jmpbuf_t[5];
+typedef iptr *jmpbuf_t[5];
 #define SetJMP __builtin_setjmp
 #define LongJMP __builtin_longjmp

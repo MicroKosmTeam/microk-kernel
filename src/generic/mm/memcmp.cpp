@@ -1,10 +1,10 @@
 #include <mm/memory.hpp>
 
-extern "C" int memcmp(const void* buf1, const void* buf2, size_t count) {
+extern "C" int memcmp(const void* buf1, const void* buf2, usize count) {
 	return Memcmp(buf1, buf2, count);
 }
 
-int Memcmp(const void* buf1, const void* buf2, size_t count) {
+int Memcmp(const void* buf1, const void* buf2, usize count) {
 	if(!count)
 		return(0);
 

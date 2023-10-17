@@ -1,7 +1,7 @@
 #pragma once
 #include <cdefs.h>
-#include <stdint.h>
-#include <stddef.h>
+#include <cstdint.hpp>
+
 #include <dev/dev.hpp>
 
 namespace DEV {
@@ -24,7 +24,7 @@ namespace DEV {
 			bool Active;
 			DeviceMemory Port;
 
-			size_t Timeout;
+			usize Timeout;
 		};
 
 		Device *CreateUARTDevice();

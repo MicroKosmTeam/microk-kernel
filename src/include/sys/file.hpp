@@ -1,13 +1,13 @@
 #pragma once
 #include <cdefs.h>
-#include <stdint.h>
-#include <stddef.h>
+#include <cstdint.hpp>
+
 
 struct BootFile {
-	uintptr_t Address;
-	size_t Size;
+	uptr Address;
+	usize Size;
 	char Path[256];
 	char Cmdline[256];
 }__attribute__((packed));
 
-uintptr_t FindFile(const char *path, size_t *size);
+uptr FindFile(const char *path, usize *size);

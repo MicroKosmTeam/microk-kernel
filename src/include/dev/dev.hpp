@@ -1,6 +1,6 @@
 #pragma once
-#include <stdint.h>
-#include <stddef.h>
+#include <cstdint.hpp>
+
 #include <stdarg.h>
 #include <cdefs.h>
 
@@ -8,7 +8,7 @@ typedef intmax_t request_t;
 
 namespace DEV {
 	struct DeviceMemory {
-		uintptr_t Address;
+		uptr Address;
 		int Type;
 	};
 

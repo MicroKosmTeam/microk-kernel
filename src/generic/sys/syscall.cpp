@@ -1,6 +1,6 @@
 #include <cdefs.h>
-#include <stdint.h>
-#include <stddef.h>
+#include <cstdint.hpp>
+
 #include <mm/pmm.hpp>
 #include <sys/io.hpp>
 #include <sys/file.hpp>
@@ -20,23 +20,23 @@
 #endif
 
 /* Kernel syscall handlers */
-size_t HandleSyscallDebugPrintK(const_userptr_t userString);
+usize HandleSyscallDebugPrintK(const_userptr_t userString);
 
-size_t HandleSyscallMemoryVMAlloc(const_userptr_t userBase, size_t length, size_t flags);
-size_t HandleSyscallMemoryPMAlloc(userptr_t baseDestination, size_t length, size_t flags);
-size_t HandleSyscallMemoryVMFree(const_userptr_t userBase, size_t length);
-size_t HandleSyscallMemoryMMap(uintptr_t src, uintptr_t dest, size_t length, size_t flags);
-size_t HandleSyscallMemoryMProtect(uintptr_t base, size_t length, size_t flags);
-size_t HandleSyscallMemoryUnMap(uintptr_t base, size_t length);
-size_t HandleSyscallMemoryInOut(const_userptr_t iorequests, size_t count);
-size_t HandleSyscallMemoryRequestResources(const_userptr_t requests, size_t count);
+usize HandleSyscallMemoryVMAlloc(const_userptr_t userBase, usize length, usize flags);
+usize HandleSyscallMemoryPMAlloc(userptr_t baseDestination, usize length, usize flags);
+usize HandleSyscallMemoryVMFree(const_userptr_t userBase, usize length);
+usize HandleSyscallMemoryMMap(uptr src, uptr dest, usize length, usize flags);
+usize HandleSyscallMemoryMProtect(uptr base, usize length, usize flags);
+usize HandleSyscallMemoryUnMap(uptr base, usize length);
+usize HandleSyscallMemoryInOut(const_userptr_t iorequests, usize count);
+usize HandleSyscallMemoryRequestResources(const_userptr_t requests, usize count);
 
-size_t HandleSyscallProcFork();
-size_t HandleSyscallProcExec(userptr_t executableBase, size_t executableSize);
-size_t HandleSyscallProcReturn(size_t returnCode);
-size_t HandleSyscallProcExit(size_t exitCode);
-size_t HandleSyscallProcWait(size_t TODO);
-size_t HandleSyscallProcSendSig(size_t TODO);
+usize HandleSyscallProcFork();
+usize HandleSyscallProcExec(userptr_t executableBase, usize executableSize);
+usize HandleSyscallProcReturn(usize returnCode);
+usize HandleSyscallProcExit(usize exitCode);
+usize HandleSyscallProcWait(usize TODO);
+usize HandleSyscallProcSendSig(usize TODO);
 
 __attribute__((aligned(PAGE_SIZE))) SyscallFunctionCallback SyscallVector[SYSCALL_VECTOR_END];
 
@@ -58,7 +58,7 @@ void InitSyscalls() {
 	SyscallVector[SYSCALL_PROC_RETURN] = (SyscallFunctionCallback)(void*)HandleSyscallProcReturn;
 }
 
-extern "C" size_t HandleSyscall(size_t syscallNumber, size_t arg1, size_t arg2, size_t arg3, size_t arg4, size_t arg5, size_t arg6) {
+extern "C" usize HandleSyscall(usize syscallNumber, usize arg1, usize arg2, usize arg3, usize arg4, usize arg5, usize arg6) {
 	if(syscallNumber <= SYSCALL_VECTOR_START ||
 	   syscallNumber >= SYSCALL_VECTOR_END ||
 	   SyscallVector[syscallNumber] == NULL) return -ENOTPRESENT;
@@ -66,7 +66,7 @@ extern "C" size_t HandleSyscall(size_t syscallNumber, size_t arg1, size_t arg2, 
 	return SyscallVector[syscallNumber](arg1, arg2, arg3, arg4, arg5, arg6);
 }
 
-size_t HandleSyscallDebugPrintK(const_userptr_t userString) {
+usize HandleSyscallDebugPrintK(const_userptr_t userString) {
 	char string[MAX_PRINTK_SYSCALL_MESSAGE_LENGTH + 1] = { '\0' };
 	CopyStringFromUser(string, userString, MAX_PRINTK_SYSCALL_MESSAGE_LENGTH);
 
@@ -75,14 +75,14 @@ size_t HandleSyscallDebugPrintK(const_userptr_t userString) {
 	return 0;
 }
 
-size_t HandleSyscallMemoryVMAlloc(const_userptr_t userBase, size_t length, size_t flags) {
+usize HandleSyscallMemoryVMAlloc(const_userptr_t userBase, usize length, usize flags) {
 	KInfo *info = GetInfo();
 
 	if(CheckUserMemory(userBase, length) != 0)
 		return -EBADREQUEST;
 
 
-	uintptr_t base = (uintptr_t)userBase;
+	uptr base = (uptr)userBase;
 
 	PROC::UserProcess *proc = (PROC::UserProcess*)PROC::GetProcess();
 	VMM::VirtualSpace *procSpace = GetVirtualSpace((PROC::ProcessBase*)proc);
@@ -92,8 +92,8 @@ size_t HandleSyscallMemoryVMAlloc(const_userptr_t userBase, size_t length, size_
 	if (base % PAGE_SIZE) base -= base % PAGE_SIZE;
 	if (length % PAGE_SIZE) length += PAGE_SIZE - length % PAGE_SIZE;
 
-	for (uintptr_t vaddr = base; vaddr < base + length; vaddr += PAGE_SIZE) {
-		uintptr_t paddr = (uintptr_t)PMM::RequestPage();
+	for (uptr vaddr = base; vaddr < base + length; vaddr += PAGE_SIZE) {
+		uptr paddr = (uptr)PMM::RequestPage();
 		if (paddr == 0) {
 			MEM::InvokeOOM();
 		}
@@ -112,28 +112,28 @@ size_t HandleSyscallMemoryVMAlloc(const_userptr_t userBase, size_t length, size_
 	return 0;
 }
 
-size_t HandleSyscallMemoryPMAlloc(userptr_t baseDestination, size_t length, size_t flags) {
+usize HandleSyscallMemoryPMAlloc(userptr_t baseDestination, usize length, usize flags) {
 	(void) flags;
 
-	uintptr_t base = 0;
-	size_t roundedLength = length / PAGE_SIZE + 1;
+	uptr base = 0;
+	usize roundedLength = length / PAGE_SIZE + 1;
 
 	if (length % PAGE_SIZE) {
-		base = (uintptr_t)PMM::RequestPages(roundedLength);
+		base = (uptr)PMM::RequestPages(roundedLength);
 	} else {
-		base = (uintptr_t)PMM::RequestPage();
+		base = (uptr)PMM::RequestPage();
 	}
 
-	CopyToUser(&base, baseDestination, sizeof(uintptr_t));
+	CopyToUser(&base, baseDestination, sizeof(uptr));
 
 	return 0;
 }
 
-size_t HandleSyscallMemoryVMFree(const_userptr_t userBase, size_t length) {
+usize HandleSyscallMemoryVMFree(const_userptr_t userBase, usize length) {
 	if(int code = CheckUserMemory(userBase, length) != 0)
 		return code;
 
-	uintptr_t base = (uintptr_t)userBase;
+	uptr base = (uptr)userBase;
 
 	PROC::UserProcess *proc = (PROC::UserProcess*)PROC::GetProcess();
 	VMM::VirtualSpace *procSpace = GetVirtualSpace((PROC::ProcessBase*)proc);
@@ -146,8 +146,8 @@ size_t HandleSyscallMemoryVMFree(const_userptr_t userBase, size_t length) {
 		length += PAGE_SIZE - length % PAGE_SIZE;
 	}
 
-	for (uintptr_t vaddr = base; vaddr < base + length; vaddr += PAGE_SIZE) {
-		uintptr_t paddr = (uintptr_t)procSpace->GetPhysicalAddress((void*)vaddr);
+	for (uptr vaddr = base; vaddr < base + length; vaddr += PAGE_SIZE) {
+		uptr paddr = (uptr)procSpace->GetPhysicalAddress((void*)vaddr);
 		procSpace->UnmapMemory((void*)vaddr);
 		if (paddr == 0) return -1;
 
@@ -157,7 +157,7 @@ size_t HandleSyscallMemoryVMFree(const_userptr_t userBase, size_t length) {
 	return 0;
 }
 
-size_t HandleSyscallMemoryMMap(uintptr_t src, uintptr_t dest, size_t length, size_t flags) {
+usize HandleSyscallMemoryMMap(uptr src, uptr dest, usize length, usize flags) {
 	PROC::UserProcess *proc = (PROC::UserProcess*)PROC::GetProcess();
 	VMM::VirtualSpace *procSpace = GetVirtualSpace((PROC::ProcessBase*)proc);
 
@@ -173,7 +173,7 @@ size_t HandleSyscallMemoryMMap(uintptr_t src, uintptr_t dest, size_t length, siz
 		length += PAGE_SIZE - length % PAGE_SIZE;
 	}
 
-	uintptr_t end = src + length;
+	uptr end = src + length;
 	for (; src < end; src += PAGE_SIZE, dest += PAGE_SIZE) {
 		if (flags == 0) VMM::MapMemory(procSpace, (void*)src, (void*)dest);
 		else VMM::MapMemory(procSpace, (void*)src, (void*)dest, flags);
@@ -182,7 +182,7 @@ size_t HandleSyscallMemoryMMap(uintptr_t src, uintptr_t dest, size_t length, siz
 	return 0;
 }
 
-size_t HandleSyscallMemoryUnMap(uintptr_t base, size_t length) {
+usize HandleSyscallMemoryUnMap(uptr base, usize length) {
 	if (base <= 0x1000 || base + length >= 0x00007FFFFFFFF000)
 		return -1; /* Make sure it is in valid memory */
 
@@ -192,14 +192,14 @@ size_t HandleSyscallMemoryUnMap(uintptr_t base, size_t length) {
 	if (base % PAGE_SIZE) base -= base % PAGE_SIZE;
 	if (length % PAGE_SIZE) length += PAGE_SIZE - length % PAGE_SIZE;
 
-	for (uintptr_t end = base + length; base < end; base += PAGE_SIZE) {
+	for (uptr end = base + length; base < end; base += PAGE_SIZE) {
 		procSpace->UnmapMemory((void*)base);
 	}
 
 	return 0;
 }
 
-size_t HandleSyscallMemoryInOut(const_userptr_t iorequests, size_t count) {
+usize HandleSyscallMemoryInOut(const_userptr_t iorequests, usize count) {
 	if (count > 128) return -EINVALID;
 
 	IORequest requests[count];
@@ -210,12 +210,12 @@ size_t HandleSyscallMemoryInOut(const_userptr_t iorequests, size_t count) {
 }
 
 
-size_t HandleSyscallProcExec(userptr_t executableBase, size_t executableSize) {
-	uint8_t *heapAddr = (uint8_t*)Malloc(executableSize);
+usize HandleSyscallProcExec(userptr_t executableBase, usize executableSize) {
+	u8 *heapAddr = (u8*)Malloc(executableSize);
 
 	CopyFromUser(heapAddr, executableBase, executableSize);
 	
-	size_t pid = LoadExecutableFile((uint8_t*)heapAddr, executableSize);
+	usize pid = LoadExecutableFile((u8*)heapAddr, executableSize);
 	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "New process is PID: 0x%x\r\n", pid);
 
 	Free(heapAddr);
@@ -227,10 +227,10 @@ size_t HandleSyscallProcExec(userptr_t executableBase, size_t executableSize) {
 	return 0;
 }
 
-size_t HandleSyscallProcFork() {
+usize HandleSyscallProcFork() {
 	KInfo *info = GetInfo();
 
-	uintptr_t entrypoint = 0;
+	uptr entrypoint = 0;
 
 	PROC::UserProcess *parentProc = NULL, *childProc = NULL;
 	VMM::VirtualSpace *parentSpace = NULL, *childSpace = NULL;
@@ -245,11 +245,11 @@ size_t HandleSyscallProcFork() {
 	childPages = (VMM::PageList*)Malloc(parentPages->AllocatedSize);
 	childPages->PageCount = parentPages->PageCount;
 	childPages->AllocatedSize = parentPages->AllocatedSize;/*
-	for (size_t currentPage = 0; currentPage < parentPages->PageCount; ++currentPage) {
+	for (usize currentPage = 0; currentPage < parentPages->PageCount; ++currentPage) {
 		childPages->Pages[currentPage].IsCOW = true;
 		if(parentPages->Pages[currentPage].Data.
-		childPages->Pages[currentPage].Data.COW = (VMM::COWMetadata*)Malloc(sizeof(VMM::COWMetadata) + sizeof(uintptr_t));
-		childPages->Pages[currentPage].Data.COW->PhysicalAddressOfOriginal = (uintptr_t)lastPhysicalPage;
+		childPages->Pages[currentPage].Data.COW = (VMM::COWMetadata*)Malloc(sizeof(VMM::COWMetadata) + sizeof(uptr));
+		childPages->Pages[currentPage].Data.COW->PhysicalAddressOfOriginal = (uptr)lastPhysicalPage;
 		childPages->Pages[currentPage].Data.COW->PhysicalAddressOfCopy = 0;
 		childPages->Pages[currentPage].Data.COW->VirtualReferences = 1;
 		childPages->Pages[currentPage].Data.COW->VirtualAddresses[0] = (addr - addr % PAGE_SIZE);
@@ -263,10 +263,10 @@ size_t HandleSyscallProcFork() {
 	return 0;
 }
 
-size_t HandleSyscallProcReturn(size_t returnCode) {
+usize HandleSyscallProcReturn(usize returnCode) {
 	KInfo *info = GetInfo();
 
-	uintptr_t kernelStack, userStack, userStackBase;
+	uptr kernelStack, userStack, userStackBase;
 #if defined(ARCH_x64)
 	asm volatile("mov %%gs:0, %0" : "=r"(kernelStack) : : "memory");
 	asm volatile("mov %%gs:8, %0" : "=r"(userStack) : : "memory");
@@ -274,13 +274,13 @@ size_t HandleSyscallProcReturn(size_t returnCode) {
 /*
 	CPUStatus context;
 	Memset(&context, 0, sizeof(context));
-	context.RBX = *(uint64_t*)kernelStack;
-	context.R12 = *(uint64_t*)(kernelStack - 8);
-	context.R13 = *(uint64_t*)(kernelStack - 16);
-	context.R14 = *(uint64_t*)(kernelStack - 24);
-	context.R15 = *(uint64_t*)(kernelStack - 32);
-	context.IretRIP = *(uint64_t*)(kernelStack - 48);
-	context.IretRFLAGS = *(uint64_t*)(kernelStack - 56);
+	context.RBX = *(u64*)kernelStack;
+	context.R12 = *(u64*)(kernelStack - 8);
+	context.R13 = *(u64*)(kernelStack - 16);
+	context.R14 = *(u64*)(kernelStack - 24);
+	context.R15 = *(u64*)(kernelStack - 32);
+	context.IretRIP = *(u64*)(kernelStack - 48);
+	context.IretRFLAGS = *(u64*)(kernelStack - 56);
 	context.IretRSP = userStack;
 	
 	context.IretCS = GDT_OFFSET_USER_CODE;
@@ -305,8 +305,8 @@ size_t HandleSyscallProcReturn(size_t returnCode) {
 	return 0;
 }
 
-size_t HandleSyscallProcExit(size_t exitCode) {
-	uintptr_t stack = 0;
+usize HandleSyscallProcExit(usize exitCode) {
+	uptr stack = 0;
 	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Exiting: %d form 0x%x\r\n", exitCode, stack); 
 	
 	while(true);
@@ -314,12 +314,12 @@ size_t HandleSyscallProcExit(size_t exitCode) {
 	return 0;
 }
 
-size_t HandleSyscallProcWait(size_t TODO) {
+usize HandleSyscallProcWait(usize TODO) {
 	(void)TODO;
 	return 0;
 }
 
-size_t HandleSyscallProcSendSig(size_t TODO) {
+usize HandleSyscallProcSendSig(usize TODO) {
 	(void)TODO;
 	return 0;
 }

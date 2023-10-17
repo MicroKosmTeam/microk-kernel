@@ -1,6 +1,6 @@
 #include <cdefs.h>
-#include <stdint.h>
-#include <stddef.h>
+#include <cstdint.hpp>
+
 #include <sys/mutex.hpp>
 #include <boot/limine.h>
 #include <sys/panic.hpp>
@@ -132,7 +132,7 @@ static volatile limine_boot_time_request TimeRequest {
 
 #define PREFIX "Limine: "
 
-extern uintptr_t __stack_chk_guard;
+extern uptr __stack_chk_guard;
 
 __attribute__((noreturn))
 void LimineSMPEntry(limine_smp_info *info) {
@@ -192,9 +192,9 @@ void LimineEntry() {
 	info->KernelVirtualBase = KAddrRequest.response->virtual_base;
 
 	const char *cmdline = KernelFileRequest.response->kernel_file->cmdline;
-	size_t len = Strnlen(cmdline, MAX_CMDLINE_LENGTH);
+	usize len = Strnlen(cmdline, MAX_CMDLINE_LENGTH);
 	info->KernelArgs = (const char*)BOOTMEM::Malloc(len + 1);
-	Memcpy((uint8_t*)info->KernelArgs, (uint8_t*)cmdline, len);
+	Memcpy((u8*)info->KernelArgs, (u8*)cmdline, len);
 	*(char*)&info->KernelArgs[len] = '\0';
 
 	/* Transporting files */
@@ -207,7 +207,7 @@ void LimineEntry() {
 		PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Allocating for %d modules.\r\n", moduleCount);
 
 		for (int i = 0; i < moduleCount; i++) {
-			info->BootFiles[i].Address = (uintptr_t)ModuleRequest.response->modules[i]->address;
+			info->BootFiles[i].Address = (uptr)ModuleRequest.response->modules[i]->address;
 			info->BootFiles[i].Size = ModuleRequest.response->modules[i]->size;
 			Strncpy(info->BootFiles[i].Path, ModuleRequest.response->modules[i]->path, MAX_SYMBOL_LENGTH);
 			Strncpy(info->BootFiles[i].Cmdline, ModuleRequest.response->modules[i]->cmdline, MAX_CMDLINE_LENGTH);
@@ -222,7 +222,7 @@ void LimineEntry() {
 	} else {
 		if(SMPRequest.response->cpu_count > 1 && SMPRequest.response->cpus != NULL) {
 			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "SMP detected with %d processors.\r\n", SMPRequest.response->cpu_count);
-			for (size_t i = 0; i < SMPRequest.response->cpu_count; ++i) {
+			for (usize i = 0; i < SMPRequest.response->cpu_count; ++i) {
 				SMPRequest.response->cpus[i]->goto_address = &LimineSMPEntry;
 			}
 		} else {

@@ -1,4 +1,4 @@
 #pragma once
-#include <stdint.h>
+#include <cstdint.hpp>
 
-int CalibrateTSCWithHPET(uintptr_t hpetAddress, uint64_t *tscTicksPerSecond);
+int CalibrateTSCWithHPET(uptr hpetAddress, u64 *tscTicksPerSecond);

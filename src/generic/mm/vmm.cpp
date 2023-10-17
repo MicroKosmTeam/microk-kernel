@@ -22,7 +22,7 @@ VirtualSpace *NewVirtualSpace() {
 	VirtualSpace *space = AllocateVirtualSpace();
 	
 	/* We go through every entry in the memory map and map it in virtual memory */
-	for (size_t i = 0; i < info->MemoryMapEntryCount; i++) {
+	for (usize i = 0; i < info->MemoryMapEntryCount; i++) {
 		MEM::MMapEntry entry = info->MemoryMap[i];
 
 		/* We will skip any memory that is not usable by our kernel, to make the process faster */
@@ -31,43 +31,43 @@ VirtualSpace *NewVirtualSpace() {
 		    entry.type == MEMMAP_ACPI_NVS) continue;
 
 		/* We find the base and the top by rounding to the closest page boundary */
-		uintptr_t base = entry.base - (entry.base % PAGE_SIZE);
-		uintptr_t top = base + entry.length + (entry.length % PAGE_SIZE);
+		uptr base = entry.base - (entry.base % PAGE_SIZE);
+		uptr top = base + entry.length + (entry.length % PAGE_SIZE);
 
 		/* If it's kernel code, we will map its special location, otherwise we do the lower half and higher half mappings. */
 		/* We use the kernel base to be sure we are not mapping module code over the kernel code. */
 		if (entry.type == MEMMAP_KERNEL_AND_MODULES) {
 			if(entry.base == info->KernelPhysicalBase) {
-				for (uintptr_t t = base; t < top; t += PAGE_SIZE){
+				for (uptr t = base; t < top; t += PAGE_SIZE){
 					space->MapMemory((void*)t, (void*)(info->KernelVirtualBase + t - info->KernelPhysicalBase), VMM_PRESENT | VMM_READWRITE | VMM_GLOBAL);
 
 				}
 			} else {
-				for (uintptr_t t = base; t < top; t += PAGE_SIZE) {
+				for (uptr t = base; t < top; t += PAGE_SIZE) {
 					space->MapMemory((void*)t, (void*)(t + info->HigherHalfMapping), VMM_PRESENT | VMM_GLOBAL | VMM_USER | VMM_NOEXECUTE);
 				}
 			}
 		} else if (entry.type == MEMMAP_ACPI_RECLAIMABLE) {
-			for (uintptr_t t = base; t < top; t += PAGE_SIZE) {
+			for (uptr t = base; t < top; t += PAGE_SIZE) {
 				space->MapMemory((void*)t, (void*)(t + info->HigherHalfMapping), VMM_PRESENT | VMM_GLOBAL | VMM_USER | VMM_NOEXECUTE);
 			}
 		} else {
-			for (uintptr_t t = base; t < top; t += PAGE_SIZE) {
+			for (uptr t = base; t < top; t += PAGE_SIZE) {
 				space->MapMemory((void*)t, (void*)(t + info->HigherHalfMapping), VMM_PRESENT | VMM_READWRITE | VMM_GLOBAL | VMM_NOEXECUTE);
 			}
 		}
 	}
 
 	if(info->KernelHeapPageList != NULL) {
-		uintptr_t heapAddress = CONFIG_HEAP_BASE;
-		for (size_t heapPage = 0; heapPage < info->KernelHeapPageList->PageCount; heapPage++) {
+		uptr heapAddress = CONFIG_HEAP_BASE;
+		for (usize heapPage = 0; heapPage < info->KernelHeapPageList->PageCount; heapPage++) {
 			space->MapMemory((void*)info->KernelHeapPageList->Pages[heapPage].Data.PhysicalAddress, (void*)heapAddress, VMM_PRESENT | VMM_READWRITE | VMM_GLOBAL | VMM_NOEXECUTE);
 			heapAddress += PAGE_SIZE;
 		}
 	}
 
 #if defined(ARCH_x64)
-	for (uintptr_t t = PAGE_SIZE; t < info->KernelStack; t+=PAGE_SIZE) {
+	for (uptr t = PAGE_SIZE; t < info->KernelStack; t+=PAGE_SIZE) {
 		space->MapMemory((void*)t, (void*)t, VMM_PRESENT | VMM_READWRITE | VMM_GLOBAL | VMM_NOEXECUTE);
 	}
 	
@@ -100,7 +100,7 @@ void MapMemory(VirtualSpace *space, void *physicalMemory, void *virtualMemory) {
 	space->MapMemory(physicalMemory, virtualMemory, VMM_PRESENT | VMM_READWRITE | VMM_USER);
 }
 	
-void MapMemory(VirtualSpace *space, void *physicalMemory, void *virtualMemory, size_t flags) {
+void MapMemory(VirtualSpace *space, void *physicalMemory, void *virtualMemory, usize flags) {
 	space->MapMemory(physicalMemory, virtualMemory, flags);
 
 }

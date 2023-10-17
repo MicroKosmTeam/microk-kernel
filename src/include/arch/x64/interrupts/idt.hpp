@@ -1,61 +1,61 @@
 #pragma once
-#include <stdint.h>
+#include <cstdint.hpp>
 
 /* Setting the Kernel offset in the GDT (5th entry) */
 #define GDT_OFFSET_KERNEL_CODE (0x08 * 5)
 #define GDT_OFFSET_USER_CODE (0x08 * 7)
 
 struct IDTEntry {
-	uint16_t    ISRLow;      // The lower 16 bits of the ISR's address
-	uint16_t    KernelCs;    // The GDT segment selector that the CPU will load into CS before calling the ISR
-	uint8_t	    IST;          // The IST in the TSS that the CPU will load into RSP; set to zero for now
-	uint8_t     Attributes;   // Type and attributes; see the IDT page
-	uint16_t    ISRMid;      // The higher 16 bits of the lower 32 bits of the ISR's address
-	uint32_t    ISRHigh;     // The higher 32 bits of the ISR's address
-	uint32_t    Reserved0;     // Set to zero
+	u16    ISRLow;      // The lower 16 bits of the ISR's address
+	u16    KernelCs;    // The GDT segment selector that the CPU will load into CS before calling the ISR
+	u8	    IST;          // The IST in the TSS that the CPU will load into RSP; set to zero for now
+	u8     Attributes;   // Type and attributes; see the IDT page
+	u16    ISRMid;      // The higher 16 bits of the lower 32 bits of the ISR's address
+	u32    ISRHigh;     // The higher 32 bits of the ISR's address
+	u32    Reserved0;     // Set to zero
 } __attribute__((packed));
 
 struct IDTR {
-	uint16_t	Limit;
-	uint64_t	Base;
+	u16	Limit;
+	u64	Base;
 } __attribute__((packed));
 
 struct CPUStatus {
-	uint64_t R15;
-	uint64_t R14;
-	uint64_t R13;
-	uint64_t R12;
-	uint64_t R11;
-	uint64_t R10;
-	uint64_t R9;
-	uint64_t R8;
+	u64 R15;
+	u64 R14;
+	u64 R13;
+	u64 R12;
+	u64 R11;
+	u64 R10;
+	u64 R9;
+	u64 R8;
 
-	uint64_t RDX;
-	uint64_t RCX;
-	uint64_t RBX;
-	uint64_t RAX;
+	u64 RDX;
+	u64 RCX;
+	u64 RBX;
+	u64 RAX;
 
-	uint64_t RSI;
-	uint64_t RDI;
+	u64 RSI;
+	u64 RDI;
 
-	uint64_t VectorNumber;
-	uint64_t ErrorCode;
+	u64 VectorNumber;
+	u64 ErrorCode;
 
-	uint64_t IretRIP;
-	uint64_t IretCS;
-	uint64_t IretRFLAGS;
-	uint64_t IretRSP;
-	uint64_t IretSS;
+	u64 IretRIP;
+	u64 IretCS;
+	u64 IretRFLAGS;
+	u64 IretRSP;
+	u64 IretSS;
 } __attribute__((packed));
 
 namespace x86_64 {
-	static inline uintmax_t IRQDisable() {
-		uintmax_t flags;
+	static inline umax IRQDisable() {
+		umax flags;
 		asm volatile ("pushf\n\tcli\n\tpop %0" : "=r"(flags) : : "memory");
 		return flags;
 	}
 
-	static inline void IRQRestore(uintmax_t flags) {
+	static inline void IRQRestore(umax flags) {
 		asm ("push %0\n\tpopf" : : "rm"(flags) : "memory","cc");
 	}
 

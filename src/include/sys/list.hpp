@@ -1,5 +1,5 @@
 #pragma once
-#include <stddef.h>
+
 #include <mm/memory.hpp>
 /*
 template <typename Type> class List {
@@ -74,12 +74,12 @@ public:
 		return value;
 	}
 
-	size_t GetMemorySize() {
+	usize GetMemorySize() {
 		return Length * sizeof(Node);
 
 	}
 
-	size_t GetLength() {
+	usize GetLength() {
 		return Length;
 
 	}
@@ -95,7 +95,7 @@ private:
 
 	Node *LastAccessed;
 
-	size_t Length;
+	usize Length;
 
 	void Init() {
 		First = Last = LastAccessed = NewNode;

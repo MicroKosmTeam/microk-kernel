@@ -1,4 +1,6 @@
 #pragma once
+#include <stdint.h>
+#include <stddef.h>
 #include <autoconf.h>
 
 #if defined(__x86_64__)

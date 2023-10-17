@@ -12,11 +12,11 @@ namespace x86_64 {
 PIT::PIT() {
 }
 
-uintmax_t PIT::Ioctl(uintmax_t request, ...) {
+umax PIT::Ioctl(umax request, ...) {
 	va_list ap;
 	va_start(ap, request);
 
-	uintmax_t result;
+	umax result;
 
 	switch (request) {
 		default:

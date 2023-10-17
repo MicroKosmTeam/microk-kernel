@@ -18,7 +18,7 @@ static char *memTypeStrings[] = {
 	"Framebuffer"
 };
 
-void *Malloc(size_t size) {
+void *Malloc(usize size) {
 	if(HEAP::IsHeapActive()) return HEAP::Malloc(size);
 	if(BOOTMEM::BootmemIsActive()) return BOOTMEM::Malloc(size);
 	else return NULL;
@@ -28,13 +28,13 @@ void Free(void *p) {
 	HEAP::Free(p);
 }
 
-void *operator new(size_t size) {
+void *operator new(usize size) {
 	if(HEAP::IsHeapActive()) return HEAP::Malloc(size);
 	if(BOOTMEM::BootmemIsActive()) return BOOTMEM::Malloc(size);
 	else return NULL;
 }
 
-void *operator new[](size_t size) {
+void *operator new[](usize size) {
 	if(HEAP::IsHeapActive()) return HEAP::Malloc(size);
 	if(BOOTMEM::BootmemIsActive()) return BOOTMEM::Malloc(size);
 	else return NULL;
@@ -48,7 +48,7 @@ void operator delete(void* p) {
 	HEAP::Free(p);
 }
 
-void operator delete(void* p, size_t size) {
+void operator delete(void* p, usize size) {
 	// Now, here comes the problem in deciding who allocated this block
 	// We should assume that someone that allocs on BOOTMEM
 	// will not call free
@@ -65,7 +65,7 @@ void operator delete[](void* p) {
 	HEAP::Free(p);
 }
 
-void operator delete[](void* p, size_t size) {
+void operator delete[](void* p, usize size) {
 	// Now, here comes the problem in deciding who allocated this block
 	// We should assume that someone that allocs on BOOTMEM
 	// will not call free
@@ -81,7 +81,7 @@ void DisplayRam() {
 
 	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Provided physical RAM map:\r\n");
 
-	for (size_t i = 0; i < info->MemoryMapEntryCount; i++) {
+	for (usize i = 0; i < info->MemoryMapEntryCount; i++) {
 		PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, " [0x%x - 0x%x] -> %s\r\n",
 				info->MemoryMap[i].base,
 				info->MemoryMap[i].base + info->MemoryMap[i].length,
@@ -90,10 +90,10 @@ void DisplayRam() {
 
 	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Contiguous regions:\r\n");
 	bool isAllUnusable = true;
-	uintptr_t base = info->MemoryMap[0].base;
-	size_t length = info->MemoryMap[0].length;
+	uptr base = info->MemoryMap[0].base;
+	usize length = info->MemoryMap[0].length;
 
-	for (size_t region = 1; region < info->MemoryMapEntryCount; region++) {
+	for (usize region = 1; region < info->MemoryMapEntryCount; region++) {
 		if (info->MemoryMap[region - 1].base + info->MemoryMap[region - 1].length == info->MemoryMap[region].base) {
 			length += info->MemoryMap[region].length;
 			if(isAllUnusable) isAllUnusable = info->MemoryMap[region].type == MEMMAP_USABLE ? false : true;

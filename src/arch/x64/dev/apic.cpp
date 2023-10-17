@@ -9,40 +9,40 @@
 #define IA32_APIC_BASE_MSR_ENABLE 0x800
 
 namespace x86_64 {
-uintptr_t GetAPICBase() {
-	uint32_t eax, edx;
+uptr GetAPICBase() {
+	u32 eax, edx;
 	GetMSR(IA32_APIC_BASE_MSR, &eax, &edx);
 
-	return (eax & 0xfffff000) | (((uintptr_t)edx & 0x0f) << 32);
+	return (eax & 0xfffff000) | (((uptr)edx & 0x0f) << 32);
 }
 
-void SetAPICBase(uintptr_t apic) {
-	uint32_t eax = (apic & 0xfffff0000) | IA32_APIC_BASE_MSR_ENABLE;
-	uint32_t edx = (apic >> 32) & 0x0f;
+void SetAPICBase(uptr apic) {
+	u32 eax = (apic & 0xfffff0000) | IA32_APIC_BASE_MSR_ENABLE;
+	u32 edx = (apic >> 32) & 0x0f;
 
 	SetMSR(IA32_APIC_BASE_MSR, eax, edx);
 }
 
-void WriteAPICRegister(uint16_t offset, uint32_t data) {
+void WriteAPICRegister(u16 offset, u32 data) {
 	KInfo *info = GetInfo();
-	uintptr_t apic = GetAPICBase() + info->HigherHalfMapping;
+	uptr apic = GetAPICBase() + info->HigherHalfMapping;
 
-	volatile uint32_t *apicRegister = (volatile uint32_t*)(apic + offset);
+	volatile u32 *apicRegister = (volatile u32*)(apic + offset);
 
 	*apicRegister = data;
 }
 
-uint32_t ReadAPICRegister(uint16_t offset) {
+u32 ReadAPICRegister(u16 offset) {
 	KInfo *info = GetInfo();
-	uintptr_t apic = GetAPICBase() + info->HigherHalfMapping;
+	uptr apic = GetAPICBase() + info->HigherHalfMapping;
 
-	volatile uint32_t *apicRegister = (volatile uint32_t*)(apic + offset);
+	volatile u32 *apicRegister = (volatile u32*)(apic + offset);
 
 	return *apicRegister;
 }
 	
-static uint64_t cycles = 0;
-void SetAPICTimer(uint64_t newCycles) {
+static u64 cycles = 0;
+void SetAPICTimer(u64 newCycles) {
 	cycles = newCycles;
 }
 

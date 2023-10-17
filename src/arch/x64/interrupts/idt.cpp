@@ -25,17 +25,17 @@ volatile __attribute__((section(".interrupt"))) __attribute__((aligned(0x10)))
 IDTR idtr;
 
 /* Function to set a descriptor in the GDT */
-static void IDTSetDescriptor(uint8_t vector, void *isr, uint8_t ist, uint8_t flags) {
+static void IDTSetDescriptor(u8 vector, void *isr, u8 ist, u8 flags) {
 	/* Create new descriptor */
 	volatile IDTEntry *descriptor = &idt[vector];
 
 	/* Setting parameters */
-	descriptor->ISRLow = (uint64_t)isr & 0xFFFF;
+	descriptor->ISRLow = (u64)isr & 0xFFFF;
 	descriptor->KernelCs = GDT_OFFSET_KERNEL_CODE;
 	descriptor->IST = ist;
 	descriptor->Attributes = flags;
-	descriptor->ISRMid = ((uint64_t)isr >> 16) & 0xFFFF;
-	descriptor->ISRHigh = ((uint64_t)isr >> 32) & 0xFFFFFFFF;
+	descriptor->ISRMid = ((u64)isr >> 16) & 0xFFFF;
+	descriptor->ISRHigh = ((u64)isr >> 32) & 0xFFFFFFFF;
 	descriptor->Reserved0 = 0;
 }
 
@@ -46,11 +46,11 @@ namespace x86_64 {
 /* Function to initialize the IDT */
 void IDTInit() {
 	/* Set base and size in the pointer */
-	idtr.Base = (uintptr_t)&idt[0];
-	idtr.Limit = (uint16_t)sizeof(IDTEntry) * IDT_MAX_DESCRIPTORS - 1;
+	idtr.Base = (uptr)&idt[0];
+	idtr.Limit = (u16)sizeof(IDTEntry) * IDT_MAX_DESCRIPTORS - 1;
 
 	/* Fill in the 32 exception handlers */
-	for (uint8_t vector = 0; vector < 32; vector++) {
+	for (u8 vector = 0; vector < 32; vector++) {
 		IDTSetDescriptor(vector, isrStubTable[vector], 0, 0x8E);
 	}
 	
@@ -166,7 +166,7 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 			PROC::ProcessBase *proc = GetProcess();
 			VMM::VirtualSpace *procSpace = GetVirtualSpace(proc);
 
-			uintptr_t page;
+			uptr page;
 			bool protectionViolation = context->ErrorCode & 0b1;
 			bool writeAccess = (context->ErrorCode & 0b10) >> 1;
 			bool byUser = (context->ErrorCode & 0b100) >> 2;
@@ -180,10 +180,10 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 				PANIC("Null proc");
 			}
 
-			uintptr_t roundedPage = (page - page % PAGE_SIZE);
+			uptr roundedPage = (page - page % PAGE_SIZE);
 
-			size_t pageSelector;
-			size_t virtualReference;
+			usize pageSelector;
+			usize virtualReference;
 
 			bool found = false;
 
@@ -220,7 +220,7 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 					);
 				PANIC("Page fault");
 			} else {
-				uintptr_t copy = (uintptr_t)PMM::RequestPage();
+				uptr copy = (uptr)PMM::RequestPage();
 				Memset((void*)(copy + info->HigherHalfMapping), 0, PAGE_SIZE);
 				Memcpy((void*)(copy + info->HigherHalfMapping),
 				       (void*)(pages->Pages[pageSelector].Data.COW->PhysicalAddressOfOriginal + info->HigherHalfMapping),
@@ -259,8 +259,8 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 				Memcpy(context, info->KernelScheduler->CurrentThread->Thread->Context, sizeof(CPUStatus));
 
 				x86_64::UpdateLocalCPUStruct(info->KernelScheduler->CurrentThread->Thread->KernelStack,
-						             (uintptr_t)proc->VirtualMemorySpace->GetTopAddress() - info->HigherHalfMapping,
-							     (uintptr_t)proc->VirtualMemorySpace->GetTopAddress() - info->HigherHalfMapping);
+						             (uptr)proc->VirtualMemorySpace->GetTopAddress() - info->HigherHalfMapping,
+							     (uptr)proc->VirtualMemorySpace->GetTopAddress() - info->HigherHalfMapping);
 
 				VMM::LoadVirtualSpace(proc->VirtualMemorySpace);
 				
