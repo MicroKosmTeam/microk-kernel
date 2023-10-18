@@ -52,46 +52,64 @@ bool IsDelim(char c, char *delim) {
 
 	return false;
 }
-char *Strtok(char *s, char *delim) {
-	static char *p; // start of the next search
-	if(!s) s = p;
-	if(!s) return NULL;
 
-	// handle beginning of the string containing delims
-	while(true) {
-		if(IsDelim(*s, delim)) {
-			s++;
-			continue;
+/* find index of first s1[i] that matches any s2[]. */
+usize Strcspn(const char *s1, const char *s2) {
+	const char *sc1, *sc2;
+	for (sc1 = s1; *sc1 != '\0'; ++sc1) {
+		for (sc2 = s2; *sc2 != '\0'; ++sc2) {
+			if (*sc1 == *sc2)
+				return (sc1 - s1);
 		}
+	}
+	return (sc1 - s1); // terminating nulls match.
+}
 
-		if(*s == '\0') {
-			return NULL; // we've reached the end of the string
+/* find index of first s1[i] that matches no s2[]. */
+usize Strspn(const char *s1, const char *s2) {
+	const char *sc1, *sc2;
+	for (sc1 = s1; *sc1 != '\0'; ++sc1) {
+		for (sc2 = s2; ; ++sc2) {
+			if (*sc2 == '\0') {
+				return (sc1 - s1);
+			} else if (*sc1 == *sc2) {
+				break;
+			}
 		}
+	}   
+	return (sc1 - s1);
+}
 
-		// now, we've hit a regular character. Let's exit the
-		// loop, and we'd need to give the caller a string
-		// that starts here.
-		//
-		break;
+char *Strtok(char *string, const char *delim, char **savePtr) {
+	char *end;
+
+	if (string == NULL) {
+		string = *savePtr;
 	}
 
-
-	char *ret = s;
-
-	while(true) {
-		if(*s == '\0') {
-			p = s; // next exec will return NULL
-			return ret;
-		}
-
-		if(IsDelim(*s, delim)) {
-			*s = '\0';
-			p = s + 1;
-			return ret;
-		}
-
-		s++;
+	if (*string == '\0') {
+		*savePtr = string;
+		return NULL;
 	}
+
+	/* Scan leading delimiters.  */
+	string += Strspn(string, delim);
+	if (*string == '\0'){
+		*savePtr = string;
+		return NULL;
+	}
+
+	/* Find the end of the token.  */
+	end = string + Strcspn(string, delim);
+	if (*end == '\0') {
+		*savePtr = end;
+		return string;
+	}
+
+	/* Terminate the token and make *SAVE_PTR point past it.  */
+	*end = '\0';
+	*savePtr = end + 1;
+	return string;
 }
 
 
