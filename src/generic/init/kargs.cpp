@@ -27,37 +27,45 @@
 #include <sys/printk.hpp>
 #include <init/kargs.hpp>
 #include <init/kinfo.hpp>
+#include <dev/earlycon.hpp>
 
 void ParseArgs() {
 	/* Get our arguments string from the info->KernelArgs variable
 	   and see if they are available */
 	KInfo *info = GetInfo();
-	if(info->KernelArgs == NULL) return;
+	if (info->KernelArgs == NULL) return;
 
 	/* We split the values in the id and value pairs */
-	const char *id = Strtok((char*)info->KernelArgs, "=");
-	if(id == NULL) return;
-	const char *val = Strtok(NULL, " ");
+	char *endChar;
+	char *id = Strtok((char*)info->KernelArgs, "=", &endChar);
+	if (id == NULL) return;
+	char *val = Strtok(NULL, " ", &endChar);
 	if (val == NULL) return ;
 
-	while(true) {
+	while (true) {
 		/* Here we parse the IDs.
 		  For now, we just Strncmp what we desire,
 		  in the future a hashmap would be probably better */
-		if(Strncmp(id, "user", MAX_CMDLINE_ARGUMENT_LENGTH) == 0) {
+		if (Strncmp(id, "user", MAX_CMDLINE_ARGUMENT_LENGTH) == 0) {
 			/* Select the user file */
 			info->UserModuleName[0] = '/';
 			Strncpy(info->UserModuleName + 1, val, MAX_FILE_NAME_LENGTH);
 			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "USER MODULE: %s\r\n", info->UserModuleName);
+		} else if (Strncmp(id, "loglevel", MAX_CMDLINE_ARGUMENT_LENGTH) == 0) {
+			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "LOGLEVEL: %s\r\n", val);
+		} else if (Strncmp(id, "earlycon", MAX_CMDLINE_ARGUMENT_LENGTH) == 0) {
+			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "EARLYCON: %s\r\n", val);
+			info->KernelPort = (DEV::UART::UARTDevice*)DEV::EARLYCON::InitializeEarlycon(val);
 		} else {
 			/* Invalid argument */
+			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Unknown argument: %s\r\n", id);
 		}
 
 		/* Continue with the parsing,
 		   checking we have not reached the end of the string every time*/
-		id = Strtok(NULL, "=");
+		id = Strtok(NULL, "=", &endChar);
 		if(id == NULL) break;
-		val = Strtok(NULL, " ");
+		val = Strtok(NULL, " ", &endChar);
 		if (val == NULL) break;
 	}
 

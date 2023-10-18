@@ -70,7 +70,8 @@ void PrintBanner() {
 	KInfo *info = GetInfo();
 
 	/* Printing banner */
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, " __  __  _                _  __\r\n"
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME,
+		       " __  __  _                _  __\r\n"
 		       "|  \\/  |(_) __  _ _  ___ | |/ /\r\n"
 		       "| |\\/| || |/ _|| '_|/ _ \\|   < \r\n"
 		       "|_|  |_||_|\\__||_|  \\___/|_|\\_\\\r\n"

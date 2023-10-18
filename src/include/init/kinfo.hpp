@@ -91,7 +91,7 @@ struct KInfo {
 
 #ifdef CONFIG_HW_UART
 	/* Kernel serial device */
-	DEV::EARLYCON::UARTDevice *KernelPort; /* UART deivice used as serial port */
+	DEV::UART::UARTDevice *KernelPort; /* UART deivice used as serial port */
 #endif
 
 	void *RSDP;

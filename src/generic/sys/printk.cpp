@@ -2,29 +2,20 @@
 #include <mm/memory.hpp>
 #include <sys/printk.hpp>
 #include <init/kinfo.hpp>
-
-#ifdef CONFIG_HW_UART
 #include <dev/earlycon.hpp>
-#endif
 
-
-#ifdef CONFIG_HW_UART
-static DEV::EARLYCON::UARTDevice *KernelPort = NULL;
-#endif
 
 static PRINTK::LogMessage LastMessage;
 static PRINTK::Loglevel GlobalLoglevel;
 
 namespace PRINTK {
 static void FlushMessage() {
+	KInfo *info = GetInfo();
+
 	if(GlobalLoglevel >= LastMessage.Level) {
-#ifdef CONFIG_HW_UART
-		if(KernelPort != NULL) {/*
-			DEV::EARLYCON::PutString(KernelPort, LastMessage.Module);
-			DEV::EARLYCON::PutString(KernelPort, " -> ");*/
-			DEV::EARLYCON::PutString(KernelPort, LastMessage.Message);
+		if(info->KernelPort != NULL) {
+			info->KernelPort->PutString(info->KernelPort, LastMessage.Message);
 		}
-#endif
 	}
 
 	Memset(&LastMessage, 0, sizeof(LogMessage));
@@ -106,20 +97,8 @@ void VPrintK(char *format, va_list ap) {
 }
 
 void EarlyInit() {
-	KInfo *info = GetInfo();
-
 	LastMessage.Level = PRINTK::DEBUG;
 	GlobalLoglevel = PRINTK::DEBUG;
-
-#ifdef CONFIG_HW_UART
-	info->KernelPort = (DEV::EARLYCON::UARTDevice*)DEV::EARLYCON::CreateUARTDevice();
-#if defined(ARCH_x64)
-	DEV::InitializeDevice((DEV::Device*)info->KernelPort, (uptr)DEV::EARLYCON::COM1, MEMORY_SYSIO);
-#elif defined(ARCH_aarch64)
-	DEV::InitializeDevice((DEV::Device*)info->KernelPort, 0x09000000);
-#endif
-	KernelPort = info->KernelPort;
-#endif
 
 	PrintK(DEBUG, MODULE_NAME, "Serial PrintK started.\n");
 }
