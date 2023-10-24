@@ -27,14 +27,5 @@
 #include <mm/bootmem.hpp>
 
 /* Contains some basic information to be passed between components of the kernel */
-KInfo *info = NULL;
+__attribute__((aligned(16))) KInfo KernelInfo;
 
-void InitInfo() {
-	/* Allocate and clear the KInfo struct */
-	info = (KInfo*)BOOTMEM::Malloc(sizeof(KInfo));
-	Memset(info, 0, sizeof(KInfo));
-}
-
-KInfo *GetInfo() {
-	return info;
-}

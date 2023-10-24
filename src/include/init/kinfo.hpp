@@ -83,7 +83,7 @@ struct KInfo {
 	BootFile *BootFiles; /* Pointer to the Limine modules */
 	usize FileCount; /* Number of modules provided */
 
-	char UserModuleName[256];
+	char UserModuleName[MAX_FILE_NAME_LENGTH];
 
 	uptr KernelBaseSystemTable;
 	uptr BootFileSystemTable;
@@ -94,10 +94,13 @@ struct KInfo {
 	DEV::UART::UARTDevice *KernelPort; /* UART deivice used as serial port */
 #endif
 
-	void *RSDP;
+	uptr RSDP;
+	uptr DeviceTree;
 
 	usize FramebufferCount;
 	Framebuffer *Framebuffers;
+
+	bool SMPLock;
 };
 
 /*
@@ -109,16 +112,22 @@ struct KInfo {
  * arguments: void 
  * return: void 
  */
-void InitInfo();
+inline void InitInfo() {
+	extern KInfo KernelInfo;
+	Memset(&KernelInfo, 0, sizeof(KInfo));
+}
 
 /*
  * function: GetInfo 
  * This function returns a pointer to the KInfo struct.
- * If the struct wasn't allocated prior with the InitInfo function,
+ * If the InitInfo functio wasn't called prior to this
  * it is undefined behavior.
  * 
  * arguments: void 
  * return: KInfo* 
  * The pointer to the KInfo struct.
  */
-KInfo *GetInfo();
+inline KInfo *GetInfo() {
+	extern KInfo KernelInfo;
+	return &KernelInfo;
+}
