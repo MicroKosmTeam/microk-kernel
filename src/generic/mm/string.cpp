@@ -150,6 +150,19 @@ void Itoa (char *buf, int base, long long int d) {
 }
 
 long long int Atoi(char *str) {
+	int base;
+
+	if (str != NULL &&
+	    str[0] != '\0' &&
+	    str[0] == '0' &&
+	    str[1] != '\0' &&
+	    str[1] == 'x') {
+		base = 16;
+		str += 2;
+	} else {
+		base = 10;
+	}
+
         // Initialize result
         long long int res = 0;
 
@@ -159,8 +172,30 @@ long long int Atoi(char *str) {
         // subtract the code from '0' to get numerical
         // value and multiply res by 10 to shuffle
         // digits left to update running total
-        for (int i = 0; str[i] != '\0'; ++i)
-                res = res * 10 + str[i] - '0';
+        for (int i = 0; str[i] != '\0'; ++i) {
+		if(base == 16) {
+			if (str[i] == 'A' ||
+			    str[i] == 'B' ||
+			    str[i] == 'C' ||
+			    str[i] == 'D' ||
+			    str[i] == 'E' ||
+			    str[i] == 'F') {
+				res = res * base + str[i] - 'A' + 0xA;
+			} else if (str[i] == 'a' ||
+			    str[i] == 'b' ||
+			    str[i] == 'c' ||
+			    str[i] == 'd' ||
+			    str[i] == 'e' ||
+			    str[i] == 'f') {
+				res = res * base + str[i] - 'a' + 0xA;
+			} else {
+                		res = res * base + str[i] - '0';
+			}
+		} else {
+                	res = res * base + str[i] - '0';
+
+		}
+	}
 
         // return result.
         return res;
