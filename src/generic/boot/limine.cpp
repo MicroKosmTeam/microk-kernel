@@ -1,7 +1,7 @@
 #include <cdefs.h>
 #include <cstdint.hpp>
 
-#include <sys/mutex.hpp>
+#include <sys/locks.hpp>
 #include <boot/limine.h>
 #include <sys/panic.hpp>
 #include <init/main.hpp>
@@ -12,7 +12,7 @@
 #include <sys/printk.hpp>
 
 #if defined(ARCH_x64)
-extern "C" __attribute__((naked)) void CPUPause();
+extern "C" void CPUPause();
 #endif
 
 /* Function called by Limine at bootup through the entry point */
@@ -130,13 +130,18 @@ static volatile limine_boot_time_request TimeRequest {
 	.response = NULL
 };
 
-#define PREFIX "Limine: "
-
 extern uptr __stack_chk_guard;
 
 __attribute__((noreturn))
-void LimineSMPEntry(limine_smp_info *info) {
-	(void)info;
+void LimineSMPEntry(limine_smp_info *cpuInfo) {
+	KInfo *info = GetInfo();
+
+	SpinlockLock(&info->SMPLock);
+
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "CPU %d started, APIC id: 0x%x\r\n", cpuInfo->processor_id, cpuInfo->lapic_id);
+
+	SpinlockUnlock(&info->SMPLock);
+
 	while(true) CPUPause();
 }
 
@@ -161,6 +166,8 @@ void LimineEntry() {
 	EarlyKernelInit();
 	
 	KInfo *info = GetInfo();
+
+	SpinlockLock(&info->SMPLock);
 
 	/* Checking if vital requests have been answered by Limine
 	 * If not, give up and shut down */
@@ -232,14 +239,12 @@ void LimineEntry() {
 
 	if(RSDPRequest.response == NULL) {
 		PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "WARNING: no RSDP found.\r\n");
-		info->RSDP = NULL;
 	} else {
 		if(RSDPRequest.response->address != NULL) {
 			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "RSDP found at 0x%x\r\n", RSDPRequest.response->address);
-			info->RSDP = RSDPRequest.response->address;
+			info->RSDP = (uptr)RSDPRequest.response->address;
 		} else {
 			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "WARNING: no RSDP found.\r\n");
-			info->RSDP = NULL;
 		}
 	}
 
@@ -270,6 +275,7 @@ void LimineEntry() {
 	} else {
 		if(DTBRequest.response->dtb_ptr != NULL) {
 			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "DTB found at 0x%x\r\n", DTBRequest.response->dtb_ptr);
+			info->DeviceTree = (uptr)DTBRequest.response->dtb_ptr;
 		} else {
 			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "WARNING: No DTB found.\r\n");
 		}

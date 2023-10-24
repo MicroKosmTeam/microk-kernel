@@ -5,7 +5,7 @@
 #include <mm/pmm.hpp>
 #include <sys/panic.hpp>
 #include <sys/user.hpp>
-#include <sys/mutex.hpp>
+#include <sys/locks.hpp>
 
 namespace PROC {
 
@@ -29,7 +29,7 @@ Scheduler *InitializeScheduler(usize queueCount) {
 
 int DeinitializeScheduler(Scheduler *scheduler) {
 	if(scheduler == NULL) return -1;
-	LockMutex(&scheduler->SchedulerLock);
+	SpinlockLock(&scheduler->SchedulerLock);
 
 	for (usize currentQueue = 0; currentQueue < scheduler->QueueCount; ++currentQueue) { 
 		if(scheduler->Queues[currentQueue]->Head != NULL) {
@@ -52,7 +52,7 @@ int DeinitializeScheduler(Scheduler *scheduler) {
 
 int AddThreadToQueue(Scheduler *scheduler, usize queue, ThreadBase *thread) {
 	if (scheduler == NULL || scheduler->Queues[queue] == NULL || thread == NULL) return -1;
-	LockMutex(&scheduler->SchedulerLock);
+	SpinlockLock(&scheduler->SchedulerLock);
 
 	SchedulerNode *newNode = new SchedulerNode;
 	newNode->Thread = thread;
@@ -85,13 +85,13 @@ int AddThreadToQueue(Scheduler *scheduler, usize queue, ThreadBase *thread) {
 	}
 
 
-	UnlockMutex(&scheduler->SchedulerLock);
+	SpinlockUnlock(&scheduler->SchedulerLock);
 	return 0;
 }
 
 ThreadBase *RemoveThreadFromQueue(Scheduler *scheduler, usize queue, usize pid, usize tid) {
 	if (scheduler == NULL || scheduler->Queues[queue] == NULL || scheduler->Queues[queue]->Head == NULL) return NULL;
-	LockMutex(&scheduler->SchedulerLock);
+	SpinlockLock(&scheduler->SchedulerLock);
 
 	ThreadBase *thread = NULL;
 	
@@ -113,7 +113,7 @@ ThreadBase *RemoveThreadFromQueue(Scheduler *scheduler, usize queue, usize pid, 
 
 			delete node;
 		
-			UnlockMutex(&scheduler->SchedulerLock);
+			SpinlockUnlock(&scheduler->SchedulerLock);
 			return thread;
 		}
 
@@ -136,18 +136,18 @@ ThreadBase *RemoveThreadFromQueue(Scheduler *scheduler, usize queue, usize pid, 
 		
 		delete node;
 	} else {
-		UnlockMutex(&scheduler->SchedulerLock);
+		SpinlockUnlock(&scheduler->SchedulerLock);
 
 		return NULL;
 	}
 
-	UnlockMutex(&scheduler->SchedulerLock);
+	SpinlockUnlock(&scheduler->SchedulerLock);
 	return thread;
 }
 
 ThreadBase *GetThreadFromQueue(Scheduler *scheduler, usize queue, usize pid, usize tid) {
 	if (scheduler == NULL || scheduler->Queues[queue] == NULL || scheduler->Queues[queue]->Head == NULL) return NULL;
-	LockMutex(&scheduler->SchedulerLock);
+	SpinlockLock(&scheduler->SchedulerLock);
 
 	ThreadBase *thread = NULL;
 
@@ -155,7 +155,7 @@ ThreadBase *GetThreadFromQueue(Scheduler *scheduler, usize queue, usize pid, usi
 	while(node != scheduler->Queues[queue]->Tail) {
 		if(node->Thread->Parent->ID == pid && node->Thread->ID == tid) {
 			thread = node->Thread;
-			UnlockMutex(&scheduler->SchedulerLock);
+			SpinlockUnlock(&scheduler->SchedulerLock);
 			return thread;
 		}
 
@@ -165,18 +165,18 @@ ThreadBase *GetThreadFromQueue(Scheduler *scheduler, usize queue, usize pid, usi
 	if(node->Thread->Parent->ID == pid && node->Thread->ID == tid) {
 		thread = node->Thread;
 	} else {
-		UnlockMutex(&scheduler->SchedulerLock);
+		SpinlockUnlock(&scheduler->SchedulerLock);
 
 		return NULL;
 	}
 
-	UnlockMutex(&scheduler->SchedulerLock);
+	SpinlockUnlock(&scheduler->SchedulerLock);
 	return thread;
 }
 	
 ThreadBase *GetThread(Scheduler *scheduler, usize pid, usize tid) {
 	if(scheduler == NULL) return NULL;
-	LockMutex(&scheduler->SchedulerLock);
+	SpinlockLock(&scheduler->SchedulerLock);
 
 	ThreadBase *thread = NULL;
 	for (usize currentQueue = 0; currentQueue < scheduler->QueueCount; ++currentQueue) { 
@@ -184,7 +184,7 @@ ThreadBase *GetThread(Scheduler *scheduler, usize pid, usize tid) {
 		while(node != scheduler->Queues[currentQueue]->Tail) {
 			if(node->Thread->Parent->ID == pid && node->Thread->ID == tid) {
 				thread = node->Thread;
-				UnlockMutex(&scheduler->SchedulerLock);
+				SpinlockUnlock(&scheduler->SchedulerLock);
 				return thread;
 			}
 
@@ -193,28 +193,28 @@ ThreadBase *GetThread(Scheduler *scheduler, usize pid, usize tid) {
 
 		if(node->Thread->Parent->ID == pid && node->Thread->ID == tid) {
 			thread = node->Thread;
-			UnlockMutex(&scheduler->SchedulerLock);
+			SpinlockUnlock(&scheduler->SchedulerLock);
 			return thread;
 		}
 	}
 
-	UnlockMutex(&scheduler->SchedulerLock);
+	SpinlockUnlock(&scheduler->SchedulerLock);
 	return NULL;
 }
 
 int RecalculateScheduler(Scheduler *scheduler) {
 	if(scheduler == NULL) return -1;
-	LockMutex(&scheduler->SchedulerLock);
+	SpinlockLock(&scheduler->SchedulerLock);
 
 	/* Check wether the current thread has used up its available quantum */
 	if(scheduler->CurrentThread == NULL) {
 		if(scheduler->Queues[SCHEDULER_RUNNING_QUEUE]->Head != NULL) {
 			scheduler->CurrentThread = scheduler->Queues[SCHEDULER_RUNNING_QUEUE]->Head;
 			scheduler->ElapsedQuantum = 0;
-			UnlockMutex(&scheduler->SchedulerLock);
+			SpinlockUnlock(&scheduler->SchedulerLock);
 			return 0;
 		} else {
-			UnlockMutex(&scheduler->SchedulerLock);
+			SpinlockUnlock(&scheduler->SchedulerLock);
 			return -1;
 		}
 	}
@@ -230,7 +230,7 @@ int RecalculateScheduler(Scheduler *scheduler) {
 				 * we don't erase the elapsed quantum, as we want to switch to
 				 * a new process as soon as we can
 				 */
-				UnlockMutex(&scheduler->SchedulerLock);
+				SpinlockUnlock(&scheduler->SchedulerLock);
 				return 0;
 			} else {
 				SchedulerQueue *oldRunning = scheduler->Queues[SCHEDULER_RUNNING_QUEUE];
@@ -238,20 +238,20 @@ int RecalculateScheduler(Scheduler *scheduler) {
 				scheduler->Queues[SCHEDULER_WAITING_QUEUE] = oldRunning;
 			}
 		} else {
-			UnlockMutex(&scheduler->SchedulerLock);
+			SpinlockUnlock(&scheduler->SchedulerLock);
 			ThreadBase *thread = RemoveThreadFromQueue(scheduler, SCHEDULER_RUNNING_QUEUE, scheduler->CurrentThread->Thread->Parent->ID, scheduler->CurrentThread->Thread->ID);
 			AddThreadToQueue(scheduler, SCHEDULER_WAITING_QUEUE, thread);
-			LockMutex(&scheduler->SchedulerLock);
+			SpinlockLock(&scheduler->SchedulerLock);
 		}
 		
 		scheduler->CurrentThread = scheduler->Queues[SCHEDULER_RUNNING_QUEUE]->Head;
 		scheduler->ElapsedQuantum = 0;
 
-		UnlockMutex(&scheduler->SchedulerLock);
+		SpinlockUnlock(&scheduler->SchedulerLock);
 		return 1;
 	} else {
 		/* Things can continue normally */	
-		UnlockMutex(&scheduler->SchedulerLock);
+		SpinlockUnlock(&scheduler->SchedulerLock);
 		return 0;
 	}
 
@@ -259,7 +259,7 @@ int RecalculateScheduler(Scheduler *scheduler) {
 
 void PrintSchedulerStatus(Scheduler *scheduler) {
 	if(scheduler == NULL) return;
-	LockMutex(&scheduler->SchedulerLock);
+	SpinlockLock(&scheduler->SchedulerLock);
 
 	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Printing debug status of scheduler at 0x%x\r\n"
 		       " Current thread:                      0x%x\r\n"
@@ -293,6 +293,6 @@ void PrintSchedulerStatus(Scheduler *scheduler) {
 
 	}
 
-	UnlockMutex(&scheduler->SchedulerLock);
+	SpinlockUnlock(&scheduler->SchedulerLock);
 }
 }

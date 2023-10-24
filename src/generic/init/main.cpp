@@ -101,11 +101,12 @@ void RestInit() {
 	}
 }
 
+#include <sys/locks.hpp>
 #include <arch/x64/dev/apic.hpp>
 __attribute__((noreturn)) void KernelStart() {
 	KInfo *info = GetInfo();
 
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "MicroKosm is booted. Cmdline: %s\r\n", info->KernelArgs);
+	/* Parsing cmdline arguments */
 	ParseArgs();
 
 	/* Enabling the page frame allocator */
@@ -120,6 +121,8 @@ __attribute__((noreturn)) void KernelStart() {
 
 	/* With the heap initialized, disable new bootmem allocations */
 	BOOTMEM::DeactivateBootmem();
+
+	SpinlockUnlock(&info->SMPLock);
 
 	/* Starting architecture-specific instructions */
 #if defined(ARCH_x64)

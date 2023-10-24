@@ -34,6 +34,8 @@ void ParseArgs() {
 	   and see if they are available */
 	KInfo *info = GetInfo();
 	if (info->KernelArgs == NULL) return;
+	
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "MicroKosm is booted. Cmdline: %s\r\n", info->KernelArgs);
 
 	/* We split the values in the id and value pairs */
 	char *endChar;
@@ -50,11 +52,8 @@ void ParseArgs() {
 			/* Select the user file */
 			info->UserModuleName[0] = '/';
 			Strncpy(info->UserModuleName + 1, val, MAX_FILE_NAME_LENGTH);
-			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "USER MODULE: %s\r\n", info->UserModuleName);
 		} else if (Strncmp(id, "loglevel", MAX_CMDLINE_ARGUMENT_LENGTH) == 0) {
-			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "LOGLEVEL: %s\r\n", val);
 		} else if (Strncmp(id, "earlycon", MAX_CMDLINE_ARGUMENT_LENGTH) == 0) {
-			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "EARLYCON: %s\r\n", val);
 			info->KernelPort = (DEV::UART::UARTDevice*)DEV::EARLYCON::InitializeEarlycon(val);
 		} else {
 			/* Invalid argument */

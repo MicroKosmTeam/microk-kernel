@@ -1,7 +1,6 @@
 #include <mm/heap.hpp>
 #include <mm/pmm.hpp>
 #include <mm/vmm.hpp>
-#include <sys/mutex.hpp>
 #include <init/kinfo.hpp>
 #include <sys/printk.hpp>
 #include <sys/panic.hpp>
@@ -13,8 +12,6 @@ static bool isHeapActive = false;
 
 static u64 freeMem;
 static u64 totalMem;
-
-static SpinLock HeapLock;
 
 void HeapSegHeader::CombineForward() {
         if(next == NULL) return;
@@ -115,7 +112,6 @@ void *Malloc(usize size) {
         if (size == 0) return NULL;
 
 	for (int i = 0; i < MAX_TRIES; i++) {
-		HeapLock.Lock();
 		HeapSegHeader *currSeg = (HeapSegHeader*)heapStart;
 
 		while(true) {
@@ -124,12 +120,10 @@ void *Malloc(usize size) {
 					currSeg->Split(size);
 					currSeg->free = false;
 					freeMem -= size;
-					HeapLock.Unlock();
 					return (void*)((u64)currSeg + sizeof(HeapSegHeader));
 				} else if (currSeg->length == size) {
 					currSeg->free = false;
 					freeMem -= size;
-					HeapLock.Unlock();
 					return (void*)((u64)currSeg + sizeof(HeapSegHeader));
 				}
 			}
@@ -139,25 +133,18 @@ void *Malloc(usize size) {
 		}
 
 		ExpandHeap(size * 4);
-
-		HeapLock.Unlock();
-
 	}
 
 	return NULL;
 }
 
 void Free(void *address) {
-	HeapLock.Lock();
-
         HeapSegHeader *segment = (HeapSegHeader*)address - 1;
-	if(segment->free) { HeapLock.Unlock(); return; }
+	if(segment->free) { return; }
         segment->free = true;
         segment->CombineForward();
         segment->CombineBackward();
 	freeMem += segment->length + sizeof(HeapSegHeader);
-
-	HeapLock.Unlock();
 }
 
 void ExpandHeap(usize length) {

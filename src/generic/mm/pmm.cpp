@@ -1,7 +1,6 @@
 #include <mm/pmm.hpp>
 #include <sys/printk.hpp>
 #include <init/kinfo.hpp>
-#include <sys/mutex.hpp>
 
 static usize FreeMemory;
 static usize ReservedMemory;

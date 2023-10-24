@@ -4,9 +4,10 @@
 #include <init/kinfo.hpp>
 #include <dev/earlycon.hpp>
 
-
 static PRINTK::LogMessage LastMessage;
 static PRINTK::Loglevel GlobalLoglevel;
+
+#include <arch/x64/io/io.hpp>
 
 namespace PRINTK {
 static void FlushMessage() {
@@ -22,6 +23,8 @@ static void FlushMessage() {
 }
 
 static void PutChar(char ch) {
+	x86_64::OutB(0xE9, ch);
+
 	bool justNewline = false;
 
 	if (LastMessage.Length + 1 > MAX_PRINTK_MESSAGE_LENGTH) {

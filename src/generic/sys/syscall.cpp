@@ -7,7 +7,6 @@
 #include <sys/user.hpp>
 #include <mm/string.hpp>
 #include <mm/memory.hpp>
-#include <sys/mutex.hpp>
 #include <sys/panic.hpp>
 #include <init/kinfo.hpp>
 #include <sys/printk.hpp>

@@ -22,7 +22,7 @@ int UpdateKernelTables() {
 	KInfo *info = GetInfo();
 	KBST *kbst = (KBST*)(info->KernelBaseSystemTable + info->HigherHalfMapping);
 
-	PopulateKBST(kbst);
+	UpdateKBST(kbst);
 
 	return 0;
 }
@@ -40,7 +40,23 @@ void PopulateKBST(KBST *kbst) {
 	kbst->UsedPhysicalMemory = PMM::GetUsedMem();
 	kbst->ReservedPhysicalMemory = PMM::GetReservedMem();
 
-	kbst->RSDP = (uptr)info->RSDP;
+	kbst->RSDP = info->RSDP;
+	kbst->DeviceTree = 0;
+
+	u8 checksumDifference = 0;
+	u8 *kbstByte = (u8*)kbst;
+
+	while((uptr)kbstByte < (uptr)kbst + PAGE_SIZE) {
+		checksumDifference += *kbstByte++;
+	}
+
+	kbst->Checksum = 0x100 - checksumDifference;
+}
+
+void UpdateKBST(KBST *kbst) {
+	kbst->FreePhysicalMemory = PMM::GetFreeMem();
+	kbst->UsedPhysicalMemory = PMM::GetUsedMem();
+	kbst->ReservedPhysicalMemory = PMM::GetReservedMem();
 
 	u8 checksumDifference = 0;
 	u8 *kbstByte = (u8*)kbst;

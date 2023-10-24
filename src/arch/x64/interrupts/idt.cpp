@@ -9,7 +9,7 @@
 #include <mm/pmm.hpp>
 #include <sys/user.hpp>
 #include <sys/syscall.hpp>
-#include <sys/mutex.hpp>
+#include <sys/locks.hpp>
 #include <arch/x64/interrupts/idt.hpp>
 #include <arch/x64/cpu/cpu.hpp>
 
@@ -113,11 +113,11 @@ static inline void PrintRegs(CPUStatus *context) {
 static inline PROC::ProcessBase *GetProcess() {
 	KInfo *info = GetInfo();
 
-	LockMutex(&info->KernelScheduler->SchedulerLock);
+	SpinlockLock(&info->KernelScheduler->SchedulerLock);
 	if(info->KernelScheduler == NULL) return NULL;
 	if(info->KernelScheduler->CurrentThread == NULL) return NULL;
 	PROC::UserProcess *proc = (PROC::UserProcess*)info->KernelScheduler->CurrentThread->Thread->Parent;
-	UnlockMutex(&info->KernelScheduler->SchedulerLock);
+	SpinlockUnlock(&info->KernelScheduler->SchedulerLock);
 
 	return proc;
 }
@@ -125,9 +125,9 @@ static inline PROC::ProcessBase *GetProcess() {
 static inline VMM::VirtualSpace *GetVirtualSpace(PROC::ProcessBase *proc) {
 	KInfo *info = GetInfo();
 
-	LockMutex(&info->KernelScheduler->SchedulerLock);
+	SpinlockLock(&info->KernelScheduler->SchedulerLock);
 	VMM::VirtualSpace *procSpace = proc->VirtualMemorySpace;
-	UnlockMutex(&info->KernelScheduler->SchedulerLock);
+	SpinlockUnlock(&info->KernelScheduler->SchedulerLock);
 
 	return procSpace;
 }
