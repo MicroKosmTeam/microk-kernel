@@ -6,24 +6,43 @@
 #include <init/kinfo.hpp>
 #include <sys/printk.hpp>
 
-namespace x86_64 {
-VMM::VirtualSpace *NewVirtualSpace() {
-	KInfo *info = GetInfo();
-	/* We create a new empty page directory */
-	PageTable *PML4 = (PageTable*)((uptr)PMM::RequestPage() + info->HigherHalfMapping);
-	Memset(PML4, 0, PAGE_SIZE);
-
-	VMM::VirtualSpace *space = new PageTableManager(PML4);
-
-	return space;
+inline uptr AllocatePage() {
+	uptr address = PMM::RequestPage();
+	Memset(VMM::PhysicalToVirtual(address), 0 , PAGE_SIZE);
+	return address;
 }
 
-void LoadVirtualSpace(VMM::VirtualSpace *space) {
-	KInfo *info = GetInfo();
-	/* This loads the page directory into memory */
-	PageTable *PML4 = (PageTable*)((uptr)space->GetTopAddress() - info->HigherHalfMapping);
+namespace x86_64 {
+void MapPage(uptr rootPageTable, uptr virt, uptr phys, u64 flags) {
+	/* how many page tables to traverse before we get to the PML1 */
+	const bool use5LevelPaging = false;
+	int levels = use5LevelPaging ? 4 : 3;
 
-	asm volatile ("mov %0, %%cr3" : : "r" (PML4) : "memory");
+	/* points to the PML5e or PML4e that manages 'virt' */
+	volatile u64 *table = rootPageTable + ((virt >> (12 + 9 * levels)) & 0x1ff);
+
+	/*
+	 * In a loop, reduce the scope of 'table' by traversing downward and
+	 * allocating new page tables as neccessary.
+	 */
+	while(levels) {
+		u64 value = *table;
+
+		if(value & PT_Flag::Present) {
+			/* page table already exists */
+			value &= 0x7ffffffffffff000;
+		} else {
+			/* allocate a new page table */
+			value = AllocatePage();
+			*table = value | PT_Flag::Present | PT_Flag::ReadWrite | PT_Flag::UserSuper;
+		}
+
+		--levels;
+		table = (volatile u64 *) PhysicalToVirtual(value) + ((virt >> (12 + 9 * l)) & 0x1ff);
+	}
+
+	/* 'table' now points to the PTE we're interested in modifying */
+	*table = phys | flags;
 }
 
 }
