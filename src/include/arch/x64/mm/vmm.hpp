@@ -26,4 +26,6 @@ namespace x86_64 {
 	void LoadVirtualSpace(uptr topLevel);
 
 	void MapPage(uptr rootPageTable, uptr virt, uptr phys, usize flags);
+	uptr FindMappedPage(uptr rootPageTable, uptr virt);
+	void UnmapPage(uptr rootPageTable, uptr virt);
 }
