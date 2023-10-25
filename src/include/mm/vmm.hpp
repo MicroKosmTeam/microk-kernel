@@ -1,29 +1,43 @@
 #pragma once
+#include <cdefs.h>
 #include <cstdint.hpp>
+#include <init/kinfo.hpp>
+#include <mm/memory.hpp>
 
+#if defined(ARCH_x64)
+#include <arch/x64/mm/vmm.hpp>
 
 #define PAGE_SIZE 0x1000
 
-namespace VMM {
-	enum VirtualMemoryFlags {
-		VMM_PRESENT    = 0b00000001,
-		VMM_READWRITE  = 0b00000010,
-		VMM_USER       = 0b00000100,
-		VMM_NOEXECUTE  = 0b00001000,
-		VMM_GLOBAL     = 0b00010000,
-	};
+#define VMM_FLAGS_KERNEL_CODE (x86_64::PT_Flag::Present)
 
-	class VirtualSpace {
-	public:
-		virtual ~VirtualSpace() { };
-		virtual void *GetPhysicalAddress(void *virtualMemory) = 0;
-		virtual void Fork(VirtualSpace *space, bool higherHalf) = 0;
-		virtual void MapMemory(void *physicalMemory, void *virtualMemory, u64 flags) = 0;
-		virtual void UnmapMemory(void *virtualMemory) = 0;
-		virtual void *GetTopAddress() = 0;
-	private:
-	};
-	
+#define VMM_FLAGS_KERNEL_RODATA (x86_64::PT_Flag::Present | \
+				 x86_64::PT_Flag::NX)
+
+#define VMM_FLAGS_KERNEL_DATA (x86_64::PT_Flag::Present | \
+			       x86_64::PT_Flag::NX | \
+			       x86_64::PT_Flag::ReadWrite)
+
+#define VMM_FLAGS_KERNEL_GENERIC (x86_64::PT_Flag::Present | \
+			          x86_64::PT_Flag::ReadWrite)
+
+
+#define VMM_FLAGS_USER_CODE (x86_64::PT_Flag::Present | \
+			     x86_64::PT_Flag::UserSuper)
+
+#define VMM_FLAGS_USER_RODATA (x86_64::PT_Flag::Present | \
+				 x86_64::PT_Flag::NX | \
+			         x86_64::PT_Flag::UserSuper)
+
+#define VMM_FLAGS_USER_DATA (x86_64::PT_Flag::Present | \
+			       x86_64::PT_Flag::NX | \
+			       x86_64::PT_Flag::ReadWrite | \
+			       x86_64::PT_Flag::UserSuper)
+
+#endif
+
+
+namespace VMM {
 	struct COWMetadata {
 		uptr PhysicalAddressOfOriginal;
 		uptr PhysicalAddressOfCopy;
@@ -46,10 +60,21 @@ namespace VMM {
 		PageMetadata Pages[];
 	};
 
+	__attribute__((always_inline))
+	uptr PhysicalToVirtual(uptr value);
+
+	__attribute__((always_inline))
+	uptr VirtualToPhysical(uptr value);
+
+	__attribute__((always_inline))
+	uptr NewVirtualSpace();
+
+	__attribute__((always_inline))
+	void LoadVirtualSpace(uptr space);
+
+	__attribute__((always_inline))
+	void MapPage(uptr space, uptr virt, uptr phys, usize flags);
+
 	void InitVMM();
-	VirtualSpace *AllocateVirtualSpace();
-	VirtualSpace *NewVirtualSpace();
-	void LoadVirtualSpace(VMM::VirtualSpace *space);
-	void MapMemory(VirtualSpace *space, void *physicalMemory, void *virtualMemory);
-	void MapMemory(VirtualSpace *space, void *physicalMemory, void *virtualMemory, u64 flags);
+	void PrepareVirtualSpace(uptr space);
 }

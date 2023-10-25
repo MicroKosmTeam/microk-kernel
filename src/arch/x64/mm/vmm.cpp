@@ -1,19 +1,30 @@
 #include <arch/x64/mm/vmm.hpp>
-#include <mm/pmm.hpp>
-#include <mm/memory.hpp>
-#include <mm/bootmem.hpp>
-#include <arch/x64/mm/pagetable.hpp>
-#include <init/kinfo.hpp>
-#include <sys/printk.hpp>
 
-inline uptr AllocatePage() {
+namespace x86_64 {
+
+__attribute__((always_inline))
+uptr AllocatePage() {
 	uptr address = PMM::RequestPage();
 	Memset(VMM::PhysicalToVirtual(address), 0 , PAGE_SIZE);
 	return address;
 }
 
-namespace x86_64 {
-void MapPage(uptr rootPageTable, uptr virt, uptr phys, u64 flags) {
+__attribute__((always_inline))
+uptr NewVirtualSpace() {
+	/* We create a new empty page directory */
+	uptr table = AllocatePage();
+	table = VMM::PhysicalToVirtual(table);
+
+	return table;
+}
+
+__attribute__((always_inline))
+void LoadVirtualSpace(uptr topLevel) {
+	/* This loads the page directory into memory */
+	asm volatile ("mov %0, %%cr3" : : "r" (VMM::VirtualToPhysical(topLevel)) : "memory");
+}
+
+void MapPage(uptr rootPageTable, uptr virt, uptr phys, usize flags) {
 	/* how many page tables to traverse before we get to the PML1 */
 	const bool use5LevelPaging = false;
 	int levels = use5LevelPaging ? 4 : 3;
@@ -43,6 +54,5 @@ void MapPage(uptr rootPageTable, uptr virt, uptr phys, u64 flags) {
 
 	/* 'table' now points to the PTE we're interested in modifying */
 	*table = phys | flags;
-}
 
 }

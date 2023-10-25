@@ -1,14 +1,51 @@
 #include <mm/vmm.hpp>
-#include <init/kinfo.hpp>
-#include <arch/x64/mm/vmm.hpp>
 #include <arch/x64/dev/apic.hpp>
 #include <sys/printk.hpp>
 
 namespace VMM {
+__attribute__((always_inline)) uptr PhysicalToVirtual(uptr value) {
+	KInfo *info = GetInfo();
+
+	value += info->HigherHalfMapping;
+
+	return value;
+}
+
+__attribute__((always_inline)) uptr VirtualToPhysical(uptr value) {
+	KInfo *info = GetInfo();
+
+	value += info->HigherHalfMapping;
+
+	return value;
+}
+
+__attribute__((always_inline))
+uptr NewVirtualSpace() {
+#if defined(ARCH_x64)
+	return x86_64::NewVirtualSpace();
+#endif
+	return 0;
+}
+
+__attribute__((always_inline))
+void LoadVirtualSpace(uptr space) {
+#if defined(ARCH_x64)
+	x86_64::LoadVirtualSpace(space);
+#endif
+}
+
+__attribute__((always_inline))
+void MapPage(uptr space, uptr virt, uptr phys, usize flags) {
+#if defined(ARCH_x64)
+	x86_64::MapPage(uptr space, virt, phys, flags);
+#endif
+}
+
 void InitVMM() {
 	KInfo *info = GetInfo();
 
 	info->KernelVirtualSpace = NewVirtualSpace();
+	PrepareVirtualSpace(space);
 
 	LoadVirtualSpace(info->KernelVirtualSpace);
 
@@ -16,11 +53,9 @@ void InitVMM() {
 
 }
 
-VirtualSpace *NewVirtualSpace() {
+void PrepareVirtualSpace(uptr space) {
 	KInfo *info = GetInfo();
 
-	VirtualSpace *space = AllocateVirtualSpace();
-	
 	/* We go through every entry in the memory map and map it in virtual memory */
 	for (usize i = 0; i < info->MemoryMapEntryCount; i++) {
 		MEM::MMapEntry entry = info->MemoryMap[i];
@@ -39,21 +74,21 @@ VirtualSpace *NewVirtualSpace() {
 		if (entry.type == MEMMAP_KERNEL_AND_MODULES) {
 			if(entry.base == info->KernelPhysicalBase) {
 				for (uptr t = base; t < top; t += PAGE_SIZE){
-					space->MapMemory((void*)t, (void*)(info->KernelVirtualBase + t - info->KernelPhysicalBase), VMM_PRESENT | VMM_READWRITE | VMM_GLOBAL);
+					MapMemory(t, info->KernelVirtualBase + t - info->KernelPhysicalBase, VMM_FLAGS_KERNEL_GENERIC);
 
 				}
 			} else {
 				for (uptr t = base; t < top; t += PAGE_SIZE) {
-					space->MapMemory((void*)t, (void*)(t + info->HigherHalfMapping), VMM_PRESENT | VMM_GLOBAL | VMM_USER | VMM_NOEXECUTE);
+					MapMemory(t, t + info->HigherHalfMapping, VMM_FLAGS_USER_RODATA);
 				}
 			}
 		} else if (entry.type == MEMMAP_ACPI_RECLAIMABLE) {
 			for (uptr t = base; t < top; t += PAGE_SIZE) {
-				space->MapMemory((void*)t, (void*)(t + info->HigherHalfMapping), VMM_PRESENT | VMM_GLOBAL | VMM_USER | VMM_NOEXECUTE);
+				MapPage(t, t + info->HigherHalfMapping, VMM_FLAGS_USER_RODATA);
 			}
 		} else {
 			for (uptr t = base; t < top; t += PAGE_SIZE) {
-				space->MapMemory((void*)t, (void*)(t + info->HigherHalfMapping), VMM_PRESENT | VMM_READWRITE | VMM_GLOBAL | VMM_NOEXECUTE);
+				space->MapMemory(t, t + info->HigherHalfMapping, VMM_FLAGS_KERNEL_DATA);
 			}
 		}
 	}
@@ -61,47 +96,20 @@ VirtualSpace *NewVirtualSpace() {
 	if(info->KernelHeapPageList != NULL) {
 		uptr heapAddress = CONFIG_HEAP_BASE;
 		for (usize heapPage = 0; heapPage < info->KernelHeapPageList->PageCount; heapPage++) {
-			space->MapMemory((void*)info->KernelHeapPageList->Pages[heapPage].Data.PhysicalAddress, (void*)heapAddress, VMM_PRESENT | VMM_READWRITE | VMM_GLOBAL | VMM_NOEXECUTE);
+			MapMemory(info->KernelHeapPageList->Pages[heapPage].Data.PhysicalAddress, heapAddress, VMM_FLAGS_KERNEL_DATA);
 			heapAddress += PAGE_SIZE;
 		}
 	}
 
 #if defined(ARCH_x64)
 	for (uptr t = PAGE_SIZE; t < info->KernelStack; t+=PAGE_SIZE) {
-		space->MapMemory((void*)t, (void*)t, VMM_PRESENT | VMM_READWRITE | VMM_GLOBAL | VMM_NOEXECUTE);
+		MapMemory(t, t, VMM_FLAGS_KERNEL_DATA);
 	}
 	
-	space->MapMemory((void*)x86_64::GetAPICBase(), (void*)(x86_64::GetAPICBase() + info->HigherHalfMapping), VMM_PRESENT | VMM_READWRITE | VMM_GLOBAL | VMM_NOEXECUTE);
+	MapMemory(x86_64::GetAPICBase(), x86_64::GetAPICBase() + info->HigherHalfMapping, VMM_FLAGS_KERNEL_DATA);
 #endif
 
 
 	return space;
-}
-
-VirtualSpace *AllocateVirtualSpace() {
-#if defined(ARCH_x64)
-	return x86_64::NewVirtualSpace();
-#elif defined(ARCH_aarch64)
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "TODO: Implement arm virtual memory.\r\n");
-	return NULL;
-#endif
-}
-
-void LoadVirtualSpace(VMM::VirtualSpace *space) {
-#if defined(ARCH_x64)
-	x86_64::LoadVirtualSpace(space);
-#elif defined(ARCH_aarch64)
-	(void)space;
-	return;
-#endif
-}
-
-void MapMemory(VirtualSpace *space, void *physicalMemory, void *virtualMemory) {
-	space->MapMemory(physicalMemory, virtualMemory, VMM_PRESENT | VMM_READWRITE | VMM_USER);
-}
-	
-void MapMemory(VirtualSpace *space, void *physicalMemory, void *virtualMemory, usize flags) {
-	space->MapMemory(physicalMemory, virtualMemory, flags);
-
 }
 }
