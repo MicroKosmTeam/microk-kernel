@@ -49,6 +49,12 @@ void SetAPICTimer(u64 newCycles) {
 void WaitAPIC() {
 	WriteAPICRegister(0x380, cycles);
 }
+	
+int InitializeAPICTimer(TIME::Timer *timer) {
+	(void)timer;
+
+	return 0;
+}
 
 void EnableAPIC() {	
 	APIC *apic = new APIC;

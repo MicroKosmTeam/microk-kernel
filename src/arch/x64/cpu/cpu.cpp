@@ -144,9 +144,7 @@ void CPUInit() {
 	localCPUStruct = (uptr)PMM::RequestPage() + info->HigherHalfMapping;
 	SetMSR(MSR_KERNELGSBASE, localCPUStruct, localCPUStruct >> 32);
 
-	UpdateLocalCPUStruct(0xDEADC0DECAFEBABE,
-			     (uptr)info->KernelVirtualSpace->GetTopAddress() - info->HigherHalfMapping,
-			     (uptr)info->KernelVirtualSpace->GetTopAddress() - info->HigherHalfMapping);
+	UpdateLocalCPUStruct(0xDEADC0DECAFEBABE, VMM::VirtualToPhysical(info->KernelVirtualSpace), VMM::VirtualToPhysical(info->KernelVirtualSpace));
 }
 
 void UpdateLocalCPUStruct(uptr taskKernelStack, uptr userCR3, uptr kernelCR3) {

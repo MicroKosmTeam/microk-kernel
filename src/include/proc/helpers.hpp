@@ -13,11 +13,11 @@ namespace PROC {
 		return proc;
 	}
 
-	inline VMM::VirtualSpace *GetVirtualSpace(PROC::ProcessBase *proc) {
+	inline uptr GetVirtualSpace(PROC::ProcessBase *proc) {
 		KInfo *info = GetInfo();
 
 		SpinlockLock(&info->KernelScheduler->SchedulerLock);
-		VMM::VirtualSpace *procSpace = proc->VirtualMemorySpace;
+		uptr procSpace = proc->VirtualMemorySpace;
 		SpinlockUnlock(&info->KernelScheduler->SchedulerLock);
 
 		return procSpace;

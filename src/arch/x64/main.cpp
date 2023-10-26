@@ -16,16 +16,10 @@ void EarlyInit() {
 	KInfo *info = GetInfo();
 
 	/* We first of all get the position of the kernel interrupt stack and save it
-	 * as we will use it to initialize the TSS
-	 *
-	 * We use 0x800000 because it's a low memory address that is
-	 * the highest that is always (hopefully) free. No interferance anything.
-	 *
-	 * Just know that if it grows until around 0x8000 (where the SMP startup
-	 * code should be situated), we will be in trouble. However, that shouldn't
-	 * be a thing.
+	 * as we will use it to initialize the TSS.
 	 */
-	info->KernelStack = (0x800000/* + info->HigherHalfMapping*/);
+	//info->KernelStack = (uptr)PMM::RequestPages(KERNEL_STACK_SIZE / PAGE_SIZE) + info->HigherHalfMapping;
+	info->KernelStack =  0x80000 + info->HigherHalfMapping;
 	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Kernel stack: 0x%x\r\n", info->KernelStack);
 
 	/* Initialize the GDT */

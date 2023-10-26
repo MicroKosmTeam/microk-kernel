@@ -22,37 +22,37 @@ namespace PROC {
 	};
 
 	struct ExecutableUnitHeader {
-		usize ID = 0;
-		u8 Priority = 0;
-		u16 Flags = 0;
+		usize ID;
+		u8 Priority;
+		u16 Flags;
 
-		bool IsThread = false;
+		bool IsThread;
 	
-		ExecutableUnitHeader *Parent = NULL;
+		ExecutableUnitHeader *Parent;
 
 		ExecutableUnitState State;
 		ExecutableUnitType Type;
 	};
 
 	struct ThreadBase : public ExecutableUnitHeader {
-		CPUStatus *Context = NULL;
-		uptr KernelStack = 0;
+		CPUStatus *Context;
+		uptr KernelStack;
 
-		ThreadBase *Next = NULL;
-		ThreadBase *Previous = NULL;
+		ThreadBase *Next;
+		ThreadBase *Previous;
 	};
 
 	struct ThreadList {
-		usize ThreadCount = 0;
-		usize ThreadIDBase = 0;
+		usize ThreadCount;
+		usize ThreadIDBase;
 
-		ThreadBase *Head = NULL;
-		ThreadBase *Tail = NULL;
+		ThreadBase *Head;
+		ThreadBase *Tail;
 	};
 
 	struct ProcessBase : public ExecutableUnitHeader {
-		VMM::VirtualSpace *VirtualMemorySpace = NULL;
-		uptr HighestFree = 0;
+		uptr VirtualMemorySpace;
+		uptr HighestFree;
 		VMM::PageList *ExecutablePageList;
 
 		ThreadList Threads;
@@ -73,11 +73,11 @@ namespace PROC {
 	}__attribute__((packed));
 
 	struct UserProcess : public ProcessBase {
-		UserTCB *UserTaskBlock = NULL;
+		UserTCB *UserTaskBlock;
 	};
 
 	struct UserThread : public ThreadBase {
-		uptr UserStack = 0;
+		uptr UserStack;
 	};
 
 	struct RealtimeProcess : public ProcessBase {
@@ -92,7 +92,7 @@ namespace PROC {
 	struct VMThread : public ThreadBase {
 	};
 
-	ProcessBase *CreateProcess(ProcessBase *parent, ExecutableUnitType type, VMM::VirtualSpace *virtualMemorySpace, VMM::PageList *pageList, u8 priority, u16 flags);
+	ProcessBase *CreateProcess(ProcessBase *parent, ExecutableUnitType type, uptr virtualMemorySpace, VMM::PageList *pageList, u8 priority, u16 flags);
 	int DeleteProcess(ProcessBase *process);
 
 	ThreadBase *CreateThread(ProcessBase *parent, uptr entrypoint, usize stackSize, u8 priority, u16 flags);

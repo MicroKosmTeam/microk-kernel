@@ -67,7 +67,7 @@ u64 GetTotal() {
 void InitializeHeap(void *heapAddress, usize pageCount) {
 	KInfo *info = GetInfo();
 
-        void *pos = heapAddress;
+        uptr pos = (uptr)heapAddress;
 	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Initializing the heap at 0x%x with %d pages.\r\n", heapAddress, pageCount);
 
 	usize pageListSize = sizeof(VMM::PageList) + pageCount * sizeof(VMM::PageMetadata);
@@ -77,14 +77,14 @@ void InitializeHeap(void *heapAddress, usize pageCount) {
 	info->KernelHeapPageList->AllocatedSize = pageListSize;
 
         for (usize i = 0; i < pageCount; i++) {
-		void *physical = PMM::RequestPage();
+		uptr physical = (uptr)PMM::RequestPage();
 		info->KernelHeapPageList->Pages[i].IsCOW = false;
-		info->KernelHeapPageList->Pages[i].Data.PhysicalAddress = (uptr)physical;
-		VMM::MapMemory(info->KernelVirtualSpace, physical, pos, VMM::VMM_PRESENT | VMM::VMM_READWRITE | VMM::VMM_GLOBAL | VMM::VMM_NOEXECUTE);
-                pos = (void*)((usize)pos + 0x1000); // Advancing
+		info->KernelHeapPageList->Pages[i].Data.PhysicalAddress = physical;
+		VMM::MapPage(info->KernelVirtualSpace, physical, pos, VMM_FLAGS_KERNEL_DATA); 
+                pos = pos + PAGE_SIZE; // Advancing
         }
 
-        usize heaplength = pageCount * 0x1000;
+        usize heaplength = pageCount * PAGE_SIZE;
 
         heapStart = heapAddress;
         heapEnd = (void*)((usize)heapStart + heaplength);
@@ -169,11 +169,11 @@ void ExpandHeap(usize length) {
 		info->KernelHeapPageList->PageCount += pageCount;
 
 		for (usize i = initialPageCount; i < info->KernelHeapPageList->PageCount; i++) {
-			void *physical = PMM::RequestPage();
+			uptr physical = (uptr)PMM::RequestPage();
 			info->KernelHeapPageList->Pages[i].IsCOW = false;
 			info->KernelHeapPageList->Pages[i].Data.PhysicalAddress = (uptr)physical;
-			VMM::MapMemory(info->KernelVirtualSpace, physical, heapEnd, VMM::VMM_PRESENT | VMM::VMM_READWRITE | VMM::VMM_GLOBAL | VMM::VMM_NOEXECUTE);
-			heapEnd = (void*)((usize)heapEnd + 0x1000);
+			VMM::MapPage(info->KernelVirtualSpace, physical, (uptr)heapEnd, VMM_FLAGS_KERNEL_DATA); 
+			heapEnd = (void*)((uptr)heapEnd + 0x1000);
 		}
 
 	} else {

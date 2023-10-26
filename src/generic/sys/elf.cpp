@@ -14,12 +14,12 @@
 
 usize LoadELFCoreModule(u8 *data, usize size);
 
-VMM::PageList *LoadProgramHeaders(u8 *data, usize size, Elf64_Ehdr *elfHeader, VMM::VirtualSpace *space);
+VMM::PageList *LoadProgramHeaders(u8 *data, usize size, Elf64_Ehdr *elfHeader, uptr space);
 /*void LinkSymbols(u8 *data, usize size, Elf64_Ehdr *elfHeader);*/
-usize LoadProcess(Elf64_Ehdr *elfHeader, VMM::VirtualSpace *space, VMM::PageList *elfPages);
+usize LoadProcess(Elf64_Ehdr *elfHeader, uptr space, VMM::PageList *elfPages);
 
 u64 LoadELF(u8 *data, usize size) {
-	VMM::VirtualSpace *space = VMM::NewVirtualSpace();
+	uptr space = VMM::NewVirtualSpace();
 	
 	Elf64_Ehdr *elfHeader = (Elf64_Ehdr*)data;
 	
@@ -30,7 +30,7 @@ u64 LoadELF(u8 *data, usize size) {
 	return pid;
 }
 
-VMM::PageList *LoadProgramHeaders(u8 *data, usize size, Elf64_Ehdr *elfHeader, VMM::VirtualSpace *space) {
+VMM::PageList *LoadProgramHeaders(u8 *data, usize size, Elf64_Ehdr *elfHeader, uptr space) {
 	KInfo *info = GetInfo();
 	(void)size;
 
@@ -41,7 +41,7 @@ VMM::PageList *LoadProgramHeaders(u8 *data, usize size, Elf64_Ehdr *elfHeader, V
 	usize progSize = 0;
 
 	Elf64_Phdr *programHeader;
-	void *lastPhysicalPage = NULL;
+	uptr lastPhysicalPage = 0;
 
 	usize pageCount = 0;
 
@@ -88,8 +88,8 @@ VMM::PageList *LoadProgramHeaders(u8 *data, usize size, Elf64_Ehdr *elfHeader, V
 
 					if(pageSelector >= pageCount) OOPS("pageSelector is higher than pageCount");
 
-					lastPhysicalPage = PMM::RequestPage();
-					uptr higher = (uptr)lastPhysicalPage + info->HigherHalfMapping;
+					lastPhysicalPage = (uptr)PMM::RequestPage();
+					uptr higher = lastPhysicalPage + info->HigherHalfMapping;
 					Memset((void*)higher, 0, PAGE_SIZE);
 
 					elfPages->Pages[pageSelector].IsCOW = true;
@@ -99,7 +99,7 @@ VMM::PageList *LoadProgramHeaders(u8 *data, usize size, Elf64_Ehdr *elfHeader, V
 					elfPages->Pages[pageSelector].Data.COW->VirtualReferences = 1;
 					elfPages->Pages[pageSelector].Data.COW->VirtualAddresses[0] = (addr - addr % PAGE_SIZE);
 
-					VMM::MapMemory(space, lastPhysicalPage, (void*)(addr - addr % PAGE_SIZE), VMM::VMM_PRESENT | VMM::VMM_USER);
+					VMM::MapPage(space, lastPhysicalPage, addr - addr % PAGE_SIZE, VMM_FLAGS_USER_CODE);
 
 					if(fileRemaining > 0) {
 						Memcpy((void*)(higher + addr % PAGE_SIZE),
@@ -171,7 +171,7 @@ VMM::PageList *LoadProgramHeaders(u8 *data, usize size, Elf64_Ehdr *elfHeader, V
 	}
 }*/
 
-usize LoadProcess(Elf64_Ehdr *elfHeader, VMM::VirtualSpace *space, VMM::PageList *elfPages) {
+usize LoadProcess(Elf64_Ehdr *elfHeader, uptr space, VMM::PageList *elfPages) {
 	KInfo *info = GetInfo();
 	
 	PROC::UserProcess *proc = (PROC::UserProcess*)PROC::CreateProcess((PROC::ProcessBase*)info->KernelProcess, PROC::ExecutableUnitType::PT_USER, space, elfPages, 0, 0);

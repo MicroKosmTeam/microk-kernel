@@ -73,7 +73,7 @@ static usize RequestTID(ProcessBase *parent) {
 	return parent->Threads.ThreadIDBase++;
 }
 
-ProcessBase *CreateProcess(ProcessBase *parent, ExecutableUnitType type, VMM::VirtualSpace *virtualMemorySpace, VMM::PageList *pageList, u8 priority, u16 flags) {
+ProcessBase *CreateProcess(ProcessBase *parent, ExecutableUnitType type, uptr virtualMemorySpace, VMM::PageList *pageList, u8 priority, u16 flags) {
 	KInfo *info = GetInfo();
 	ProcessBase *process = (ProcessBase*)CreateExecutableUnitHeader(parent, type, false, priority, flags);
 	if(process == NULL) return NULL;
@@ -95,13 +95,7 @@ ProcessBase *CreateProcess(ProcessBase *parent, ExecutableUnitType type, VMM::Vi
 			Memset(tcb, 0, PAGE_SIZE);
 
 			userProcess->HighestFree -= PAGE_SIZE;
-			VMM::MapMemory(userProcess->VirtualMemorySpace,
-				       (void*)userProcess->UserTaskBlock,
-				       (void*)userProcess->HighestFree,
-				       VMM::VirtualMemoryFlags::VMM_PRESENT |
-				       VMM::VirtualMemoryFlags::VMM_READWRITE |
-				       VMM::VirtualMemoryFlags::VMM_USER |
-				       VMM::VirtualMemoryFlags::VMM_NOEXECUTE);
+			VMM::MapPage(userProcess->VirtualMemorySpace, (uptr)userProcess->UserTaskBlock, userProcess->HighestFree, VMM_FLAGS_USER_DATA);
 
 			PopulateUserTCB(tcb, userProcess);
 			}
@@ -167,15 +161,12 @@ ThreadBase *CreateThread(ProcessBase *parent, uptr entrypoint, usize stackSize, 
 			KernelProcess *kernelParent = (KernelProcess*)parent;
 			
 			usize highestFree = kernelParent->HighestFree;
-			VMM::VirtualSpace *space = kernelParent->VirtualMemorySpace;
+			uptr space = kernelParent->VirtualMemorySpace;
 
 			for (uptr i = highestFree - stackSize; i < highestFree; i+= PAGE_SIZE) {
-				void *physical = PMM::RequestPage();
-				VMM::MapMemory(space, physical, (void*)i,
-					       VMM::VirtualMemoryFlags::VMM_PRESENT |
-					       VMM::VirtualMemoryFlags::VMM_READWRITE |
-					       VMM::VirtualMemoryFlags::VMM_NOEXECUTE);
-				Memset((void*)((uptr)physical + info->HigherHalfMapping), 0, PAGE_SIZE);
+				uptr physical = (uptr)PMM::RequestPage();
+				VMM::MapPage(space, physical, i, VMM_FLAGS_KERNEL_DATA);
+				Memset((void*)(physical + info->HigherHalfMapping), 0, PAGE_SIZE);
 			}
 
 			kernelThread->KernelStack = highestFree;
@@ -194,16 +185,12 @@ ThreadBase *CreateThread(ProcessBase *parent, uptr entrypoint, usize stackSize, 
 			UserProcess *userParent = (UserProcess*)parent;
 
 			usize highestFree = userParent->HighestFree;
-			VMM::VirtualSpace *space = userParent->VirtualMemorySpace;
+			uptr space = userParent->VirtualMemorySpace;
 
 			for (uptr i = highestFree - stackSize; i < highestFree; i+= PAGE_SIZE) {
-				void *physical = PMM::RequestPage();
-				VMM::MapMemory(space, physical, (void*)i,
-					       VMM::VirtualMemoryFlags::VMM_PRESENT |
-					       VMM::VirtualMemoryFlags::VMM_READWRITE |
-					       VMM::VirtualMemoryFlags::VMM_USER |
-					       VMM::VirtualMemoryFlags::VMM_NOEXECUTE);
-				Memset((void*)((uptr)physical + info->HigherHalfMapping), 0, PAGE_SIZE);
+				uptr physical = (uptr)PMM::RequestPage();
+				VMM::MapPage(space, physical, i, VMM_FLAGS_USER_DATA);
+				Memset((void*)(physical + info->HigherHalfMapping), 0, PAGE_SIZE);
 			}
 
 			userThread->Context->IretRIP = entrypoint;
@@ -220,12 +207,9 @@ ThreadBase *CreateThread(ProcessBase *parent, uptr entrypoint, usize stackSize, 
 
 			const usize kernelStackSize = 64 * 1024;
 			for (uptr i = highestFree - kernelStackSize; i < highestFree; i+= PAGE_SIZE) {
-				void *physical = PMM::RequestPage();
-				VMM::MapMemory(space, physical, (void*)i,
-					       VMM::VirtualMemoryFlags::VMM_PRESENT |
-					       VMM::VirtualMemoryFlags::VMM_READWRITE |
-					       VMM::VirtualMemoryFlags::VMM_NOEXECUTE);
-				Memset((void*)((uptr)physical + info->HigherHalfMapping), 0, PAGE_SIZE);
+				uptr physical = (uptr)PMM::RequestPage();
+				VMM::MapPage(space, physical, i, VMM_FLAGS_KERNEL_DATA);
+				Memset((void*)(physical + info->HigherHalfMapping), 0, PAGE_SIZE);
 			}
 
 			userThread->KernelStack = highestFree;
@@ -301,12 +285,7 @@ void PopulateUserTCB(UserTCB *tcb, UserProcess *userProcess) {
 	TableListElement *systemTableList = (TableListElement*)((uptr)tcb + tcb->SystemTableListOffset);
 
 	userProcess->HighestFree -= PAGE_SIZE;
-	VMM::MapMemory(userProcess->VirtualMemorySpace,
-			(void*)info->KernelBaseSystemTable,
-			(void*)userProcess->HighestFree,
-			VMM::VirtualMemoryFlags::VMM_PRESENT |
-			VMM::VirtualMemoryFlags::VMM_USER |
-			VMM::VirtualMemoryFlags::VMM_NOEXECUTE);
+	VMM::MapPage(userProcess->VirtualMemorySpace, info->KernelBaseSystemTable, userProcess->HighestFree, VMM_FLAGS_USER_RODATA);
 
 	/* Kernel Base System Table */
 	systemTableList[0].Signature[0] = 'K';
@@ -323,12 +302,7 @@ void PopulateUserTCB(UserTCB *tcb, UserProcess *userProcess) {
 	systemTableList[1].TablePointer = 0;
 
 	userProcess->HighestFree -= PAGE_SIZE;
-	VMM::MapMemory(userProcess->VirtualMemorySpace,
-			(void*)info->BootFileSystemTable,
-			(void*)userProcess->HighestFree,
-			VMM::VirtualMemoryFlags::VMM_PRESENT |
-			VMM::VirtualMemoryFlags::VMM_USER |
-			VMM::VirtualMemoryFlags::VMM_NOEXECUTE);
+	VMM::MapPage(userProcess->VirtualMemorySpace, info->BootFileSystemTable, userProcess->HighestFree, VMM_FLAGS_USER_RODATA);
 
 	/* Boot Files System Table */
 	systemTableList[2].Signature[0] = 'B';

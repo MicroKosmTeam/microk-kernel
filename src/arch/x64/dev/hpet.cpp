@@ -10,7 +10,7 @@
 int CalibrateTSCWithHPET(uptr hpetAddress, u64 *tscTicksPerSecond) {
 	KInfo *info = GetInfo();
 
-	VMM::MapMemory(info->KernelVirtualSpace, (void*)hpetAddress, (void*)(hpetAddress + info->HigherHalfMapping));
+	VMM::MapPage(info->KernelVirtualSpace, hpetAddress, hpetAddress + info->HigherHalfMapping, VMM_FLAGS_KERNEL_DEVICE);
 	hpetAddress += info->HigherHalfMapping;
 
 	// Typecast the HPET address to access the registers

@@ -1,15 +1,17 @@
 #include <arch/x64/mm/vmm.hpp>
+#include <init/kinfo.hpp>
+#include <mm/pmm.hpp>
+
+#include <sys/printk.hpp>
 
 namespace x86_64 {
-
-__attribute__((always_inline))
 uptr AllocatePage() {
-	uptr address = PMM::RequestPage();
-	Memset(VMM::PhysicalToVirtual(address), 0 , PAGE_SIZE);
+	uptr address = (uptr)PMM::RequestPage();
+	Memset((void*)VMM::PhysicalToVirtual(address), 0 , PAGE_SIZE);
 	return address;
 }
 
-__attribute__((always_inline))
+
 uptr NewVirtualSpace() {
 	/* We create a new empty page directory */
 	uptr table = AllocatePage();
@@ -18,19 +20,20 @@ uptr NewVirtualSpace() {
 	return table;
 }
 
-__attribute__((always_inline))
+
 void LoadVirtualSpace(uptr topLevel) {
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "!! Loading 0x%x -> 0x%x\r\n", topLevel, VMM::VirtualToPhysical(topLevel));
 	/* This loads the page directory into memory */
-	asm volatile ("mov %0, %%cr3" : : "r" (VMM::VirtualToPhysical(topLevel)) : "memory");
+	asm volatile ("mov %0, %%cr3\t\nmov $0xDEAD, %%rax\t\nb: jmp b" : : "r" (VMM::VirtualToPhysical(topLevel)) : "memory");
 }
 
-void MapPage(uptr rootPageTable, uptr virt, uptr phys, usize flags) {
+void MapPage(uptr rootPageTable, uptr phys, uptr virt, usize flags) {
 	/* how many page tables to traverse before we get to the PML1 */
 	const bool use5LevelPaging = false;
 	int levels = use5LevelPaging ? 4 : 3;
 
 	/* points to the PML5e or PML4e that manages 'virt' */
-	volatile u64 *table = rootPageTable + ((virt >> (12 + 9 * levels)) & 0x1ff);
+	volatile u64 *table = (volatile u64*)(rootPageTable + ((virt >> (12 + 9 * levels)) & 0x1ff));
 
 	/*
 	 * In a loop, reduce the scope of 'table' by traversing downward and
@@ -49,7 +52,7 @@ void MapPage(uptr rootPageTable, uptr virt, uptr phys, usize flags) {
 		}
 
 		--levels;
-		table = (volatile u64*) PhysicalToVirtual(value) + ((virt >> (12 + 9 * levels)) & 0x1ff);
+		table = (volatile u64*)(VMM::PhysicalToVirtual(value) + ((virt >> (12 + 9 * levels)) & 0x1ff));
 	}
 
 	/* 'table' now points to the PTE we're interested in modifying */
@@ -62,7 +65,7 @@ uptr FindMappedPage(uptr rootPageTable, uptr virt) {
 	int levels = use5LevelPaging ? 4 : 3;
 
 	/* points to the PML5e or PML4e that manages 'virt' */
-	volatile u64 *table = rootPageTable + ((virt >> (12 + 9 * levels)) & 0x1ff);
+	volatile u64 *table = (volatile u64*)(rootPageTable + ((virt >> (12 + 9 * levels)) & 0x1ff));
 
 	/*
 	 * In a loop, reduce the scope of 'table' by traversing downward and
@@ -77,12 +80,10 @@ uptr FindMappedPage(uptr rootPageTable, uptr virt) {
 		} else {
 			/* allocate a new page table */
 			return -1;
-			value = AllocatePage();
-			*table = value | PT_Flag::Present | PT_Flag::ReadWrite | PT_Flag::UserSuper;
 		}
 
 		--levels;
-		table = (volatile u64*) PhysicalToVirtual(value) + ((virt >> (12 + 9 * levels)) & 0x1ff);
+		table = (volatile u64*)(VMM::PhysicalToVirtual(value) + ((virt >> (12 + 9 * levels)) & 0x1ff));
 	}
 
 	/* 'table' now points to the PTE we're interested in modifying */
@@ -102,7 +103,7 @@ void UnmapPage(uptr rootPageTable, uptr virt) {
 	int levels = use5LevelPaging ? 4 : 3;
 
 	/* points to the PML5e or PML4e that manages 'virt' */
-	volatile u64 *table = rootPageTable + ((virt >> (12 + 9 * levels)) & 0x1ff);
+	volatile u64 *table = (volatile u64*)(rootPageTable + ((virt >> (12 + 9 * levels)) & 0x1ff));
 
 	/*
 	 * In a loop, reduce the scope of 'table' by traversing downward and
@@ -119,7 +120,7 @@ void UnmapPage(uptr rootPageTable, uptr virt) {
 		}
 
 		--levels;
-		table = (volatile u64*) PhysicalToVirtual(value) + ((virt >> (12 + 9 * levels)) & 0x1ff);
+		table = (volatile u64*)(VMM::PhysicalToVirtual(value) + ((virt >> (12 + 9 * levels)) & 0x1ff));
 	}
 
 	/* 'table' now points to the PTE we're interested in modifying */

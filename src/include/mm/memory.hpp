@@ -32,6 +32,21 @@ namespace MEM {
 		u8 Type;
 	};
 
+	inline const char *MemoryTypeToString(u8 type) {
+		const char *memTypeStrings[] = {
+			"Usable",
+			"Reserved",
+			"ACPI Reclaimable",
+			"ACPI NVS",
+			"Bad",
+			"Bootloader reclaimable",
+			"Kernel and modules",
+			"Framebuffer"
+		};
+
+		return memTypeStrings[type];
+	}
+
 	void Init();
 	void InvokeOOM();
 }

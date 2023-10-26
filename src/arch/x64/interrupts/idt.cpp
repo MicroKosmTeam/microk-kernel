@@ -10,6 +10,7 @@
 #include <sys/user.hpp>
 #include <sys/syscall.hpp>
 #include <sys/locks.hpp>
+#include <proc/helpers.hpp>
 #include <arch/x64/interrupts/idt.hpp>
 #include <arch/x64/cpu/cpu.hpp>
 
@@ -110,28 +111,6 @@ static inline void PrintRegs(CPUStatus *context) {
 			context->IretSS);
 }
 
-static inline PROC::ProcessBase *GetProcess() {
-	KInfo *info = GetInfo();
-
-	SpinlockLock(&info->KernelScheduler->SchedulerLock);
-	if(info->KernelScheduler == NULL) return NULL;
-	if(info->KernelScheduler->CurrentThread == NULL) return NULL;
-	PROC::UserProcess *proc = (PROC::UserProcess*)info->KernelScheduler->CurrentThread->Thread->Parent;
-	SpinlockUnlock(&info->KernelScheduler->SchedulerLock);
-
-	return proc;
-}
-
-static inline VMM::VirtualSpace *GetVirtualSpace(PROC::ProcessBase *proc) {
-	KInfo *info = GetInfo();
-
-	SpinlockLock(&info->KernelScheduler->SchedulerLock);
-	VMM::VirtualSpace *procSpace = proc->VirtualMemorySpace;
-	SpinlockUnlock(&info->KernelScheduler->SchedulerLock);
-
-	return procSpace;
-}
-
 #include <arch/x64/dev/apic.hpp>
 extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 	KInfo *info = GetInfo();
@@ -140,9 +119,9 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 	bool switchAddressSpace = (cr3 != kcr3) ? true : false;
 
 	PROC::ProcessBase *proc = NULL;
-	VMM::VirtualSpace *procSpace = NULL;
+	uptr procSpace = NULL;
 
-	proc = GetProcess();
+	proc = PROC::GetProcess();
 	procSpace = GetVirtualSpace(proc);
 */
 	switch(context->VectorNumber) {
@@ -163,8 +142,8 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 			break;
 			}
 		case 14: {
-			PROC::ProcessBase *proc = GetProcess();
-			VMM::VirtualSpace *procSpace = GetVirtualSpace(proc);
+			PROC::ProcessBase *proc = PROC::GetProcess();
+			uptr procSpace = GetVirtualSpace(proc);
 
 			uptr page;
 			bool protectionViolation = context->ErrorCode & 0b1;
@@ -232,7 +211,7 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 */
 
 				pages->Pages[pageSelector].Data.COW->PhysicalAddressOfCopy = copy;
-				VMM::MapMemory(procSpace, (void*)copy, (void*)roundedPage, VMM::VMM_PRESENT | VMM::VMM_USER | VMM::VMM_READWRITE);
+				VMM::MapPage(procSpace, copy, roundedPage, VMM_FLAGS_USER_GENERIC);
 /*				PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Cow, out.\r\n");*/
 			}
 
@@ -254,13 +233,13 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 				
 				if(info->KernelScheduler->CurrentThread == NULL) break;
 				
-				PROC::ProcessBase *proc = GetProcess();
+				PROC::ProcessBase *proc = PROC::GetProcess();
 
 				Memcpy(context, info->KernelScheduler->CurrentThread->Thread->Context, sizeof(CPUStatus));
 
 				x86_64::UpdateLocalCPUStruct(info->KernelScheduler->CurrentThread->Thread->KernelStack,
-						             (uptr)proc->VirtualMemorySpace->GetTopAddress() - info->HigherHalfMapping,
-							     (uptr)proc->VirtualMemorySpace->GetTopAddress() - info->HigherHalfMapping);
+						             VMM::VirtualToPhysical(proc->VirtualMemorySpace),
+							     VMM::VirtualToPhysical(proc->VirtualMemorySpace));
 
 				VMM::LoadVirtualSpace(proc->VirtualMemorySpace);
 				

@@ -162,8 +162,7 @@ void LimineEntry() {
 		#endif
 	}
 	
-	/* Startup basic kernel runtime services */
-	EarlyKernelInit();
+	InitInfo();
 	
 	KInfo *info = GetInfo();
 
@@ -189,9 +188,9 @@ void LimineEntry() {
 
 	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Allocating for %d memory map entries.\r\n", MemoryMapEntryCount);
 	for (int i = 0; i < MemoryMapEntryCount; i++) {
-		info->MemoryMap[i].base = MemoryMapRequest.response->entries[i]->base;
-		info->MemoryMap[i].length = MemoryMapRequest.response->entries[i]->length;
-		info->MemoryMap[i].type = MemoryMapRequest.response->entries[i]->type;
+		info->MemoryMap[i].AddressBase = MemoryMapRequest.response->entries[i]->base;
+		info->MemoryMap[i].Length = MemoryMapRequest.response->entries[i]->length;
+		info->MemoryMap[i].Type = MemoryMapRequest.response->entries[i]->type;
 	}
 
 	info->HigherHalfMapping = HHDMRequest.response->offset;

@@ -1,9 +1,6 @@
 #pragma once
 #include <cstdint.hpp>
-
-/* Setting the Kernel offset in the GDT (5th entry) */
-#define GDT_OFFSET_KERNEL_CODE (0x08 * 5)
-#define GDT_OFFSET_USER_CODE (0x08 * 7)
+#include <arch/x64/cpu/gdt.hpp>
 
 struct IDTEntry {
 	u16    ISRLow;      // The lower 16 bits of the ISR's address

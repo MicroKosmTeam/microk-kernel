@@ -2,6 +2,11 @@
 
 #include <cstdint.hpp>
 
+/* Setting the Kernel offset in the GDT (5th entry) */
+#define GDT_OFFSET_KERNEL_CODE (0x08 * 5)
+#define GDT_OFFSET_USER_CODE (0x08 * 7)
+
+
 struct GDTPointer{
     u16 size;
     u64 offset;

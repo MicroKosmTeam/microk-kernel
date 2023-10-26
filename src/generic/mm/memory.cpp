@@ -9,39 +9,38 @@
 
 void *Malloc(usize size) {
 	if(HEAP::IsHeapActive()) return HEAP::Malloc(size);
+	if(BOOTMEM::BootmemIsActive()) return BOOTMEM::Malloc(size);
 	else return NULL;
 }
 
 void Free(void *p) {
-	HEAP::Free(p);
+	if(HEAP::IsHeapActive()) return HEAP::Free(p);
 }
 
 void *operator new(usize size) {
-	if(HEAP::IsHeapActive()) return HEAP::Malloc(size);
-	else return NULL;
+	return Malloc(size);
 }
 
 void *operator new[](usize size) {
-	if(HEAP::IsHeapActive()) return HEAP::Malloc(size);
-	else return NULL;
+	return Malloc(size);
 }
 
 void operator delete(void* p) {
-	if(HEAP::IsHeapActive()) HEAP::Free(p);
+	Free(p);
 }
 
 void operator delete(void* p, usize size) {
 	(void)size;
-	if(HEAP::IsHeapActive()) HEAP::Free(p);
+	Free(p);
 }
 
 void operator delete[](void* p) {
-	if(HEAP::IsHeapActive()) HEAP::Free(p);
+	Free(p);
 }
 
 void operator delete[](void* p, usize size) {
 	(void)size;
-	if(HEAP::IsHeapActive()) HEAP::Free(p);
+	Free(p);
 }
 
 namespace MEM {
@@ -52,18 +51,6 @@ void InvokeOOM() {
 }
 
 void Init() {
-	char *memTypeStrings[] = {
-		"Usable",
-		"Reserved",
-		"ACPI Reclaimable",
-		"ACPI NVS",
-		"Bad",
-		"Bootloader reclaimable",
-		"Kernel and modules",
-		"Framebuffer"
-	};
-
-
 	KInfo *info = GetInfo();
 
 	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Provided physical RAM map:\r\n");
@@ -72,7 +59,7 @@ void Init() {
 		PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, " [0x%x - 0x%x] -> %s\r\n",
 				info->MemoryMap[i].AddressBase,
 				info->MemoryMap[i].AddressBase + info->MemoryMap[i].Length,
-				memTypeStrings[info->MemoryMap[i].Type]);
+				MemoryTypeToString(info->MemoryMap[i].Type));
 	}
 
 	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Contiguous regions:\r\n");
@@ -104,6 +91,7 @@ void Init() {
 	/* Enabling the page frame allocator */
 	PMM::InitPageFrameAllocator();
 
+	/* Initializing virtual memory */
 	VMM::InitVMM();
 
 	/* Initializing the heap */

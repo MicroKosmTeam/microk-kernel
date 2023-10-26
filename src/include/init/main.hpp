@@ -26,30 +26,6 @@
 #pragma once
 
 /*
- * function: EarlyKernelInit
- * This function is supposed to be called by bootloader interfaces
- * to allocated the KInfo struct, initialize basic architecture-specific,
- * devices such as the serial port used for early printk.
- * 
- * arguments: void 
- * return: int
- * Serves to tell if the initialization was successful. If a the value is
- * non-zero, abort execution.
- */
-int EarlyKernelInit();
-
-/*
- * function: PrintBanner 
- * This function just prints some basic kernel information for
- * debugging purposes. It serves to show the kernel has successfully
- * initialized.
- * 
- * arguments: void 
- * return: void 
- */
-void PrintBanner();
-
-/*
  * function: PrintBanner 
  * This function just prints some basic kernel information for
  * debugging purposes. It serves to show the kernel has successfully
@@ -58,4 +34,5 @@ void PrintBanner();
  * arguments: void 
  * return: never 
  */
-__attribute__((noreturn)) void KernelStart();
+extern "C" __attribute__((noreturn))
+void KernelStart();
