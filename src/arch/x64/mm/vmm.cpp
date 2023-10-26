@@ -24,7 +24,8 @@ uptr NewVirtualSpace() {
 void LoadVirtualSpace(uptr topLevel) {
 	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "!! Loading 0x%x -> 0x%x\r\n", topLevel, VMM::VirtualToPhysical(topLevel));
 	/* This loads the page directory into memory */
-	asm volatile ("mov %0, %%cr3\t\nmov $0xDEAD, %%rax\t\nb: jmp b" : : "r" (VMM::VirtualToPhysical(topLevel)) : "memory");
+	asm volatile ("mov %0, %%cr3" : : "r" (VMM::VirtualToPhysical(topLevel)) : "memory");
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "!! Loaded 0x%x -> 0x%x\r\n", topLevel, VMM::VirtualToPhysical(topLevel));
 }
 
 void MapPage(uptr rootPageTable, uptr phys, uptr virt, usize flags) {

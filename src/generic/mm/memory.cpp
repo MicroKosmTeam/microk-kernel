@@ -7,6 +7,15 @@
 #include <mm/heap.hpp>
 #include <init/kinfo.hpp>
 
+extern const uptr __KernelBinaryEssentialStart;
+extern const uptr __KernelBinaryEssentialEnd;
+extern const uptr __KernelBinaryTextStart;
+extern const uptr __KernelBinaryTextEnd;
+extern const uptr __KernelBinaryRODataStart;
+extern const uptr __KernelBinaryRODataEnd;
+extern const uptr __KernelBinaryDataStart;
+extern const uptr __KernelBinaryDataEnd;
+
 void *Malloc(usize size) {
 	if(HEAP::IsHeapActive()) return HEAP::Malloc(size);
 	if(BOOTMEM::BootmemIsActive()) return BOOTMEM::Malloc(size);
@@ -87,6 +96,20 @@ void Init() {
 				isAllUnusable ? "Unusable" : "Usable",
 				base,
 				base + length);
+
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME,
+			"Total kernel size: [0x%x - 0x%x] -> %d bytes\r\n"
+			"        Essential: [0x%x - 0x%x] -> %d bytes\r\n"
+			"             Text: [0x%x - 0x%x] -> %d bytes\r\n"
+			"           ROData: [0x%x - 0x%x] -> %d bytes\r\n"
+			"             Data: [0x%x - 0x%x] -> %d bytes\r\n",
+			&__KernelBinaryEssentialStart, &__KernelBinaryDataEnd, (&__KernelBinaryDataEnd - &__KernelBinaryEssentialStart),
+			&__KernelBinaryEssentialStart, &__KernelBinaryEssentialEnd, (&__KernelBinaryEssentialEnd - &__KernelBinaryEssentialStart),
+			&__KernelBinaryTextStart, &__KernelBinaryTextEnd, (&__KernelBinaryTextEnd - &__KernelBinaryTextStart),
+			&__KernelBinaryRODataStart, &__KernelBinaryRODataEnd, (&__KernelBinaryRODataEnd - &__KernelBinaryRODataStart),
+			&__KernelBinaryDataStart, &__KernelBinaryDataEnd, (&__KernelBinaryDataEnd - &__KernelBinaryDataStart)
+			);
+
 
 	/* Enabling the page frame allocator */
 	PMM::InitPageFrameAllocator();
