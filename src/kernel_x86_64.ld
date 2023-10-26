@@ -23,31 +23,40 @@ SECTIONS
 
 	. = 0xffffffff80000000;
 
-	essential_start = .;
+	KernelBinaryEssentialStart = .;
 
 	.essentials : {
 		KEEP(*(.interrupt))
 		KEEP(*(.syscall))
 	} :essentials
 
-	essential_end = .;
+	KernelBinaryEssentialEnd = .;
 
 	/* Move to the next memory page for .text */
-	. += 0x1000;
+	. = ALIGN(0x1000);
+
+	KernelBinaryTextStart = .;
 
 	.text : {
 		*(.text .text.*)
 	} :text
 
+	KernelBinaryTextEnd = .;
+
 	/* Move to the next memory page for .rodata */
-	. += 0x1000;
+	. = ALIGN(0x1000);
+
+	KernelBinaryRODataStart = .;
 
 	.rodata : {
 		*(.rodata .rodata.*)
 	} :rodata
+	
+	KernelBinaryRODataEnd = .;
 
-	/* Move to the next memory page for .data */
-	. += 0x1000;
+	. = ALIGN(0x1000);
+
+	KernelBinaryDataStart = .;
 
 	.data : {
 		*(.data .data.*)
@@ -58,6 +67,7 @@ SECTIONS
 		*(.bss .bss.*)
 	} :data
 
+	KernelBinaryDataEnd = .;
 
 	/* Discard .note.* and .eh_frame since they may cause issues on some hosts. */
 	/DISCARD/ : {
