@@ -1,5 +1,4 @@
 #include <mm/vmm.hpp>
-#include <arch/x64/dev/apic.hpp>
 #include <sys/printk.hpp>
 #include <init/kinfo.hpp>
 
@@ -130,7 +129,8 @@ void PrepareVirtualSpace(uptr space) {
 			MapPage(space, addr, addr + info->HigherHalfMapping, VMM_FLAGS_KERNEL_DATA);
 		}
 	}
-	
+
+	/*
 	if(info->KernelHeapPageList != NULL) {
 		uptr heapAddress = CONFIG_HEAP_BASE;
 		for (usize heapPage = 0; heapPage < info->KernelHeapPageList->PageCount; heapPage++) {
@@ -138,13 +138,7 @@ void PrepareVirtualSpace(uptr space) {
 			heapAddress += PAGE_SIZE;
 		}
 	}
-#if defined(ARCH_x64)
-	for (uptr t = PAGE_SIZE; t < info->KernelStack - info->HigherHalfMapping; t+=PAGE_SIZE) {
-		MapPage(space, t - info->HigherHalfMapping, t, VMM_FLAGS_KERNEL_DATA);
-	}
-	
-	MapPage(space, x86_64::GetAPICBase(), x86_64::GetAPICBase() + info->HigherHalfMapping, VMM_FLAGS_KERNEL_DEVICE);
-#endif
+	*/
 	
 }
 }

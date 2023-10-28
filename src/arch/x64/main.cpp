@@ -16,29 +16,35 @@ void EarlyInit() {
 	KInfo *info = GetInfo();
 
 	/* We first of all get the position of the kernel interrupt stack and save it
-	 * as we will use it to initialize the TSS.
+	 * as we will use it to initialize the TSS. We start from 640K in x86_64 until
+	 * we allocate a proper location, as we know it will always be free for use.
 	 */
-	//info->KernelStack = (uptr)PMM::RequestPages(KERNEL_STACK_SIZE / PAGE_SIZE) + info->HigherHalfMapping;
-	info->KernelStack =  0x80000 + info->HigherHalfMapping;
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Kernel stack: 0x%x\r\n", info->KernelStack);
+	info->KernelStack = VMM::PhysicalToVirtual(640 * 1024); 
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Temporary kernel stack: 0x%x\r\n", info->KernelStack);
 
 	/* Initialize the GDT */
 	LoadGDT();
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "GDT Loaded.\r\n");
 
 	/* Initialization of the TSS */
 	TSSInit(info->KernelStack);
 	FlushTSS();
 
 	/* Jumpstart interrupts */
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Loading x86_64 IDT\r\n");
 	IDTInit();
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "IDT Loaded.\r\n");
+	
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Basic CPU structures initialized\r\n");
 }
 
 void Init() {
+	KInfo *info = GetInfo();
+
+	info->KernelStack = VMM::PhysicalToVirtual((uptr)PMM::RequestPages(KERNEL_STACK_SIZE / PAGE_SIZE) + KERNEL_STACK_SIZE);
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "CPU interrupt stack: 0x%x\r\n", info->KernelStack);
+
+	/* Initialization of the TSS */
+	TSSInit(info->KernelStack);
+
 	/* x86 CPU initialization */
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Setting up CPU features\r\n");
 	CPUInit();
 
 	/* We get the CPU vendor */
