@@ -31,7 +31,7 @@ namespace x86_64 {
 #define VMM_FLAGS_KERNEL_DEVICE (1 << x86_64::PT_Flag::Present | \
 			         1 << x86_64::PT_Flag::NX | \
 			         1 << x86_64::PT_Flag::ReadWrite | \
-				 1 << x86_64::PT_Flag::CacheDisabled)
+				 1 << x86_64::PT_Flag::WriteThrough)
 
 
 #define VMM_FLAGS_KERNEL_GENERIC (1 << x86_64::PT_Flag::Present | \
@@ -61,7 +61,10 @@ namespace x86_64 {
 	uptr NewVirtualSpace();
 	void LoadVirtualSpace(uptr topLevel);
 
-	bool MapPage(uptr rootPageTable, uptr phys, uptr virt, usize flags);
+	int MapPage(uptr rootPageTable, uptr phys, uptr virt, usize flags);
+	int FlagPage(uptr rootPageTable, uptr virt, usize flags);
+	int UnmapPage(uptr rootPageTable, uptr virt);
+
+	volatile u64 *FindMappedPTE(uptr rootPageTable, uptr virt, bool allocate);
 	uptr FindMappedPage(uptr rootPageTable, uptr virt);
-	void UnmapPage(uptr rootPageTable, uptr virt);
 }
