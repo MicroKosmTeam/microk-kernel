@@ -43,9 +43,9 @@ void InitSyscalls() {
 	Memset(SyscallVector, 0, SYSCALL_VECTOR_END * sizeof(SyscallFunctionCallback));
 
 	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Initializing system call API.\r\n");
-/*
 	SyscallVector[SYSCALL_DEBUG_PRINTK] = (SyscallFunctionCallback)(void*)HandleSyscallDebugPrintK;
 
+/*
 	SyscallVector[SYSCALL_MEMORY_VMALLOC] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryVMAlloc;
 	SyscallVector[SYSCALL_MEMORY_PMALLOC] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryPMAlloc;
 	SyscallVector[SYSCALL_MEMORY_VMFREE] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryVMFree;
@@ -66,7 +66,6 @@ extern "C" usize HandleSyscall(usize syscallNumber, usize arg1, usize arg2, usiz
 	return SyscallVector[syscallNumber](arg1, arg2, arg3, arg4, arg5, arg6);
 }
 
-#ifdef UNDEF
 
 usize HandleSyscallDebugPrintK(const_userptr_t userString) {
 	char string[MAX_PRINTK_SYSCALL_MESSAGE_LENGTH + 1] = { '\0' };
@@ -76,6 +75,7 @@ usize HandleSyscallDebugPrintK(const_userptr_t userString) {
 
 	return 0;
 }
+#ifdef UNDEF
 
 usize HandleSyscallMemoryVMAlloc(const_userptr_t userBase, usize length, usize flags) {
 	KInfo *info = GetInfo();

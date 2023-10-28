@@ -19,47 +19,49 @@ namespace x86_64 {
 
 #define PAGE_SIZE 0x1000
 
-#define VMM_FLAGS_KERNEL_CODE (x86_64::PT_Flag::Present)
+#define VMM_FLAGS_KERNEL_CODE (1 << x86_64::PT_Flag::Present | 0)
 
-#define VMM_FLAGS_KERNEL_RODATA (x86_64::PT_Flag::Present | \
-				 x86_64::PT_Flag::NX)
+#define VMM_FLAGS_KERNEL_RODATA (1 << x86_64::PT_Flag::Present | \
+				 1 << x86_64::PT_Flag::NX)
 
-#define VMM_FLAGS_KERNEL_DATA (x86_64::PT_Flag::Present | \
-			       x86_64::PT_Flag::NX | \
-			       x86_64::PT_Flag::ReadWrite)
+#define VMM_FLAGS_KERNEL_DATA (1 << x86_64::PT_Flag::Present | \
+			       1 << x86_64::PT_Flag::NX | \
+			       1 << x86_64::PT_Flag::ReadWrite)
 
-#define VMM_FLAGS_KERNEL_DEVICE (x86_64::PT_Flag::Present | \
-			         x86_64::PT_Flag::NX | \
-			         x86_64::PT_Flag::ReadWrite | \
-				 x86_64::PT_Flag::CacheDisabled)
-
-
-#define VMM_FLAGS_KERNEL_GENERIC (x86_64::PT_Flag::Present | \
-			          x86_64::PT_Flag::ReadWrite)
+#define VMM_FLAGS_KERNEL_DEVICE (1 << x86_64::PT_Flag::Present | \
+			         1 << x86_64::PT_Flag::NX | \
+			         1 << x86_64::PT_Flag::ReadWrite | \
+				 1 << x86_64::PT_Flag::CacheDisabled)
 
 
-#define VMM_FLAGS_USER_CODE (x86_64::PT_Flag::Present | \
-			     x86_64::PT_Flag::UserSuper)
-
-#define VMM_FLAGS_USER_RODATA (x86_64::PT_Flag::Present | \
-				 x86_64::PT_Flag::NX | \
-			         x86_64::PT_Flag::UserSuper)
-
-#define VMM_FLAGS_USER_DATA (x86_64::PT_Flag::Present | \
-			       x86_64::PT_Flag::NX | \
-			       x86_64::PT_Flag::ReadWrite | \
-			       x86_64::PT_Flag::UserSuper)
-
-#define VMM_FLAGS_USER_GENERIC (x86_64::PT_Flag::Present | \
-		                x86_64::PT_Flag::ReadWrite | \
-				x86_64::PT_Flag::UserSuper)
+#define VMM_FLAGS_KERNEL_GENERIC (1 << x86_64::PT_Flag::Present | \
+			          1 << x86_64::PT_Flag::ReadWrite)
 
 
+#define VMM_FLAGS_USER_CODE (1 << x86_64::PT_Flag::Present | \
+			     1 << x86_64::PT_Flag::UserSuper)
+
+#define VMM_FLAGS_USER_RODATA (1 << x86_64::PT_Flag::Present | \
+			       1 << x86_64::PT_Flag::NX | \
+			       1 <<x86_64::PT_Flag::UserSuper)
+
+#define VMM_FLAGS_USER_DATA (1 << x86_64::PT_Flag::Present | \
+			     1 << x86_64::PT_Flag::NX | \
+			       1 << x86_64::PT_Flag::ReadWrite | \
+			       1 << x86_64::PT_Flag::UserSuper)
+
+#define VMM_FLAGS_USER_GENERIC (1 << x86_64::PT_Flag::Present | \
+		                1 << x86_64::PT_Flag::ReadWrite | \
+				1 << x86_64::PT_Flag::UserSuper)
+
+#define PTE_ADDR_MASK 0x000ffffffffff000
+#define PTE_GET_ADDR(VALUE) ((VALUE) & PTE_ADDR_MASK)
+#define PTE_GET_FLAGS(VALUE) ((VALUE) & ~PTE_ADDR_MASK)
 	
 	uptr NewVirtualSpace();
 	void LoadVirtualSpace(uptr topLevel);
 
-	void MapPage(uptr rootPageTable, uptr phys, uptr virt, usize flags);
+	bool MapPage(uptr rootPageTable, uptr phys, uptr virt, usize flags);
 	uptr FindMappedPage(uptr rootPageTable, uptr virt);
 	void UnmapPage(uptr rootPageTable, uptr virt);
 }

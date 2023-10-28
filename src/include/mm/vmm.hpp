@@ -7,6 +7,11 @@
 #include <arch/x64/mm/vmm.hpp>
 #endif
 
+#define ROUND_DOWN_TO_PAGE(x) \
+	x -= x % PAGE_SIZE
+
+#define ROUND_UP_TO_PAGE(x) \
+	x += PAGE_SIZE - x % PAGE_SIZE
 
 namespace VMM {
 	struct COWMetadata {

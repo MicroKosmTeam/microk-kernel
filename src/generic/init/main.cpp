@@ -27,12 +27,16 @@
 #include <cstdint.hpp>
 
 #include <mm/memory.hpp>
+#include <sys/panic.hpp>
 #include <sys/printk.hpp>
 #include <init/kinfo.hpp>
 #include <init/kargs.hpp>
+#include <sys/loader.hpp>
+#include <sys/syscall.hpp>
 
 #if defined(ARCH_x64)
 #include <arch/x64/main.hpp>
+#include <arch/x64/dev/apic.hpp>
 #elif defined(ARCH_aarch64)
 #include <arch/aarch64/main.hpp>
 #endif
@@ -67,22 +71,18 @@ void KernelStart() {
 #elif defined(ARCH_aarch64)
 	AArch64::Init();
 #endif
-
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Kernel startup complete.\r\n");
-
-	/* We are done */
+	
 	while (true) CPUPause();
-}
 
-
-/*
 #ifdef CONFIG_KERNEL_MODULES
 	info->KernelScheduler = PROC::InitializeScheduler(SCHEDULER_DEFAULT_QUEUES);
 	InitSyscalls();
 	InitializeKernelTables();
+	/*
 	info->KernelProcess = (PROC::KernelProcess*)PROC::CreateProcess((PROC::ProcessBase*)info->KernelProcess, PROC::ExecutableUnitType::PT_KERNEL, info->KernelVirtualSpace, 0, 0);
 	PROC::KernelThread *kernelThread = (PROC::KernelThread*)PROC::CreateThread((PROC::ProcessBase*)info->KernelProcess, (uptr)&RestInit, 64 * 1024, 0, 0);
 	PROC::AddThreadToQueue(info->KernelScheduler, SCHEDULER_RUNNING_QUEUE, kernelThread);
+	*/
 	usize moduleSize;
 	u8 *addr;
 
@@ -100,5 +100,9 @@ void KernelStart() {
 #endif
 	} else PANIC("Could not find User Module");
 #endif
+
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Kernel startup complete.\r\n");
+
+	/* We are done */
+	while (true) CPUPause();
 }
-*/

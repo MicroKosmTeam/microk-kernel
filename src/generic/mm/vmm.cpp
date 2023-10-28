@@ -37,7 +37,6 @@ void LoadVirtualSpace(uptr space) {
 
 
 void MapPage(uptr space, uptr phys, uptr virt, usize flags) {
-	//PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, " -> !! Phys: 0x%x Virt 0x%x\r\n", phys, virt);
 #if defined(ARCH_x64)
 	x86_64::MapPage(space, phys, virt, flags);
 #endif
@@ -57,7 +56,60 @@ void InitVMM() {
 
 void PrepareVirtualSpace(uptr space) {
 	KInfo *info = GetInfo();
-		
+	
+	uptr essentialStartAddr = (uptr)&__KernelBinaryEssentialStart - info->KernelVirtualBase + info->KernelPhysicalBase;
+	uptr essentialEndAddr = (uptr)&__KernelBinaryEssentialEnd - info->KernelVirtualBase + info->KernelPhysicalBase;
+
+	uptr textStartAddr = (uptr)&__KernelBinaryTextStart - info->KernelVirtualBase + info->KernelPhysicalBase;
+	uptr textEndAddr = (uptr)&__KernelBinaryTextEnd - info->KernelVirtualBase + info->KernelPhysicalBase;
+
+	uptr rodataStartAddr = (uptr)&__KernelBinaryRODataStart - info->KernelVirtualBase + info->KernelPhysicalBase;
+	uptr rodataEndAddr = (uptr)&__KernelBinaryRODataEnd - info->KernelVirtualBase + info->KernelPhysicalBase;
+
+	uptr dataStartAddr = (uptr)&__KernelBinaryDataStart - info->KernelVirtualBase + info->KernelPhysicalBase;
+	uptr dataEndAddr = (uptr)&__KernelBinaryDataEnd - info->KernelVirtualBase + info->KernelPhysicalBase;
+
+	ROUND_DOWN_TO_PAGE(essentialStartAddr);
+	ROUND_DOWN_TO_PAGE(textStartAddr);
+	ROUND_DOWN_TO_PAGE(rodataStartAddr);
+	ROUND_DOWN_TO_PAGE(dataStartAddr);
+
+	ROUND_UP_TO_PAGE(essentialEndAddr);
+	ROUND_UP_TO_PAGE(textEndAddr);
+	ROUND_UP_TO_PAGE(rodataEndAddr);
+	ROUND_UP_TO_PAGE(dataEndAddr);
+
+	for (uptr phys = essentialStartAddr; phys < essentialEndAddr; phys += PAGE_SIZE) {
+		MapPage(space, phys, phys - info->KernelPhysicalBase + info->KernelVirtualBase, VMM_FLAGS_KERNEL_GENERIC);
+	}
+
+	for (uptr phys = textStartAddr; phys < textEndAddr; phys += PAGE_SIZE) {
+		MapPage(space, phys, phys - info->KernelPhysicalBase + info->KernelVirtualBase, VMM_FLAGS_KERNEL_CODE);
+	}
+
+	for (uptr phys = rodataStartAddr; phys < rodataEndAddr; phys += PAGE_SIZE) {
+		MapPage(space, phys, phys - info->KernelPhysicalBase + info->KernelVirtualBase, VMM_FLAGS_KERNEL_RODATA);
+	}
+
+
+	for (uptr phys = dataStartAddr; phys < dataEndAddr; phys += PAGE_SIZE) {
+		MapPage(space, phys, phys - info->KernelPhysicalBase + info->KernelVirtualBase, VMM_FLAGS_KERNEL_DATA);
+	}
+
+	
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME,
+			"Total kernel addr: [0x%x - 0x%x] -> %d bytes\r\n"
+			"        Essential: [0x%x - 0x%x] -> %d bytes\r\n"
+			"             Text: [0x%x - 0x%x] -> %d bytes\r\n"
+			"           ROData: [0x%x - 0x%x] -> %d bytes\r\n"
+			"             Data: [0x%x - 0x%x] -> %d bytes\r\n",
+			essentialStartAddr, dataEndAddr, (dataEndAddr - essentialStartAddr),
+			essentialStartAddr, essentialEndAddr, (essentialEndAddr - essentialStartAddr),
+			textStartAddr, textEndAddr, (textEndAddr - textStartAddr),
+			rodataStartAddr, rodataEndAddr, (rodataEndAddr - rodataStartAddr),
+			dataStartAddr, dataEndAddr, (dataEndAddr - dataStartAddr)
+			);
+
 	/* We go through every entry in the memory map and map it in virtual memory */
 	for (usize i = 0; i < info->MemoryMapEntryCount; i++) {
 		MEM::MMapEntry entry = info->MemoryMap[i];
@@ -68,34 +120,16 @@ void PrepareVirtualSpace(uptr space) {
 		    entry.Type == MEMMAP_ACPI_NVS) continue;
 
 		/* We find the base and the top by rounding to the closest page boundary */
-		uptr base = entry.AddressBase - (entry.AddressBase % PAGE_SIZE);
-		uptr top = base + entry.Length + (entry.Length % PAGE_SIZE);
-		
-		PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, " !! MAPPING [0x%x - 0x%x] -> %s.\r\n", base, top, MEM::MemoryTypeToString(entry.Type));
+		uptr base = entry.AddressBase;
+		ROUND_DOWN_TO_PAGE(base);
 
-		/* If it's kernel code, we will map its special location, otherwise we do the lower half and higher half mappings. */
-		/* We use the kernel base to be sure we are not mapping module code over the kernel code. */
-		if (entry.Type == MEMMAP_KERNEL_AND_MODULES) {
-			if(entry.AddressBase == info->KernelPhysicalBase) {
-				for (uptr t = base; t < top; t += PAGE_SIZE){
-					MapPage(space, t, info->KernelVirtualBase + t - info->KernelPhysicalBase, VMM_FLAGS_KERNEL_GENERIC);
-				}
-			} else {
-				for (uptr t = base; t < top; t += PAGE_SIZE) {
-					MapPage(space, t, t + info->HigherHalfMapping, VMM_FLAGS_USER_RODATA);
-				}
-			}
-		} else if (entry.Type == MEMMAP_ACPI_RECLAIMABLE) {
-			for (uptr t = base; t < top; t += PAGE_SIZE) {
-				MapPage(space, t, t + info->HigherHalfMapping, VMM_FLAGS_USER_RODATA);
-			}
-		} else {
-			for (uptr t = base; t < top; t += PAGE_SIZE) {
-				MapPage(space, t, t + info->HigherHalfMapping, VMM_FLAGS_KERNEL_DATA);
-			}
+		uptr top = base + entry.Length;
+		ROUND_UP_TO_PAGE(top);
+		
+		for (uptr addr = base; addr < top; addr += PAGE_SIZE) {
+			MapPage(space, addr, addr + info->HigherHalfMapping, VMM_FLAGS_KERNEL_DATA);
 		}
 	}
-	
 	
 	if(info->KernelHeapPageList != NULL) {
 		uptr heapAddress = CONFIG_HEAP_BASE;
@@ -111,7 +145,6 @@ void PrepareVirtualSpace(uptr space) {
 	
 	MapPage(space, x86_64::GetAPICBase(), x86_64::GetAPICBase() + info->HigherHalfMapping, VMM_FLAGS_KERNEL_DEVICE);
 #endif
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, " !! TEST.\r\n");
 	
 }
 }

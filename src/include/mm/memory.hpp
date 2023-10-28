@@ -25,6 +25,16 @@ void operator delete(void* p, usize size);
 void operator delete[](void* p);
 void operator delete[](void* p, usize size);
 
+extern const u8 __KernelBinaryEssentialStart;
+extern const u8 __KernelBinaryEssentialEnd;
+extern const u8 __KernelBinaryTextStart;
+extern const u8 __KernelBinaryTextEnd;
+extern const u8 __KernelBinaryRODataStart;
+extern const u8 __KernelBinaryRODataEnd;
+extern const u8 __KernelBinaryDataStart;
+extern const u8 __KernelBinaryDataEnd;
+
+
 namespace MEM {
 	struct MMapEntry {
 		uptr AddressBase;

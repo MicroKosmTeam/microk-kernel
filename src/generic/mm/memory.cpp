@@ -7,15 +7,6 @@
 #include <mm/heap.hpp>
 #include <init/kinfo.hpp>
 
-extern const uptr __KernelBinaryEssentialStart;
-extern const uptr __KernelBinaryEssentialEnd;
-extern const uptr __KernelBinaryTextStart;
-extern const uptr __KernelBinaryTextEnd;
-extern const uptr __KernelBinaryRODataStart;
-extern const uptr __KernelBinaryRODataEnd;
-extern const uptr __KernelBinaryDataStart;
-extern const uptr __KernelBinaryDataEnd;
-
 void *Malloc(usize size) {
 	if(HEAP::IsHeapActive()) return HEAP::Malloc(size);
 	if(BOOTMEM::BootmemIsActive()) return BOOTMEM::Malloc(size);

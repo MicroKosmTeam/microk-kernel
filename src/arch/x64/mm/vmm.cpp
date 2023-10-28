@@ -22,12 +22,61 @@ uptr NewVirtualSpace() {
 
 
 void LoadVirtualSpace(uptr topLevel) {
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "!! Loading 0x%x -> 0x%x\r\n", topLevel, VMM::VirtualToPhysical(topLevel));
 	/* This loads the page directory into memory */
 	asm volatile ("mov %0, %%cr3" : : "r" (VMM::VirtualToPhysical(topLevel)) : "memory");
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "!! Loaded 0x%x -> 0x%x\r\n", topLevel, VMM::VirtualToPhysical(topLevel));
 }
 
+volatile u64 *GetNextLevel(volatile u64 *topLevel, usize idx, bool allocate) {
+	if ((topLevel[idx] & (1 << PT_Flag::Present)) != 0) {
+		return (volatile u64*)(VMM::PhysicalToVirtual(PTE_GET_ADDR(topLevel[idx])));
+	}
+
+	if (!allocate) {
+		return NULL;
+	}
+
+	uptr newPage = AllocatePage();
+	if(newPage == 0) return NULL;
+
+	topLevel[idx] = newPage | (1 << PT_Flag::Present) | (1 << PT_Flag::UserSuper) | (1 << PT_Flag::ReadWrite);
+	return (volatile u64*)VMM::PhysicalToVirtual(newPage);
+}
+
+bool MapPage(uptr rootPageTable, uptr phys, uptr virt, usize flags) {
+	bool ok = false;
+
+	usize pml4Entry = (virt & (0x1ffull << 39)) >> 39;
+	usize pml3Entry = (virt & (0x1ffull << 30)) >> 30;
+	usize pml2Entry = (virt & (0x1ffull << 21)) >> 21;
+	usize pml1Entry = (virt & (0x1ffull << 12)) >> 12;
+
+	volatile u64 *pml4 = (volatile u64*)rootPageTable;
+	volatile u64 *pml3 = GetNextLevel(pml4, pml4Entry, true);
+	if (pml3 == NULL) {
+		return ok;
+	}
+
+	volatile u64 *pml2 = GetNextLevel(pml3, pml3Entry, true);
+	if (pml2 == NULL) {
+		return ok;
+	}
+
+	volatile u64 *pml1 = GetNextLevel(pml2, pml2Entry, true);
+	if (pml1 == NULL) {
+		return ok;
+	}
+
+	if ((pml1[pml1Entry] & (1 << PT_Flag::Present)) != 0) {
+		return ok;
+	}
+
+	ok = true;
+	pml1[pml1Entry] = phys | flags;
+
+	return ok;
+}
+
+#ifdef UNDEF
 void MapPage(uptr rootPageTable, uptr phys, uptr virt, usize flags) {
 	/* how many page tables to traverse before we get to the PML1 */
 	const bool use5LevelPaging = false;
@@ -43,13 +92,13 @@ void MapPage(uptr rootPageTable, uptr phys, uptr virt, usize flags) {
 	while(levels) {
 		u64 value = *table;
 
-		if(value & PT_Flag::Present) {
+		if(value & (1 << PT_Flag::Present)) {
 			/* page table already exists */
 			value &= 0x7ffffffffffff000;
 		} else {
 			/* allocate a new page table */
 			value = AllocatePage();
-			*table = value | PT_Flag::Present | PT_Flag::ReadWrite | PT_Flag::UserSuper;
+			*table = value | (1 << PT_Flag::Present) | (1 << PT_Flag::ReadWrite) | (1 << PT_Flag::UserSuper);
 		}
 
 		--levels;
@@ -59,6 +108,8 @@ void MapPage(uptr rootPageTable, uptr phys, uptr virt, usize flags) {
 	/* 'table' now points to the PTE we're interested in modifying */
 	*table = phys | flags;
 }
+
+#endif
 	
 uptr FindMappedPage(uptr rootPageTable, uptr virt) {
 	/* how many page tables to traverse before we get to the PML1 */
