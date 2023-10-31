@@ -290,10 +290,12 @@ int HandleHPET(HPETHeader *hpet) {
 	u64 tscPerSecond = 0;
 	CalibrateTSCWithHPET(hpet->Address.Address, &tscPerSecond);
 	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "CPU is running at %d.%dMHz\r\n", tscPerSecond / 1000000, tscPerSecond % 1000000 / 1000);
-
+/*
 	SetAPICTimer(tscPerSecond / 2000);
 	EnableAPIC();
-
+*/
+	DEV::Device *dev = (DEV::Device*)APIC::CreateAPICDevice();
+	DEV::InitializeDevice(dev);
 	return 0;
 }
 }
