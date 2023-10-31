@@ -14,19 +14,9 @@
 #include <arch/x64/interrupts/idt.hpp>
 #include <arch/x64/cpu/cpu.hpp>
 
-/* Max number of interrupts in x86_64 is 256 */
-#define IDT_MAX_DESCRIPTORS 256
-
-/* Create the IDT, aligned for maximum performance */
-volatile __attribute__((section(".interrupt"))) __attribute__((aligned(0x10)))
-IDTEntry idt[IDT_MAX_DESCRIPTORS];
-
-/* Create the IDTR */
-volatile __attribute__((section(".interrupt"))) __attribute__((aligned(0x10)))
-IDTR idtr;
 
 /* Function to set a descriptor in the GDT */
-static void IDTSetDescriptor(u8 vector, void *isr, u8 ist, u8 flags) {
+static void IDTSetDescriptor(IDTEntry *idt, u8 vector, void *isr, u8 ist, u8 flags) {
 	/* Create new descriptor */
 	volatile IDTEntry *descriptor = &idt[vector];
 
@@ -45,22 +35,22 @@ extern void *isrStubTable[];
 
 namespace x86_64 {
 /* Function to initialize the IDT */
-void IDTInit() {
+void IDTInit(IDTEntry *idt, IDTR *idtr) {
 	/* Set base and size in the pointer */
-	idtr.Base = (uptr)&idt[0];
-	idtr.Limit = (u16)sizeof(IDTEntry) * IDT_MAX_DESCRIPTORS - 1;
+	idtr->Base = (uptr)&idt[0];
+	idtr->Limit = (u16)sizeof(IDTEntry) * IDT_MAX_DESCRIPTORS - 1;
 
 	/* Fill in the 32 exception handlers */
 	for (u8 vector = 0; vector < 32; vector++) {
-		IDTSetDescriptor(vector, isrStubTable[vector], 0, 0x8E);
+		IDTSetDescriptor(idt, vector, isrStubTable[vector], 0, 0x8E);
 	}
 	
-	IDTSetDescriptor(14, isrStubTable[14], 1, 0x8E);
-	IDTSetDescriptor(32, isrStubTable[32], 2, 0x8F);
-	IDTSetDescriptor(254, isrStubTable[254], 3, 0xEF);
+	IDTSetDescriptor(idt, 14, isrStubTable[14], 1, 0x8E);
+	IDTSetDescriptor(idt, 32, isrStubTable[32], 2, 0x8F);
+	IDTSetDescriptor(idt, 254, isrStubTable[254], 3, 0xEF);
 
 	/* Load the new IDT */
-	asm volatile ("lidt %0" : : "m"(idtr));
+	asm volatile ("lidt %0" : : "m"(*idtr));
 	/* Set the interrupt flag */
 	asm volatile ("sti");
 }
@@ -113,8 +103,6 @@ static inline void PrintRegs(CPUStatus *context) {
 
 #include <arch/x64/dev/apic.hpp>
 extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
-	KInfo *info = GetInfo();
-
 /*
 	bool switchAddressSpace = (cr3 != kcr3) ? true : false;
 
@@ -141,16 +129,16 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 			PANIC("General protection fault");
 			break;
 			}
-		case 14: {
+		case 14: {/*
 			PROC::ProcessBase *proc = PROC::GetProcess();
-			uptr procSpace = GetVirtualSpace(proc);
+			uptr procSpace = GetVirtualSpace(proc);*/
 
 			uptr page;
 			bool protectionViolation = context->ErrorCode & 0b1;
 			bool writeAccess = (context->ErrorCode & 0b10) >> 1;
 			bool byUser = (context->ErrorCode & 0b100) >> 2;
 			bool wasInstructionFetch = (context->ErrorCode & 0b1000) >> 4;
-			asm("mov %%cr2,%0" : "=r"(page));
+			asm("mov %%cr2,%0" : "=r"(page));/*
 
 			VMM::PageList *pages = NULL;
 			if (proc != NULL) {
@@ -188,7 +176,7 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 
 			}
 
-			if(!found) {
+			if(!found) {*/
 				PrintRegs(context);
 				PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Page fault in page 0x%x because of a %s.\r\nIt was caused by a %s from %s.\r\nIt %s because of an instruction fetch.\r\n",
 					page,
@@ -198,26 +186,26 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 					wasInstructionFetch ? "was" : "wasn't"
 					);
 				PANIC("Page fault");
-			} else {
+/*			} else {
 				uptr copy = (uptr)PMM::RequestPage();
 				Memset((void*)(copy + info->HigherHalfMapping), 0, PAGE_SIZE);
 				Memcpy((void*)(copy + info->HigherHalfMapping),
 				       (void*)(pages->Pages[pageSelector].Data.COW->PhysicalAddressOfOriginal + info->HigherHalfMapping),
 				       PAGE_SIZE);
-/*
+
 				PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "COW!!\r\n"
 					       " Original: 0x%x\r\n"
 					       " Copy:     0x%x\r\n", pages->Pages[pageSelector].Data.COW->PhysicalAddressOfOriginal, copy);
-*/
+
 
 				pages->Pages[pageSelector].Data.COW->PhysicalAddressOfCopy = copy;
 				VMM::MapPage(procSpace, copy, roundedPage, VMM_FLAGS_USER_GENERIC);
-/*				PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Cow, out.\r\n");*/
+				PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Cow, out.\r\n");
 			}
-
+*/
 			}
 			break;
-		case 32:
+		case 32:/*
 			if(info->KernelScheduler != NULL) {
 				if(info->KernelScheduler->CurrentThread != NULL) {
 					Memcpy(info->KernelScheduler->CurrentThread->Thread->Context, context, sizeof(CPUStatus));
@@ -247,7 +235,7 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 			}
 
 			x86_64::SendAPICEOI();
-			x86_64::WaitAPIC();
+			x86_64::WaitAPIC();*/
 			break;
 		case 254:
 			HandleSyscall(context->RAX, context->RDI, context->RSI, context->RDX, context->RCX, context->R8, context->R9);
@@ -258,11 +246,11 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 			break;
 	}
 	
+/*
 	if(context->IretCS != GDT_OFFSET_KERNEL_CODE) { 
 		context->IretCS = GDT_OFFSET_USER_CODE;
 		context->IretSS = GDT_OFFSET_USER_CODE + 0x08;
 	}
-/*
 	if(switchAddressSpace) {
 		VMM::LoadVirtualSpace(procSpace);
 	}

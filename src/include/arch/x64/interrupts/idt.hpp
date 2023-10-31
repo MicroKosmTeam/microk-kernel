@@ -2,6 +2,10 @@
 #include <cstdint.hpp>
 #include <arch/x64/cpu/gdt.hpp>
 
+/* Max number of interrupts in x86_64 is 256 */
+#define IDT_MAX_DESCRIPTORS 256
+
+
 struct IDTEntry {
 	u16    ISRLow;      // The lower 16 bits of the ISR's address
 	u16    KernelCs;    // The GDT segment selector that the CPU will load into CS before calling the ISR
@@ -56,5 +60,5 @@ namespace x86_64 {
 		asm ("push %0\n\tpopf" : : "rm"(flags) : "memory","cc");
 	}
 
-	void IDTInit();
+	void IDTInit(IDTEntry *idt, IDTR *idtr);
 }

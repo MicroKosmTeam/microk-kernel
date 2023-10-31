@@ -11,7 +11,7 @@ SyscallEntry:
 	swapgs
 
 	; Switch to the new CR3
-	switch_to_kernel_cr3
+	switch_to_kernel_cr3 syscall
 
 	; Switch to a new stack
 	switch_to_kernel_stack
@@ -57,7 +57,7 @@ SyscallEntry:
 	switch_to_user_stack
 
 	; Save and restore RAX, get back the old CR3
-	switch_to_user_cr3
+	switch_to_user_cr3 syscall
 	
 	swapgs
 

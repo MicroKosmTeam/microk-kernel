@@ -67,18 +67,30 @@ pop rax
 o64 iret
 %endmacro
 
-%macro switch_to_kernel_cr3 0
-mov gs:40, rax
-mov rax, gs:32
-mov cr3, rax
-mov rax, gs:40
+%macro switch_to_kernel_cr3 1
+	mov gs:40, rax
+	mov rax, gs:32
+	
+	cmp rax, rax
+	jz .completed_switch_kernel_%+%1
+	
+	mov cr3, rax
+
+.completed_switch_kernel_%+%1:
+	mov rax, gs:40
 %endmacro
 
-%macro switch_to_user_cr3 0
-mov gs:40, rax
-mov rax, gs:24
-mov cr3, rax
-mov rax, gs:40
+%macro switch_to_user_cr3 1
+	mov gs:40, rax
+	mov rax, gs:24
+
+	cmp rax, rax
+	jz .completed_switch_user_%+%1
+
+	mov cr3, rax
+
+.completed_switch_user_%+%1:
+	mov rax, gs:40
 %endmacro
 
 %macro switch_to_kernel_stack 0
