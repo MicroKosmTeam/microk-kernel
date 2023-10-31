@@ -132,7 +132,6 @@ static volatile limine_boot_time_request TimeRequest {
 
 extern uptr __stack_chk_guard;
 
-__attribute__((noreturn))
 void LimineSMPEntry(limine_smp_info *cpuInfo) {
 	KInfo *info = GetInfo();
 

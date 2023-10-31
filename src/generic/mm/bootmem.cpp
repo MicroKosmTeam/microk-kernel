@@ -1,8 +1,9 @@
 #include <mm/bootmem.hpp>
 #include <sys/panic.hpp>
+#include <mm/memory.hpp>
 #include <cdefs.h>
 
-__attribute__((__aligned__((16)))) u8 bootmemMemory[CONFIG_BOOTMEM_SIZE];
+__attribute__((__aligned__((0x10)))) u8 bootmemMemory[CONFIG_BOOTMEM_SIZE];
 u32 lastPosition = 0;
 bool bootmemStatus = true;
 
@@ -24,6 +25,8 @@ namespace BOOTMEM {
 
 		void *seg = bootmemMemory + lastPosition;
 		lastPosition += size;
+
+		Memset(seg, 0, size);
 
 		return seg;
 	}

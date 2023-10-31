@@ -26,6 +26,7 @@
 #include <cdefs.h>
 #include <cstdint.hpp>
 
+#include <dev/cpu.hpp>
 #include <mm/memory.hpp>
 #include <sys/panic.hpp>
 #include <sys/printk.hpp>
@@ -36,7 +37,6 @@
 
 #if defined(ARCH_x64)
 #include <arch/x64/main.hpp>
-#include <arch/x64/dev/apic.hpp>
 #elif defined(ARCH_aarch64)
 #include <arch/aarch64/main.hpp>
 #endif
@@ -45,19 +45,10 @@ extern "C" void CPUPause();
 
 extern "C" __attribute__((noreturn))
 void KernelStart() {
-	KInfo *info = GetInfo();
-	(void)info;
-
 	/* Loading early serial printk */
 	PRINTK::EarlyInit();
 
-	/* Initializing early architecture-specific devices */
-
-#if defined(ARCH_x64)
-	x86_64::EarlyInit();
-#elif defined(ARCH_aarch64)
-	AArch64::EarlyInit();
-#endif
+	DEV::CPU::InitializeBootCPU();
 
 	/* Parsing cmdline arguments */
 	ParseArgs();
@@ -66,13 +57,8 @@ void KernelStart() {
 	MEM::Init();
 
 	/* Starting architecture-specific instructions */
-#if defined(ARCH_x64)
-	x86_64::Init();
-#elif defined(ARCH_aarch64)
-	AArch64::Init();
-#endif
+	DEV::CPU::SetupArch();
 	
-
 	/*
 #ifdef CONFIG_KERNEL_MODULES
 	info->KernelScheduler = PROC::InitializeScheduler(SCHEDULER_DEFAULT_QUEUES);
