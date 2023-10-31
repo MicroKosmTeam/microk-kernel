@@ -8,9 +8,9 @@
 #include <sys/panic.hpp>
 #include <cstdint.hpp>
 #include <mm/pmm.hpp>
-
 #include <mm/string.hpp>
 #include <init/kinfo.hpp>
+#include <mm/bootmem.hpp>
 
 extern "C" void SyscallEntry();
 
@@ -123,6 +123,42 @@ static u16 EnableSMID() {
 }
 
 namespace x86_64 {
+int BootCPUInit(DEV::CPU::TopologyStructure *core) {
+	KInfo *info = GetInfo();
+	PerCoreCPUTopology *coreInfo = (PerCoreCPUTopology*)BOOTMEM::Malloc(sizeof(PerCoreCPUTopology));
+	core->ArchitectureSpecificInformation = (void*)coreInfo;
+
+	/* We first of all get the position of the kernel interrupt stack and save it
+	 * as we will use it to initialize the TSS. We start from 640K in x86_64 until
+	 * we allocate a proper location, as we know it will always be free for use.
+	 */
+	coreInfo->InterruptStack = VMM::PhysicalToVirtual(640 * 1024); 
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Temporary kernel stack: 0x%x\r\n", info->KernelStack);
+
+	/* Initialize the GDT */
+	LoadGDT();
+
+	/* Initialization of the TSS */
+	TSSInit(coreInfo->InterruptStack);
+	FlushTSS();
+
+	/* Jumpstart interrupts */
+	IDTInit((IDTEntry*)coreInfo->IDT, &coreInfo->_IDTR);
+	
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Basic CPU structures initialized\r\n");
+
+	SetMSR(MSR_GSBASE, 0xDEADDEAD, 0xDEADDEAD);
+
+	SetMSR(MSR_KERNELGSBASE, (uptr)&coreInfo->CPUStruct, (uptr)&coreInfo->CPUStruct >> 32);
+
+	return 0;
+
+}
+	
+int CurrentCPUInit(DEV::CPU::TopologyStructure *core) {
+	(void)core;
+	return 0;
+}
 /*
    Function that initializes the x86CPU class
 */
@@ -136,8 +172,10 @@ void CPUInit() {
 	u16 sseFeatures = EnableSMID();
 	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "SSE features: %x\r\n", sseFeatures);
 
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Syscall entries at 00x%x\r\n", &SyscallEntry);
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Syscall entries at 0x%x\r\n", &SyscallEntry);
 	EnableSCE(NULL, (void*)&SyscallEntry);
+
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "DONE.\r\n");
 
 	SetMSR(MSR_GSBASE, 0xDEADDEAD, 0xDEADDEAD);
 
