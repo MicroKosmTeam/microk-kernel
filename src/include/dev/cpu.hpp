@@ -19,6 +19,7 @@ namespace DEV::CPU {
 	};
 
 	TopologyStructure *CreateTopologyStructure(TopologyStructure *parent, u32 id);
+	TopologyStructure *ProgressToNextLevel(TopologyStructure *parent, u32 id);
+
 	int InitializeBootCPU();
-	int SetupArch();
 }
