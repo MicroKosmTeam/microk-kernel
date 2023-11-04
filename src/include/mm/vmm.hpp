@@ -7,11 +7,17 @@
 #include <arch/x64/mm/vmm.hpp>
 #endif
 
+#define ROUND_DOWN_TO(x, y) \
+	x -= x % y
+
+#define ROUND_UP_TO(x, y) \
+	x += y - x % y
+
 #define ROUND_DOWN_TO_PAGE(x) \
-	x -= x % PAGE_SIZE
+	ROUND_DOWN_TO(x, PAGE_SIZE)
 
 #define ROUND_UP_TO_PAGE(x) \
-	x += PAGE_SIZE - x % PAGE_SIZE
+	ROUND_UP_TO(x, PAGE_SIZE)
 
 namespace VMM {
 	struct COWMetadata {
@@ -43,6 +49,9 @@ namespace VMM {
 	void LoadVirtualSpace(uptr space);
 
 	void MapPage(uptr space, uptr phys, uptr virt, usize flags);
+
+	void VMAlloc(uptr space, uptr virt, usize length, usize flags);
+	void VMCopyAlloc(uptr space, uptr virt, usize length, usize flags, uptr data, uptr virtDataStart, usize dataLen);
 
 	void InitVMM();
 	void PrepareVirtualSpace(uptr space);

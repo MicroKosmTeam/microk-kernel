@@ -1,4 +1,5 @@
 #include <mm/vmm.hpp>
+#include <mm/pmm.hpp>
 #include <sys/printk.hpp>
 #include <init/kinfo.hpp>
 
@@ -136,6 +137,46 @@ void PrepareVirtualSpace(uptr space) {
 			MapPage(space, info->KernelHeapPageList->Pages[heapPage].Data.PhysicalAddress, heapAddress, VMM_FLAGS_KERNEL_DATA);
 			heapAddress += PAGE_SIZE;
 		}
+	}
+}
+	
+void VMAlloc(uptr space, uptr virt, usize length, usize flags) {
+	ROUND_DOWN_TO_PAGE(virt);
+	ROUND_UP_TO_PAGE(length);
+
+	uptr end = virt + length;
+	uptr phys;
+
+	for (; virt < end; virt += PAGE_SIZE) {
+		phys = (uptr)PMM::RequestPage();
+	
+		MapPage(space, phys, virt, flags);
+	}
+}
+
+void VMCopyAlloc(uptr space, uptr virt, usize length, usize flags, uptr data, uptr virtDataStart, usize dataLen) {
+	ROUND_DOWN_TO_PAGE(virt);
+	ROUND_UP_TO_PAGE(length);
+
+	uptr end = virt + length;
+	uptr phys;
+
+	usize copyLen;
+
+	for (; virt < end; virt += PAGE_SIZE) {
+		phys = (uptr)PMM::RequestPage();
+		Memset((void*)VMM::PhysicalToVirtual(phys), 0, PAGE_SIZE);
+
+		if (virtDataStart <= virt) {
+			copyLen = dataLen > PAGE_SIZE ? PAGE_SIZE : dataLen;
+
+			Memcpy((void*)VMM::PhysicalToVirtual(phys), (u8*)data, copyLen);
+
+			data += copyLen;
+			dataLen -= copyLen;
+		}
+	
+		MapPage(space, phys, virt, flags);
 	}
 }
 }
