@@ -2,8 +2,6 @@
 
 global EnterUserspace
 EnterUserspace:
-	cli
-
 	mov rcx, rdi        ; first argument, new instruction pointer
 	mov rsp, rsi        ; second argument, new stack pointer
 
