@@ -6,57 +6,58 @@
 #define GDT_OFFSET_KERNEL_CODE (0x08 * 5)
 #define GDT_OFFSET_USER_CODE (0x08 * 7)
 
-
 struct GDTPointer{
-    u16 size;
-    u64 offset;
-} __attribute__((packed));
+	u16 Size;
+	u64 Offset;
+}__attribute__((packed));
 
 struct GDTEntry{
-    u16 limit;
-    u16 base_low16;
-    u8 base_mid8;
-    u8 access;
-    u8 granularity;
-    u8 base_high8;
-} __attribute__((packed));
+	u16 Limit;
+	u16 BaseLow16;
+	u8 BaseMid8;
+	u8 Access;
+	u8 Granularity;
+	u8 BaseHigh8;
+}__attribute__((packed));
 
 struct TSS {
-	u32 reserved0;
-	u64 rsp0;
-	u64 rsp1;
-	u64 rsp2;
-	u64 reserved1;
-	u64 ist1;
-	u64 ist2;
-	u64 ist3;
-	u64 ist4;
-	u64 ist5;
-	u64 ist6;
-	u64 ist7;
-	u64 reserved2;
-	u16 reserved3;
-	u16 iopb_offset;
+	u32 Reserved0;
+	u64 RSP0;
+	u64 RSP1;
+	u64 RSP2;
+	u64 Reserved1;
+	u64 IST1;
+	u64 IST2;
+	u64 IST3;
+	u64 IST4;
+	u64 IST5;
+	u64 IST6;
+	u64 IST7;
+	u64 Reserved2;
+	u16 Reserved3;
+	u16 IOPBOffset;
 } __attribute__((packed));
 
 struct GDT {
-	GDTEntry null;
-	GDTEntry _16bit_code;
-	GDTEntry _16bit_data;
-	GDTEntry _32bit_code;
-	GDTEntry _32bit_data;
-	GDTEntry _64bit_code;
-	GDTEntry _64bit_data;
-	GDTEntry user_code;
-	GDTEntry user_data;
-	GDTEntry tss_low;
-	GDTEntry tss_high;
+	GDTEntry Null;
+	GDTEntry KernelCode16Bit;
+	GDTEntry KernelData16Bit;
+	GDTEntry KernelCode32Bit;
+	GDTEntry KernelData32Bit;
+	GDTEntry KernelCode64Bit;
+	GDTEntry KernelData64Bit;
+	GDTEntry UserCode;
+	GDTEntry UserData;
+	GDTEntry TSSLow;
+	GDTEntry TSSHigh;
 } __attribute__((packed));
 
 extern "C" void FlushGDT(GDTPointer *pointer);
 extern "C" void FlushTSS();
 
 namespace x86_64 {
-	void LoadGDT();
-	void TSSInit(uptr stackPointer);
+	void LoadGDT(GDT *gdt, GDTPointer *gdtPointer);
+
+	void LoadNewStackInTSS(TSS *tss, uptr stackPointer);
+	void TSSInit(GDT *gdt, TSS *tss, uptr stackPointer);
 }
