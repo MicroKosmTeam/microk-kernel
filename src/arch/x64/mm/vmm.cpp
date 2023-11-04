@@ -1,8 +1,12 @@
 #include <arch/x64/mm/vmm.hpp>
 #include <init/kinfo.hpp>
 #include <mm/pmm.hpp>
-
 #include <sys/printk.hpp>
+
+inline __attribute__((always_inline))
+void InvalidatePage(uptr virt) {
+	asm volatile ("invlpg (%0)" : : "r"(virt));
+}
 
 inline __attribute__((always_inline))
 uptr AllocatePage() {
@@ -72,6 +76,8 @@ int MapPage(uptr rootPageTable, uptr phys, uptr virt, usize flags) {
 
 	pml1[pml1Entry] = phys | flags;
 
+	InvalidatePage(virt);
+
 	return 0;
 }
 
@@ -102,6 +108,8 @@ int FlagPage(uptr rootPageTable, uptr virt, usize flags) {
 	}
 
 	pml1[pml1Entry] = PTE_GET_ADDR(pml1[pml1Entry]) | flags;
+	
+	InvalidatePage(virt);
 
 	return 0;
 }
@@ -134,6 +142,8 @@ int UnmapPage(uptr rootPageTable, uptr virt) {
 	}
 
 	pml1[pml1Entry] = 0;
+
+	InvalidatePage(virt);
 
 	return 0;
 }
