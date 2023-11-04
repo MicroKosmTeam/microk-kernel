@@ -6,8 +6,11 @@
 #define IOAPIC_IOCTL_REQUEST_READ_IOAPIC 0x01
 #define IOAPIC_IOCTL_REQUEST_WRITE_IOAPIC 0x02
 
-namespace x86_64 {
+namespace x86_64::IOAPIC {
 	struct IOAPIC : public DEV::Device {
+		u32 ID;
+		u32 GlobalSystemInterruptBase;
+
 		uptr Base;
 		uptr MappedAddress;
 	};
