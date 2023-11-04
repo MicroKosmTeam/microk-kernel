@@ -101,8 +101,11 @@ static inline void PrintRegs(CPUStatus *context) {
 			context->IretSS);
 }
 
-#include <arch/x64/dev/apic.hpp>
 extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
+	DEV::CPU::TopologyStructure *core;
+	x86_64::GetCoreTopologyStruct(&core);
+
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Core topology structure: 0x%x\r\n", core);
 /*
 	bool switchAddressSpace = (cr3 != kcr3) ? true : false;
 
@@ -118,7 +121,7 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 			break;
 		case 6:
 			PrintRegs(context);
-			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Invalid opcode.\r\n");
+			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Invalid opcode: 0x%x.\r\n", *(u8*)context->IretRIP);
 			break;
 		case 8:
 			PANIC("Double fault");

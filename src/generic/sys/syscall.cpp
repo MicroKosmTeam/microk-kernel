@@ -14,10 +14,6 @@
 #include <sys/syscall.hpp>
 #include <proc/helpers.hpp>
 
-#if defined(ARCH_x64)
-#include <arch/x64/io/io.hpp>
-#endif
-
 /* Kernel syscall handlers */
 usize HandleSyscallDebugPrintK(const_userptr_t userString);
 
@@ -44,9 +40,9 @@ void InitSyscalls() {
 
 	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Initializing system call API.\r\n");
 	SyscallVector[SYSCALL_DEBUG_PRINTK] = (SyscallFunctionCallback)(void*)HandleSyscallDebugPrintK;
+	SyscallVector[SYSCALL_MEMORY_VMALLOC] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryVMAlloc;
 
 /*
-	SyscallVector[SYSCALL_MEMORY_VMALLOC] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryVMAlloc;
 	SyscallVector[SYSCALL_MEMORY_PMALLOC] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryPMAlloc;
 	SyscallVector[SYSCALL_MEMORY_VMFREE] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryVMFree;
 	SyscallVector[SYSCALL_MEMORY_MMAP] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryMMap;
@@ -75,44 +71,29 @@ usize HandleSyscallDebugPrintK(const_userptr_t userString) {
 
 	return 0;
 }
-#ifdef UNDEF
 
 usize HandleSyscallMemoryVMAlloc(const_userptr_t userBase, usize length, usize flags) {
-	KInfo *info = GetInfo();
-
-	if(CheckUserMemory(userBase, length) != 0)
+	if(CheckUserMemory(userBase, length) != 0) {
+		PANIC("Bad memory");
 		return -EBADREQUEST;
+	}
 
 
 	uptr base = (uptr)userBase;
 
 	PROC::UserProcess *proc = (PROC::UserProcess*)PROC::GetProcess();
-	VMM::VirtualSpace *procSpace = GetVirtualSpace((PROC::ProcessBase*)proc);
+	uptr procSpace = GetVirtualSpace((PROC::ProcessBase*)proc);
 	
 	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Calling VMAlloc for PID %d. Base: 0x%x, Length: %d bytes, Flags: 0x%x.\r\n", proc->ID, base, length, flags);
 
-	if (base % PAGE_SIZE) base -= base % PAGE_SIZE;
-	if (length % PAGE_SIZE) length += PAGE_SIZE - length % PAGE_SIZE;
-
-	for (uptr vaddr = base; vaddr < base + length; vaddr += PAGE_SIZE) {
-		uptr paddr = (uptr)PMM::RequestPage();
-		if (paddr == 0) {
-			MEM::InvokeOOM();
-		}
-
-		Memset((void*)(paddr + info->HigherHalfMapping), 0, PAGE_SIZE);
-
-		if (flags == 0) {
-			VMM::MapMemory(procSpace, (void*)paddr, (void*)vaddr);
-		} else {
-			VMM::MapMemory(procSpace, (void*)paddr, (void*)vaddr, flags);
-		}
-	}
+	VMM::VMAlloc(procSpace, base, length, VMM_FLAGS_USER_DATA);
 
 	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Executing VMAlloc for PID %d completed successfully.\r\n", proc->ID);
 
 	return 0;
 }
+
+#ifdef UNDEF
 
 usize HandleSyscallMemoryPMAlloc(userptr_t baseDestination, usize length, usize flags) {
 	(void) flags;

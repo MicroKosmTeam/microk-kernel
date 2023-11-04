@@ -76,7 +76,12 @@ void KernelStart() {
 
 		uptr space = ((PROC::UserProcess*)(thread->Parent))->VirtualMemorySpace;
 		PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Switching to user module.\r\n");
+
+		PROC::RecalculateScheduler(info->KernelScheduler);
 	
+		x86_64::PerCoreCPUTopology *coreInfo = (x86_64::PerCoreCPUTopology*)info->BootCore->ArchitectureSpecificInformation; 
+		UpdateLocalCPUStruct(&coreInfo->CPUStruct, thread->KernelStack, VMM::VirtualToPhysical(space), VMM::VirtualToPhysical(space));
+		
 		VMM::LoadVirtualSpace(space);
 		EnterUserspace(thread->Context->IretRIP, thread->Context->IretRSP);
 	} else PANIC("Could not find User Module");

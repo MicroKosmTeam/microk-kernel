@@ -110,10 +110,14 @@ int BootCPUInit() {
 	/* Jumpstart interrupts */
 	IDTInit((IDTEntry*)coreInfo->IDT, &coreInfo->_IDTR);
 	
+	/* Initializing the user GSBASE MSR to 0 */
 	SetMSR(MSR_GSBASE, 0, 0);
-	SetMSR(MSR_KERNELGSBASE, (uptr)&coreInfo->CPUStruct, (uptr)&coreInfo->CPUStruct >> 32);
 
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Basic CPU structures initialized\r\n");
+	SetMSR(MSR_KERNELGSBASE, (uptr)&coreInfo->CPUStruct, (uptr)&coreInfo->CPUStruct >> 32);
+	UpdateLocalCPUStruct(&coreInfo->CPUStruct, 0, VMM::VirtualToPhysical(info->KernelVirtualSpace), VMM::VirtualToPhysical(info->KernelVirtualSpace));
+
+	coreInfo->CPUStruct.TopologyStructure = (uptr)core;
+
 	return 0;
 }
 	
@@ -136,15 +140,27 @@ int UpdatePerCPUStack(DEV::CPU::TopologyStructure *core, usize stackSize) {
 	
 int CurrentCPUInit(DEV::CPU::TopologyStructure *core) {
 	KInfo *info = GetInfo();
+	PerCoreCPUTopology *coreInfo = (PerCoreCPUTopology*)core->ArchitectureSpecificInformation; 
 
+	/* Initialize the GDT */
+	LoadGDT(&coreInfo->GlobalDescriptorTable, &coreInfo->GDTPtr);
+
+	/* Initialization of the TSS */
+	TSSInit(&coreInfo->GlobalDescriptorTable, &coreInfo->TaskStateSegment, coreInfo->InterruptStack);
+
+	/* Jumpstart interrupts */
+	IDTInit((IDTEntry*)coreInfo->IDT, &coreInfo->_IDTR);
+	
 	u32 vendor[4];
-	vendor[4] = '\0';
+	Memset(vendor, 0, sizeof(u32) * 4);
 	u32 maxIntelLevel = 0, maxAmdLevel = 0;
 	u32 ignored = 0;
+	u32 feature;
 	__get_cpuid(0, &maxIntelLevel, &vendor[0], &vendor[2], &vendor[1]);
 	__get_cpuid(0x80000000, &maxAmdLevel, &ignored, &ignored, &ignored);
 
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "CPUID max supported Intel level: 0x%x\r\n"
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME,
+			"CPUID max supported Intel level: 0x%x\r\n"
 			"CPUID max supported AMD level: 0x%x\r\n"
 			"CPUID vendor string: %s\r\n", maxIntelLevel, maxAmdLevel, vendor);
 
@@ -165,6 +181,15 @@ int CurrentCPUInit(DEV::CPU::TopologyStructure *core) {
 
 	}
 
+	if (maxIntelLevel >= 0x00000007) {
+		__get_cpuid(0x00000007,  &ignored, &ignored, &feature, &ignored);
+	}
+
+	if (maxAmdLevel >= 0x80000001 &&
+	    maxAmdLevel <= 0x8000ffff) {
+		__get_cpuid(0x80000001, &ignored, &ignored, &feature, &feature);
+	}
+
 	SetIOPL();
 
 	EnableSyscalls();
@@ -172,9 +197,11 @@ int CurrentCPUInit(DEV::CPU::TopologyStructure *core) {
 	/* Initializing the user GSBASE MSR to 0 */
 	SetMSR(MSR_GSBASE, 0, 0);
 
-	PerCoreCPUTopology *coreInfo = (PerCoreCPUTopology*)core->ArchitectureSpecificInformation; 
-
+	SetMSR(MSR_KERNELGSBASE, (uptr)&coreInfo->CPUStruct, (uptr)&coreInfo->CPUStruct >> 32);
 	UpdateLocalCPUStruct(&coreInfo->CPUStruct, 0, VMM::VirtualToPhysical(info->KernelVirtualSpace), VMM::VirtualToPhysical(info->KernelVirtualSpace));
+
+	coreInfo->CPUStruct.TopologyStructure = (uptr)core;
+
 
 	return 0;
 }

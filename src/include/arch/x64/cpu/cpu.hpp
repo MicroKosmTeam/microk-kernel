@@ -42,10 +42,15 @@ namespace x86_64 {
 		 */
 		uptr UserCR3;
 		uptr KernelCR3;
-		usize RAXSave; /* To put the CR3, we can't address GS directly,
-				    * so we just use the RAX register and save it here
-				    * momentarily
-				    */
+		usize RAXSave; /* To change the value in CR3
+				* we can't address GS directly,
+				* so we just use the RAX register and
+				* save it here momentarily.
+				*/
+
+		uptr TopologyStructure; /* Direct pointer to the current core
+					 * topology structure for ease of use.
+					 */
 	}__attribute__((packed));
 
 	struct IOAPICNode {
@@ -62,35 +67,39 @@ namespace x86_64 {
 	};
 
 	struct PerCoreCPUTopology {
+		/* Per-CPU interrupt stack */
 		uptr InterruptStack;
 		usize InterruptStackSize;
 
-		__attribute__((aligned(0x10))) 
-		IDTEntry IDT[IDT_MAX_DESCRIPTORS];
-		
-		__attribute__((aligned(0x10))) 
-		IDTR _IDTR;
+		/* IDT and IDTR, indipendent for each CPU */
+		__attribute__((aligned(0x10))) IDTEntry IDT[IDT_MAX_DESCRIPTORS];
+		__attribute__((aligned(0x10))) IDTR _IDTR;
 	
-		__attribute__((aligned(0x10))) 
-		GDTPointer GDTPtr;
-		
-		__attribute__((aligned(0x10))) 
-		GDT GlobalDescriptorTable;
+		/* GDT structures, with a per-CPU TSS */
+		__attribute__((aligned(0x10))) GDTPointer GDTPtr;		
+		__attribute__((aligned(0x10))) GDT GlobalDescriptorTable;
+		__attribute__((aligned(0x10))) TSS TaskStateSegment;
 
-		__attribute__((aligned(0x10))) 
-		TSS TaskStateSegment;
-
+		/* Local CPU structure accessible via GS when in kernel mode */
 		LocalCPUStruct CPUStruct;
 
+		/* The LAPIC for the current core */
 		APIC::APIC *LocalAPIC;
 	};
 
-	inline void GetMSR(u32 msr, u32 *lo, u32 *hi) {
+	inline __attribute__((always_inline))
+	void GetMSR(u32 msr, u32 *lo, u32 *hi) {
 		asm volatile("rdmsr" : "=a"(*lo), "=d"(*hi) : "c"(msr));
 	}
  
-	inline void SetMSR(u32 msr, u32 lo, u32 hi) {
+	inline __attribute__((always_inline))
+	void SetMSR(u32 msr, u32 lo, u32 hi) {
 		asm volatile("wrmsr" : : "a"(lo), "d"(hi), "c"(msr));
+	}
+
+	inline __attribute__((always_inline))
+	void GetCoreTopologyStruct(DEV::CPU::TopologyStructure **addr) {
+		asm volatile("mov %%gs:48, %0" : "=r"(*addr));
 	}
 
 	int BootCPUInit();

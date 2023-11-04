@@ -48,13 +48,13 @@ void ParseArgs() {
 		/* Here we parse the IDs.
 		  For now, we just Strncmp what we desire,
 		  in the future a hashmap would be probably better */
-		if (Strncmp(id, "user", MAX_CMDLINE_ARGUMENT_LENGTH) == 0) {
+		if (Strncmp(id, "init", MAX_CMDLINE_ARGUMENT_LENGTH) == 0) {
 			/* Select the user file */
-			info->UserModuleName[0] = '/';
-			Strncpy(info->UserModuleName + 1, val, MAX_FILE_NAME_LENGTH);
+			Strncpy(info->UserModuleName, val, MAX_FILE_NAME_LENGTH);
 		} else if (Strncmp(id, "loglevel", MAX_CMDLINE_ARGUMENT_LENGTH) == 0) {
 		} else if (Strncmp(id, "earlycon", MAX_CMDLINE_ARGUMENT_LENGTH) == 0) {
 			info->KernelPort = (DEV::UART::UARTDevice*)DEV::EARLYCON::InitializeEarlycon(val);
+		} else if (Strncmp(id, "", MAX_CMDLINE_ARGUMENT_LENGTH) == 0) {
 		} else {
 			/* Invalid argument */
 			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Unknown argument: %s\r\n", id);
