@@ -27,6 +27,7 @@
 #include <cstdint.hpp>
 
 #include <dev/cpu.hpp>
+#include <sys/arch.hpp>
 #include <mm/memory.hpp>
 #include <sys/panic.hpp>
 #include <sys/printk.hpp>
@@ -35,16 +36,13 @@
 #include <sys/loader.hpp>
 #include <sys/syscall.hpp>
 
-#if defined(ARCH_x64)
-#include <arch/x64/main.hpp>
-#elif defined(ARCH_aarch64)
-#include <arch/aarch64/main.hpp>
-#endif
-
 extern "C" void CPUPause();
+extern "C" void EnterUserspace(uptr, uptr);
 
 extern "C" __attribute__((noreturn))
 void KernelStart() {
+	KInfo *info = GetInfo();
+
 	/* Loading early serial printk */
 	PRINTK::EarlyInit();
 
@@ -57,16 +55,13 @@ void KernelStart() {
 	MEM::Init();
 
 	/* Starting architecture-specific instructions */
-	DEV::CPU::SetupArch();
-	
-	/*
-#ifdef CONFIG_KERNEL_MODULES
+	ARCH::SetupArch();
+
 	info->KernelScheduler = PROC::InitializeScheduler(SCHEDULER_DEFAULT_QUEUES);
 	InitSyscalls();
 	InitializeKernelTables();
-	info->KernelProcess = (PROC::KernelProcess*)PROC::CreateProcess((PROC::ProcessBase*)info->KernelProcess, PROC::ExecutableUnitType::PT_KERNEL, info->KernelVirtualSpace, 0, 0);
-	PROC::KernelThread *kernelThread = (PROC::KernelThread*)PROC::CreateThread((PROC::ProcessBase*)info->KernelProcess, (uptr)&RestInit, 64 * 1024, 0, 0);
-	PROC::AddThreadToQueue(info->KernelScheduler, SCHEDULER_RUNNING_QUEUE, kernelThread);
+
+#ifdef CONFIG_KERNEL_MODULES
 	usize moduleSize;
 	u8 *addr;
 
@@ -76,15 +71,16 @@ void KernelStart() {
 		PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Loading user module from 0x%x\r\n", addr);
 
 		usize pid = LoadExecutableFile(addr, moduleSize);
-		PROC::SetExecutableUnitState(PROC::GetThread(info->KernelScheduler, pid, 0), PROC::ExecutableUnitState::P_READY);
+		PROC::UserThread *thread = (PROC::UserThread*)PROC::GetThread(info->KernelScheduler, pid, 0);
+		PROC::SetExecutableUnitState(thread, PROC::ExecutableUnitState::P_READY);
 
+		uptr space = ((PROC::UserProcess*)(thread->Parent))->VirtualMemorySpace;
 		PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Switching to user module.\r\n");
-#if defined(ARCH_x64)
-		x86_64::WaitAPIC();
-#endif
+	
+		VMM::LoadVirtualSpace(space);
+		EnterUserspace(thread->Context->IretRIP, thread->Context->IretRSP);
 	} else PANIC("Could not find User Module");
 #endif
-	*/
 
 	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Kernel startup complete.\r\n");
 
