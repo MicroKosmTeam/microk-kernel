@@ -20,6 +20,7 @@ usize LoadProcess(Elf64_Ehdr *elfHeader, uptr space, VMM::PageList *elfPages);
 
 u64 LoadELF(u8 *data, usize size) {
 	uptr space = VMM::NewVirtualSpace();
+	VMM::PrepareVirtualSpace(space);
 	
 	Elf64_Ehdr *elfHeader = (Elf64_Ehdr*)data;
 	
