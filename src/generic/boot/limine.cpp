@@ -109,13 +109,6 @@ static volatile limine_kernel_file_request KernelFileRequest {
 };
 
 
-static volatile limine_smp_request SMPRequest {
-	.id = LIMINE_SMP_REQUEST,
-	.revision = 0,
-	.response = NULL,
-	.flags = 1
-};
-
 /* DTB Request */
 static volatile limine_dtb_request DTBRequest {
 	.id = LIMINE_DTB_REQUEST,
@@ -131,18 +124,6 @@ static volatile limine_boot_time_request TimeRequest {
 };
 
 extern uptr __stack_chk_guard;
-
-void LimineSMPEntry(limine_smp_info *cpuInfo) {
-	KInfo *info = GetInfo();
-
-	SpinlockLock(&info->SMPLock);
-
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "CPU %d started, APIC id: 0x%x\r\n", cpuInfo->processor_id, cpuInfo->lapic_id);
-
-	SpinlockUnlock(&info->SMPLock);
-
-	while(true) CPUPause();
-}
 
 /* Main Limine initialization function */
 extern "C" __attribute__((no_stack_protector)) __attribute__((noreturn))
@@ -164,8 +145,6 @@ void LimineEntry() {
 	InitInfo();
 	
 	KInfo *info = GetInfo();
-
-	SpinlockLock(&info->SMPLock);
 
 	/* Checking if vital requests have been answered by Limine
 	 * If not, give up and shut down */
@@ -220,19 +199,6 @@ void LimineEntry() {
 	} else {
 		info->FileCount = 0;
 		info->BootFiles = NULL;
-	}
-
-	if(SMPRequest.response == NULL) {
-		PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "WARNING: no SMP detected, assuming single core processor.\r\n");
-	} else {
-		if(SMPRequest.response->cpu_count > 1 && SMPRequest.response->cpus != NULL) {
-			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "SMP detected with %d processors.\r\n", SMPRequest.response->cpu_count);
-			for (usize i = 0; i < SMPRequest.response->cpu_count; ++i) {
-				SMPRequest.response->cpus[i]->goto_address = &LimineSMPEntry;
-			}
-		} else {
-			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "WARNING: no SMP detected, assuming single core processor.\r\n");
-		}
 	}
 
 	if(RSDPRequest.response == NULL) {
