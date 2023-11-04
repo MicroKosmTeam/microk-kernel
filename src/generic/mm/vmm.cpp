@@ -130,7 +130,6 @@ void PrepareVirtualSpace(uptr space) {
 		}
 	}
 
-	/*
 	if(info->KernelHeapPageList != NULL) {
 		uptr heapAddress = CONFIG_HEAP_BASE;
 		for (usize heapPage = 0; heapPage < info->KernelHeapPageList->PageCount; heapPage++) {
@@ -138,7 +137,5 @@ void PrepareVirtualSpace(uptr space) {
 			heapAddress += PAGE_SIZE;
 		}
 	}
-	*/
-	
 }
 }
