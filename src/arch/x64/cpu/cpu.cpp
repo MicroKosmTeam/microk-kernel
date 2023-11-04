@@ -20,112 +20,77 @@ extern "C" void EnableSCE(void *compatSyscallEntry, void *syscallEntry);
 
 extern "C" void SetIOPL();
 
-#define CPU_VENDOR_LENGTH 13 /* 12 + NULL */
+namespace x86_64 {
+inline static u32 GetFamily(u32 sig) {
+	u32 x86;
 
-static const char *CPUVendorStrings[] {
-	"AuthenticAMD",
-	"AMDisbetter!",
-	"GenuineIntel",
-	"VIA VIA VIA ",
-	"GenuineTMx86",
-	"TransmetaCPU",
-	"CyrixInstead",
-	"CentaurHauls",
-	"NexGenDriven",
-	"UMC UMC UMC ",
-	"SiS SiS SiS ",
-	"Geode by NSC",
-	"RiseRiseRise",
-	"Vortex86 SoC",
-	"MiSTer AO486",
-	"GenuineAO486",
-	"  Shanghai  ",
-	"HygonGenuine",
-	"E2K MACHINE ",
-	"TCGTCGTCGTCG",
-	" KVMKVMKVM  ",
-	"VMwareVMware",
-	"VBoxVBoxVBox",
-	"XenVMMXenVMM",
-	"Microsoft Hv",
-	" prl hyperv ",
-	" lrpepyh vr ",
-	"bhyve bhyve ",
-	" QNXQVMBSQG ",
-	NULL,
-	"Unknown"
-};
+	x86 = (sig >> 8) & 0xf;
 
+	if (x86 == 0xf)
+		x86 += (sig >> 20) & 0xff;
 
-
-static u16 EnableSMID() {
-	unsigned int eax, ebx, ecx, edx;
-	__cpuid(1, eax, ebx, ecx, edx);
-
-	u16 result = 0;
-
-	/* SSE */
-	if(edx & (1 << 25)) {
-		/* Enable SSE */
-		EnableSSE();
-
-		result |= (1 << 0);
-
-		/* SSE2 */
-		if(edx & (1 << 26)) {
-			result |= (1 << 1);
-		}
-
-		/* SSE3 */
-		if(ecx & (1 << 0)) {
-			result |= (1 << 2);
-
-			/* SSSE3 */
-			if(ecx & (1 << 9)) {
-				result |= (1 << 3);
-			}
-		}
-
-		/* SSE4.1 */
-		if(ecx & (1 << 19)) {
-			result |= (1 << 4);
-
-			/* SSE4.2 */
-			if(ecx & (1 << 20)) {
-				result |= (1 << 5);
-			}
-
-			/* SSE4A */
-			if(ecx & (1 << 6)) {
-				result |= (1 << 6);
-			}
-		}
-	
-
-		/* XSAVE */
-		if(ecx & (1 << 26)) {
-//			Not yet decided
-			result |= (1 << 7);
-
-	
-		/* AVX */
-		if(ecx & (1 << 28)) {
-//			Not yet decided
-			result |= (1 << 8);
-
-			EnableAVX();
-		}
-
-		}
-	}
-
-	return result;
+	return x86;
 }
 
-namespace x86_64 {
-int BootCPUInit(DEV::CPU::TopologyStructure *core) {
+inline static u32 GetModel(u32 sig) {
+	u32 fam, model;
+
+	fam = GetFamily(sig);
+
+	model = (sig >> 4) & 0xf;
+
+	if (fam >= 0x6)
+		model += ((sig >> 16) & 0xf) << 4;
+
+	return model;
+}
+
+inline static u32 GetStepping(u32 sig) {
+	return sig & 0xf;
+}
+
+inline static int EnableSyscalls() {
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Syscall entries at 0x%x\r\n", &SyscallEntry);
+
+	u32 msrLo = 0, msrHi = 0;
+
+	/* Enabling syscalls with MSRs, first starting with the SCE enable bit (0) in the EFER MSR */
+	GetMSR(MSR_EFER, &msrLo, &msrHi);
+	msrLo |= 1;
+	SetMSR(MSR_EFER, msrLo, msrHi);
+
+	/* Settign the higher part of the STAR MSR with the GDT offsets (low part is for EIP, unused in 64 bit mode */
+	msrLo = 0;
+	msrHi = (GDT_OFFSET_KERNEL_CODE) | (GDT_OFFSET_USER_CODE << 16);
+	SetMSR(MSR_STAR, msrLo, msrHi);
+
+	/* Setting syscall RIP for 64 bit mode in the LSTAR MSR */
+	msrLo = (uptr)&SyscallEntry;
+	msrHi = (uptr)&SyscallEntry >> 32;
+	SetMSR(MSR_LSTAR, msrLo, msrHi);
+
+	/* Setting syscall RIP for compatibility mode in the CSTAR MSR (for now it's 0, not supported */
+	msrLo = 0xDEADC0DE;
+	msrHi = 0x0;
+	SetMSR(MSR_CSTAR, msrLo, msrHi);
+
+	/* Setting RFLAGS mask to 0 in the FMASK MSR, no masking necessary */
+	msrLo = 0;
+	msrHi = 0;
+	SetMSR(MSR_FMASK, msrLo, msrHi);
+
+	return 0;
+}
+
+
+int BootCPUInit() {
 	KInfo *info = GetInfo();
+	DEV::CPU::TopologyStructure *machine = info->DefaultMachine;
+	DEV::CPU::TopologyStructure *core = info->BootCore;
+
+	PerMachineTopology *machineInfo = (PerMachineTopology*)BOOTMEM::Malloc(sizeof(PerMachineTopology));
 	PerCoreCPUTopology *coreInfo = (PerCoreCPUTopology*)BOOTMEM::Malloc(sizeof(PerCoreCPUTopology));
+	machine->ArchitectureSpecificInformation = (void*)machineInfo;
 	core->ArchitectureSpecificInformation = (void*)coreInfo;
 
 	/* We first of all get the position of the kernel interrupt stack and save it
@@ -133,99 +98,94 @@ int BootCPUInit(DEV::CPU::TopologyStructure *core) {
 	 * we allocate a proper location, as we know it will always be free for use.
 	 */
 	coreInfo->InterruptStack = VMM::PhysicalToVirtual(640 * 1024); 
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Temporary kernel stack: 0x%x\r\n", info->KernelStack);
+	coreInfo->InterruptStackSize = 640 * 1024 - PAGE_SIZE;
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Temporary kernel stack: 0x%x\r\n", coreInfo->InterruptStack);
 
 	/* Initialize the GDT */
-	LoadGDT();
+	LoadGDT(&coreInfo->GlobalDescriptorTable, &coreInfo->GDTPtr);
 
 	/* Initialization of the TSS */
-	TSSInit(coreInfo->InterruptStack);
-	FlushTSS();
+	TSSInit(&coreInfo->GlobalDescriptorTable, &coreInfo->TaskStateSegment, coreInfo->InterruptStack);
 
 	/* Jumpstart interrupts */
 	IDTInit((IDTEntry*)coreInfo->IDT, &coreInfo->_IDTR);
 	
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Basic CPU structures initialized\r\n");
-
-	SetMSR(MSR_GSBASE, 0xDEADDEAD, 0xDEADDEAD);
-
+	SetMSR(MSR_GSBASE, 0, 0);
 	SetMSR(MSR_KERNELGSBASE, (uptr)&coreInfo->CPUStruct, (uptr)&coreInfo->CPUStruct >> 32);
 
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Basic CPU structures initialized\r\n");
 	return 0;
+}
+	
+int UpdatePerCPUStack(DEV::CPU::TopologyStructure *core, usize stackSize) {
+	PerCoreCPUTopology *coreInfo = (PerCoreCPUTopology*)core->ArchitectureSpecificInformation;
 
+	PMM::FreePages((void*)(coreInfo->InterruptStack - coreInfo->InterruptStackSize),
+			coreInfo->InterruptStackSize / PAGE_SIZE);
+
+	coreInfo->InterruptStackSize = stackSize;
+	coreInfo->InterruptStack = VMM::PhysicalToVirtual((uptr)PMM::RequestPages(stackSize / PAGE_SIZE) + stackSize);
+
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "CPU interrupt stack: 0x%x\r\n", coreInfo->InterruptStack);
+
+	/* Initialization of the TSS */
+	LoadNewStackInTSS(&coreInfo->TaskStateSegment, coreInfo->InterruptStack);
+
+	return 0;
 }
 	
 int CurrentCPUInit(DEV::CPU::TopologyStructure *core) {
-	(void)core;
+	KInfo *info = GetInfo();
+
+	u32 vendor[4];
+	vendor[4] = '\0';
+	u32 maxIntelLevel = 0, maxAmdLevel = 0;
+	u32 ignored = 0;
+	__get_cpuid(0, &maxIntelLevel, &vendor[0], &vendor[2], &vendor[1]);
+	__get_cpuid(0x80000000, &maxAmdLevel, &ignored, &ignored, &ignored);
+
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "CPUID max supported Intel level: 0x%x\r\n"
+			"CPUID max supported AMD level: 0x%x\r\n"
+			"CPUID vendor string: %s\r\n", maxIntelLevel, maxAmdLevel, vendor);
+
+	if (maxIntelLevel >= 0x00000001 &&
+	    maxIntelLevel <= 0x0000ffff) {
+		u32 vendorInfo = 0;
+		__get_cpuid(1, &vendorInfo, &ignored, &ignored, &ignored);
+		u32 family, model, stepping;
+		family = GetFamily(vendorInfo);
+		model = GetModel(vendorInfo);
+		stepping = GetStepping(vendorInfo);
+
+		PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "CPUID processor info:\r\n"
+			"Family:   0x%x\r\n"
+			"Model:    0x%x\r\n"
+			"Stepping: 0x%x\r\n"
+			, family, model, stepping);
+
+	}
+
+	SetIOPL();
+
+	EnableSyscalls();
+
+	/* Initializing the user GSBASE MSR to 0 */
+	SetMSR(MSR_GSBASE, 0, 0);
+
+	PerCoreCPUTopology *coreInfo = (PerCoreCPUTopology*)core->ArchitectureSpecificInformation; 
+
+	UpdateLocalCPUStruct(&coreInfo->CPUStruct, 0, VMM::VirtualToPhysical(info->KernelVirtualSpace), VMM::VirtualToPhysical(info->KernelVirtualSpace));
+
 	return 0;
 }
 /*
    Function that initializes the x86CPU class
 */
 
-uptr localCPUStruct = 0;
-void CPUInit() {
-	KInfo *info = GetInfo();
-
-	SetIOPL();
-
-	u16 sseFeatures = EnableSMID();
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "SSE features: %x\r\n", sseFeatures);
-
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Syscall entries at 0x%x\r\n", &SyscallEntry);
-	EnableSCE(NULL, (void*)&SyscallEntry);
-
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "DONE.\r\n");
-
-	SetMSR(MSR_GSBASE, 0xDEADDEAD, 0xDEADDEAD);
-
-	localCPUStruct = (uptr)PMM::RequestPage() + info->HigherHalfMapping;
-	SetMSR(MSR_KERNELGSBASE, localCPUStruct, localCPUStruct >> 32);
-
-	UpdateLocalCPUStruct(0xDEADC0DECAFEBABE, VMM::VirtualToPhysical(info->KernelVirtualSpace), VMM::VirtualToPhysical(info->KernelVirtualSpace));
-}
-
-void UpdateLocalCPUStruct(uptr taskKernelStack, uptr userCR3, uptr kernelCR3) {
-	LocalCPUStruct *cpuStruct = (LocalCPUStruct*)localCPUStruct;
-
+void UpdateLocalCPUStruct(LocalCPUStruct *cpuStruct, uptr taskKernelStack, uptr userCR3, uptr kernelCR3) {
 	cpuStruct->TaskKernelStack = taskKernelStack;
 	cpuStruct->UserCR3 = userCR3;
 	cpuStruct->KernelCR3 = kernelCR3;
 }
 
-/*
-   Function that gets the CPU vendor string from CPUID
-*/
-const char *GetCPUVendor() {
-	u32 ebx, edx, ecx, unused;
-	__cpuid(0, unused, ebx, ecx, edx);
-
-	char string[CPU_VENDOR_LENGTH] = { 0 };
-
-	/* This bitshift logic is used to get the correct 8-bit characters
-	 * from the 32 bit registers. The vendor name is 12 characters + NULL
-	 */
-	string[0] = (u8)(ebx & 0xFF);
-	string[1] = (u8)((ebx >> 8) & 0xFF);
-	string[2] = (u8)((ebx >> 16) & 0xFF);
-	string[3] = (u8)((ebx >> 24) & 0xFF);
-	string[4] = (u8)(edx & 0xFF);
-	string[5] = (u8)((edx >> 8) & 0xFF);
-	string[6] = (u8)((edx >> 16) & 0xFF);
-	string[7] = (u8)((edx >> 24) & 0xFF);
-	string[8] = (u8)(ecx & 0xFF);
-	string[9] = (u8)((ecx >> 8) & 0xFF);
-	string[10] = (u8)((ecx >> 16) & 0xFF);
-	string[11] = (u8)((ecx >> 24) & 0xFF);
-	string[12] = '\0';
-
-	usize index = 0;
-	while(CPUVendorStrings[index] != NULL) {
-		if(Strncmp(string, CPUVendorStrings[index], CPU_VENDOR_LENGTH) == 0) return CPUVendorStrings[index];
-
-		++index;
-	}
-
-	return CPUVendorStrings[index + 1];
-}
 }
