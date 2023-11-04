@@ -32,6 +32,7 @@
 #include <mm/vmm.hpp>
 #include <sys/file.hpp>
 #include <proc/process.hpp>
+#include <dev/cpu.hpp>
 #include <proc/scheduler.hpp>
 #include <dev/earlycon.hpp>
 
@@ -71,6 +72,9 @@ struct KInfo {
 	uptr KernelPhysicalBase; /* Start of the kernel in physical memory */
 	uptr KernelVirtualBase; /* Start of the kernel in virtual memory */
 
+	DEV::CPU::TopologyStructure *DefaultMachine;
+	DEV::CPU::TopologyStructure *BootCore;
+
 	PROC::Scheduler *KernelScheduler;
 	uptr KernelVirtualSpace; /* Kernel virtual memory space */
 	PROC::KernelProcess *KernelProcess;
@@ -99,8 +103,6 @@ struct KInfo {
 
 	usize FramebufferCount;
 	Framebuffer *Framebuffers;
-
-	bool SMPLock;
 };
 
 /*
