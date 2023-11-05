@@ -96,20 +96,6 @@ void PrepareVirtualSpace(uptr space) {
 		MapPage(space, phys, phys - info->KernelPhysicalBase + info->KernelVirtualBase, VMM_FLAGS_KERNEL_DATA);
 	}
 
-	
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME,
-			"Total kernel addr: [0x%x - 0x%x] -> %d bytes\r\n"
-			"        Essential: [0x%x - 0x%x] -> %d bytes\r\n"
-			"             Text: [0x%x - 0x%x] -> %d bytes\r\n"
-			"           ROData: [0x%x - 0x%x] -> %d bytes\r\n"
-			"             Data: [0x%x - 0x%x] -> %d bytes\r\n",
-			essentialStartAddr, dataEndAddr, (dataEndAddr - essentialStartAddr),
-			essentialStartAddr, essentialEndAddr, (essentialEndAddr - essentialStartAddr),
-			textStartAddr, textEndAddr, (textEndAddr - textStartAddr),
-			rodataStartAddr, rodataEndAddr, (rodataEndAddr - rodataStartAddr),
-			dataStartAddr, dataEndAddr, (dataEndAddr - dataStartAddr)
-			);
-
 	/* We go through every entry in the memory map and map it in virtual memory */
 	for (usize i = 0; i < info->MemoryMapEntryCount; i++) {
 		MEM::MMapEntry entry = info->MemoryMap[i];

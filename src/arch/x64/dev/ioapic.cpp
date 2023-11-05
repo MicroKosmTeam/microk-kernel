@@ -24,9 +24,34 @@ int InitializeDevice(DEV::Device *device, va_list ap) {
 	ioapic->MappedAddress = VMM::PhysicalToVirtual(ioapic->Base);
 	VMM::MapPage(info->KernelVirtualSpace, ioapic->Base, ioapic->MappedAddress, VMM_FLAGS_KERNEL_DEVICE);
 
+	u32 ioapicVersionRegister;
+	ReadIOAPIC(ioapic, IOAPIC_REGISTER_IOAPICVER, &ioapicVersionRegister);
+
+	ioapic->Version = ioapicVersionRegister & 0xf;
+	ioapic->MaxRedirectionEntry = ((ioapicVersionRegister >> 16) & 0xff) + 1;
+
 	ioapic->GlobalSystemInterruptBase = va_arg(ap, u32);
 
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "IOAPIC 0x%x at 0x%x\r\n", ioapic->ID, ioapic->Base);
+	ReadIOAPIC(ioapic, IOAPIC_REGISTER_IOAPICVER, &ioapicVersionRegister);
+
+	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "IOAPIC 0x%x (version 0x%x) at 0x%x, handled IRQs: 0x%x\r\n", ioapic->ID, ioapic->Base, ioapic->Version, ioapic->MaxRedirectionEntry);
+
+	RedirectionEntry entry;
+	for (u8 entryNumber = 0; entryNumber < ioapic->MaxRedirectionEntry; ++entryNumber) {
+		ReadIOAPICRedirectionEntry(ioapic, entryNumber, &entry);
+
+		PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "IOAPIC entry 0x%x:\r\n"
+				" - Vector:           0x%x\r\n"
+				" - Delivery Mode:    0x%x\r\n"
+				" - Destination Mode: 0x%x\r\n"
+				" - Delivery Status:  0x%x\r\n"
+				" - Pin Polarity:     0x%x\r\n"
+				" - Remote IRR:       0x%x\r\n"
+				" - Trigger Mode:     0x%x\r\n"
+				" - Mask:             0x%x\r\n"
+				" - Destination:      0x%x\r\n"
+				, entryNumber, entry.Vector, entry.DeliveryMode, entry.DestinationMode, entry.DeliveryStatus, entry.PinPolarity, entry.RemoteIRR, entry.TriggerMode, entry.Mask, entry.Destination);
+	}
 
 	return 0;
 }
@@ -63,4 +88,44 @@ int WriteIOAPIC(IOAPIC *device, usize registerSelector, u32 value) {
 
 	return 0;
 }
+
+int ReadIOAPICRedirectionEntry(IOAPIC *device, u8 entryNumber, RedirectionEntry *entry) {
+	u32 lo, hi;
+
+	if (entryNumber > device->MaxRedirectionEntry) {
+		return -ENOTPRESENT;
+	}
+
+	ReadIOAPIC(device, IOAPIR_REGISTER_IOAPICREDTBL(entryNumber), &lo);
+	ReadIOAPIC(device, IOAPIR_REGISTER_IOAPICREDTBL(entryNumber) + 1, &hi);
+
+	*(u32*)((uptr)entry) = lo;
+	*(u32*)((uptr)entry + sizeof(u32)) = hi;
+
+	/* If the destination is physical, we can only address 16 CPUs,
+	 * so we remove the upper bits
+	 */
+	if (entry->DestinationMode == 0) {
+		entry->Destination &= 0xf;
+	}
+
+	return 0;
+}
+
+int WriteIOAPICRedirectionEntry(IOAPIC *device, u8 entryNumber, RedirectionEntry *entry) {
+	u32 lo, hi;
+
+	if (entryNumber > device->MaxRedirectionEntry) {
+		return -ENOTPRESENT;
+	}
+
+	lo = *(u32*)((uptr)entry);
+	hi = *(u32*)((uptr)entry + sizeof(u32));
+
+	WriteIOAPIC(device, IOAPIR_REGISTER_IOAPICREDTBL(entryNumber), lo);
+	WriteIOAPIC(device, IOAPIR_REGISTER_IOAPICREDTBL(entryNumber) + 1, hi);
+
+	return 0;
+}
+
 }
