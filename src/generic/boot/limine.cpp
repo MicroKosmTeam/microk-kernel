@@ -143,6 +143,7 @@ void LimineEntry() {
 	}
 	
 	InitInfo();
+	BOOTMEM::ActivateBootmem();
 	
 	KInfo *info = GetInfo();
 
