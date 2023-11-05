@@ -3,41 +3,54 @@
 #include <mm/memory.hpp>
 #include <cdefs.h>
 
-__attribute__((__aligned__((0x10)))) u8 bootmemMemory[CONFIG_BOOTMEM_SIZE];
-u32 lastPosition = 0;
-bool bootmemStatus = true;
-
 namespace BOOTMEM {
+	struct BootMem {
+		usize LastPosition;
+		bool Active;
+
+		__attribute__((__aligned__((0x10))))
+		u8 Memory[CONFIG_BOOTMEM_SIZE];
+	} BootMemData;
+
+	void ActivateBootmem() {
+		Memset(BootMemData.Memory, 0, CONFIG_BOOTMEM_SIZE);
+		BootMemData.LastPosition = 0;
+		BootMemData.Active = true;
+	}
+
 	void DeactivateBootmem() {
-		bootmemStatus = false;
+		BootMemData.Active = false;
 	}
 
 	bool BootmemIsActive() {
-		return bootmemStatus;
+		return BootMemData.Active;
 	}
 
 	void *Malloc(usize size) {
-		if (lastPosition + size > CONFIG_BOOTMEM_SIZE) {
+		if (BootMemData.LastPosition + size >= CONFIG_BOOTMEM_SIZE) {
 			DeactivateBootmem();
 			PANIC("No remaining bootmem memory");
 			return NULL;
 		}
 
-		void *seg = bootmemMemory + lastPosition;
-		lastPosition += size;
-
-		Memset(seg, 0, size);
+		void *seg = BootMemData.Memory + BootMemData.LastPosition;
+		BootMemData.LastPosition += size;
 
 		return seg;
 	}
 
 	void Free(void *address) {
 		(void)address;
-		return; // Bootmem can't free
+
+		DeactivateBootmem();
+		Memset(BootMemData.Memory, 0, CONFIG_BOOTMEM_SIZE);
+
+		PANIC("Bootmem memory was freed");
+		return;
 	}
 
 	u32 GetFree() {
-		return CONFIG_BOOTMEM_SIZE - lastPosition;
+		return CONFIG_BOOTMEM_SIZE - BootMemData.LastPosition;
 	}
 
 	u32 GetTotal() {

@@ -9,6 +9,7 @@ namespace BOOTMEM {
 	u32 GetFree();
 	u32 GetTotal();
 
+	void ActivateBootmem();
 	void DeactivateBootmem();
 	bool BootmemIsActive();
 }
