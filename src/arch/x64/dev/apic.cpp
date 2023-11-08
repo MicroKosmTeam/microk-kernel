@@ -49,26 +49,44 @@ int InitializeDevice(DEV::Device *device, va_list ap) {
 	apic->Base = GetAPICBase();
 	apic->MappedAddress = VMM::PhysicalToVirtual(apic->Base);
 	VMM::MapPage(info->KernelVirtualSpace, apic->Base, apic->MappedAddress, VMM_FLAGS_KERNEL_DEVICE);
-	SetAPICBase(apic->Base);
+	
+	ReadAPIC(apic, APIC_REGISTER_LAPIC_ID, &apic->ID);
 
-	ReadAPIC(apic, LAPICIDRegister, &apic->ID);
 	apic->ProcessorIsBSP = IsAPICBSP();
 	
 	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "APIC 0x%x (%s) at 0x%x\r\n", apic->ID, apic->ProcessorIsBSP ? "BSP" : "Not a BSP", apic->Base);
+	
+	SetAPICBase(apic->Base);
 
-/*
-	WriteAPICRegister(0xF0, 0x100 + 39);
-	WriteAPICRegister(0x80, 0x1);
+	u8 timerVector = 32;
+	u32 timer = timerVector | APIC_LVT_TIMER_TSCDEADLINE | APIC_LVT_TIMER_MASK;
+	u32 spuriousVector = 33 | 0x100;
 
-	APICTimer *timer = apic->Timer = new APICTimer;
-	timer->Initialize = InitializeAPICTimer;
+	WriteAPIC(apic, APIC_REGISTER_TASK_PRIORITY, 0x1);
+	WriteAPIC(apic, APIC_REGISTER_SPURIOUS_INTERRUPT_VECTOR, spuriousVector);
 
-	WriteAPICRegister(0x320, 32);
-	WriteAPICRegister(0x340, 0x10000);
-	WriteAPICRegister(0x380, 0x0);
+	WriteAPIC(apic, APIC_REGISTER_TIMER_INITIAL_COUNT, -1);
+	WriteAPIC(apic, APIC_REGISTER_TIMER_CURRENT_COUNT, 0);
+	WriteAPIC(apic, APIC_REGISTER_TIMER_DIVIDE_CONFIGURATION, APIC_LVT_TIMER_DIVIDE_1);
+	WriteAPIC(apic, APIC_REGISTER_LVT_TIMER_REGISTER, timer);
 
+	//WriteAPIC(apic, APIC_REGISTER_TIMER_INITIAL_COUNT, 100);
+	
+	u32 ignore;
+	ReadAPIC(apic, APIC_REGISTER_TIMER_CURRENT_COUNT, &ignore);
+
+	ReadAPIC(apic, APIC_REGISTER_LVT_TIMER_REGISTER, &timer);
+	timer &= ~APIC_LVT_TIMER_MASK;
+	WriteAPIC(apic, APIC_REGISTER_LVT_TIMER_REGISTER, timer);
+	
 	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "APIC enabled.\r\n");
-*/
+
+	u64 tsc = __builtin_ia32_rdtsc() + 0x1000;
+	SetMSR(MSR_TSC_DEADLINE, tsc & 0xFFFFFFFF, tsc >> 32);
+
+	WriteAPIC(apic, APIC_REGISTER_EOI, timerVector);
+
+
 	return 0;
 }
 
@@ -90,14 +108,14 @@ intmax_t Ioctl(DEV::Device *device, request_t request, va_list ap) {
 }
 
 
-int ReadAPIC(APIC *device, APICRegisters registerSelector, u32 *value) {
+int ReadAPIC(APIC *device, usize registerSelector, u32 *value) {
 	volatile u32 *apicRegister = (volatile u32*)(device->MappedAddress + registerSelector);
 
 	*value = *apicRegister;
 	return 0;
 }
 
-int WriteAPIC(APIC *device, APICRegisters registerSelector, u32 value) {
+int WriteAPIC(APIC *device, usize registerSelector, u32 value) {
 	volatile u32 *apicRegister = (volatile u32*)(device->MappedAddress + registerSelector);
 
 	*apicRegister = value;
