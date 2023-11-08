@@ -208,7 +208,8 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 */
 			}
 			break;
-		case 32:/*
+		case 32:
+			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "APIC ticked!!\r\n");/*
 			if(info->KernelScheduler != NULL) {
 				if(info->KernelScheduler->CurrentThread != NULL) {
 					Memcpy(info->KernelScheduler->CurrentThread->Thread->Context, context, sizeof(CPUStatus));
