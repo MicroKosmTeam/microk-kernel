@@ -1,7 +1,5 @@
 #pragma once
 #include <cstdint.hpp>
-
-#include <sys/time.hpp>
 #include <dev/dev.hpp>
 
 #define APIC_REGISTER_LAPIC_ID                            0x020
@@ -41,11 +39,6 @@
 #define APIC_LVT_TIMER_TSCDEADLINE (2 << 17)
 
 namespace x86_64::APIC {
-
-
-	struct APICTimer : public TIME::Timer {
-	};
-
 	struct APIC : public DEV::Device {
 		u32 ID;
 
@@ -53,8 +46,6 @@ namespace x86_64::APIC {
 		uptr MappedAddress;
 
 		bool ProcessorIsBSP;
-
-		APICTimer *Timer;
 	};
 
 

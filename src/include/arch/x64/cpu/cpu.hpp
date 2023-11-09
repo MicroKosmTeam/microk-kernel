@@ -5,6 +5,7 @@
 #pragma once
 #include <cstdint.hpp>
 #include <dev/cpu.hpp>
+#include <arch/x64/dev/tsc.hpp>
 #include <arch/x64/dev/apic.hpp>
 #include <arch/x64/dev/ioapic.hpp>
 #include <arch/x64/interrupts/idt.hpp>
@@ -85,6 +86,9 @@ namespace x86_64 {
 
 		/* The LAPIC for the current core */
 		APIC::APIC *LocalAPIC;
+
+		/* Time stamp counter for the current processor, if present */
+		TSC::TSC *TimeStampCounter;
 	};
 
 	inline __attribute__((always_inline))

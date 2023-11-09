@@ -190,6 +190,8 @@ int CurrentCPUInit(DEV::CPU::TopologyStructure *core) {
 		__get_cpuid(0x80000001, &ignored, &ignored, &feature, &feature);
 	}
 
+	coreInfo->TimeStampCounter = (TSC::TSC*)TSC::CreateTSCDevice();
+
 	SetIOPL();
 
 	EnableSyscalls();

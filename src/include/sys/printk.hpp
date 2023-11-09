@@ -3,7 +3,6 @@
 #include <cstdint.hpp>
 
 #include <stdarg.h>
-#include <sys/time.hpp>
 
 namespace PRINTK {
 	enum Loglevel {
@@ -19,7 +18,7 @@ namespace PRINTK {
 		LogMessage *Next;
 
 		Loglevel Level;
-		time_t Timestamp;
+		usize Timestamp;
 		usize Length;
 
 		char Module[MAX_KERNEL_MODULE_NAME_LENGTH];
