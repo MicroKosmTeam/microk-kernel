@@ -1,6 +1,7 @@
 #include <arch/x64/dev/main.hpp>
 #include <init/kinfo.hpp>
 #include <sys/printk.hpp>
+#include <sys/timer.hpp>
 
 #include <arch/x64/cpu/cpu.hpp>
 #include <arch/x64/dev/apic.hpp>
@@ -96,9 +97,9 @@ int HandleMADT(MADTHeader *madt) {
 	PerCoreCPUTopology *bootCoreInfo = (PerCoreCPUTopology*)info->BootCore->ArchitectureSpecificInformation;
 
 	APIC::APIC *localAPIC = (APIC::APIC*)APIC::CreateAPICDevice();
-	DEV::InitializeDevice((DEV::Device*)localAPIC);
-
 	bootCoreInfo->LocalAPIC = localAPIC;
+
+	DEV::InitializeDevice((DEV::Device*)localAPIC);
 
 	MADTRecord *record;
 	uptr offset = MADT_RECORD_START_OFFSET;
@@ -228,10 +229,13 @@ int HandleHPET(HPETHeader *hpet) {
 
 	u64 tscPerSecond = 0;
 	CalibrateTSCWithHPET(hpet->Address.Address, &tscPerSecond);
-	
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "HPET-calculated TSC per second: 0x%x\r\n", tscPerSecond);
-
 	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "CPU is running at %d.%dMHz\r\n", tscPerSecond / 1000000, tscPerSecond % 1000000 / 1000);
+	
+	
+	KInfo *info = GetInfo();
+	PerCoreCPUTopology *coreInfo = (PerCoreCPUTopology*)info->BootCore->ArchitectureSpecificInformation; 
+	DEV::InitializeDevice((DEV::Device*)coreInfo->TimeStampCounter, tscPerSecond);
+
 /*
 	SetAPICTimer(tscPerSecond / 2000);
 	EnableAPIC();
