@@ -81,11 +81,14 @@ int InitializeDevice(DEV::Device *device, va_list ap) {
 	
 	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "APIC enabled.\r\n");
 
-	u64 tsc = __builtin_ia32_rdtsc() + 0x1000;
+	/*
+	u64 tsc = __builtin_ia32_rdtsc() + 0x100000000;
 	SetMSR(MSR_TSC_DEADLINE, tsc & 0xFFFFFFFF, tsc >> 32);
 
-	WriteAPIC(apic, APIC_REGISTER_EOI, timerVector);
+	while(true);
 
+	WriteAPIC(apic, APIC_REGISTER_EOI, 0);
+	*/
 
 	return 0;
 }

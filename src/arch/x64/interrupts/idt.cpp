@@ -104,6 +104,7 @@ static inline void PrintRegs(CPUStatus *context) {
 extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 	DEV::CPU::TopologyStructure *core;
 	x86_64::GetCoreTopologyStruct(&core);
+	x86_64::PerCoreCPUTopology *coreInfo = (x86_64::PerCoreCPUTopology*)core->ArchitectureSpecificInformation;
 
 	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Core topology structure: 0x%x\r\n", core);
 /*
@@ -208,8 +209,19 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 */
 			}
 			break;
-		case 32:
-			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "APIC ticked!!\r\n");/*
+		case 32: {
+			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "APIC ticked!!\r\n");
+			x86_64::APIC::APIC *apic = coreInfo->LocalAPIC;
+			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "APIC at 0x%x\r\n", apic);
+/*
+			u64 tsc = __builtin_ia32_rdtsc() + 0x100000000;
+			x86_64::SetMSR(MSR_TSC_DEADLINE, tsc & 0xFFFFFFFF, tsc >> 32);*/
+
+			x86_64::APIC::WriteAPIC(apic, APIC_REGISTER_EOI, 0);
+
+
+			 }
+			/*
 			if(info->KernelScheduler != NULL) {
 				if(info->KernelScheduler->CurrentThread != NULL) {
 					Memcpy(info->KernelScheduler->CurrentThread->Thread->Context, context, sizeof(CPUStatus));
