@@ -21,16 +21,16 @@ struct StackFrame {
 void UnwindStack(int MaxFrames) {
 	StackFrame *stk;
 	stk = (StackFrame*)__builtin_frame_address(0);
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Stack trace:\r\n");
+	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Stack trace:\r\n");
 
 	for(int frame = 0; stk && frame < MaxFrames; ++frame) {
 		// Unwind to previous stack frame
 		if(stk->RIP < UINTPTR_MAX / 2) break;
 		const Symbol *symbol = LookupSymbol(stk->RIP);
 		if (symbol != NULL) {
-			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "  0x%x   %s\r\n", stk->RIP, symbol->name);
+			PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "  0x%x   %s\r\n", stk->RIP, symbol->name);
 		} else {
-			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "  0x%x   <unknown>\r\n", stk->RIP);
+			PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "  0x%x   <unknown>\r\n", stk->RIP);
 		}
 
 		if(stk->RBP == NULL || ((uptr)stk->RBP < (uptr)(UINTPTR_MAX / 2) && (uptr)stk->RBP > (uptr)0x100000)) break;

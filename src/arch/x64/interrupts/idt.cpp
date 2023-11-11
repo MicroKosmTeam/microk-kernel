@@ -57,7 +57,7 @@ void IDTInit(IDTEntry *idt, IDTR *idtr) {
 }
 
 static inline void PrintRegs(CPUStatus *context) {
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, " -> RAX: 0x%x\r\n"
+	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME " -> RAX: 0x%x\r\n"
 			" -> RBX: 0x%x\r\n"
 			" -> RCX: 0x%x\r\n"
 			" -> RDX: 0x%x\r\n"
@@ -106,7 +106,7 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 	x86_64::GetCoreTopologyStruct(&core);
 	x86_64::PerCoreCPUTopology *coreInfo = (x86_64::PerCoreCPUTopology*)core->ArchitectureSpecificInformation;
 
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Core topology structure: 0x%x\r\n", core);
+	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Core topology structure: 0x%x\r\n", core);
 /*
 	bool switchAddressSpace = (cr3 != kcr3) ? true : false;
 
@@ -118,18 +118,18 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 */
 	switch(context->VectorNumber) {
 		case 0:
-			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Division by zero.\r\n");
+			PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Division by zero.\r\n");
 			break;
 		case 6:
 			PrintRegs(context);
-			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Invalid opcode: 0x%x.\r\n", *(u8*)context->IretRIP);
+			PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Invalid opcode: 0x%x.\r\n", *(u8*)context->IretRIP);
 			break;
 		case 8:
 			PANIC("Double fault");
 			break;
 		case 13: {
 			PrintRegs(context);
-			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "General protection fault.\r\n");
+			PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "General protection fault.\r\n");
 			PANIC("General protection fault");
 			break;
 			}
@@ -163,10 +163,10 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 					for(pageSelector = 0; pageSelector < pages->PageCount; ++pageSelector) {
 						if(!pages->Pages[pageSelector].IsCOW) continue;
 						if(pages->Pages[pageSelector].Data.COW->PhysicalAddressOfCopy != 0) continue;
-						//PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Page %d.\r\n", pageSelector);
+						//PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Page %d.\r\n", pageSelector);
 
 						for(virtualReference = 0; virtualReference < pages->Pages[pageSelector].Data.COW->VirtualReferences; ++virtualReference) {
-							//PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, " %d. 0x%x vs 0x%x\r\n", virtualReference, pages->Pages[pageSelector].Data.COW->VirtualAddresses[virtualReference], roundedPage);
+							//PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME " %d. 0x%x vs 0x%x\r\n", virtualReference, pages->Pages[pageSelector].Data.COW->VirtualAddresses[virtualReference], roundedPage);
 							if(pages->Pages[pageSelector].Data.COW->VirtualAddresses[virtualReference] == roundedPage) {
 								found = true;
 								break;
@@ -182,7 +182,7 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 
 			if(!found) {*/
 				PrintRegs(context);
-				PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Page fault in page 0x%x because of a %s.\r\nIt was caused by a %s from %s.\r\nIt %s because of an instruction fetch.\r\n",
+				PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Page fault in page 0x%x because of a %s.\r\nIt was caused by a %s from %s.\r\nIt %s because of an instruction fetch.\r\n",
 					page,
 					protectionViolation ? "page protection violation" : "non-present page",
 					writeAccess ? "write" : "read",
@@ -197,22 +197,22 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 				       (void*)(pages->Pages[pageSelector].Data.COW->PhysicalAddressOfOriginal + info->HigherHalfMapping),
 				       PAGE_SIZE);
 
-				PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "COW!!\r\n"
+				PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "COW!!\r\n"
 					       " Original: 0x%x\r\n"
 					       " Copy:     0x%x\r\n", pages->Pages[pageSelector].Data.COW->PhysicalAddressOfOriginal, copy);
 
 
 				pages->Pages[pageSelector].Data.COW->PhysicalAddressOfCopy = copy;
 				VMM::MapPage(procSpace, copy, roundedPage, VMM_FLAGS_USER_GENERIC);
-				PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Cow, out.\r\n");
+				PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Cow, out.\r\n");
 			}
 */
 			}
 			break;
 		case 32: {
-			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "APIC ticked!!\r\n");
+			PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "APIC ticked!!\r\n");
 			x86_64::APIC::APIC *apic = coreInfo->LocalAPIC;
-			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "APIC at 0x%x\r\n", apic);
+			PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "APIC at 0x%x\r\n", apic);
 /*
 			u64 tsc = __builtin_ia32_rdtsc() + 0x100000000;
 			x86_64::SetMSR(MSR_TSC_DEADLINE, tsc & 0xFFFFFFFF, tsc >> 32);*/
@@ -257,7 +257,7 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 			HandleSyscall(context->RAX, context->RDI, context->RSI, context->RDX, context->RCX, context->R8, context->R9);
 			break;
 		default:
-			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Unhandled interrupt: 0x%x\r\n", context->VectorNumber);
+			PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Unhandled interrupt: 0x%x\r\n", context->VectorNumber);
 			OOPS("Unhandled interrupt");
 			break;
 	}

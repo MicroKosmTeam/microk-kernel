@@ -34,13 +34,13 @@ int InitializeDevice(DEV::Device *device, va_list ap) {
 
 	ReadIOAPIC(ioapic, IOAPIC_REGISTER_IOAPICVER, &ioapicVersionRegister);
 
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "IOAPIC 0x%x (version 0x%x) at 0x%x, handled IRQs: 0x%x\r\n", ioapic->ID, ioapic->Base, ioapic->Version, ioapic->MaxRedirectionEntry);
+	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "IOAPIC 0x%x (version 0x%x) at 0x%x, handled IRQs: 0x%x\r\n", ioapic->ID, ioapic->Base, ioapic->Version, ioapic->MaxRedirectionEntry);
 
 	RedirectionEntry entry;
 	for (u8 entryNumber = 0; entryNumber < ioapic->MaxRedirectionEntry; ++entryNumber) {
 		ReadIOAPICRedirectionEntry(ioapic, entryNumber, &entry);
 
-		PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "IOAPIC entry 0x%x:\r\n"
+		PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "IOAPIC entry 0x%x:\r\n"
 				" - Vector:           0x%x\r\n"
 				" - Delivery Mode:    0x%x\r\n"
 				" - Destination Mode: 0x%x\r\n"

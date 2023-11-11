@@ -12,7 +12,7 @@
 #endif
 
 #if !defined(MODULE_NAME)
-	#define MODULE_NAME "Generic"
+	#define MODULE_NAME ""
 #endif
 
 #define HIGHER_HALF 0xFFFF800000000000

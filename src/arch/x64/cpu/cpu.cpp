@@ -50,7 +50,7 @@ inline static u32 GetStepping(u32 sig) {
 }
 
 inline static int EnableSyscalls() {
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Syscall entries at 0x%x\r\n", &SyscallEntry);
+	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Syscall entries at 0x%x\r\n", &SyscallEntry);
 
 	u32 msrLo = 0, msrHi = 0;
 
@@ -99,7 +99,7 @@ int BootCPUInit() {
 	 */
 	coreInfo->InterruptStack = VMM::PhysicalToVirtual(640 * 1024); 
 	coreInfo->InterruptStackSize = 640 * 1024 - PAGE_SIZE;
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Temporary kernel stack: 0x%x\r\n", coreInfo->InterruptStack);
+	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Temporary kernel stack: 0x%x\r\n", coreInfo->InterruptStack);
 
 	/* Initialize the GDT */
 	LoadGDT(&coreInfo->GlobalDescriptorTable, &coreInfo->GDTPtr);
@@ -130,7 +130,7 @@ int UpdatePerCPUStack(DEV::CPU::TopologyStructure *core, usize stackSize) {
 	coreInfo->InterruptStackSize = stackSize;
 	coreInfo->InterruptStack = VMM::PhysicalToVirtual((uptr)PMM::RequestPages(stackSize / PAGE_SIZE) + stackSize);
 
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "CPU interrupt stack: 0x%x\r\n", coreInfo->InterruptStack);
+	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "CPU interrupt stack: 0x%x\r\n", coreInfo->InterruptStack);
 
 	/* Initialization of the TSS */
 	LoadNewStackInTSS(&coreInfo->TaskStateSegment, coreInfo->InterruptStack);
@@ -159,7 +159,7 @@ int CurrentCPUInit(DEV::CPU::TopologyStructure *core) {
 	__get_cpuid(0, &maxIntelLevel, &vendor[0], &vendor[2], &vendor[1]);
 	__get_cpuid(0x80000000, &maxAmdLevel, &ignored, &ignored, &ignored);
 
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME,
+	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME 
 			"CPUID max supported Intel level: 0x%x\r\n"
 			"CPUID max supported AMD level: 0x%x\r\n"
 			"CPUID vendor string: %s\r\n", maxIntelLevel, maxAmdLevel, vendor);
@@ -173,7 +173,7 @@ int CurrentCPUInit(DEV::CPU::TopologyStructure *core) {
 		model = GetModel(vendorInfo);
 		stepping = GetStepping(vendorInfo);
 
-		PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "CPUID processor info:\r\n"
+		PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "CPUID processor info:\r\n"
 			"Family:   0x%x\r\n"
 			"Model:    0x%x\r\n"
 			"Stepping: 0x%x\r\n"

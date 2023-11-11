@@ -159,13 +159,13 @@ void LimineEntry() {
 	}
 	
 	/* Transporting the MMAP */
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Get the memory map from Limine.\r\n");
+	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Get the memory map from Limine.\r\n");
 
 	int MemoryMapEntryCount = MemoryMapRequest.response->entry_count;
 	info->MemoryMapEntryCount = MemoryMapEntryCount;
 	info->MemoryMap = (MEM::MMapEntry*)BOOTMEM::Malloc(sizeof(MEM::MMapEntry) * MemoryMapEntryCount + 1);
 
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Allocating for %d memory map entries.\r\n", MemoryMapEntryCount);
+	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Allocating for %d memory map entries.\r\n", MemoryMapEntryCount);
 	for (int i = 0; i < MemoryMapEntryCount; i++) {
 		info->MemoryMap[i].AddressBase = MemoryMapRequest.response->entries[i]->base;
 		info->MemoryMap[i].Length = MemoryMapRequest.response->entries[i]->length;
@@ -189,7 +189,7 @@ void LimineEntry() {
 
 		info->BootFiles = (BootFile*)BOOTMEM::Malloc(moduleCount * sizeof(BootFile));
 
-		PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Allocating for %d modules.\r\n", moduleCount);
+		PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Allocating for %d modules.\r\n", moduleCount);
 
 		for (int i = 0; i < moduleCount; i++) {
 			info->BootFiles[i].Address = (uptr)ModuleRequest.response->modules[i]->address;
@@ -203,56 +203,56 @@ void LimineEntry() {
 	}
 
 	if(RSDPRequest.response == NULL) {
-		PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "WARNING: no RSDP found.\r\n");
+		PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "WARNING: no RSDP found.\r\n");
 	} else {
 		if(RSDPRequest.response->address != NULL) {
-			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "RSDP found at 0x%x\r\n", RSDPRequest.response->address);
+			PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "RSDP found at 0x%x\r\n", RSDPRequest.response->address);
 			info->RSDP = (uptr)RSDPRequest.response->address;
 		} else {
-			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "WARNING: no RSDP found.\r\n");
+			PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "WARNING: no RSDP found.\r\n");
 		}
 	}
 
 	if(SMBIOSRequest.response == NULL) {
-		PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "WARNING: no viable SMBIOS entry found.\r\n");
+		PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "WARNING: no viable SMBIOS entry found.\r\n");
 	} else {
 		if(SMBIOSRequest.response->entry_64 != NULL) {
-			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "SMBIOS 64 entry at 0x%x\r\n", SMBIOSRequest.response->entry_64);
+			PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "SMBIOS 64 entry at 0x%x\r\n", SMBIOSRequest.response->entry_64);
 		} else if (SMBIOSRequest.response->entry_32 != NULL) {
-			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "SMBIOS 32 entry at 0x%x\r\n", SMBIOSRequest.response->entry_32);
+			PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "SMBIOS 32 entry at 0x%x\r\n", SMBIOSRequest.response->entry_32);
 		} else {
-			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "WARNING: no viable SMBIOS entry found.\r\n");
+			PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "WARNING: no viable SMBIOS entry found.\r\n");
 		}
 	}
 
 	if(EFITableRequest.response == NULL) {
-		PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "WARNING: EFI system table not found, assuming we're running on a BIOS system.\r\n");
+		PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "WARNING: EFI system table not found, assuming we're running on a BIOS system.\r\n");
 	} else {
 		if(EFITableRequest.response->address != NULL) {
-			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "EFI system table found at 0x%x\r\n", EFITableRequest.response->address);
+			PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "EFI system table found at 0x%x\r\n", EFITableRequest.response->address);
 		} else {
-			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "WARNING: EFI system table not found, assuming we're running on a BIOS system.\r\n");
+			PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "WARNING: EFI system table not found, assuming we're running on a BIOS system.\r\n");
 		}
 	}
 
 	if(DTBRequest.response == NULL) {
-		PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "WARNING: No DTB found.\r\n");
+		PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "WARNING: No DTB found.\r\n");
 	} else {
 		if(DTBRequest.response->dtb_ptr != NULL) {
-			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "DTB found at 0x%x\r\n", DTBRequest.response->dtb_ptr);
+			PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "DTB found at 0x%x\r\n", DTBRequest.response->dtb_ptr);
 			info->DeviceTree = (uptr)DTBRequest.response->dtb_ptr;
 		} else {
-			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "WARNING: No DTB found.\r\n");
+			PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "WARNING: No DTB found.\r\n");
 		}
 	}
 	
 	if (FramebufferRequest.response == NULL) {
-		PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "WARNING: No framebuffers detected.\r\n");
+		PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "WARNING: No framebuffers detected.\r\n");
 		info->FramebufferCount = 0;
 		info->Framebuffers = NULL;
 	} else {
 		int framebufferCount = FramebufferRequest.response->framebuffer_count;
-		PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "%d framebuffers detected.\r\n", framebufferCount);
+		PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "%d framebuffers detected.\r\n", framebufferCount);
 		info->FramebufferCount = framebufferCount;
 		info->Framebuffers = (Framebuffer*)BOOTMEM::Malloc(sizeof(Framebuffer) * framebufferCount);
 

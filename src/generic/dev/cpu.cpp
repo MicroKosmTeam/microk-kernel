@@ -14,7 +14,7 @@ namespace DEV::CPU {
 TopologyStructure *CreateTopologyStructure(TopologyStructure *parent, u32 id) {
 	TopologyStructure *structure = new TopologyStructure;
 
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Creating topology structure #%d under parent #%d\r\n", id, parent->ID);
+	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Creating topology structure #%d under parent #%d\r\n", id, parent->ID);
 
 	structure->ID = id;
 	structure->Parent = parent;

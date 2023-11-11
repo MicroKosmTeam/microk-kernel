@@ -20,7 +20,7 @@ int InitializeDevice(DEV::Device *device, va_list ap) {
 	tsc->MicroTickRate = tsc->TickRate / 1000000;
 	tsc->NanoTickRate = tsc->TickRate / 1000000000;
 	
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "TSC initialized with %d ticks per second.\r\n", tsc->TickRate);
+	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "TSC initialized with %d ticks per second.\r\n", tsc->TickRate);
 
 	return 0;
 }

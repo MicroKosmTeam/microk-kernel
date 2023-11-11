@@ -261,7 +261,7 @@ void PrintSchedulerStatus(Scheduler *scheduler) {
 	if(scheduler == NULL) return;
 	SpinlockLock(&scheduler->SchedulerLock);
 
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Printing debug status of scheduler at 0x%x\r\n"
+	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Printing debug status of scheduler at 0x%x\r\n"
 		       " Current thread:                      0x%x\r\n"
 		       " Elapsed quantum:                     0x%x\r\n"
 		       " Queue count:                         0x%x\r\n",
@@ -270,13 +270,13 @@ void PrintSchedulerStatus(Scheduler *scheduler) {
 
 	ThreadBase *thread = NULL;
 	for (usize currentQueue = 0; currentQueue < scheduler->QueueCount; ++currentQueue) { 
-		PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "  Queue:                              0x%x\r\n", currentQueue);
+		PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "  Queue:                              0x%x\r\n", currentQueue);
 		SchedulerNode *node = scheduler->Queues[currentQueue]->Head;
-		if(node == NULL) PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "   Empty\r\n");
+		if(node == NULL) PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "   Empty\r\n");
 		else {
 			thread = node->Thread;
 			while(node != scheduler->Queues[currentQueue]->Tail) {
-				PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "   Thread:                            0x%x\r\n"
+				PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "   Thread:                            0x%x\r\n"
 					       "    TID:                              0x%x\r\n"
 					       "    PID:                              0x%x\r\n",
 					       thread, thread->ID, thread->Parent->ID);
@@ -285,7 +285,7 @@ void PrintSchedulerStatus(Scheduler *scheduler) {
 				thread = node->Thread;
 			}
 
-			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "   Thread:                            0x%x\r\n"
+			PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "   Thread:                            0x%x\r\n"
 				       "    TID:                              0x%x\r\n"
 				       "    PID:                              0x%x\r\n",
 				       thread, thread->ID, thread->Parent->ID);

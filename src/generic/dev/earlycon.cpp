@@ -11,7 +11,7 @@ Device *InitializeEarlycon(char *arguments) {
 	char *memtype = Strtok(NULL, ", ", &endChar);
 	char *addr = Strtok(NULL, ", ", &endChar);
 	
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME,
+	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME 
 		       "Creating earlycon:\r\n"
 		       " - Name: %s\r\n"
 		       " - Memtype: %s\r\n"

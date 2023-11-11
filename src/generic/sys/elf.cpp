@@ -87,7 +87,7 @@ usize LoadProcess(Elf64_Ehdr *elfHeader, uptr space, VMM::PageList *elfPages) {
 
 	PROC::AddThreadToQueue(info->KernelScheduler, SCHEDULER_RUNNING_QUEUE, thread);
 
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Process created with PID: 0x%x\r\n", proc->ID);
+	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Process created with PID: 0x%x\r\n", proc->ID);
 	
 	return proc->ID;
 }

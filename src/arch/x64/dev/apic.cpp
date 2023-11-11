@@ -54,7 +54,7 @@ int InitializeDevice(DEV::Device *device, va_list ap) {
 
 	apic->ProcessorIsBSP = IsAPICBSP();
 	
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "APIC 0x%x (%s) at 0x%x\r\n", apic->ID, apic->ProcessorIsBSP ? "BSP" : "Not a BSP", apic->Base);
+	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "APIC 0x%x (%s) at 0x%x\r\n", apic->ID, apic->ProcessorIsBSP ? "BSP" : "Not a BSP", apic->Base);
 	
 	SetAPICBase(apic->Base);
 
@@ -79,7 +79,7 @@ int InitializeDevice(DEV::Device *device, va_list ap) {
 	timer &= ~APIC_LVT_TIMER_MASK;
 	WriteAPIC(apic, APIC_REGISTER_LVT_TIMER_REGISTER, timer);
 	
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "APIC enabled.\r\n");
+	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "APIC enabled.\r\n");
 
 	/*
 	u64 tsc = __builtin_ia32_rdtsc() + 0x100000000;

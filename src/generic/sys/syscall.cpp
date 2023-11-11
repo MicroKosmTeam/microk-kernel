@@ -1,10 +1,6 @@
-#include <cdefs.h>
-#include <cstdint.hpp>
-
 #include <mm/pmm.hpp>
 #include <sys/io.hpp>
 #include <sys/file.hpp>
-#include <sys/user.hpp>
 #include <mm/string.hpp>
 #include <mm/memory.hpp>
 #include <sys/panic.hpp>
@@ -14,31 +10,12 @@
 #include <sys/syscall.hpp>
 #include <proc/helpers.hpp>
 
-/* Kernel syscall handlers */
-usize HandleSyscallDebugPrintK(const_userptr_t userString);
-
-usize HandleSyscallMemoryVMAlloc(const_userptr_t userBase, usize length, usize flags);
-usize HandleSyscallMemoryPMAlloc(userptr_t baseDestination, usize length, usize flags);
-usize HandleSyscallMemoryVMFree(const_userptr_t userBase, usize length);
-usize HandleSyscallMemoryMMap(uptr src, uptr dest, usize length, usize flags);
-usize HandleSyscallMemoryMProtect(uptr base, usize length, usize flags);
-usize HandleSyscallMemoryUnMap(uptr base, usize length);
-usize HandleSyscallMemoryInOut(const_userptr_t iorequests, usize count);
-usize HandleSyscallMemoryRequestResources(const_userptr_t requests, usize count);
-
-usize HandleSyscallProcFork();
-usize HandleSyscallProcExec(userptr_t executableBase, usize executableSize);
-usize HandleSyscallProcReturn(usize returnCode);
-usize HandleSyscallProcExit(usize exitCode);
-usize HandleSyscallProcWait(usize TODO);
-usize HandleSyscallProcSendSig(usize TODO);
-
 __attribute__((aligned(PAGE_SIZE))) SyscallFunctionCallback SyscallVector[SYSCALL_VECTOR_END];
 
 void InitSyscalls() {
 	Memset(SyscallVector, 0, SYSCALL_VECTOR_END * sizeof(SyscallFunctionCallback));
 
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Initializing system call API.\r\n");
+	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Initializing system call API.\r\n");
 	SyscallVector[SYSCALL_DEBUG_PRINTK] = (SyscallFunctionCallback)(void*)HandleSyscallDebugPrintK;
 	SyscallVector[SYSCALL_MEMORY_VMALLOC] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryVMAlloc;
 
@@ -54,7 +31,7 @@ void InitSyscalls() {
 */
 }
 
-extern "C" usize HandleSyscall(usize syscallNumber, usize arg1, usize arg2, usize arg3, usize arg4, usize arg5, usize arg6) {
+extern "C" isize HandleSyscall(usize syscallNumber, usize arg1, usize arg2, usize arg3, usize arg4, usize arg5, usize arg6) {
 	if(syscallNumber <= SYSCALL_VECTOR_START ||
 	   syscallNumber >= SYSCALL_VECTOR_END ||
 	   SyscallVector[syscallNumber] == NULL) return -ENOTPRESENT;
@@ -63,16 +40,16 @@ extern "C" usize HandleSyscall(usize syscallNumber, usize arg1, usize arg2, usiz
 }
 
 
-usize HandleSyscallDebugPrintK(const_userptr_t userString) {
+isize HandleSyscallDebugPrintK(const_userptr_t userString) {
 	char string[MAX_PRINTK_SYSCALL_MESSAGE_LENGTH + 1] = { '\0' };
 	CopyStringFromUser(string, userString, MAX_PRINTK_SYSCALL_MESSAGE_LENGTH);
 
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "%s", string);
+	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "%s", string);
 
 	return 0;
 }
 
-usize HandleSyscallMemoryVMAlloc(const_userptr_t userBase, usize length, usize flags) {
+isize HandleSyscallMemoryVMAlloc(const_userptr_t userBase, usize length, usize flags) {
 	if(CheckUserMemory(userBase, length) != 0) {
 		PANIC("Bad memory");
 		return -EBADREQUEST;
@@ -84,18 +61,18 @@ usize HandleSyscallMemoryVMAlloc(const_userptr_t userBase, usize length, usize f
 	PROC::UserProcess *proc = (PROC::UserProcess*)PROC::GetProcess();
 	uptr procSpace = GetVirtualSpace((PROC::ProcessBase*)proc);
 	
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Calling VMAlloc for PID %d. Base: 0x%x, Length: %d bytes, Flags: 0x%x.\r\n", proc->ID, base, length, flags);
+	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Calling VMAlloc for PID %d. Base: 0x%x, Length: %d bytes, Flags: 0x%x.\r\n", proc->ID, base, length, flags);
 
 	VMM::VMAlloc(procSpace, base, length, VMM_FLAGS_USER_DATA);
 
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Executing VMAlloc for PID %d completed successfully.\r\n", proc->ID);
+	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Executing VMAlloc for PID %d completed successfully.\r\n", proc->ID);
 
 	return 0;
 }
 
 #ifdef UNDEF
 
-usize HandleSyscallMemoryPMAlloc(userptr_t baseDestination, usize length, usize flags) {
+isize HandleSyscallMemoryPMAlloc(userptr_t baseDestination, usize length, usize flags) {
 	(void) flags;
 
 	uptr base = 0;
@@ -112,7 +89,7 @@ usize HandleSyscallMemoryPMAlloc(userptr_t baseDestination, usize length, usize 
 	return 0;
 }
 
-usize HandleSyscallMemoryVMFree(const_userptr_t userBase, usize length) {
+isize HandleSyscallMemoryVMFree(const_userptr_t userBase, usize length) {
 	if(int code = CheckUserMemory(userBase, length) != 0)
 		return code;
 
@@ -140,7 +117,7 @@ usize HandleSyscallMemoryVMFree(const_userptr_t userBase, usize length) {
 	return 0;
 }
 
-usize HandleSyscallMemoryMMap(uptr src, uptr dest, usize length, usize flags) {
+isize HandleSyscallMemoryMMap(uptr src, uptr dest, usize length, usize flags) {
 	PROC::UserProcess *proc = (PROC::UserProcess*)PROC::GetProcess();
 	VMM::VirtualSpace *procSpace = GetVirtualSpace((PROC::ProcessBase*)proc);
 
@@ -165,7 +142,7 @@ usize HandleSyscallMemoryMMap(uptr src, uptr dest, usize length, usize flags) {
 	return 0;
 }
 
-usize HandleSyscallMemoryUnMap(uptr base, usize length) {
+isize HandleSyscallMemoryUnMap(uptr base, usize length) {
 	if (base <= 0x1000 || base + length >= 0x00007FFFFFFFF000)
 		return -1; /* Make sure it is in valid memory */
 
@@ -182,7 +159,7 @@ usize HandleSyscallMemoryUnMap(uptr base, usize length) {
 	return 0;
 }
 
-usize HandleSyscallMemoryInOut(const_userptr_t iorequests, usize count) {
+isize HandleSyscallMemoryInOut(const_userptr_t iorequests, usize count) {
 	if (count > 128) return -EINVALID;
 
 	IORequest requests[count];
@@ -193,13 +170,13 @@ usize HandleSyscallMemoryInOut(const_userptr_t iorequests, usize count) {
 }
 
 
-usize HandleSyscallProcExec(userptr_t executableBase, usize executableSize) {
+isize HandleSyscallProcExec(userptr_t executableBase, usize executableSize) {
 	u8 *heapAddr = (u8*)Malloc(executableSize);
 
 	CopyFromUser(heapAddr, executableBase, executableSize);
 	
 	usize pid = LoadExecutableFile((u8*)heapAddr, executableSize);
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "New process is PID: 0x%x\r\n", pid);
+	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "New process is PID: 0x%x\r\n", pid);
 
 	Free(heapAddr);
 
@@ -210,7 +187,7 @@ usize HandleSyscallProcExec(userptr_t executableBase, usize executableSize) {
 	return 0;
 }
 
-usize HandleSyscallProcFork() {
+isize HandleSyscallProcFork() {
 	KInfo *info = GetInfo();
 
 	uptr entrypoint = 0;
@@ -246,7 +223,7 @@ usize HandleSyscallProcFork() {
 	return 0;
 }
 
-usize HandleSyscallProcReturn(usize returnCode) {
+isize HandleSyscallProcReturn(usize returnCode) {
 	KInfo *info = GetInfo();
 
 	uptr kernelStack, userStack, userStackBase;
@@ -273,7 +250,7 @@ usize HandleSyscallProcReturn(usize returnCode) {
 */
 #endif
 
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Returning in 0x%x: %d form 0x%x (0x%x)\r\n", kernelStack, returnCode, userStack, userStackBase); 
+	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Returning in 0x%x: %d form 0x%x (0x%x)\r\n", kernelStack, returnCode, userStack, userStackBase); 
 
 	//PROC::SetExecutableUnitState(info->KernelScheduler->CurrentThread->Thread, PROC::ExecutableUnitState::P_WAITING);
 
@@ -288,21 +265,21 @@ usize HandleSyscallProcReturn(usize returnCode) {
 	return 0;
 }
 
-usize HandleSyscallProcExit(usize exitCode) {
+isize HandleSyscallProcExit(usize exitCode) {
 	uptr stack = 0;
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Exiting: %d form 0x%x\r\n", exitCode, stack); 
+	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Exiting: %d form 0x%x\r\n", exitCode, stack); 
 	
 	while(true);
 
 	return 0;
 }
 
-usize HandleSyscallProcWait(usize TODO) {
+isize HandleSyscallProcWait(usize TODO) {
 	(void)TODO;
 	return 0;
 }
 
-usize HandleSyscallProcSendSig(usize TODO) {
+isize HandleSyscallProcSendSig(usize TODO) {
 	(void)TODO;
 	return 0;
 }

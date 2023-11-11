@@ -37,7 +37,6 @@
 #include <sys/syscall.hpp>
 
 extern "C" void CPUPause();
-extern "C" void EnterUserspace(uptr, uptr);
 
 extern "C" __attribute__((noreturn))
 void KernelStart() {
@@ -68,14 +67,14 @@ void KernelStart() {
 	addr = (u8*)FindFile(info->UserModuleName, &moduleSize);
 	
 	if (addr != NULL) {
-		PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Loading user module from 0x%x\r\n", addr);
+		PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Loading user module from 0x%x\r\n", addr);
 
 		usize pid = LoadExecutableFile(addr, moduleSize);
 		PROC::UserThread *thread = (PROC::UserThread*)PROC::GetThread(info->KernelScheduler, pid, 0);
 		PROC::SetExecutableUnitState(thread, PROC::ExecutableUnitState::P_READY);
 
 		uptr space = ((PROC::UserProcess*)(thread->Parent))->VirtualMemorySpace;
-		PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Switching to user module.\r\n");
+		PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Switching to user module.\r\n");
 
 		PROC::RecalculateScheduler(info->KernelScheduler);
 	
@@ -83,11 +82,11 @@ void KernelStart() {
 		UpdateLocalCPUStruct(&coreInfo->CPUStruct, thread->KernelStack, VMM::VirtualToPhysical(space), VMM::VirtualToPhysical(space));
 		
 		VMM::LoadVirtualSpace(space);
-		EnterUserspace(thread->Context->IretRIP, thread->Context->IretRSP);
+		EnterUserspace((void*)thread->Context->IretRIP, (void*)thread->Context->IretRSP);
 	} else PANIC("Could not find User Module");
 #endif
 
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Kernel startup complete.\r\n");
+	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Kernel startup complete.\r\n");
 
 	/* We are done */
 	while (true) CPUPause();

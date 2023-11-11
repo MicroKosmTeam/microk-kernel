@@ -108,7 +108,7 @@ void InitPageFrameAllocator() {
 	// Locking the page bitmap
 	ReservePages(PageBitmap.buffer, PageBitmap.size / PAGE_SIZE + 1);
 
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Bitmap allocator started: %dkb of memory in total.\r\n", memorySize / 1024);
+	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Bitmap allocator started: %dkb of memory in total.\r\n", memorySize / 1024);
 }
 
 #define MAX_TRIES 4 

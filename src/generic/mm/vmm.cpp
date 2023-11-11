@@ -50,7 +50,7 @@ void InitVMM() {
 
 	LoadVirtualSpace(info->KernelVirtualSpace);
 
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Virtual memory subsystem initialized.\r\n");
+	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Virtual memory subsystem initialized.\r\n");
 
 }
 

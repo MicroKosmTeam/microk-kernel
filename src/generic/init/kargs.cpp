@@ -35,7 +35,7 @@ void ParseArgs() {
 	KInfo *info = GetInfo();
 	if (info->KernelArgs == NULL) return;
 	
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "MicroKosm is booted. Cmdline: %s\r\n", info->KernelArgs);
+	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "MicroKosm is booted. Cmdline: %s\r\n", info->KernelArgs);
 
 	/* We split the values in the id and value pairs */
 	char *endChar;
@@ -57,7 +57,7 @@ void ParseArgs() {
 		} else if (Strncmp(id, "", MAX_CMDLINE_ARGUMENT_LENGTH) == 0) {
 		} else {
 			/* Invalid argument */
-			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Unknown argument: %s\r\n", id);
+			PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Unknown argument: %s\r\n", id);
 		}
 
 		/* Continue with the parsing,

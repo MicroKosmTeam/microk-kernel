@@ -45,7 +45,7 @@ void operator delete[](void* p, usize size) {
 
 namespace MEM {
 void InvokeOOM() {
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "OOM invoked, system is out of memory.\r\n");
+	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "OOM invoked, system is out of memory.\r\n");
 
 	PANIC("Out of memory");
 }
@@ -53,16 +53,16 @@ void InvokeOOM() {
 void Init() {
 	KInfo *info = GetInfo();
 
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Provided physical RAM map:\r\n");
+	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Provided physical RAM map:\r\n");
 
 	for (usize i = 0; i < info->MemoryMapEntryCount; i++) {
-		PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, " [0x%x - 0x%x] -> %s\r\n",
+		PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME " [0x%x - 0x%x] -> %s\r\n",
 				info->MemoryMap[i].AddressBase,
 				info->MemoryMap[i].AddressBase + info->MemoryMap[i].Length,
 				MemoryTypeToString(info->MemoryMap[i].Type));
 	}
 
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, "Contiguous regions:\r\n");
+	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Contiguous regions:\r\n");
 	bool isAllUnusable = true;
 	uptr base = info->MemoryMap[0].AddressBase;
 	usize length = info->MemoryMap[0].Length;
@@ -72,7 +72,7 @@ void Init() {
 			length += info->MemoryMap[region].Length;
 			if(isAllUnusable) isAllUnusable = info->MemoryMap[region].Type == MEMMAP_USABLE ? false : true;
 		} else {
-			PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, " %s area: [0x%x - 0x%x]\r\n",
+			PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME " %s area: [0x%x - 0x%x]\r\n",
 				isAllUnusable ? "Unusable" : "Usable",
 				base,
 				base + length);
@@ -83,12 +83,12 @@ void Init() {
 		}
 	}
 
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME, " %s area: [0x%x - 0x%x]\r\n",
+	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME " %s area: [0x%x - 0x%x]\r\n",
 				isAllUnusable ? "Unusable" : "Usable",
 				base,
 				base + length);
 
-	PRINTK::PrintK(PRINTK::DEBUG, MODULE_NAME,
+	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME 
 			"Total kernel size: [0x%x - 0x%x] -> %d bytes\r\n"
 			"        Essential: [0x%x - 0x%x] -> %d bytes\r\n"
 			"             Text: [0x%x - 0x%x] -> %d bytes\r\n"
