@@ -7,7 +7,18 @@ namespace PROC {
 		KInfo *info = GetInfo();
 
 		SpinlockLock(&info->KernelScheduler->SchedulerLock);
-		PROC::ProcessBase *proc = (PROC::ProcessBase*)info->KernelScheduler->CurrentThread->Thread->Parent;
+
+		PROC::SchedulerNode *currentNode = info->KernelScheduler->CurrentThread;
+		if (currentNode == NULL) {
+			return NULL;
+		}
+
+		PROC::ThreadBase *thread = currentNode->Thread;
+		if (thread == NULL) {
+			return NULL;
+		}
+
+		PROC::ProcessBase *proc = (PROC::ProcessBase*)thread->Parent;
 		SpinlockUnlock(&info->KernelScheduler->SchedulerLock);
 
 		return proc;

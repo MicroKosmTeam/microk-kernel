@@ -105,16 +105,10 @@ void KernelStart() {
 		PROC::UserThread *thread = (PROC::UserThread*)PROC::GetThread(info->KernelScheduler, pid, 0);
 		PROC::SetExecutableUnitState(thread, PROC::ExecutableUnitState::P_READY);
 
-		uptr space = ((PROC::UserProcess*)(thread->Parent))->VirtualMemorySpace;
 		PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Switching to user module.\r\n");
 
-		PROC::RecalculateScheduler(info->KernelScheduler);
-	
-		x86_64::PerCoreCPUTopology *coreInfo = (x86_64::PerCoreCPUTopology*)info->BootCore->ArchitectureSpecificInformation; 
-		UpdateLocalCPUStruct(&coreInfo->CPUStruct, thread->KernelStack, VMM::VirtualToPhysical(space), VMM::VirtualToPhysical(space));
-		
-		VMM::LoadVirtualSpace(space);
-		EnterUserspace((void*)thread->Context->IretRIP, (void*)thread->Context->IretRSP);
+		u64 tsc = __builtin_ia32_rdtsc() + 0x1000000;
+		x86_64::SetMSR(MSR_TSC_DEADLINE, tsc & 0xFFFFFFFF, tsc >> 32);
 	} else PANIC("Could not find User Module");
 #endif
 
