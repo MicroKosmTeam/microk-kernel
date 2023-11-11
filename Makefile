@@ -86,9 +86,6 @@ $(ARCH_SOURCES)/%.o: $(ARCH_SOURCES)/%.asm
 link: $(COMMON_OBJS) $(ARCH_OBJS)
 	@ echo !==== LINKING
 	$(LD) $(LDFLAGS) -T $(LDS64) -o microk.elf $(COMMON_OBJS) $(ARCH_OBJS)
-	@ ./symbolstocpp.sh
-	$(CPP) $(CFLAGS) -c $(COMMON_SOURCES)/sys/symbolMap.cpp -o $(COMMON_SOURCES)/sys/symbolMap.o
-	$(LD) $(LDFLAGS) -T $(LDS64) -o microk.elf $(COMMON_OBJS) $(ARCH_OBJS)
 
 kernel: $(COMMON_OBJS) $(ARCH_OBJS) link
 	@ echo !==== KERNEL COMPILED

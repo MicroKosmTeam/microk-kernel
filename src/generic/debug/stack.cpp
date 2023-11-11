@@ -19,21 +19,22 @@ struct StackFrame {
 }__attribute__((packed));
 
 void UnwindStack(int MaxFrames) {
+	MaxFrames = 0; /*Temporary debug measure */
+
+
 	StackFrame *stk;
 	stk = (StackFrame*)__builtin_frame_address(0);
 	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Stack trace:\r\n");
 
 	for(int frame = 0; stk && frame < MaxFrames; ++frame) {
-		// Unwind to previous stack frame
-		if(stk->RIP < UINTPTR_MAX / 2) break;
-		const Symbol *symbol = LookupSymbol(stk->RIP);
-		if (symbol != NULL) {
-			PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "  0x%x   %s\r\n", stk->RIP, symbol->name);
-		} else {
-			PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "  0x%x   <unknown>\r\n", stk->RIP);
-		}
+		/* Unwind to previous stack frame */
+		const char *name = SYMBOL::AddressToSymbolName(stk->RIP);
+		PRINTK::PrintK(PRINTK_DEBUG "  Stack frame: 0x%x\r\n", stk);
+		PRINTK::PrintK(PRINTK_DEBUG "  0x%x   %s\r\n", stk->RIP, name);
 
-		if(stk->RBP == NULL || ((uptr)stk->RBP < (uptr)(UINTPTR_MAX / 2) && (uptr)stk->RBP > (uptr)0x100000)) break;
+		if(stk->RBP == NULL)
+			break;
+
 		stk = stk->RBP;
 	}
 }
