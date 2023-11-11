@@ -59,18 +59,27 @@ void KernelStart() {
 	info->KernelScheduler = PROC::InitializeScheduler(SCHEDULER_DEFAULT_QUEUES);
 	info->KernelMessageManager = PROC::IPCMessageManagerInitialize();
 
-	PROC::IPCMessageQueueCtl(info->KernelMessageManager, PROC::QueueOperations::CREATE, NULL, 4096);
-	PROC::IPCMessageQueueCtl(info->KernelMessageManager, PROC::QueueOperations::CREATE, NULL, 4096);
+	PROC::IPCMessageQueueCtl(info->KernelMessageManager, PROC::QueueOperations::CREATE, NULL, 1024);
 
 	u8 stringBuffer[32] = {'\0'};
 
+	PRINTK::PrintK(PRINTK_DEBUG "Sent %d bytes to queue 0\r\n", PROC::IPCMessageSend(info->KernelMessageManager, 0, (const u8*)"Hello, Frank!\r\n", 16, 0, 0));
 	PRINTK::PrintK(PRINTK_DEBUG "Sent %d bytes to queue 0\r\n", PROC::IPCMessageSend(info->KernelMessageManager, 0, (const u8*)"Hello, Marta!\r\n", 16, 0, 0));
-	PRINTK::PrintK(PRINTK_DEBUG "Sent %d bytes to queue 1\r\n", PROC::IPCMessageSend(info->KernelMessageManager, 1, (const u8*)"Hello, Becky!\r\n", 16, 0, 0));
+	PRINTK::PrintK(PRINTK_DEBUG "Sent %d bytes to queue 0\r\n", PROC::IPCMessageSend(info->KernelMessageManager, 0, (const u8*)"Hello, Becky!\r\n", 16, 0, 0));
+	PRINTK::PrintK(PRINTK_DEBUG "Sent %d bytes to queue 0\r\n", PROC::IPCMessageSend(info->KernelMessageManager, 0, (const u8*)"Hello, Jesse!\r\n", 16, 0, 0));
 	
-	PROC::IPCMessageReceive(info->KernelMessageManager, 1, stringBuffer, 32, 0, 0);
-	PRINTK::PrintK(PRINTK_DEBUG "Buffer 1: %s\r\n", stringBuffer);
 	PROC::IPCMessageReceive(info->KernelMessageManager, 0, stringBuffer, 32, 0, 0);
 	PRINTK::PrintK(PRINTK_DEBUG "Buffer 0: %s\r\n", stringBuffer);
+	Memset(stringBuffer, 0, 32);
+	PROC::IPCMessageReceive(info->KernelMessageManager, 0, stringBuffer, 32, 0, 0);
+	PRINTK::PrintK(PRINTK_DEBUG "Buffer 0: %s\r\n", stringBuffer);
+	Memset(stringBuffer, 0, 32);
+	PROC::IPCMessageReceive(info->KernelMessageManager, 0, stringBuffer, 32, 0, 0);
+	PRINTK::PrintK(PRINTK_DEBUG "Buffer 0: %s\r\n", stringBuffer);
+	Memset(stringBuffer, 0, 32);
+	PROC::IPCMessageReceive(info->KernelMessageManager, 0, stringBuffer, 32, 0, 0);
+	PRINTK::PrintK(PRINTK_DEBUG "Buffer 0: %s\r\n", stringBuffer);
+	Memset(stringBuffer, 0, 32);
 
 	InitSyscalls();
 	InitializeKernelTables();

@@ -75,10 +75,13 @@ isize IPCMessageSend(MessageManager *manager, usize queueID, const u8 *messagePo
 	Memcpy(message->MessageStart, (void*)messagePointer, messageLength);
 
 	++queue->WaitingMessages;
-	queue->FirstFreeByteOffset += messageLength + sizeof(Message);
+	usize moveLength = messageLength + sizeof(Message);
+	queue->FirstFreeByteOffset += moveLength;
+	queue->FreeSize -= moveLength;
 
 	(void)messageType;
 	(void)messageFlags;
+
 	return messageLength;
 }
 
@@ -88,13 +91,11 @@ isize IPCMessageReceive(MessageManager *manager, usize queueID, u8 *messageBuffe
 	}
 
 	MessageQueue *queue = manager->Queues[queueID];
-
 	if (queue->WaitingMessages == 0) {
 		return 0;
 	}
 
 	Message *message = (Message*)queue->MessageStart;
-
 	if (message->Magic != MESSAGE_HEADER_MAGIC) {
 		return -EINVALID;
 	}
@@ -102,9 +103,11 @@ isize IPCMessageReceive(MessageManager *manager, usize queueID, u8 *messageBuffe
 	usize length = message->Length > maxMessageLength ? maxMessageLength : message->Length;
 	Memcpy(messageBufferPointer, message->MessageStart, length);
 
+	usize moveLength = message->Length + sizeof(Message);
+	Memmove(queue->MessageStart, (const void*)((uptr)queue->MessageStart + moveLength), queue->AllocatedSize - moveLength);
+	queue->FirstFreeByteOffset -= moveLength;
+	queue->FreeSize += moveLength;
 	--queue->WaitingMessages;
-	queue->FirstFreeByteOffset -= message->Length + sizeof(Message);
-	Memset(message, 0, message->Length + sizeof(Message));
 
 	(void)messageType;
 	(void)messageFlags;

@@ -31,7 +31,7 @@ namespace PROC {
 		usize FirstFreeByteOffset;
 		
 		u8 MessageStart[1];
-	};
+	}__attribute__((packed));
 
 	struct MessageManager {
 		usize TotalQueues;
