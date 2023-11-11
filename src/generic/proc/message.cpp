@@ -58,7 +58,7 @@ isize IPCMessageQueueCtl(MessageManager *manager, QueueOperations operation, ...
 	return returnVal;
 }
 
-isize IPCMessageSend(MessageManager *manager, usize queueID, const u8 *messagePointer, usize messageLength, usize messageType, usize messageFlags) {
+isize IPCMessageSend(MessageManager *manager, usize queueID, ProcessBase *proc, const u8 *messagePointer, usize messageLength, usize messageType, usize messageFlags) {
 	MessageQueue *queue = manager->Queues[queueID];
 	Message *message = (Message*)((uptr)queue + queue->FirstFreeByteOffset);
 	
@@ -67,10 +67,15 @@ isize IPCMessageSend(MessageManager *manager, usize queueID, const u8 *messagePo
 	}
 	
 	message->Magic = MESSAGE_HEADER_MAGIC;
-	message->ProcessID = 0;
 	message->SendTime = 0;
 	message->ReceiveTime = 0;
 	message->Length = messageLength;
+
+	if (proc != NULL) {
+		message->ProcessID = proc->ID;
+	} else {
+		message->ProcessID = 0;
+	}
 
 	Memcpy(message->MessageStart, (void*)messagePointer, messageLength);
 
@@ -85,7 +90,7 @@ isize IPCMessageSend(MessageManager *manager, usize queueID, const u8 *messagePo
 	return messageLength;
 }
 
-isize IPCMessageReceive(MessageManager *manager, usize queueID, u8 *messageBufferPointer, usize maxMessageLength, usize messageType, usize messageFlags) {
+isize IPCMessageReceive(MessageManager *manager, usize queueID, ProcessBase *proc, u8 *messageBufferPointer, usize maxMessageLength, usize messageType, usize messageFlags) {
 	if (manager->TotalQueues < queueID) {
 		return -EINVALID;
 	}
@@ -109,6 +114,7 @@ isize IPCMessageReceive(MessageManager *manager, usize queueID, u8 *messageBuffe
 	queue->FreeSize += moveLength;
 	--queue->WaitingMessages;
 
+	(void)proc;
 	(void)messageType;
 	(void)messageFlags;
 

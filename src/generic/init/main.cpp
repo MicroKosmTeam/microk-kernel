@@ -59,25 +59,33 @@ void KernelStart() {
 	info->KernelScheduler = PROC::InitializeScheduler(SCHEDULER_DEFAULT_QUEUES);
 	info->KernelMessageManager = PROC::IPCMessageManagerInitialize();
 
-	PROC::IPCMessageQueueCtl(info->KernelMessageManager, PROC::QueueOperations::CREATE, NULL, 1024);
+	PROC::IPCMessageQueueCtl(info->KernelMessageManager, PROC::QueueOperations::CREATE, NULL, 4096);
 
 	u8 stringBuffer[32] = {'\0'};
 
-	PRINTK::PrintK(PRINTK_DEBUG "Sent %d bytes to queue 0\r\n", PROC::IPCMessageSend(info->KernelMessageManager, 0, (const u8*)"Hello, Frank!\r\n", 16, 0, 0));
-	PRINTK::PrintK(PRINTK_DEBUG "Sent %d bytes to queue 0\r\n", PROC::IPCMessageSend(info->KernelMessageManager, 0, (const u8*)"Hello, Marta!\r\n", 16, 0, 0));
-	PRINTK::PrintK(PRINTK_DEBUG "Sent %d bytes to queue 0\r\n", PROC::IPCMessageSend(info->KernelMessageManager, 0, (const u8*)"Hello, Becky!\r\n", 16, 0, 0));
-	PRINTK::PrintK(PRINTK_DEBUG "Sent %d bytes to queue 0\r\n", PROC::IPCMessageSend(info->KernelMessageManager, 0, (const u8*)"Hello, Jesse!\r\n", 16, 0, 0));
+	PRINTK::PrintK(PRINTK_DEBUG "Sent %d bytes to queue 0\r\n", PROC::IPCMessageSend(info->KernelMessageManager, 0, NULL, (const u8*)"Hello, Frankie!", 16, 0, 0));
+	PRINTK::PrintK(PRINTK_DEBUG "Sent %d bytes to queue 0\r\n", PROC::IPCMessageSend(info->KernelMessageManager, 0, NULL, (const u8*)"Hello, Marta!", 14, 0, 0));
+	PRINTK::PrintK(PRINTK_DEBUG "Sent %d bytes to queue 0\r\n", PROC::IPCMessageSend(info->KernelMessageManager, 0, NULL, (const u8*)"Hello, Jane!", 13, 0, 0));
+	PRINTK::PrintK(PRINTK_DEBUG "Sent %d bytes to queue 0\r\n", PROC::IPCMessageSend(info->KernelMessageManager, 0, NULL, (const u8*)"Hello, Becky!", 14, 0, 0));
+	PRINTK::PrintK(PRINTK_DEBUG "Sent %d bytes to queue 0\r\n", PROC::IPCMessageSend(info->KernelMessageManager, 0, NULL, (const u8*)"Hello, Gilbert!", 16, 0, 0));
+	PRINTK::PrintK(PRINTK_DEBUG "Sent %d bytes to queue 0\r\n", PROC::IPCMessageSend(info->KernelMessageManager, 0, NULL, (const u8*)"Hello, Jesse!", 14, 0, 0));
 	
-	PROC::IPCMessageReceive(info->KernelMessageManager, 0, stringBuffer, 32, 0, 0);
+	PROC::IPCMessageReceive(info->KernelMessageManager, 0, NULL, stringBuffer, 32, 0, 0);
 	PRINTK::PrintK(PRINTK_DEBUG "Buffer 0: %s\r\n", stringBuffer);
 	Memset(stringBuffer, 0, 32);
-	PROC::IPCMessageReceive(info->KernelMessageManager, 0, stringBuffer, 32, 0, 0);
+	PROC::IPCMessageReceive(info->KernelMessageManager, 0, NULL, stringBuffer, 32, 0, 0);
 	PRINTK::PrintK(PRINTK_DEBUG "Buffer 0: %s\r\n", stringBuffer);
 	Memset(stringBuffer, 0, 32);
-	PROC::IPCMessageReceive(info->KernelMessageManager, 0, stringBuffer, 32, 0, 0);
+	PROC::IPCMessageReceive(info->KernelMessageManager, 0, NULL, stringBuffer, 32, 0, 0);
 	PRINTK::PrintK(PRINTK_DEBUG "Buffer 0: %s\r\n", stringBuffer);
 	Memset(stringBuffer, 0, 32);
-	PROC::IPCMessageReceive(info->KernelMessageManager, 0, stringBuffer, 32, 0, 0);
+	PROC::IPCMessageReceive(info->KernelMessageManager, 0, NULL, stringBuffer, 32, 0, 0);
+	PRINTK::PrintK(PRINTK_DEBUG "Buffer 0: %s\r\n", stringBuffer);
+	Memset(stringBuffer, 0, 32);
+	PROC::IPCMessageReceive(info->KernelMessageManager, 0, NULL, stringBuffer, 32, 0, 0);
+	PRINTK::PrintK(PRINTK_DEBUG "Buffer 0: %s\r\n", stringBuffer);
+	Memset(stringBuffer, 0, 32);
+	PROC::IPCMessageReceive(info->KernelMessageManager, 0, NULL, stringBuffer, 32, 0, 0);
 	PRINTK::PrintK(PRINTK_DEBUG "Buffer 0: %s\r\n", stringBuffer);
 	Memset(stringBuffer, 0, 32);
 

@@ -18,6 +18,8 @@ void InitSyscalls() {
 	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Initializing system call API.\r\n");
 	SyscallVector[SYSCALL_DEBUG_PRINTK] = (SyscallFunctionCallback)(void*)HandleSyscallDebugPrintK;
 	SyscallVector[SYSCALL_MEMORY_VMALLOC] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryVMAlloc;
+	
+	SyscallVector[SYSCALL_PROC_EXIT] = (SyscallFunctionCallback)(void*)HandleSyscallProcExit;
 
 /*
 	SyscallVector[SYSCALL_MEMORY_PMALLOC] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryPMAlloc;
@@ -264,24 +266,12 @@ isize HandleSyscallProcReturn(usize returnCode) {
 
 	return 0;
 }
+#endif
 
 isize HandleSyscallProcExit(usize exitCode) {
-	uptr stack = 0;
-	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Exiting: %d form 0x%x\r\n", exitCode, stack); 
+	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Exiting: %d\r\n", exitCode); 
 	
 	while(true);
 
 	return 0;
 }
-
-isize HandleSyscallProcWait(usize TODO) {
-	(void)TODO;
-	return 0;
-}
-
-isize HandleSyscallProcSendSig(usize TODO) {
-	(void)TODO;
-	return 0;
-}
-
-#endif

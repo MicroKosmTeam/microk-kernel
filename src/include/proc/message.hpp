@@ -46,7 +46,7 @@ namespace PROC {
 
 	MessageManager *IPCMessageManagerInitialize();
 	isize IPCMessageQueueCtl(MessageManager *manager, QueueOperations operation, ...);
-	isize IPCMessageSend(MessageManager *manager, usize queueID, const u8 *messagePointer, usize messageLength, usize messageType, usize messageFlags);
-	isize IPCMessageReceive(MessageManager *manager, usize queueID, u8 *messageBufferPointer, usize maxMessageLength, usize messageType, usize messageFlags);
+	isize IPCMessageSend(MessageManager *manager, usize queueID, ProcessBase *proc, const u8 *messagePointer, usize messageLength, usize messageType, usize messageFlags);
+	isize IPCMessageReceive(MessageManager *manager, usize queueID, ProcessBase *proc, u8 *messageBufferPointer, usize maxMessageLength, usize messageType, usize messageFlags);
 
 }
