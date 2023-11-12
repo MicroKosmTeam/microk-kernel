@@ -106,6 +106,13 @@ namespace x86_64 {
 		asm volatile("mov %%gs:48, %0" : "=r"(*addr));
 	}
 
+	inline __attribute__((always_inline))
+	uptr GetCurrentStackPointer() {
+		uptr stackPtr;
+		asm volatile ("mov %%rsp, %0" : "=r"(stackPtr));
+		return stackPtr;
+	}
+
 	int BootCPUInit();
 	int UpdatePerCPUStack(DEV::CPU::TopologyStructure *core, usize stackSize);
 	int CurrentCPUInit(DEV::CPU::TopologyStructure *core);

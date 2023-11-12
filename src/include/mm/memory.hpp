@@ -1,14 +1,14 @@
 #pragma once
 #include <cstdint.hpp>
 
-#define MEMMAP_USABLE                 0
-#define MEMMAP_RESERVED               1
-#define MEMMAP_ACPI_RECLAIMABLE       2
-#define MEMMAP_ACPI_NVS               3
-#define MEMMAP_BAD_MEMORY             4
-#define MEMMAP_BOOTLOADER_RECLAIMABLE 5
-#define MEMMAP_KERNEL_AND_MODULES     6
-#define MEMMAP_FRAMEBUFFER            7
+#define MEMMAP_USABLE                 0x00
+#define MEMMAP_RESERVED               0x01
+#define MEMMAP_ACPI_RECLAIMABLE       0x02
+#define MEMMAP_ACPI_NVS               0x03
+#define MEMMAP_BAD_MEMORY             0x04
+#define MEMMAP_BOOTLOADER_RECLAIMABLE 0x05
+#define MEMMAP_KERNEL_AND_MODULES     0x06
+#define MEMMAP_FRAMEBUFFER            0x07
 
 void *Memset(void *start, u8 value, u64 num);
 void *Memcpy(void *dest, void *src, usize n);

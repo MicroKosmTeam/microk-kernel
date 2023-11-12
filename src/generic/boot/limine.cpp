@@ -10,10 +10,7 @@
 #include <mm/bootmem.hpp>
 #include <mm/string.hpp>
 #include <sys/printk.hpp>
-
-#if defined(ARCH_x64)
-extern "C" void CPUPause();
-#endif
+#include <sys/arch.hpp>
 
 LIMINE_BASE_REVISION(1)
 
@@ -143,11 +140,9 @@ void LimineEntry() {
 			__stack_chk_guard = 0x595e9fbd94fda766;
 		#endif
 	}
-	
+
 	InitInfo();
 	BOOTMEM::ActivateBootmem();
-	
-	KInfo *info = GetInfo();
 
 	/* Checking if vital requests have been answered by Limine
 	 * If not, give up and shut down */
@@ -159,9 +154,21 @@ void LimineEntry() {
 	   ) {
 		PANIC("Requests not answered by Limine");
 	}
+
+	
+	KInfo *info = GetInfo();
+
+	uptr stackPtr = ARCH::GetCurrentStackPointer();
+
+	ROUND_UP_TO_PAGE(stackPtr);
+	PRINTK::PrintK(PRINTK_DEBUG "Limine allocated kernel stack: 0x%x\r\n", stackPtr);
 	
 	/* Transporting the MMAP */
 	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Get the memory map from Limine.\r\n");
+
+	info->HigherHalfMapping = HHDMRequest.response->offset;
+	info->KernelPhysicalBase = KAddrRequest.response->physical_base;
+	info->KernelVirtualBase = KAddrRequest.response->virtual_base;
 
 	int MemoryMapEntryCount = MemoryMapRequest.response->entry_count;
 	info->MemoryMapEntryCount = MemoryMapEntryCount;
@@ -172,11 +179,12 @@ void LimineEntry() {
 		info->MemoryMap[i].AddressBase = MemoryMapRequest.response->entries[i]->base;
 		info->MemoryMap[i].Length = MemoryMapRequest.response->entries[i]->length;
 		info->MemoryMap[i].Type = MemoryMapRequest.response->entries[i]->type;
-	}
 
-	info->HigherHalfMapping = HHDMRequest.response->offset;
-	info->KernelPhysicalBase = KAddrRequest.response->physical_base;
-	info->KernelVirtualBase = KAddrRequest.response->virtual_base;
+		if (info->MemoryMap[i].Type == MEMMAP_BOOTLOADER_RECLAIMABLE &&
+		    info->MemoryMap[i].AddressBase + info->MemoryMap[i].Length == stackPtr - info->HigherHalfMapping) {
+			info->MemoryMap[i].Type = MEMMAP_KERNEL_AND_MODULES;
+		}
+	}
 
 	const char *cmdline = KernelFileRequest.response->kernel_file->cmdline;
 	usize len = Strnlen(cmdline, MAX_CMDLINE_LENGTH);

@@ -9,14 +9,26 @@
 #endif
 
 namespace ARCH {
-inline int SetupArch() {
-#if defined(ARCH_x64)
-	x86_64::Init();
-#elif defined(ARCH_aarch64)
-	AArch64::Init();
-#endif
+	inline __attribute__((always_inline))
+	int SetupArch() {
+		#if defined(ARCH_x64)
+			x86_64::Init();
+		#elif defined(ARCH_aarch64)
+			AArch64::Init();
+		#endif
+		
+		return 0;
+	}
+	
+	inline __attribute__((always_inline))
+	uptr GetCurrentStackPointer() {
+		#if defined(ARCH_x64)
+			return x86_64::GetCurrentStackPointer();
+		#elif defined(ARCH_aarch64)
+			return AArch64::GetCurrentStackPointer();
+		#endif
 
-	return 0;
-}
+		return -1;
+	}
 }
 

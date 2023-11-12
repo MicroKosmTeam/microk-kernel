@@ -117,6 +117,8 @@ void Init() {
 
 	/* With the heap initialized, disable new bootmem allocations */
 	BOOTMEM::DeactivateBootmem();
+
+	FreeBootMemory();
 }
 
 void FreeBootMemory() {
