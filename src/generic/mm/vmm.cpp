@@ -42,11 +42,17 @@ void MapPage(uptr space, uptr phys, uptr virt, usize flags) {
 #endif
 }
 
+void ForkSpace(uptr newSpace, uptr oldSpace, usize flags) {
+#if defined(ARCH_x64)
+	x86_64::ForkSpace(newSpace, oldSpace, flags);
+#endif
+}
+
 void InitVMM() {
 	KInfo *info = GetInfo();
 
 	info->KernelVirtualSpace = NewVirtualSpace();
-	PrepareVirtualSpace(info->KernelVirtualSpace);
+	PrepareKernelVirtualSpace(info->KernelVirtualSpace);
 
 	LoadVirtualSpace(info->KernelVirtualSpace);
 
@@ -54,7 +60,7 @@ void InitVMM() {
 
 }
 
-void PrepareVirtualSpace(uptr space) {
+void PrepareKernelVirtualSpace(uptr space) {
 	KInfo *info = GetInfo();
 	
 	uptr essentialStartAddr = (uptr)&__KernelBinaryEssentialStart - info->KernelVirtualBase + info->KernelPhysicalBase;
@@ -135,13 +141,20 @@ void PrepareVirtualSpace(uptr space) {
 		}
 	}
 
+	/*
 	if(info->KernelHeapPageList != NULL) {
 		uptr heapAddress = CONFIG_HEAP_BASE;
 		for (usize heapPage = 0; heapPage < info->KernelHeapPageList->PageCount; heapPage++) {
 			MapPage(space, info->KernelHeapPageList->Pages[heapPage].Data.PhysicalAddress, heapAddress, VMM_FLAGS_KERNEL_DATA);
 			heapAddress += PAGE_SIZE;
 		}
-	}
+	}*/
+}
+
+void PrepareUserVirtualSpace(uptr space) {
+	KInfo *info = GetInfo();
+
+	ForkSpace(space, info->KernelVirtualSpace, 0);
 }
 	
 void VMAlloc(uptr space, uptr virt, usize length, usize flags) {

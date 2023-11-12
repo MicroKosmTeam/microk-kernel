@@ -49,10 +49,12 @@ namespace VMM {
 	void LoadVirtualSpace(uptr space);
 
 	void MapPage(uptr space, uptr phys, uptr virt, usize flags);
+	void ForkSpace(uptr newSpace, uptr oldSpace, usize flags);
 
 	void VMAlloc(uptr space, uptr virt, usize length, usize flags);
 	void VMCopyAlloc(uptr space, uptr virt, usize length, usize flags, uptr data, uptr virtDataStart, usize dataLen);
 
 	void InitVMM();
-	void PrepareVirtualSpace(uptr space);
+	void PrepareKernelVirtualSpace(uptr space);
+	void PrepareUserVirtualSpace(uptr space);
 }

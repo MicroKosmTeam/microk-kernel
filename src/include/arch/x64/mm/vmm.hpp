@@ -60,7 +60,8 @@ namespace x86_64 {
 	
 	uptr NewVirtualSpace();
 	void LoadVirtualSpace(uptr topLevel);
-
+	
+	int ForkSpace(uptr newSpace, uptr oldSpace, usize flags);
 	int MapPage(uptr rootPageTable, uptr phys, uptr virt, usize flags);
 	int FlagPage(uptr rootPageTable, uptr virt, usize flags);
 	int UnmapPage(uptr rootPageTable, uptr virt);

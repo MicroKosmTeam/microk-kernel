@@ -48,6 +48,21 @@ void LoadVirtualSpace(uptr topLevel) {
 	asm volatile ("mov %0, %%cr3" : : "r" (VMM::VirtualToPhysical(topLevel)) : "memory");
 }
 
+int ForkSpace(uptr newSpace, uptr oldSpace, usize flags) {
+	(void) flags;
+
+	volatile u64 *oldTopLevel, *newTopLevel;
+
+	oldTopLevel = (volatile u64*)oldSpace;
+	newTopLevel = (volatile u64*)newSpace;
+
+	for (int i = 256; i < 512; ++i) {
+		newTopLevel[i] = oldTopLevel[i];
+	}
+
+	return 0;
+}
+
 int MapPage(uptr rootPageTable, uptr phys, uptr virt, usize flags) {
 	usize pml4Entry = (virt & (0x1ffull << 39)) >> 39;
 	usize pml3Entry = (virt & (0x1ffull << 30)) >> 30;
