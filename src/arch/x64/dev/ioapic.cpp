@@ -22,7 +22,7 @@ int InitializeDevice(DEV::Device *device, va_list ap) {
 
 	ioapic->Base = va_arg(ap, uptr);
 	ioapic->MappedAddress = VMM::PhysicalToVirtual(ioapic->Base);
-	VMM::MapPage(info->KernelVirtualSpace, ioapic->Base, ioapic->MappedAddress, VMM_FLAGS_KERNEL_DEVICE);
+	VMM::MapPage(info->KernelVirtualSpace, ioapic->Base, ioapic->MappedAddress, VMM_FLAGS_KERNEL_DATA);
 
 	u32 ioapicVersionRegister;
 	ReadIOAPIC(ioapic, IOAPIC_REGISTER_IOAPICVER, &ioapicVersionRegister);

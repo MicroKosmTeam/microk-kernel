@@ -42,6 +42,32 @@ namespace VMM {
 		PageMetadata Pages[];
 	};
 
+	inline
+	int CheckValidVMMFlags(usize flags, bool isUser) {
+		if (isUser) {
+			if (flags != VMM_FLAGS_USER_CODE ||
+			    flags != VMM_FLAGS_USER_RODATA ||
+			    flags != VMM_FLAGS_USER_DATA) {
+				return -EINVALID;
+			} else {
+				return 0;
+			}
+		} else {
+			if (flags != VMM_FLAGS_KERNEL_CODE ||
+			    flags != VMM_FLAGS_KERNEL_RODATA ||
+			    flags != VMM_FLAGS_KERNEL_DATA ||
+			    flags != VMM_FLAGS_KERNEL_GENERIC ||
+			    flags != VMM_FLAGS_USER_CODE ||
+			    flags != VMM_FLAGS_USER_RODATA ||
+			    flags != VMM_FLAGS_USER_DATA ||
+			    flags != VMM_FLAGS_USER_GENERIC) {
+				return -EINVALID;
+			} else {
+				return 0;
+			}
+		}
+	}
+
 	uptr PhysicalToVirtual(uptr value);
 	uptr VirtualToPhysical(uptr value);
 	
@@ -50,6 +76,8 @@ namespace VMM {
 
 	void MapPage(uptr space, uptr phys, uptr virt, usize flags);
 	void ForkSpace(uptr newSpace, uptr oldSpace, usize flags);
+
+	void MMap(uptr space, uptr src, uptr dest, usize length, usize flags);
 
 	void VMAlloc(uptr space, uptr virt, usize length, usize flags);
 	void VMCopyAlloc(uptr space, uptr virt, usize length, usize flags, uptr data, uptr virtDataStart, usize dataLen);

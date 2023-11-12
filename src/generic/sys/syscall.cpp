@@ -19,12 +19,13 @@ void InitSyscalls() {
 	SyscallVector[SYSCALL_DEBUG_PRINTK] = (SyscallFunctionCallback)(void*)HandleSyscallDebugPrintK;
 	SyscallVector[SYSCALL_MEMORY_VMALLOC] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryVMAlloc;
 	
+	SyscallVector[SYSCALL_MEMORY_MMAP] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryMMap;
+	
 	SyscallVector[SYSCALL_PROC_EXIT] = (SyscallFunctionCallback)(void*)HandleSyscallProcExit;
 
 /*
 	SyscallVector[SYSCALL_MEMORY_PMALLOC] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryPMAlloc;
 	SyscallVector[SYSCALL_MEMORY_VMFREE] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryVMFree;
-	SyscallVector[SYSCALL_MEMORY_MMAP] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryMMap;
 	SyscallVector[SYSCALL_MEMORY_UNMAP] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryUnMap;
 	SyscallVector[SYSCALL_MEMORY_INOUT] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryInOut;
 
@@ -52,11 +53,14 @@ isize HandleSyscallDebugPrintK(const_userptr_t userString) {
 }
 
 isize HandleSyscallMemoryVMAlloc(const_userptr_t userBase, usize length, usize flags) {
-	if(CheckUserMemory(userBase, length) != 0) {
+	if (CheckUserMemory(userBase, length)) {
 		PANIC("Bad memory");
 		return -EBADREQUEST;
 	}
 
+	if (VMM::CheckValidVMMFlags(flags, true)) {
+		return -EINVALID;
+	}
 
 	uptr base = (uptr)userBase;
 
@@ -65,12 +69,34 @@ isize HandleSyscallMemoryVMAlloc(const_userptr_t userBase, usize length, usize f
 	
 	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Calling VMAlloc for PID %d. Base: 0x%x, Length: %d bytes, Flags: 0x%x.\r\n", proc->ID, base, length, flags);
 
-	VMM::VMAlloc(procSpace, base, length, VMM_FLAGS_USER_DATA);
+	VMM::VMAlloc(procSpace, base, length, flags);
 
 	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Executing VMAlloc for PID %d completed successfully.\r\n", proc->ID);
 
 	return 0;
 }
+
+isize HandleSyscallMemoryMMap(const_userptr_t userSrc, const_userptr_t userDest, usize length, usize flags) {
+	if (CheckUserMemory(userSrc, length) || CheckUserMemory(userDest, length)) {
+		PANIC("Bad memory");
+		return -EBADREQUEST;
+	}
+
+	if (VMM::CheckValidVMMFlags(flags, true)) {
+		return -EINVALID;
+	}
+
+	uptr src = (uptr)userSrc;
+	uptr dest = (uptr)userDest;
+
+	PROC::UserProcess *proc = (PROC::UserProcess*)PROC::GetProcess();
+	uptr procSpace = GetVirtualSpace((PROC::ProcessBase*)proc);
+
+	VMM::MMap(procSpace, src, dest, length, flags);
+
+	return 0;
+}
+
 
 #ifdef UNDEF
 
@@ -119,30 +145,6 @@ isize HandleSyscallMemoryVMFree(const_userptr_t userBase, usize length) {
 	return 0;
 }
 
-isize HandleSyscallMemoryMMap(uptr src, uptr dest, usize length, usize flags) {
-	PROC::UserProcess *proc = (PROC::UserProcess*)PROC::GetProcess();
-	VMM::VirtualSpace *procSpace = GetVirtualSpace((PROC::ProcessBase*)proc);
-
-	if (src % PAGE_SIZE) {
-		src -= src % PAGE_SIZE;
-	}
-
-	if (dest % PAGE_SIZE) {
-		dest -= dest % PAGE_SIZE;
-	}
-
-	if (length % PAGE_SIZE) {
-		length += PAGE_SIZE - length % PAGE_SIZE;
-	}
-
-	uptr end = src + length;
-	for (; src < end; src += PAGE_SIZE, dest += PAGE_SIZE) {
-		if (flags == 0) VMM::MapMemory(procSpace, (void*)src, (void*)dest);
-		else VMM::MapMemory(procSpace, (void*)src, (void*)dest, flags);
-	}
-
-	return 0;
-}
 
 isize HandleSyscallMemoryUnMap(uptr base, usize length) {
 	if (base <= 0x1000 || base + length >= 0x00007FFFFFFFF000)

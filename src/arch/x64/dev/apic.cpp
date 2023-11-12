@@ -48,7 +48,7 @@ int InitializeDevice(DEV::Device *device, va_list ap) {
 
 	apic->Base = GetAPICBase();
 	apic->MappedAddress = VMM::PhysicalToVirtual(apic->Base);
-	VMM::MapPage(info->KernelVirtualSpace, apic->Base, apic->MappedAddress, VMM_FLAGS_KERNEL_DEVICE);
+	VMM::MapPage(info->KernelVirtualSpace, apic->Base, apic->MappedAddress, VMM_FLAGS_KERNEL_DATA);
 	
 	ReadAPIC(apic, APIC_REGISTER_LAPIC_ID, &apic->ID);
 

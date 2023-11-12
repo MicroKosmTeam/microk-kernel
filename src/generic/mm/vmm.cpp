@@ -140,21 +140,24 @@ void PrepareKernelVirtualSpace(uptr space) {
 			MapPage(space, addr, addr + info->HigherHalfMapping, VMM_FLAGS_KERNEL_DATA);
 		}
 	}
-
-	/*
-	if(info->KernelHeapPageList != NULL) {
-		uptr heapAddress = CONFIG_HEAP_BASE;
-		for (usize heapPage = 0; heapPage < info->KernelHeapPageList->PageCount; heapPage++) {
-			MapPage(space, info->KernelHeapPageList->Pages[heapPage].Data.PhysicalAddress, heapAddress, VMM_FLAGS_KERNEL_DATA);
-			heapAddress += PAGE_SIZE;
-		}
-	}*/
 }
 
 void PrepareUserVirtualSpace(uptr space) {
 	KInfo *info = GetInfo();
 
 	ForkSpace(space, info->KernelVirtualSpace, 0);
+}
+
+void MMap(uptr space, uptr src, uptr dest, usize length, usize flags) {
+	ROUND_DOWN_TO_PAGE(src);
+	ROUND_DOWN_TO_PAGE(dest);
+	ROUND_UP_TO_PAGE(length);
+
+	uptr end = src + length;
+
+	for (; src < end; src += PAGE_SIZE, dest += PAGE_SIZE) {
+		MapPage(space, src, dest, flags);
+	}
 }
 	
 void VMAlloc(uptr space, uptr virt, usize length, usize flags) {

@@ -28,12 +28,6 @@ namespace x86_64 {
 			       1 << x86_64::PT_Flag::NX | \
 			       1 << x86_64::PT_Flag::ReadWrite)
 
-#define VMM_FLAGS_KERNEL_DEVICE (1 << x86_64::PT_Flag::Present | \
-			         1 << x86_64::PT_Flag::NX | \
-			         1 << x86_64::PT_Flag::ReadWrite | \
-				 1 << x86_64::PT_Flag::WriteThrough)
-
-
 #define VMM_FLAGS_KERNEL_GENERIC (1 << x86_64::PT_Flag::Present | \
 			          1 << x86_64::PT_Flag::ReadWrite)
 
