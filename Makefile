@@ -46,8 +46,7 @@ ifeq ($(ARCH), x86_64)
 	 -m64                       \
 	 -mabi=sysv                 \
 	 -mcmodel=kernel            \
-	 -march=x86-64 \
-	 -mcmodel=kernel
+	 -march=x86-64 
 
 	LDFLAGS += -m elf_x86_64
 
