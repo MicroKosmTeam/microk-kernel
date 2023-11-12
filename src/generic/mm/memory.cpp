@@ -93,12 +93,16 @@ void Init() {
 			"        Essential: [0x%x - 0x%x] -> %d bytes\r\n"
 			"             Text: [0x%x - 0x%x] -> %d bytes\r\n"
 			"           ROData: [0x%x - 0x%x] -> %d bytes\r\n"
-			"             Data: [0x%x - 0x%x] -> %d bytes\r\n",
-			&__KernelBinaryEssentialStart, &__KernelBinaryDataEnd, (&__KernelBinaryDataEnd - &__KernelBinaryEssentialStart),
+			"             Data: [0x%x - 0x%x] -> %d bytes\r\n"
+			"          Dynamic: [0x%x - 0x%x] -> %d bytes\r\n"
+			"              BSS: [0x%x - 0x%x] -> %d bytes\r\n",
+			&__KernelBinaryEssentialStart, &__KernelBinaryBSSEnd, (&__KernelBinaryBSSEnd - &__KernelBinaryEssentialStart),
 			&__KernelBinaryEssentialStart, &__KernelBinaryEssentialEnd, (&__KernelBinaryEssentialEnd - &__KernelBinaryEssentialStart),
 			&__KernelBinaryTextStart, &__KernelBinaryTextEnd, (&__KernelBinaryTextEnd - &__KernelBinaryTextStart),
 			&__KernelBinaryRODataStart, &__KernelBinaryRODataEnd, (&__KernelBinaryRODataEnd - &__KernelBinaryRODataStart),
-			&__KernelBinaryDataStart, &__KernelBinaryDataEnd, (&__KernelBinaryDataEnd - &__KernelBinaryDataStart)
+			&__KernelBinaryDataStart, &__KernelBinaryDataEnd, (&__KernelBinaryDataEnd - &__KernelBinaryDataStart),
+			&__KernelBinaryDynamicStart, &__KernelBinaryDynamicEnd, (&__KernelBinaryDynamicEnd - &__KernelBinaryDynamicStart),
+			&__KernelBinaryBSSStart, &__KernelBinaryBSSEnd, (&__KernelBinaryBSSEnd - &__KernelBinaryBSSStart)
 			);
 
 
@@ -113,5 +117,28 @@ void Init() {
 
 	/* With the heap initialized, disable new bootmem allocations */
 	BOOTMEM::DeactivateBootmem();
+}
+
+void FreeBootMemory() {
+	KInfo *info = GetInfo();
+		
+	for (usize i = 0; i < info->MemoryMapEntryCount; i++) {
+		MMapEntry *entry = &info->MemoryMap[i];
+
+		if (entry->Type == MEMMAP_BOOTLOADER_RECLAIMABLE) {
+			PRINTK::PrintK(PRINTK_DEBUG " Freeing boot data: [0x%x - 0x%x]\r\n",
+				       entry->AddressBase,
+				       entry->AddressBase + entry->Length);
+
+			entry->Type = MEMMAP_USABLE;
+
+			Memset((void*)VMM::PhysicalToVirtual(entry->AddressBase),
+			       0,
+			       entry->Length);
+
+			PMM::FreePages((void*)entry->AddressBase, entry->Length / PAGE_SIZE);
+		}
+	}
+
 }
 }

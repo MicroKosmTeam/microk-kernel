@@ -3,16 +3,17 @@ OUTPUT_FORMAT(elf64-x86-64)
 OUTPUT_ARCH(i386:x86-64)
 
 /* We want the symbol _start to be our entry point */
-ENTRY(EfiMain)
+ENTRY(_start)
 
 /* Define the program headers we want so the bootloader gives us the right */
 /* MMU permissions */
 PHDRS
 {
-	text		PT_LOAD	FLAGS((1 << 0) | (1 << 2));		/* Execute + Read */
-	rodata		PT_LOAD	FLAGS((1 << 2));			/* Read only */
-	data		PT_LOAD	FLAGS((1 << 1) | (1 << 2));		/* Write + Read */
-	essentials 	PT_LOAD	FLAGS((1 << 0) | (1 << 1) | (1 << 2));	/* Execute + Read + Write */
+	text		PT_LOAD	   FLAGS((1 << 0) | (1 << 2));		 /* Execute + Read */
+	rodata		PT_LOAD	   FLAGS((1 << 2));			 /* Read only */
+	data		PT_LOAD	   FLAGS((1 << 1) | (1 << 2));		 /* Write + Read */
+	essentials 	PT_LOAD	   FLAGS((1 << 0) | (1 << 1) | (1 << 2));/* Execute + Read + Write */
+	dynamic         PT_DYNAMIC FLAGS((1 << 1) | (1 << 2));           /* Dynamic PHDR for relocation*/
 }
 
 SECTIONS
@@ -54,6 +55,7 @@ SECTIONS
 	
 	PROVIDE(__KernelBinaryRODataEnd = .);
 
+	/* Move to the next memory page for .data */
 	. = ALIGN(0x1000);
 
 	PROVIDE(__KernelBinaryDataStart = .);
@@ -61,13 +63,34 @@ SECTIONS
 	.data : {
 		*(.data .data.*)
 	} :data
+	
+	PROVIDE(__KernelBinaryDataEnd = .);
+
+	/* Move to the next memory page for .dynamic */
+	. = ALIGN(0x1000);
+
+	PROVIDE(__KernelBinaryDynamicStart = .);
+
+	.dynamic : {
+		*(.dynamic .dynamic.*)
+	} :data :dynamic
+
+	PROVIDE(__KernelBinaryDynamicEnd = .);
+
+	/* Move to the next memory page for .bss */
+	. = ALIGN(0x1000);
+
+	/* BSS is placed at the end of the file, to avoid unnecessary zeros */
+	PROVIDE(__KernelBinaryBSSStart = .);
 
 	.bss : {
-		*(COMMON)
 		*(.bss .bss.*)
+		*(COMMON)
 	} :data
+	
+	PROVIDE(__KernelBinaryBSSEnd = .);
 
-	PROVIDE(__KernelBinaryDataEnd = .);
+
 
 	/* Discard .note.* and .eh_frame since they may cause issues on some hosts. */
 	/DISCARD/ : {

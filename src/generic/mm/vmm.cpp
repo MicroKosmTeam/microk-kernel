@@ -69,15 +69,25 @@ void PrepareVirtualSpace(uptr space) {
 	uptr dataStartAddr = (uptr)&__KernelBinaryDataStart - info->KernelVirtualBase + info->KernelPhysicalBase;
 	uptr dataEndAddr = (uptr)&__KernelBinaryDataEnd - info->KernelVirtualBase + info->KernelPhysicalBase;
 
+	uptr dynamicStartAddr = (uptr)&__KernelBinaryDynamicStart - info->KernelVirtualBase + info->KernelPhysicalBase;
+	uptr dynamicEndAddr = (uptr)&__KernelBinaryDynamicEnd - info->KernelVirtualBase + info->KernelPhysicalBase;
+
+	uptr bssStartAddr = (uptr)&__KernelBinaryBSSStart - info->KernelVirtualBase + info->KernelPhysicalBase;
+	uptr bssEndAddr = (uptr)&__KernelBinaryBSSEnd - info->KernelVirtualBase + info->KernelPhysicalBase;
+
 	ROUND_DOWN_TO_PAGE(essentialStartAddr);
 	ROUND_DOWN_TO_PAGE(textStartAddr);
 	ROUND_DOWN_TO_PAGE(rodataStartAddr);
 	ROUND_DOWN_TO_PAGE(dataStartAddr);
+	ROUND_DOWN_TO_PAGE(dynamicStartAddr);
+	ROUND_DOWN_TO_PAGE(bssStartAddr);
 
 	ROUND_UP_TO_PAGE(essentialEndAddr);
 	ROUND_UP_TO_PAGE(textEndAddr);
 	ROUND_UP_TO_PAGE(rodataEndAddr);
 	ROUND_UP_TO_PAGE(dataEndAddr);
+	ROUND_UP_TO_PAGE(dynamicEndAddr);
+	ROUND_UP_TO_PAGE(bssEndAddr);
 
 	for (uptr phys = essentialStartAddr; phys < essentialEndAddr; phys += PAGE_SIZE) {
 		MapPage(space, phys, phys - info->KernelPhysicalBase + info->KernelVirtualBase, VMM_FLAGS_KERNEL_GENERIC);
@@ -93,6 +103,14 @@ void PrepareVirtualSpace(uptr space) {
 
 
 	for (uptr phys = dataStartAddr; phys < dataEndAddr; phys += PAGE_SIZE) {
+		MapPage(space, phys, phys - info->KernelPhysicalBase + info->KernelVirtualBase, VMM_FLAGS_KERNEL_DATA);
+	}
+
+	for (uptr phys = dynamicStartAddr; phys < dynamicEndAddr; phys += PAGE_SIZE) {
+		MapPage(space, phys, phys - info->KernelPhysicalBase + info->KernelVirtualBase, VMM_FLAGS_KERNEL_DATA);
+	}
+
+	for (uptr phys = bssStartAddr; phys < bssEndAddr; phys += PAGE_SIZE) {
 		MapPage(space, phys, phys - info->KernelPhysicalBase + info->KernelVirtualBase, VMM_FLAGS_KERNEL_DATA);
 	}
 

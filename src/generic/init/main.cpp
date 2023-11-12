@@ -92,6 +92,9 @@ void KernelStart() {
 	InitSyscalls();
 	InitializeKernelTables();
 
+/*
+	MEM::FreeBootMemory();
+*/
 #ifdef CONFIG_KERNEL_MODULES
 	usize moduleSize;
 	u8 *addr;

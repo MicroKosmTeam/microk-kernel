@@ -33,7 +33,10 @@ extern const u8 __KernelBinaryRODataStart;
 extern const u8 __KernelBinaryRODataEnd;
 extern const u8 __KernelBinaryDataStart;
 extern const u8 __KernelBinaryDataEnd;
-
+extern const u8 __KernelBinaryDynamicStart;
+extern const u8 __KernelBinaryDynamicEnd;
+extern const u8 __KernelBinaryBSSStart;
+extern const u8 __KernelBinaryBSSEnd;
 
 namespace MEM {
 	struct MMapEntry {
@@ -58,5 +61,6 @@ namespace MEM {
 	}
 
 	void Init();
+	void FreeBootMemory();
 	void InvokeOOM();
 }

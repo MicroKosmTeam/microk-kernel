@@ -15,6 +15,8 @@
 extern "C" void CPUPause();
 #endif
 
+LIMINE_BASE_REVISION(1)
+
 /* Function called by Limine at bootup through the entry point */
 extern "C" void LimineEntry(void);
 
