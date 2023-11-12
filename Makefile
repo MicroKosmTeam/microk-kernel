@@ -39,6 +39,7 @@ ARCH_OBJS += $(patsubst $(ARCH_SOURCES)/%.asm, $(ARCH_SOURCES)/%.o, $(ARCH_ASMSR
 
 ifeq ($(ARCH), x86_64)
 	CFLAGS = $(COMMON_CFLAGS) -mno-80387 \
+	 -mno-80387                 \
          -mno-mmx                   \
          -mno-sse                   \
          -mno-sse2                  \
