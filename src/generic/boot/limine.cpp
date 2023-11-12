@@ -204,8 +204,9 @@ void LimineEntry() {
 		for (int i = 0; i < moduleCount; i++) {
 			info->BootFiles[i].Address = (uptr)ModuleRequest.response->modules[i]->address;
 			info->BootFiles[i].Size = ModuleRequest.response->modules[i]->size;
-			Strncpy(info->BootFiles[i].Path, ModuleRequest.response->modules[i]->path, MAX_SYMBOL_LENGTH);
-			Strncpy(info->BootFiles[i].Cmdline, ModuleRequest.response->modules[i]->cmdline, MAX_CMDLINE_LENGTH);
+			Strncpy(info->BootFiles[i].Path, ModuleRequest.response->modules[i]->path, MAX_FILE_NAME_LENGTH);
+		
+			Strncpy(info->BootFiles[i].Cmdline, ModuleRequest.response->modules[i]->cmdline, MAX_FILE_NAME_LENGTH);
 		}
 	} else {
 		info->FileCount = 0;
