@@ -46,9 +46,8 @@ namespace VMM {
 	usize ConvertUserFlags(usize flags) {
 		usize ret = VMM_FLAGS_USER;
 
-		if (!(flags & PAGE_PROTECTION_NONE) &&
-		    flags & PAGE_PROTECTION_READ) {
-			ret |= VMM_FLAGS_ACCESSIBLE;
+		if (flags & PAGE_PROTECTION_NONE) {
+			return ret;
 		}
 		
 		if (flags & PAGE_PROTECTION_WRITE) {
@@ -57,10 +56,6 @@ namespace VMM {
 
 		if (!(flags & PAGE_PROTECTION_EXEC)) {
 			ret |= VMM_FLAGS_NOEXEC;
-		}
-
-		if (flags & PAGE_PROTECTION_NOCACHE) {
-			ret |= VMM_FLAGS_NOCACHE;
 		}
 
 		return ret;
