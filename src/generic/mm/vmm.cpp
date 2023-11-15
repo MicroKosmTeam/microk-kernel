@@ -4,7 +4,7 @@
 #include <init/kinfo.hpp>
 
 namespace VMM {
- uptr PhysicalToVirtual(uptr value) {
+uptr PhysicalToVirtual(uptr value) {
 	KInfo *info = GetInfo();
 
 	if (value < info->HigherHalfMapping) value += info->HigherHalfMapping;
@@ -12,7 +12,7 @@ namespace VMM {
 	return value;
 }
 
- uptr VirtualToPhysical(uptr value) {
+uptr VirtualToPhysical(uptr value) {
 	KInfo *info = GetInfo();
 
 	if (value > info->HigherHalfMapping) value -= info->HigherHalfMapping;
@@ -153,10 +153,10 @@ void MMap(uptr space, uptr src, uptr dest, usize length, usize flags) {
 	ROUND_DOWN_TO_PAGE(dest);
 	ROUND_UP_TO_PAGE(length);
 
-	uptr end = src + length;
+	PRINTK::PrintK(PRINTK_DEBUG "Flags: 0x%x\r\n", flags);
 
-	for (; src < end; src += PAGE_SIZE, dest += PAGE_SIZE) {
-		MapPage(space, src, dest, flags);
+	for (usize diff = 0; diff < length; diff += PAGE_SIZE) {
+		MapPage(space, src + diff, dest + diff, flags);
 	}
 }
 	

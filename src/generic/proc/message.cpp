@@ -28,20 +28,17 @@ MessageManager *IPCMessageManagerInitialize() {
 	return manager;
 }
 
-isize IPCMessageQueueCtl(MessageManager *manager, QueueOperations operation, ...) {
-	va_list ap;
-	va_start(ap, operation);
-
+isize IPCMessageQueueCtl(MessageManager *manager, ProcessBase *proc, QueueOperationStruct *ctlStruct) {
 	MessageQueue *queue;
 	isize returnVal;
 
-	switch (operation) {
+	switch (ctlStruct->Operation) {
 		case QueueOperations::CREATE: {
-			ProcessBase *proc = (ProcessBase*)va_arg(ap, uptr);
-			usize preallocateSize = va_arg(ap, usize);
+			usize preallocateSize = ctlStruct->Create.PreallocateSize;
 			queue = CreateMessageQueue(manager, proc, preallocateSize);
 			if (queue != NULL) {
-				returnVal = queue->ID;
+				ctlStruct->Create.NewID = queue->ID;
+				returnVal = 0;
 			} else {
 				returnVal = -EFAULT;
 			}
@@ -52,8 +49,6 @@ isize IPCMessageQueueCtl(MessageManager *manager, QueueOperations operation, ...
 			returnVal = -EINVALID;
 			break;
 	}
-
-	va_end(ap);
 
 	return returnVal;
 }
@@ -87,7 +82,7 @@ isize IPCMessageSend(MessageManager *manager, usize queueID, ProcessBase *proc, 
 	(void)messageType;
 	(void)messageFlags;
 
-	return messageLength;
+	return 0;
 }
 
 isize IPCMessageReceive(MessageManager *manager, usize queueID, ProcessBase *proc, u8 *messageBufferPointer, usize maxMessageLength, usize messageType, usize messageFlags) {
@@ -118,7 +113,7 @@ isize IPCMessageReceive(MessageManager *manager, usize queueID, ProcessBase *pro
 	(void)messageType;
 	(void)messageFlags;
 
-	return length;
+	return 0;
 }
 
 }

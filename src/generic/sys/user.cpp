@@ -3,15 +3,15 @@
 #include <mm/memory.hpp>
 #include <mm/string.hpp>
 
-#define LOWER_HALF_CEILING  0x00007FFFFFFFF000
-#define USER_MEMORY_CEILING 0x0000700000000000
+#define USER_READ_MEMORY_CEILING 0x00007FFFFFFFFFFF
+#define USER_ALLOC_MEMORY_CEILING 0x0000700000000000
 
 int CheckUserMemory(const_userptr_t userAddress, usize length) {
 	uptr address = (uptr)userAddress;
 
-	if (address > USER_MEMORY_CEILING ||
-	    length > USER_MEMORY_CEILING ||
-	    address + length > USER_MEMORY_CEILING)
+	if (address > USER_READ_MEMORY_CEILING ||
+	    length > USER_READ_MEMORY_CEILING ||
+	    address + length > USER_READ_MEMORY_CEILING)
 		return -EINVALID;
 
 	return 0;

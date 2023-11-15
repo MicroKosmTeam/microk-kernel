@@ -19,10 +19,15 @@ namespace x86_64 {
 
 #define PAGE_SIZE 0x1000
 
-#define VMM_FLAGS_KERNEL_CODE (1 << x86_64::PT_Flag::Present | 0)
+#define VMM_FLAGS_ACCESSIBLE (1 << x86_64::PT_Flag::Present)
+#define VMM_FLAGS_NOEXEC     (1 << x86_64::PT_Flag::NX)
+#define VMM_FLAGS_WRITE      (1 << x86_64::PT_Flag::ReadWrite)
+#define VMM_FLAGS_NOCACHE    (1 << x86_64::PT_Flag::CacheDisabled)
+#define VMM_FLAGS_USER       (1 << x86_64::PT_Flag::UserSuper)
 
-#define VMM_FLAGS_KERNEL_RODATA (1 << x86_64::PT_Flag::Present | \
-				 1 << x86_64::PT_Flag::NX)
+#define VMM_FLAGS_KERNEL_CODE (VMM_FLAGS_ACCESSIBLE)
+
+#define VMM_FLAGS_KERNEL_RODATA (VMM_FLAGS_ACCESSIBLE | VMM_FLAGS_NOEXEC)
 
 #define VMM_FLAGS_KERNEL_DATA (1 << x86_64::PT_Flag::Present | \
 			       1 << x86_64::PT_Flag::NX | \

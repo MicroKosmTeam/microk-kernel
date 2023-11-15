@@ -20,18 +20,13 @@ void InitSyscalls() {
 	SyscallVector[SYSCALL_MEMORY_VMALLOC] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryVMAlloc;
 	
 	SyscallVector[SYSCALL_MEMORY_MMAP] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryMMap;
+
+	SyscallVector[SYSCALL_IPC_MESSAGE_QUEUE] = (SyscallFunctionCallback)(void*)HandleSyscallIPCQueue;
+	SyscallVector[SYSCALL_IPC_MESSAGE_SEND] = (SyscallFunctionCallback)(void*)HandleSyscallIPCMessageSend;
+	SyscallVector[SYSCALL_IPC_MESSAGE_RECEIVE] = (SyscallFunctionCallback)(void*)HandleSyscallIPCMessageReceive;
 	
 	SyscallVector[SYSCALL_PROC_EXIT] = (SyscallFunctionCallback)(void*)HandleSyscallProcExit;
 
-/*
-	SyscallVector[SYSCALL_MEMORY_PMALLOC] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryPMAlloc;
-	SyscallVector[SYSCALL_MEMORY_VMFREE] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryVMFree;
-	SyscallVector[SYSCALL_MEMORY_UNMAP] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryUnMap;
-	SyscallVector[SYSCALL_MEMORY_INOUT] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryInOut;
-
-	SyscallVector[SYSCALL_PROC_EXEC] = (SyscallFunctionCallback)(void*)HandleSyscallProcExec;
-	SyscallVector[SYSCALL_PROC_RETURN] = (SyscallFunctionCallback)(void*)HandleSyscallProcReturn;
-*/
 }
 
 extern "C" isize HandleSyscall(usize syscallNumber, usize arg1, usize arg2, usize arg3, usize arg4, usize arg5, usize arg6) {
@@ -58,10 +53,6 @@ isize HandleSyscallMemoryVMAlloc(const_userptr_t userBase, usize length, usize f
 		return -EBADREQUEST;
 	}
 
-	if (VMM::CheckValidVMMFlags(flags, true)) {
-		return -EINVALID;
-	}
-
 	uptr base = (uptr)userBase;
 
 	PROC::UserProcess *proc = (PROC::UserProcess*)PROC::GetProcess();
@@ -69,7 +60,7 @@ isize HandleSyscallMemoryVMAlloc(const_userptr_t userBase, usize length, usize f
 	
 	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Calling VMAlloc for PID %d. Base: 0x%x, Length: %d bytes, Flags: 0x%x.\r\n", proc->ID, base, length, flags);
 
-	VMM::VMAlloc(procSpace, base, length, flags);
+	VMM::VMAlloc(procSpace, base, length, VMM_FLAGS_USER_DATA);
 
 	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Executing VMAlloc for PID %d completed successfully.\r\n", proc->ID);
 
@@ -82,17 +73,75 @@ isize HandleSyscallMemoryMMap(const_userptr_t userSrc, const_userptr_t userDest,
 		return -EBADREQUEST;
 	}
 
-	if (VMM::CheckValidVMMFlags(flags, true)) {
-		return -EINVALID;
-	}
-
 	uptr src = (uptr)userSrc;
 	uptr dest = (uptr)userDest;
 
 	PROC::UserProcess *proc = (PROC::UserProcess*)PROC::GetProcess();
 	uptr procSpace = GetVirtualSpace((PROC::ProcessBase*)proc);
 
-	VMM::MMap(procSpace, src, dest, length, flags);
+	VMM::MMap(procSpace, src, dest, length, VMM::ConvertUserFlags(flags));
+
+	return 0;
+}
+
+isize HandleSyscallIPCQueue(userptr_t userCtlStruct) {
+	KInfo *info = GetInfo();
+	PROC::QueueOperationStruct ctlStruct;
+
+	CopyFromUser(&ctlStruct, userCtlStruct, sizeof(ctlStruct));
+
+	PROC::UserProcess *proc = (PROC::UserProcess*)PROC::GetProcess();
+	if (int ret = PROC::IPCMessageQueueCtl(info->KernelMessageManager, proc, &ctlStruct)) {
+		return ret;
+	}
+
+	CopyToUser(&ctlStruct, userCtlStruct, sizeof(ctlStruct));
+
+	return 0;
+}
+
+isize HandleSyscallIPCMessageSend(usize queueID, const_userptr_t userMessagePointer, usize messageLength, usize messageType, usize messageFlags) {	
+	KInfo *info = GetInfo();
+
+	u8 *messagePointer = (u8*)Malloc(messageLength);
+	CopyFromUser(messagePointer, userMessagePointer, messageLength);
+
+	PROC::UserProcess *proc = (PROC::UserProcess*)PROC::GetProcess();
+
+	if (int ret = PROC::IPCMessageSend(info->KernelMessageManager, queueID, proc, messagePointer, messageLength, messageType, messageFlags)) {
+		Free(messagePointer);
+
+		return ret;
+	}
+	
+	Free(messagePointer);
+
+	return 0;
+}
+
+isize HandleSyscallIPCMessageReceive(usize queueID, userptr_t userMessageBufferPointer, usize maxMessageLength, usize messageType, usize messageFlags) {
+	KInfo *info = GetInfo();
+
+	u8 *messageBufferPointer = (u8*)Malloc(maxMessageLength);
+
+	PROC::UserProcess *proc = (PROC::UserProcess*)PROC::GetProcess();
+	if (int ret = PROC::IPCMessageReceive(info->KernelMessageManager, queueID, proc, messageBufferPointer, maxMessageLength, messageType, messageFlags)) {
+		Free(messageBufferPointer);
+		return ret;
+	}
+
+	CopyToUser(messageBufferPointer, userMessageBufferPointer, maxMessageLength);
+
+	Free(messageBufferPointer);
+
+	return 0;
+}
+
+
+isize HandleSyscallProcExit(usize exitCode) {
+	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Exiting: %d\r\n", exitCode); 
+	
+	while(true);
 
 	return 0;
 }
@@ -270,10 +319,4 @@ isize HandleSyscallProcReturn(usize returnCode) {
 }
 #endif
 
-isize HandleSyscallProcExit(usize exitCode) {
-	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Exiting: %d\r\n", exitCode); 
-	
-	while(true);
 
-	return 0;
-}

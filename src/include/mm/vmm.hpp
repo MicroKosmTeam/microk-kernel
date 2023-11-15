@@ -43,29 +43,27 @@ namespace VMM {
 	};
 
 	inline
-	int CheckValidVMMFlags(usize flags, bool isUser) {
-		if (isUser) {
-			if (flags != VMM_FLAGS_USER_CODE ||
-			    flags != VMM_FLAGS_USER_RODATA ||
-			    flags != VMM_FLAGS_USER_DATA) {
-				return -EINVALID;
-			} else {
-				return 0;
-			}
-		} else {
-			if (flags != VMM_FLAGS_KERNEL_CODE ||
-			    flags != VMM_FLAGS_KERNEL_RODATA ||
-			    flags != VMM_FLAGS_KERNEL_DATA ||
-			    flags != VMM_FLAGS_KERNEL_GENERIC ||
-			    flags != VMM_FLAGS_USER_CODE ||
-			    flags != VMM_FLAGS_USER_RODATA ||
-			    flags != VMM_FLAGS_USER_DATA ||
-			    flags != VMM_FLAGS_USER_GENERIC) {
-				return -EINVALID;
-			} else {
-				return 0;
-			}
+	usize ConvertUserFlags(usize flags) {
+		usize ret = VMM_FLAGS_USER;
+
+		if (!(flags & PAGE_PROTECTION_NONE) &&
+		    flags & PAGE_PROTECTION_READ) {
+			ret |= VMM_FLAGS_ACCESSIBLE;
 		}
+		
+		if (flags & PAGE_PROTECTION_WRITE) {
+			ret |= VMM_FLAGS_WRITE;
+		}
+
+		if (!(flags & PAGE_PROTECTION_EXEC)) {
+			ret |= VMM_FLAGS_NOEXEC;
+		}
+
+		if (flags & PAGE_PROTECTION_NOCACHE) {
+			ret |= VMM_FLAGS_NOCACHE;
+		}
+
+		return ret;
 	}
 
 	uptr PhysicalToVirtual(uptr value);

@@ -179,8 +179,8 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 
 				x86_64::APIC::WriteAPIC(apic, APIC_REGISTER_EOI, 0);
 
-				u64 tsc = __builtin_ia32_rdtsc() + 0x1000000;
-				x86_64::SetMSR(MSR_TSC_DEADLINE, tsc & 0xFFFFFFFF, tsc >> 32);
+				//u64 tsc = __builtin_ia32_rdtsc() + 0x1000000;
+				//x86_64::SetMSR(MSR_TSC_DEADLINE, tsc & 0xFFFFFFFF, tsc >> 32);
 
 				VMM::LoadVirtualSpace(proc->VirtualMemorySpace);
 				

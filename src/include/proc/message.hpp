@@ -39,13 +39,23 @@ namespace PROC {
 		MessageQueue **Queues;
 	};
 
-
 	enum QueueOperations {
 		CREATE = 1,
 	};
 
+	struct QueueOperationStruct {
+		QueueOperations Operation;
+		
+		union {
+			struct {
+				usize PreallocateSize;
+				usize NewID;
+			} Create;
+		};
+	}__attribute__((packed));
+
 	MessageManager *IPCMessageManagerInitialize();
-	isize IPCMessageQueueCtl(MessageManager *manager, QueueOperations operation, ...);
+	isize IPCMessageQueueCtl(MessageManager *manager, ProcessBase *proc, QueueOperationStruct *ctlStruct);
 	isize IPCMessageSend(MessageManager *manager, usize queueID, ProcessBase *proc, const u8 *messagePointer, usize messageLength, usize messageType, usize messageFlags);
 	isize IPCMessageReceive(MessageManager *manager, usize queueID, ProcessBase *proc, u8 *messageBufferPointer, usize maxMessageLength, usize messageType, usize messageFlags);
 

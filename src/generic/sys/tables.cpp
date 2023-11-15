@@ -82,6 +82,10 @@ void PopulateBFST(BFST *bfst) {
 	
 	Memcpy(bfst->Files, info->BootFiles, sizeof(BootFile) * info->FileCount);
 
+	for (usize i = 0; i < info->FileCount; ++i) {
+		bfst->Files[i].Address -= info->HigherHalfMapping;
+	}
+
 	u8 checksumDifference = 0;
 	u8 *bfstByte = (u8*)bfst;
 
