@@ -102,20 +102,28 @@ DEV::Device *CreateAPICDevice() {
 int InitializeDevice(DEV::Device *device, va_list ap) {
 	KInfo *info = GetInfo();
 	APIC *apic = (APIC*)device;
-	(void)ap;
+
+	apic->x2APICMode = va_arg(ap, int);
 
 	apic->Base = GetAPICBase();
 	apic->MappedAddress = VMM::PhysicalToVirtual(apic->Base);
 	VMM::MapPage(info->KernelVirtualSpace, apic->Base, apic->MappedAddress, VMM_FLAGS_KERNEL_DATA);
 	
-	ReadXAPIC(apic, xAPIC_REGISTER_LAPIC_ID, &apic->ID);
-
 	apic->ProcessorIsBSP = IsAPICBSP();
+
+	if (apic->x2APICMode) {
+		SetAPICBase(apic->Base, MSR_APIC_FLAG_xAPIC_ENABLE | MSR_APIC_FLAG_x2APIC_ENABLE);
+		ReadX2APIC(apic, x2APIC_REGISTER_LAPIC_ID, &apic->ID);
+	} else {
+		SetAPICBase(apic->Base, MSR_APIC_FLAG_xAPIC_ENABLE);
+		ReadXAPIC(apic, xAPIC_REGISTER_LAPIC_ID, &apic->ID);
+	}
 	
-	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "APIC 0x%x (%s) at 0x%x\r\n", apic->ID, apic->ProcessorIsBSP ? "BSP" : "Not a BSP", apic->Base);
-	
-	apic->x2APICMode = true;
-	SetAPICBase(apic->Base, MSR_APIC_FLAG_xAPIC_ENABLE | MSR_APIC_FLAG_x2APIC_ENABLE);
+	PRINTK::PrintK(PRINTK_DEBUG "%s with ID 0x%x (%s) at 0x%x\r\n",
+		       apic->x2APICMode ? "x2APIC" : "xAPIC",
+		       apic->ID,
+		       apic->ProcessorIsBSP ? "BSP" : "Not a BSP",
+		       apic->Base);
 
 	u8 timerVector = 32;
 	u32 timer = timerVector | APIC_LVT_TIMER_TSCDEADLINE | APIC_LVT_TIMER_MASK;

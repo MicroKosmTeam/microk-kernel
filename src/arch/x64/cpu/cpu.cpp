@@ -167,14 +167,7 @@ int CurrentCPUInit(DEV::CPU::TopologyStructure *core) {
 	if (maxIntelLevel >= 0x00000001 &&
 	    maxIntelLevel <= 0x0000ffff) {
 		u32 vendorInfo = 0;
-		u32 ebx, ecx = 0, edx;
-		__get_cpuid(1, &vendorInfo, &ebx, &ecx, &edx);
-
-		if (ecx & (1 << 21)) {
-			PRINTK::PrintK(PRINTK_DEBUG "x2APIC available.\r\n");
-		} else {
-			PRINTK::PrintK(PRINTK_DEBUG "xAPIC available.\r\n");
-		}
+		__get_cpuid(1, &vendorInfo, &coreInfo->CPUIDFlags[0], &coreInfo->CPUIDFlags[1], &coreInfo->CPUIDFlags[2]);
 
 		u32 family, model, stepping;
 		family = GetFamily(vendorInfo);
@@ -198,6 +191,23 @@ int CurrentCPUInit(DEV::CPU::TopologyStructure *core) {
 		__get_cpuid(0x80000001, &ignored, &ignored, &feature, &feature);
 	}
 
+	if (coreInfo->CPUIDFlags[2] & FLAGS_2_IS_XAPIC_PRESENT) {
+		APIC::APIC *localAPIC = (APIC::APIC*)APIC::CreateAPICDevice();
+		coreInfo->LocalAPIC = localAPIC;
+
+		bool isX2APIC;
+
+		if (coreInfo->CPUIDFlags[1] & FLAGS_1_IS_X2APIC_PRESENT) {
+			isX2APIC = true;
+		} else {
+			isX2APIC = false;
+		}
+	
+		DEV::InitializeDevice((DEV::Device*)localAPIC, isX2APIC);
+	} else {
+		PANIC("No local APIC found");
+	}
+	
 	coreInfo->TimeStampCounter = (TSC::TSC*)TSC::CreateTSCDevice();
 
 	SetIOPL();

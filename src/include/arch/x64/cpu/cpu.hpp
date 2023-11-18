@@ -8,6 +8,7 @@
 #include <arch/x64/cpu/msr.hpp>
 #include <arch/x64/dev/tsc.hpp>
 #include <arch/x64/dev/apic.hpp>
+#include <arch/x64/cpu/flags.hpp>
 #include <arch/x64/dev/ioapic.hpp>
 #include <arch/x64/interrupts/idt.hpp>
 
@@ -72,6 +73,9 @@ namespace x86_64 {
 
 		/* Time stamp counter for the current processor, if present */
 		TSC::TSC *TimeStampCounter;
+
+
+		u32 CPUIDFlags[3];
 	};
 
 	inline __attribute__((always_inline))
@@ -85,6 +89,14 @@ namespace x86_64 {
 		asm volatile ("mov %%rsp, %0" : "=r"(stackPtr));
 		return stackPtr;
 	}
+
+	inline __attribute__((always_inline))
+	uptr GetCurrentStackBase() {
+		uptr stackPtr;
+		asm volatile ("mov %%rbp, %0" : "=r"(stackPtr));
+		return stackPtr;
+	}
+
 
 	int BootCPUInit();
 	int UpdatePerCPUStack(DEV::CPU::TopologyStructure *core, usize stackSize);

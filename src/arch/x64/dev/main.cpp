@@ -96,11 +96,6 @@ int HandleMADT(MADTHeader *madt) {
 
 	PerCoreCPUTopology *bootCoreInfo = (PerCoreCPUTopology*)info->BootCore->ArchitectureSpecificInformation;
 
-	APIC::APIC *localAPIC = (APIC::APIC*)APIC::CreateAPICDevice();
-	bootCoreInfo->LocalAPIC = localAPIC;
-
-	DEV::InitializeDevice((DEV::Device*)localAPIC);
-
 	MADTRecord *record;
 	uptr offset = MADT_RECORD_START_OFFSET;
 	while(offset < madt->Length) {
@@ -116,7 +111,7 @@ int HandleMADT(MADTHeader *madt) {
 					       " - Flags: %d\r\n",
 						plapic->ACPIProcessorID, plapic->APICID, plapic->Flags);
 
-				if (plapic->APICID == localAPIC->ID) {
+				if (plapic->APICID == bootCoreInfo->LocalAPIC->ID) {
 					PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME " - It's the current CPU.\r\n");
 					info->BootCore->ID = plapic->ACPIProcessorID;
 				} else {
