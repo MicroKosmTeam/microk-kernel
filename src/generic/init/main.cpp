@@ -70,8 +70,8 @@ void KernelStart() {
 	
 	if (addr != NULL) {
 		PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Loading user module from 0x%x\r\n", addr);
-
 		usize pid = LoadExecutableFile(addr, moduleSize);
+
 		PROC::UserThread *thread = (PROC::UserThread*)PROC::GetThread(info->KernelScheduler, pid, 0);
 		PROC::SetExecutableUnitState(thread, PROC::ExecutableUnitState::P_READY);
 

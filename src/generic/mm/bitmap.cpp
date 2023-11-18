@@ -1,4 +1,4 @@
-#include <mm/pmm.hpp>
+#include <mm/bitmap.hpp>
 #include <sys/printk.hpp>
 #include <init/kinfo.hpp>
 

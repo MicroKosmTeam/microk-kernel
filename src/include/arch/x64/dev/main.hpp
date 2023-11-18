@@ -34,7 +34,6 @@ struct GenericAddressStructure {
 }__attribute__((packed));
 
 
-#define MADT_RECORD_START_OFFSET 0x2C
 #define MADT_RECORD_TYPE_PROCESSOR_LOCAL_APIC 0x00
 #define MADT_RECORD_TYPE_IOAPIC 0x01
 #define MADT_RECORD_TYPE_IOAPIC_INTERRUPT_SOURCE_OVERRIDE 0x02
@@ -98,10 +97,13 @@ struct MADTRecordProcessorLocalx2APIC: public MADTRecord {
 	u32 ACPIProcessorID;
 }__attribute__((packed));
 
-#define SRAT_RECORD_START_OFFSET 0x2C
 #define SRAT_RECORD_TYPE_PROCESSOR_LOCAL_APIC_AFFINITY 0x00
 #define SRAT_RECORD_TYPE_MEMORY_AFFINITY 0x01
 #define SRAT_RECORD_TYPE_PROCESSOR_LOCAL_x2APIC_AFFINITY 0x02
+
+struct SRATHeader : public SDTHeader {
+	u8 Reserved0[12];
+}__attribute__((packed));
 
 struct SRATRecord {
 	u8 EntryType;
@@ -154,6 +156,6 @@ struct HPETHeader : public SDTHeader {
 namespace x86_64 {
 	int InitDevices();
 	int HandleMADT(MADTHeader *madt);
-	int HandleSRAT(SDTHeader *srat);
+	int HandleSRAT(SRATHeader *srat);
 	int HandleHPET(HPETHeader *hpet);
 }

@@ -28,9 +28,9 @@ MessageManager *IPCMessageManagerInitialize() {
 	return manager;
 }
 
-isize IPCMessageQueueCtl(MessageManager *manager, ProcessBase *proc, QueueOperationStruct *ctlStruct) {
+int IPCMessageQueueCtl(MessageManager *manager, ProcessBase *proc, QueueOperationStruct *ctlStruct) {
 	MessageQueue *queue;
-	isize returnVal;
+	int returnVal;
 
 	switch (ctlStruct->Operation) {
 		case QueueOperations::CREATE: {
@@ -53,7 +53,7 @@ isize IPCMessageQueueCtl(MessageManager *manager, ProcessBase *proc, QueueOperat
 	return returnVal;
 }
 
-isize IPCMessageSend(MessageManager *manager, usize queueID, ProcessBase *proc, const u8 *messagePointer, usize messageLength, usize messageType, usize messageFlags) {
+int IPCMessageSend(MessageManager *manager, usize queueID, ProcessBase *proc, const u8 *messagePointer, usize messageLength, usize messageType, usize messageFlags) {
 	MessageQueue *queue = manager->Queues[queueID];
 	Message *message = (Message*)((uptr)queue + queue->FirstFreeByteOffset);
 	
@@ -85,7 +85,7 @@ isize IPCMessageSend(MessageManager *manager, usize queueID, ProcessBase *proc, 
 	return 0;
 }
 
-isize IPCMessageReceive(MessageManager *manager, usize queueID, ProcessBase *proc, u8 *messageBufferPointer, usize maxMessageLength, usize messageType, usize messageFlags) {
+int IPCMessageReceive(MessageManager *manager, usize queueID, ProcessBase *proc, u8 *messageBufferPointer, usize maxMessageLength, usize messageType, usize messageFlags) {
 	if (manager->TotalQueues < queueID) {
 		return -EINVALID;
 	}

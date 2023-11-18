@@ -67,7 +67,7 @@ void WriteXAPIC(APIC *device, usize registerSelector, u32 lo) {
 inline __attribute__((always_inline))
 bool IsAPICBSP() {
 	u32 eax, edx;
-	x86_64::GetMSR(MSR_APIC_BASE, &eax, &edx);
+	GetMSR(MSR_APIC_BASE, &eax, &edx);
 	
 	return (eax & MSR_APIC_FLAG_IS_BSP);
 }
@@ -75,7 +75,7 @@ bool IsAPICBSP() {
 inline __attribute__((always_inline))
 uptr GetAPICBase() {
 	u32 eax, edx;
-	x86_64::GetMSR(MSR_APIC_BASE, &eax, &edx);
+	GetMSR(MSR_APIC_BASE, &eax, &edx);
 
 	return (eax & 0xfffff000) | (((uptr)edx & 0x0f) << 32);
 }
@@ -85,7 +85,7 @@ void SetAPICBase(uptr apic, usize flags) {
 	u32 eax = (apic & 0xfffff0000) | flags;
 	u32 edx = (apic >> 32) & 0x0f;
 
-	x86_64::SetMSR(MSR_APIC_BASE, eax, edx);
+	SetMSR(MSR_APIC_BASE, eax, edx);
 }
 
 
@@ -148,7 +148,6 @@ int InitializeDevice(DEV::Device *device, va_list ap) {
 		WriteXAPIC(apic, xAPIC_REGISTER_SPURIOUS_INTERRUPT_VECTOR, spuriousVector);
 
 		WriteXAPIC(apic, xAPIC_REGISTER_TIMER_INITIAL_COUNT, -1);
-		WriteXAPIC(apic, xAPIC_REGISTER_TIMER_CURRENT_COUNT, 0);
 		WriteXAPIC(apic, xAPIC_REGISTER_TIMER_DIVIDE_CONFIGURATION, APIC_LVT_TIMER_DIVIDE_1);
 		WriteXAPIC(apic, xAPIC_REGISTER_LVT_TIMER_REGISTER, timer);
 

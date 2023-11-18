@@ -207,7 +207,7 @@ int CurrentCPUInit(DEV::CPU::TopologyStructure *core) {
 	} else {
 		PANIC("No local APIC found");
 	}
-	
+
 	coreInfo->TimeStampCounter = (TSC::TSC*)TSC::CreateTSCDevice();
 
 	SetIOPL();

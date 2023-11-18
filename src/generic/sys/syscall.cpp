@@ -29,7 +29,7 @@ void InitSyscalls() {
 
 }
 
-extern "C" isize HandleSyscall(usize syscallNumber, usize arg1, usize arg2, usize arg3, usize arg4, usize arg5, usize arg6) {
+extern "C" usize HandleSyscall(usize syscallNumber, usize arg1, usize arg2, usize arg3, usize arg4, usize arg5, usize arg6) {
 	if(syscallNumber <= SYSCALL_VECTOR_START ||
 	   syscallNumber >= SYSCALL_VECTOR_END ||
 	   SyscallVector[syscallNumber] == NULL) return -ENOTPRESENT;
@@ -38,7 +38,7 @@ extern "C" isize HandleSyscall(usize syscallNumber, usize arg1, usize arg2, usiz
 }
 
 
-isize HandleSyscallDebugPrintK(const_userptr_t userString) {
+usize HandleSyscallDebugPrintK(const_userptr_t userString) {
 	char string[MAX_PRINTK_SYSCALL_MESSAGE_LENGTH + 1] = { '\0' };
 	CopyStringFromUser(string, userString, MAX_PRINTK_SYSCALL_MESSAGE_LENGTH);
 
@@ -47,7 +47,7 @@ isize HandleSyscallDebugPrintK(const_userptr_t userString) {
 	return 0;
 }
 
-isize HandleSyscallMemoryVMAlloc(const_userptr_t userBase, usize length, usize flags) {
+usize HandleSyscallMemoryVMAlloc(const_userptr_t userBase, usize length, usize flags) {
 	if (CheckUserMemory(userBase, length)) {
 		PANIC("Bad memory");
 		return -EBADREQUEST;
@@ -67,7 +67,7 @@ isize HandleSyscallMemoryVMAlloc(const_userptr_t userBase, usize length, usize f
 	return 0;
 }
 
-isize HandleSyscallMemoryMMap(const_userptr_t userSrc, const_userptr_t userDest, usize length, usize flags) {
+usize HandleSyscallMemoryMMap(const_userptr_t userSrc, const_userptr_t userDest, usize length, usize flags) {
 	if (CheckUserMemory(userSrc, length) || CheckUserMemory(userDest, length)) {
 		PANIC("Bad memory");
 		return -EBADREQUEST;
@@ -84,7 +84,7 @@ isize HandleSyscallMemoryMMap(const_userptr_t userSrc, const_userptr_t userDest,
 	return 0;
 }
 
-isize HandleSyscallIPCQueue(userptr_t userCtlStruct) {
+usize HandleSyscallIPCQueue(userptr_t userCtlStruct) {
 	KInfo *info = GetInfo();
 	PROC::QueueOperationStruct ctlStruct;
 
@@ -100,7 +100,7 @@ isize HandleSyscallIPCQueue(userptr_t userCtlStruct) {
 	return 0;
 }
 
-isize HandleSyscallIPCMessageSend(usize queueID, const_userptr_t userMessagePointer, usize messageLength, usize messageType, usize messageFlags) {	
+usize HandleSyscallIPCMessageSend(usize queueID, const_userptr_t userMessagePointer, usize messageLength, usize messageType, usize messageFlags) {	
 	KInfo *info = GetInfo();
 
 	u8 *messagePointer = (u8*)Malloc(messageLength);
@@ -119,7 +119,7 @@ isize HandleSyscallIPCMessageSend(usize queueID, const_userptr_t userMessagePoin
 	return 0;
 }
 
-isize HandleSyscallIPCMessageReceive(usize queueID, userptr_t userMessageBufferPointer, usize maxMessageLength, usize messageType, usize messageFlags) {
+usize HandleSyscallIPCMessageReceive(usize queueID, userptr_t userMessageBufferPointer, usize maxMessageLength, usize messageType, usize messageFlags) {
 	KInfo *info = GetInfo();
 
 	u8 *messageBufferPointer = (u8*)Malloc(maxMessageLength);
@@ -138,7 +138,7 @@ isize HandleSyscallIPCMessageReceive(usize queueID, userptr_t userMessageBufferP
 }
 
 
-isize HandleSyscallProcExit(usize exitCode) {
+usize HandleSyscallProcExit(usize exitCode) {
 	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Exiting: %d\r\n", exitCode); 
 	
 	while(true);
@@ -149,7 +149,7 @@ isize HandleSyscallProcExit(usize exitCode) {
 
 #ifdef UNDEF
 
-isize HandleSyscallMemoryPMAlloc(userptr_t baseDestination, usize length, usize flags) {
+usize HandleSyscallMemoryPMAlloc(userptr_t baseDestination, usize length, usize flags) {
 	(void) flags;
 
 	uptr base = 0;
@@ -166,7 +166,7 @@ isize HandleSyscallMemoryPMAlloc(userptr_t baseDestination, usize length, usize 
 	return 0;
 }
 
-isize HandleSyscallMemoryVMFree(const_userptr_t userBase, usize length) {
+usize HandleSyscallMemoryVMFree(const_userptr_t userBase, usize length) {
 	if(int code = CheckUserMemory(userBase, length) != 0)
 		return code;
 
@@ -195,7 +195,7 @@ isize HandleSyscallMemoryVMFree(const_userptr_t userBase, usize length) {
 }
 
 
-isize HandleSyscallMemoryUnMap(uptr base, usize length) {
+usize HandleSyscallMemoryUnMap(uptr base, usize length) {
 	if (base <= 0x1000 || base + length >= 0x00007FFFFFFFF000)
 		return -1; /* Make sure it is in valid memory */
 
@@ -212,7 +212,7 @@ isize HandleSyscallMemoryUnMap(uptr base, usize length) {
 	return 0;
 }
 
-isize HandleSyscallMemoryInOut(const_userptr_t iorequests, usize count) {
+usize HandleSyscallMemoryInOut(const_userptr_t iorequests, usize count) {
 	if (count > 128) return -EINVALID;
 
 	IORequest requests[count];
@@ -223,7 +223,7 @@ isize HandleSyscallMemoryInOut(const_userptr_t iorequests, usize count) {
 }
 
 
-isize HandleSyscallProcExec(userptr_t executableBase, usize executableSize) {
+usize HandleSyscallProcExec(userptr_t executableBase, usize executableSize) {
 	u8 *heapAddr = (u8*)Malloc(executableSize);
 
 	CopyFromUser(heapAddr, executableBase, executableSize);
@@ -240,7 +240,7 @@ isize HandleSyscallProcExec(userptr_t executableBase, usize executableSize) {
 	return 0;
 }
 
-isize HandleSyscallProcFork() {
+usize HandleSyscallProcFork() {
 	KInfo *info = GetInfo();
 
 	uptr entrypoint = 0;
@@ -276,7 +276,7 @@ isize HandleSyscallProcFork() {
 	return 0;
 }
 
-isize HandleSyscallProcReturn(usize returnCode) {
+usize HandleSyscallProcReturn(usize returnCode) {
 	KInfo *info = GetInfo();
 
 	uptr kernelStack, userStack, userStackBase;
