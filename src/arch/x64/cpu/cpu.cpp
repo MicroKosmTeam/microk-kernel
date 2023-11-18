@@ -167,7 +167,15 @@ int CurrentCPUInit(DEV::CPU::TopologyStructure *core) {
 	if (maxIntelLevel >= 0x00000001 &&
 	    maxIntelLevel <= 0x0000ffff) {
 		u32 vendorInfo = 0;
-		__get_cpuid(1, &vendorInfo, &ignored, &ignored, &ignored);
+		u32 ebx, ecx = 0, edx;
+		__get_cpuid(1, &vendorInfo, &ebx, &ecx, &edx);
+
+		if (ecx & (1 << 21)) {
+			PRINTK::PrintK(PRINTK_DEBUG "x2APIC available.\r\n");
+		} else {
+			PRINTK::PrintK(PRINTK_DEBUG "xAPIC available.\r\n");
+		}
+
 		u32 family, model, stepping;
 		family = GetFamily(vendorInfo);
 		model = GetModel(vendorInfo);
