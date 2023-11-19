@@ -9,39 +9,31 @@
 #include <init/kinfo.hpp>
 
 void *Malloc(usize size) {
-	if(BOOTMEM::BootmemIsActive()) return BOOTMEM::Malloc(size);
+	KInfo *info = GetInfo();
+
+	if(BOOTMEM::BootmemIsActive()) {
+		return BOOTMEM::Malloc(size);
+	} else if (info->KernelHeap != NULL) {
+		return MEM::HEAP::Alloc(info->KernelHeap, size);
+	}
 
 	return NULL;
 }
 
-void Free(void *p) {
-	(void)p;
+void Free(void *ptr) {
+	KInfo *info = GetInfo();
+
+	if (info->KernelHeap != NULL) {
+		return MEM::HEAP::Free(info->KernelHeap, ptr);
+	}
 }
 
-void *operator new(usize size) {
-	return Malloc(size);
-}
+void Free(void *ptr, usize size) {
+	KInfo *info = GetInfo();
 
-void *operator new[](usize size) {
-	return Malloc(size);
-}
-
-void operator delete(void* p) {
-	Free(p);
-}
-
-void operator delete(void* p, usize size) {
-	(void)size;
-	Free(p);
-}
-
-void operator delete[](void* p) {
-	Free(p);
-}
-
-void operator delete[](void* p, usize size) {
-	(void)size;
-	Free(p);
+	if (info->KernelHeap != NULL) {
+		return MEM::HEAP::Free(info->KernelHeap, ptr, size);
+	}
 }
 
 namespace MEM {
@@ -114,11 +106,10 @@ void Init() {
 	VMM::InitVMM();
 
 	/* Initialize the slab allocator */
-	SLAB::SlabAllocator *allocator = SLAB::InitializeAllocator();
+	info->KernelSlabAllocator = SLAB::InitializeAllocator();
 
 	/* Initializing the heap */
-	HEAP::Heap *heap = HEAP::InitializeHeap(allocator);
-	(void)heap;
+	info->KernelHeap = HEAP::InitializeHeap(info->KernelSlabAllocator);
 
 	/* With the heap initialized, disable new bootmem allocations */
 	BOOTMEM::DeactivateBootmem();

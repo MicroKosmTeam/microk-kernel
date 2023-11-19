@@ -22,7 +22,7 @@ namespace MATH {
 	}
 
 	inline __attribute__((always_inline))
-	u64 UpperPowerOfTwoUSIZE(u64 x) {
+	usize UpperPowerOfTwoUSIZE(usize x) {
 		return UpperPowerOfTwoU64(x);
 	}
 }

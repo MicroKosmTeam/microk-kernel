@@ -20,4 +20,5 @@ namespace MEM::HEAP {
 
 	void *Alloc(Heap *heap, usize size);
 	void Free(Heap *heap, void *address);
+	void Free(Heap *heap, void *address, usize size);
 }

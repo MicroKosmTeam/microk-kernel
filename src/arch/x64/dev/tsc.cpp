@@ -1,5 +1,5 @@
 #include <arch/x64/dev/tsc.hpp>
-
+#include <mm/memory.hpp>
 #include <sys/printk.hpp>
 
 namespace x86_64::TSC {

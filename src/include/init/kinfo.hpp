@@ -29,7 +29,8 @@
 #include <cstdint.hpp>
 #include <sys/tables.hpp>
 #include <mm/memory.hpp>
-#include <mm/vmm.hpp>
+#include <mm/slab.hpp>
+#include <mm/heap.hpp>
 #include <sys/file.hpp>
 #include <proc/process.hpp>
 #include <proc/message.hpp>
@@ -72,6 +73,9 @@ struct KInfo {
 
 	uptr KernelPhysicalBase; /* Start of the kernel in physical memory */
 	uptr KernelVirtualBase; /* Start of the kernel in virtual memory */
+
+	MEM::SLAB::SlabAllocator *KernelSlabAllocator;
+	MEM::HEAP::Heap *KernelHeap;
 
 	DEV::CPU::TopologyStructure *DefaultMachine;
 	DEV::CPU::TopologyStructure *BootCore;

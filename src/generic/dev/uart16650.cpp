@@ -1,6 +1,7 @@
 #include <dev/uart16650.hpp>
 #include <cdefs.h>
 #include <sys/io.hpp>
+#include <mm/memory.hpp>
 
 namespace DEV::UART16650 {
 static inline void UARTOut(DeviceMemory *port, usize offset, u8 data) {

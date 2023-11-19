@@ -16,14 +16,39 @@ int Memcmp(const void* buf1, const void* buf2, usize count);
 void *Memmove(void *dest, const void *src, usize n);
 
 void *Malloc(usize size);
-void Free(void *p);
 
-void *operator new(usize size);
-void *operator new[](usize size);
-void operator delete(void* p);
-void operator delete(void* p, usize size);
-void operator delete[](void* p);
-void operator delete[](void* p, usize size);
+void Free(void *p);
+void Free(void *p, usize size);
+
+inline __attribute__((always_inline))
+void *operator new(usize size) {
+	return Malloc(size);
+}
+
+inline __attribute__((always_inline))
+void *operator new[](usize size) {
+	return Malloc(size);
+}
+
+inline __attribute__((always_inline))
+void operator delete(void *ptr) {
+	Free(ptr);
+}
+
+inline __attribute__((always_inline))
+void operator delete(void *ptr, usize size) {
+	Free(ptr, size);
+}
+
+inline __attribute__((always_inline))
+void operator delete[](void *ptr) {
+	Free(ptr);
+}
+
+inline __attribute__((always_inline))
+void operator delete[](void *ptr, usize size) {
+	Free(ptr, size);
+}
 
 extern const u8 __KernelBinaryEssentialStart;
 extern const u8 __KernelBinaryEssentialEnd;
