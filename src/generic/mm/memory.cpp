@@ -9,13 +9,13 @@
 #include <init/kinfo.hpp>
 
 void *Malloc(usize size) {
-	if(HEAP::IsHeapActive()) return HEAP::Malloc(size);
 	if(BOOTMEM::BootmemIsActive()) return BOOTMEM::Malloc(size);
-	else return NULL;
+
+	return NULL;
 }
 
 void Free(void *p) {
-	if(HEAP::IsHeapActive()) return HEAP::Free(p);
+	(void)p;
 }
 
 void *operator new(usize size) {
@@ -113,38 +113,12 @@ void Init() {
 	/* Initializing virtual memory */
 	VMM::InitVMM();
 
-	PRINTK::PrintK(PRINTK_DEBUG "PMM status: %dkb out of %dkb\r\n", PMM::GetUsedMem() / 1024, (PMM::GetFreeMem() + PMM::GetUsedMem()) / 1024);
+	/* Initialize the slab allocator */
 	SLAB::SlabAllocator *allocator = SLAB::InitializeAllocator();
-	SLAB::SlabCache *cache = SLAB::InitializeSlabCache(allocator, PAGE_SIZE);
-
-	const usize Maxlevels = 200000;
-	u64 *data[Maxlevels];
-	for (usize i = 0, step = 0; i < Maxlevels; ++i) {
-		if (i % (Maxlevels / 10) == 0) {
-			PRINTK::PrintK(PRINTK_DEBUG "Step %d out of 10\r\n", ++step);
-		}
-
-		data[i] = (u64*)Alloc(cache);
-		*data[i] = 0x69;
-	}
-
-	usize slabSlabs = allocator->SlabStructureCache->TotalSlabs;
-	usize slabCacheSlabs = allocator->SlabCacheStructureCache->TotalSlabs;
-	usize totalSlabs = cache->TotalSlabs + slabCacheSlabs + slabSlabs;
-	PRINTK::PrintK(PRINTK_DEBUG
-			"     Total slabs: %d (%dkb)\r\n"
-			"      Slab slabs: %d (%dkb)\r\n"
-			"Slab cache slabs: %d (%dkb)\r\n",
-			totalSlabs, totalSlabs * PAGE_SIZE / 1024,
-			slabSlabs, slabSlabs * PAGE_SIZE / 1024,
-			slabCacheSlabs, slabCacheSlabs * PAGE_SIZE / 1024);
-
-	PRINTK::PrintK(PRINTK_DEBUG "PMM status: %dkb out of %dkb\r\n", PMM::GetUsedMem() / 1024, (PMM::GetFreeMem() + PMM::GetUsedMem()) / 1024);
-
-	//SLAB::FreeSlabCache(cache);
 
 	/* Initializing the heap */
-	HEAP::InitializeHeap((void*)CONFIG_HEAP_BASE, CONFIG_HEAP_SIZE / PAGE_SIZE);
+	HEAP::Heap *heap = HEAP::InitializeHeap(allocator);
+	(void)heap;
 
 	/* With the heap initialized, disable new bootmem allocations */
 	BOOTMEM::DeactivateBootmem();

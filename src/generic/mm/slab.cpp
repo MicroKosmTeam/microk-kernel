@@ -35,6 +35,8 @@ SlabAllocator *InitializeAllocator() {
 	allocator->SlabInternalAlloc = NormalSlabInternalAlloc;
 	allocator->SlabCacheInternalAlloc = NormalSlabCacheInternalAlloc;
 
+	PRINTK::PrintK(PRINTK_DEBUG "Slab allocator initialized.\r\n");
+
 	return allocator;
 }
 
@@ -53,36 +55,8 @@ void *Alloc(SlabCache *cache) {
 }
 
 void Free(SlabCache *cache, void *ptr) {
-	Slab *slab = NULL;
-	List *list = &cache->FullSlabs;
-	bool passedFull = false, passedPart = false;
-
-	do {
-		if (list->Head != NULL) {
-			slab = (Slab*)list->Head;
-
-			while (true) {
-				if ((uptr)ptr >= slab->StartAddress &&
-				    (uptr)ptr <= slab->StartAddress + PAGE_SIZE) {
-					FreeSpaceInSlab(slab, cache, ptr);
-					return;
-				}
-
-				if (slab == list->Tail) {
-					break;
-				}
-
-				slab = (Slab*)slab->Next;
-			}
-		}
-
-		if (list == &cache->FullSlabs) {
-			passedFull = true;
-			list = &cache->PartialSlabs;
-		} else {
-			passedPart = true;
-		}
-	} while(!passedFull || ! passedPart);
+	(void)cache;
+	(void)ptr;
 }
 
 SlabCache *InitializeSlabCache(SlabAllocator *allocator, usize objectSize) {
