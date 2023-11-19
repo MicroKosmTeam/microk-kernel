@@ -1,9 +1,12 @@
 #pragma once
 #include <cstdint.hpp>
 #include <sys/list.hpp>
+#include <mm/vmm.hpp>
 
 #define SLAB_STATUS_FREE 0
 #define SLAB_STATUS_USED 1
+
+#define SLAB_MINIMUM_ALLOC 32
 
 namespace MEM::SLAB {
 	struct Slab : public ListHead {
@@ -12,23 +15,40 @@ namespace MEM::SLAB {
 		uptr StartAddress;
 		usize ActiveElements;
 		usize FirstFreeSlot;
-
-		u8 StatusSlots[];
+	
+		u8 StatusSlots[PAGE_SIZE / SLAB_MINIMUM_ALLOC];
 	};
+	
+	struct SlabAllocator;
 
 	struct SlabCache {
+		SlabAllocator *Allocator;
+
 		List FullSlabs;
 		List PartialSlabs;
 		List FreeSlabs;
 
 		usize ElementsPerSlab;
 		usize ObjectSize;
+		usize TotalSlabs;
+
+		bool EmergencyAllocate;
 	};
+
+	struct SlabAllocator {
+		SlabCache *SlabStructureCache;
+		SlabCache *SlabCacheStructureCache;
+
+		void *(*SlabInternalAlloc)(SlabAllocator *alloc);
+		void *(*SlabCacheInternalAlloc)(SlabAllocator *alloc);
+	};
+
+	SlabAllocator *InitializeAllocator();
 
 	void *Alloc(SlabCache *cache);
 	void Free(SlabCache *cache, void *ptr);
 
-	SlabCache *InitializeSlabCache(usize objectSize);
+	SlabCache *InitializeSlabCache(SlabAllocator *allocator, usize objectSize);
 	void FreeSlabCache(SlabCache *cache);
 
 	Slab *CreateSlab(SlabCache *cache);

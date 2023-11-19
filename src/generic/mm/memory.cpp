@@ -113,10 +113,35 @@ void Init() {
 	/* Initializing virtual memory */
 	VMM::InitVMM();
 
-	SLAB::SlabCache *cache = SLAB::InitializeSlabCache(sizeof(u64) * 64);
-	u64 *test = (u64*)Alloc(cache);
-	test[60] = 0x69;
-	SLAB::Free(cache, test);
+	PRINTK::PrintK(PRINTK_DEBUG "PMM status: %dkb out of %dkb\r\n", PMM::GetUsedMem() / 1024, (PMM::GetFreeMem() + PMM::GetUsedMem()) / 1024);
+	SLAB::SlabAllocator *allocator = SLAB::InitializeAllocator();
+	SLAB::SlabCache *cache = SLAB::InitializeSlabCache(allocator, PAGE_SIZE);
+
+	const usize Maxlevels = 200000;
+	u64 *data[Maxlevels];
+	for (usize i = 0, step = 0; i < Maxlevels; ++i) {
+		if (i % (Maxlevels / 10) == 0) {
+			PRINTK::PrintK(PRINTK_DEBUG "Step %d out of 10\r\n", ++step);
+		}
+
+		data[i] = (u64*)Alloc(cache);
+		*data[i] = 0x69;
+	}
+
+	usize slabSlabs = allocator->SlabStructureCache->TotalSlabs;
+	usize slabCacheSlabs = allocator->SlabCacheStructureCache->TotalSlabs;
+	usize totalSlabs = cache->TotalSlabs + slabCacheSlabs + slabSlabs;
+	PRINTK::PrintK(PRINTK_DEBUG
+			"     Total slabs: %d (%dkb)\r\n"
+			"      Slab slabs: %d (%dkb)\r\n"
+			"Slab cache slabs: %d (%dkb)\r\n",
+			totalSlabs, totalSlabs * PAGE_SIZE / 1024,
+			slabSlabs, slabSlabs * PAGE_SIZE / 1024,
+			slabCacheSlabs, slabCacheSlabs * PAGE_SIZE / 1024);
+
+	PRINTK::PrintK(PRINTK_DEBUG "PMM status: %dkb out of %dkb\r\n", PMM::GetUsedMem() / 1024, (PMM::GetFreeMem() + PMM::GetUsedMem()) / 1024);
+
+	//SLAB::FreeSlabCache(cache);
 
 	/* Initializing the heap */
 	HEAP::InitializeHeap((void*)CONFIG_HEAP_BASE, CONFIG_HEAP_SIZE / PAGE_SIZE);
