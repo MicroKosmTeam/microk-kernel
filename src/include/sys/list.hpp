@@ -1,107 +1,19 @@
 #pragma once
+#include <cstdint.hpp>
 
-#include <mm/memory.hpp>
-/*
-template <typename Type> class List {
-public:
-	List() {
-		Init();
-	}
+struct ListHead {
+	ListHead *Next, *Previous;
+};
 
-	~List() {
-		delete[] DataArray;
-	}
+struct List {
+	ListHead *Head;
+	ListHead *Tail;
+};
 
-	bool PushLast(Type data) {
-		Node *newNode = new Node;
-		newNode->Data = data;
+inline __attribute__((always_inline))
+ListHead *GetListHead(List *list) {
+	return list->Head;
+}
 
-		newNode->Previous = Last;
-		newNode->Next = NULL;
-		
-		if (Last) Last->Next = newNode;
-
-		Last = newNode;
-
-		++Length;
-
-		return true;
-	}
-	
-	bool PushFirst(Type data) {
-		Node *newNode = new Node;
-		newNode->Data = data;
-
-		newNode->Previous = NULL;
-		newNode->Next = First;
-		
-		if (First) First->Previous = newNode;
-
-		First = newNode;
-		
-		++Length;
-
-		return true;
-	}
-
-	Type PopLast() {
-		if(Last == NULL) return NULL;
-
-		Type value = Last->Data;
-
-		if(Last->Previous) Last->Previous->Next = NULL;
-		Node *newLast = Last->Previous;
-
-		delete Last;
-		Last = newLast;
-			
-		--Length;
-
-		return value;
-	}
-
-	Type PopFirst() {
-		Type value = First->Data;
-
-		if(First->Next) First->Next->Previous = NULL;
-		Node *newFirst = First->Next;
-
-		delete First;
-		First = newFirst;
-	
-		--Length;
-
-		return value;
-	}
-
-	usize GetMemorySize() {
-		return Length * sizeof(Node);
-
-	}
-
-	usize GetLength() {
-		return Length;
-
-	}
-private:
-	struct Node {
-		Type Data;
-		Node *Next;
-		Node *Previous;
-	};
-
-	Node *First;
-	Node *Last;
-
-	Node *LastAccessed;
-
-	usize Length;
-
-	void Init() {
-		First = Last = LastAccessed = NewNode;
-		First->Next = Last;
-		Last->Previous= First;
-
-		Length = 0;
-	}
-};*/
+void MoveElementToList(ListHead *element, List *origin, List *destination);
+void AddElementToList(ListHead *element, List *list);

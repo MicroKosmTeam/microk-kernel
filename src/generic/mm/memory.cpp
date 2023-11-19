@@ -4,6 +4,7 @@
 #include <mm/pmm.hpp>
 #include <mm/vmm.hpp>
 #include <mm/bootmem.hpp>
+#include <mm/slab.hpp>
 #include <mm/heap.hpp>
 #include <init/kinfo.hpp>
 
@@ -111,6 +112,11 @@ void Init() {
 
 	/* Initializing virtual memory */
 	VMM::InitVMM();
+
+	SLAB::SlabCache *cache = SLAB::InitializeSlabCache(sizeof(u64) * 64);
+	u64 *test = (u64*)Alloc(cache);
+	test[60] = 0x69;
+	SLAB::Free(cache, test);
 
 	/* Initializing the heap */
 	HEAP::InitializeHeap((void*)CONFIG_HEAP_BASE, CONFIG_HEAP_SIZE / PAGE_SIZE);
