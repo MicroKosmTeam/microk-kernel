@@ -6,6 +6,12 @@
 #include <mm/bootmem.hpp>
 #include <mm/slab.hpp>
 
+/* For loop to scan all region
+	for (MEM::MEMBLOCK::MemblockRegion *current = (MEM::MEMBLOCK::MemblockRegion*)info->PhysicalMemoryChunks->Regions.Head;
+	     current != NULL;
+	     current = (MEM::MEMBLOCK::MemblockRegion*)current->Next);
+ */
+
 namespace MEM::MEMBLOCK {
 	struct MemblockRegion : public ListHead {
 		uptr Base;
@@ -27,13 +33,17 @@ namespace MEM::MEMBLOCK {
 	MemblockRegion *AddRegion(MemblockAllocator *alloc, uptr base, usize length, u8 type);
 
 	MemblockRegion *FindRegion(MemblockAllocator *alloc, u8 type, usize size);
-	
+
 	inline __attribute__((always_inline))
 	MemblockRegion *FindFreeRegion(MemblockAllocator *alloc, usize size) {
 		return FindRegion(alloc, MEMMAP_USABLE, size);
 	}
 
 	void ListRegions(MemblockAllocator *alloc);
+	
+	usize GetTotalMemorySize(MemblockAllocator *alloc);
+	usize GetTotalSpanningLength(MemblockAllocator *alloc);
+	usize GetTotalElements(MemblockAllocator *alloc);
 }
 
 #endif /* MM_MEMBLOCK_HPP_ */

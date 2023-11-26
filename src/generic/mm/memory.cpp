@@ -48,13 +48,15 @@ void Init() {
 
 	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Provided physical RAM map:\r\n");
 
-	for (usize i = 0; i < info->MemoryMapEntryCount; i++) {
-		PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME " [0x%x - 0x%x] -> %s\r\n",
-				info->MemoryMap[i].AddressBase,
-				info->MemoryMap[i].AddressBase + info->MemoryMap[i].Length,
-				MemoryTypeToString(info->MemoryMap[i].Type));
+	for (MEM::MEMBLOCK::MemblockRegion *current = (MEM::MEMBLOCK::MemblockRegion*)info->PhysicalMemoryChunks->Regions.Head;
+	     current != NULL;
+	     current = (MEM::MEMBLOCK::MemblockRegion*)current->Next) {
+		PRINTK::PrintK(PRINTK_DEBUG " [0x%x - 0x%x] -> %s\r\n",
+				current->Base,
+				current->Base + current->Length,
+				MemoryTypeToString(current->Type));
 	}
-	
+
 	/*
 	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Contiguous regions:\r\n");
 	bool isAllUnusable = true;
@@ -120,8 +122,8 @@ void Init() {
 }
 
 void FreeBootMemory() {
+	/*
 	KInfo *info = GetInfo();
-		
 	for (usize i = 0; i < info->MemoryMapEntryCount; i++) {
 		MMapEntry *entry = &info->MemoryMap[i];
 
@@ -138,7 +140,7 @@ void FreeBootMemory() {
 
 			PMM::FreePages((void*)entry->AddressBase, entry->Length / PAGE_SIZE);
 		}
-	}
+	}*/
 
 }
 }

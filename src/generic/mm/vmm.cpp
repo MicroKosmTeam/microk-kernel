@@ -121,19 +121,19 @@ void PrepareKernelVirtualSpace(uptr space) {
 	}
 
 	/* We go through every entry in the memory map and map it in virtual memory */
-	for (usize i = 0; i < info->MemoryMapEntryCount; i++) {
-		MEM::MMapEntry entry = info->MemoryMap[i];
-
-		/* We will skip any memory that is not usable by our kernel, to make the process faster */
-		if (entry.Type == MEMMAP_BAD_MEMORY ||
-		    entry.Type == MEMMAP_RESERVED ||
-		    entry.Type == MEMMAP_ACPI_NVS) continue;
+	for (MEM::MEMBLOCK::MemblockRegion *current = (MEM::MEMBLOCK::MemblockRegion*)info->PhysicalMemoryChunks->Regions.Head;
+	     current != NULL;
+	     current = (MEM::MEMBLOCK::MemblockRegion*)current->Next) {
+		/* We will skip any memory that is not usable by our kernel */
+		if (current->Type == MEMMAP_BAD_MEMORY ||
+		    current->Type == MEMMAP_RESERVED ||
+		    current->Type == MEMMAP_ACPI_NVS) continue;
 
 		/* We find the base and the top by rounding to the closest page boundary */
-		uptr base = entry.AddressBase;
+		uptr base = current->Base;
 		ROUND_DOWN_TO_PAGE(base);
 
-		uptr top = base + entry.Length;
+		uptr top = base + current->Length;
 		ROUND_UP_TO_PAGE(top);
 		
 		for (uptr addr = base; addr < top; addr += PAGE_SIZE) {

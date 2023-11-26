@@ -174,6 +174,42 @@ MemblockRegion *AddRegion(MemblockAllocator *alloc, uptr base, usize length, u8 
 	return NULL;
 }
 
+MemblockRegion *FindRegion(MemblockAllocator *alloc, u8 type, usize size) {
+	MemblockRegion *current;
+
+	for(current = (MemblockRegion*)alloc->Regions.Head ; current != NULL ; current = (MemblockRegion*)current->Next) {
+		if (current->Length >= size && current->Type == type) {
+			return current;
+		}
+	}
+
+	return NULL;
+
+}
+	
+usize GetTotalMemorySize(MemblockAllocator *alloc) {
+	usize totalSize = 0;
+	for (MemblockRegion *current = (MemblockRegion*)alloc->Regions.Head;
+	     current != NULL;
+	     current = (MEM::MEMBLOCK::MemblockRegion*)current->Next) {
+		totalSize += current->Length;
+	}
+
+	return totalSize;
+}
+	
+usize GetTotalSpanningLength(MemblockAllocator *alloc) {
+	MemblockRegion *end, *start;
+	start = (MemblockRegion*)alloc->Regions.Head;
+	end = (MemblockRegion*)alloc->Regions.Tail;
+
+	if (start != NULL && end != NULL) {
+		return (end->Base + end->Length - start->Base);
+	} else {
+		return 0;
+	}
+}
+
 void ListRegions(MemblockAllocator *alloc) {
 	MemblockRegion *current;
 
@@ -186,6 +222,5 @@ void ListRegions(MemblockAllocator *alloc) {
 	}
 
 }
-
 
 }

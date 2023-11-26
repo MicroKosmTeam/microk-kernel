@@ -67,26 +67,16 @@ void InitPageFrameAllocator() {
 	HigherHalf = info->HigherHalfMapping; 
 
 	void *largestFree = NULL;
-	usize largestFreeSize = 0;
 
-	usize memorySize = 0;
-	for (usize i = 0; i < info->MemoryMapEntryCount; i++) {
-		MEM::MMapEntry desc = info->MemoryMap[i];
-		if (desc.Type == MEMMAP_USABLE) {
-			if(desc.Length > largestFreeSize) {
-				largestFree = (void*)desc.AddressBase;
-				largestFreeSize = desc.Length;
-			}
-		}
-
-		if (desc.Type != MEMMAP_RESERVED) memorySize += desc.Length;
-	}
+	usize memorySize = MEM::MEMBLOCK::GetTotalMemorySize(info->PhysicalMemoryChunks);
 
 	usize bitmapSize = memorySize / PAGE_SIZE / 8 + 1;
 
 	FreeMemory = memorySize;
 
-	largestFree = (void*)((uptr)largestFree + HigherHalf);
+	MEM::MEMBLOCK::MemblockRegion *baseRegion = MEM::MEMBLOCK::FindFreeRegion(info->PhysicalMemoryChunks, bitmapSize);
+	baseRegion = MEM::MEMBLOCK::AddRegion(info->PhysicalMemoryChunks, baseRegion->Base, bitmapSize, MEMMAP_KERNEL_AND_MODULES);
+	largestFree = (void*)VMM::PhysicalToVirtual(baseRegion->Base);
 
 	// Initialize bitmap
 	InitBitmap(bitmapSize, largestFree);
@@ -95,11 +85,11 @@ void InitPageFrameAllocator() {
 	ReservePages(0, memorySize / PAGE_SIZE + 1);
 
 	// Unreserve usable pages (we do it because the mmap can have holes in it)
-	for (usize i = 0; i < info->MemoryMapEntryCount; i++) {
-
-		MEM::MMapEntry desc = info->MemoryMap[i];
-		if (desc.Type == MEMMAP_USABLE) {
-			UnreservePages((void*)desc.AddressBase, desc.Length / PAGE_SIZE);
+	for (MEM::MEMBLOCK::MemblockRegion *current = (MEM::MEMBLOCK::MemblockRegion*)info->PhysicalMemoryChunks->Regions.Head;
+	     current != NULL;
+	     current = (MEM::MEMBLOCK::MemblockRegion*)current->Next) {
+		if (current->Type == MEMMAP_USABLE) {
+			UnreservePages((void*)current->Base, current->Length / PAGE_SIZE);
 		}
 	}
 
