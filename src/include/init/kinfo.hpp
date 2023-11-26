@@ -31,6 +31,7 @@
 #include <mm/memory.hpp>
 #include <mm/slab.hpp>
 #include <mm/heap.hpp>
+#include <mm/memblock.hpp>
 #include <sys/file.hpp>
 #include <proc/process.hpp>
 #include <proc/message.hpp>
@@ -66,16 +67,14 @@ struct KInfo {
 	const char *KernelArgs;
 
 	/* Memory information */
-	MEM::MMapEntry *MemoryMap; /* Pointer to the memory map */
-	usize MemoryMapEntryCount; /* Number of memory map regions */
+	MEM::MEMBLOCK::MemblockAllocator *PhysicalMemoryChunks; /* Physical memory map */
+	MEM::SLAB::SlabAllocator *KernelSlabAllocator;          /* Slab allocator */
+	MEM::HEAP::Heap *KernelHeap;                            /* Generic heap allocator */
 
 	uptr HigherHalfMapping; /* Start of higher half mapping */
-
 	uptr KernelPhysicalBase; /* Start of the kernel in physical memory */
 	uptr KernelVirtualBase; /* Start of the kernel in virtual memory */
 
-	MEM::SLAB::SlabAllocator *KernelSlabAllocator;
-	MEM::HEAP::Heap *KernelHeap;
 
 	DEV::CPU::TopologyStructure *DefaultMachine;
 	DEV::CPU::TopologyStructure *BootCore;

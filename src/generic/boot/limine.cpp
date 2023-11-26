@@ -9,7 +9,6 @@
 #include <init/kinfo.hpp>
 #include <mm/bootmem.hpp>
 #include <mm/string.hpp>
-#include <mm/memblock.hpp>
 #include <sys/printk.hpp>
 #include <sys/arch.hpp>
 
@@ -171,30 +170,24 @@ void LimineEntry() {
 	info->KernelPhysicalBase = KAddrRequest.response->physical_base;
 	info->KernelVirtualBase = KAddrRequest.response->virtual_base;
 
-	int MemoryMapEntryCount = MemoryMapRequest.response->entry_count;
-	info->MemoryMapEntryCount = MemoryMapEntryCount;
-	info->MemoryMap = (MEM::MMapEntry*)BOOTMEM::Malloc(sizeof(MEM::MMapEntry) * MemoryMapEntryCount + 1);
-
 	MEM::MEMBLOCK::MemblockAllocator *alloc = MEM::MEMBLOCK::InitializeAllocator();
 
-	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Allocating for %d memory map entries.\r\n", MemoryMapEntryCount);
-	for (int i = 0; i < MemoryMapEntryCount; i++) {
+	for (usize i = 0; i < MemoryMapRequest.response->entry_count; i++) {
 		MEM::MEMBLOCK::AddRegion(alloc,
 				MemoryMapRequest.response->entries[i]->base,
 				MemoryMapRequest.response->entries[i]->length,
 				MemoryMapRequest.response->entries[i]->type);
 
-		info->MemoryMap[i].AddressBase = MemoryMapRequest.response->entries[i]->base;
-		info->MemoryMap[i].Length = MemoryMapRequest.response->entries[i]->length;
-		info->MemoryMap[i].Type = MemoryMapRequest.response->entries[i]->type;
-
+/*
 		if (info->MemoryMap[i].Type == MEMMAP_BOOTLOADER_RECLAIMABLE &&
 		    info->MemoryMap[i].AddressBase + info->MemoryMap[i].Length == stackPtr - info->HigherHalfMapping) {
 			info->MemoryMap[i].Type = MEMMAP_KERNEL_AND_MODULES;
 		}
+*/
 	}
 
 	MEM::MEMBLOCK::ListRegions(alloc);
+	info->PhysicalMemoryChunks = alloc;
 
 	const char *cmdline = KernelFileRequest.response->kernel_file->cmdline;
 	usize len = Strnlen(cmdline, MAX_CMDLINE_LENGTH);
