@@ -31,8 +31,6 @@ void *Alloc(Heap *heap, usize size) {
 		return NULL;
 	}
 
-	usize oldSize = size;
-
 	size = MATH::UpperPowerOfTwoUSIZE(size);
 	
 	switch (size) {

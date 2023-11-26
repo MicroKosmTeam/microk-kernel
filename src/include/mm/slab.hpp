@@ -1,4 +1,6 @@
-#pragma once
+#ifndef MM_SLAB_HPP_
+#define MM_SLAB_HPP_
+
 #include <cstdint.hpp>
 #include <sys/list.hpp>
 #include <mm/vmm.hpp>
@@ -57,3 +59,5 @@ namespace MEM::SLAB {
 	void *ReserveSpaceInSlab(Slab *slab, SlabCache *cache);
 	void FreeSpaceInSlab(Slab *slab, SlabCache *cache, void *ptr);
 }
+
+#endif /* MM_SLAB_HPP_ */

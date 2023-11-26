@@ -15,5 +15,8 @@ ListHead *GetListHead(List *list) {
 	return list->Head;
 }
 
-void MoveElementToList(ListHead *element, List *origin, List *destination);
 void AddElementToList(ListHead *element, List *list);
+void AddElementToList(ListHead *element, ListHead *prev, List *list);
+
+void MoveElementToList(ListHead *element, List *origin, List *destination);
+

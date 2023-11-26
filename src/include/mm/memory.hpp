@@ -1,4 +1,6 @@
-#pragma once
+#ifndef MM_MEMORY_HPP_
+#define MM_MEMORY_HPP_
+
 #include <cstdint.hpp>
 
 #define MEMMAP_USABLE                 0x00
@@ -9,6 +11,7 @@
 #define MEMMAP_BOOTLOADER_RECLAIMABLE 0x05
 #define MEMMAP_KERNEL_AND_MODULES     0x06
 #define MEMMAP_FRAMEBUFFER            0x07
+
 
 void *Memset(void *start, u8 value, u64 num);
 void *Memcpy(void *dest, void *src, usize n);
@@ -89,3 +92,5 @@ namespace MEM {
 	void FreeBootMemory();
 	void InvokeOOM();
 }
+
+#endif /* MM_MEMORY_HPP_ */

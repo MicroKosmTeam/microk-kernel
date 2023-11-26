@@ -54,7 +54,8 @@ void Init() {
 				info->MemoryMap[i].AddressBase + info->MemoryMap[i].Length,
 				MemoryTypeToString(info->MemoryMap[i].Type));
 	}
-
+	
+	/*
 	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Contiguous regions:\r\n");
 	bool isAllUnusable = true;
 	uptr base = info->MemoryMap[0].AddressBase;
@@ -80,6 +81,7 @@ void Init() {
 				isAllUnusable ? "Unusable" : "Usable",
 				base,
 				base + length);
+	*/
 
 	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME 
 			"Total kernel size: [0x%x - 0x%x] -> %d bytes\r\n"

@@ -17,6 +17,23 @@ void AddElementToList(ListHead *element, List *list) {
 	}
 }
 
+void AddElementToList(ListHead *element, ListHead *prev, List *list) {
+	if (prev == NULL) {
+		AddElementToList(element, list);
+	} else {
+		if (prev->Next == NULL) {
+			list->Tail = element;
+			prev->Next = element;
+		} else {
+			ListHead *oldNext = prev->Next;
+			prev->Next = element;
+			oldNext->Previous = element;
+			element->Previous = prev;
+			element->Next = oldNext;
+		}
+	}
+}
+
 void MoveElementToList(ListHead *element, List *origin, List *destination) {
 	if (element == origin->Head) {
 		origin->Head = element->Next;

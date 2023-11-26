@@ -1,4 +1,6 @@
-#pragma once
+#ifndef MM_VMM_HPP_
+#define MM_VMM_HPP_
+
 #include <cdefs.h>
 #include <cstdint.hpp>
 #include <mm/memory.hpp>
@@ -83,3 +85,5 @@ namespace VMM {
 	void PrepareKernelVirtualSpace(uptr space);
 	void PrepareUserVirtualSpace(uptr space);
 }
+
+#endif /* MM_VMM_HPP_ */

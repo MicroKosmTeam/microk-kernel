@@ -95,7 +95,8 @@ void InitPageFrameAllocator() {
 	ReservePages(0, memorySize / PAGE_SIZE + 1);
 
 	// Unreserve usable pages (we do it because the mmap can have holes in it)
-	for (usize i = 0; i < info->MemoryMapEntryCount; i++){
+	for (usize i = 0; i < info->MemoryMapEntryCount; i++) {
+
 		MEM::MMapEntry desc = info->MemoryMap[i];
 		if (desc.Type == MEMMAP_USABLE) {
 			UnreservePages((void*)desc.AddressBase, desc.Length / PAGE_SIZE);
