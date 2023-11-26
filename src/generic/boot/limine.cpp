@@ -9,6 +9,7 @@
 #include <init/kinfo.hpp>
 #include <mm/bootmem.hpp>
 #include <mm/string.hpp>
+#include <mm/memblock.hpp>
 #include <sys/printk.hpp>
 #include <sys/arch.hpp>
 
@@ -174,8 +175,15 @@ void LimineEntry() {
 	info->MemoryMapEntryCount = MemoryMapEntryCount;
 	info->MemoryMap = (MEM::MMapEntry*)BOOTMEM::Malloc(sizeof(MEM::MMapEntry) * MemoryMapEntryCount + 1);
 
+	MEM::MEMBLOCK::MemblockAllocator *alloc = MEM::MEMBLOCK::InitializeAllocator();
+
 	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Allocating for %d memory map entries.\r\n", MemoryMapEntryCount);
 	for (int i = 0; i < MemoryMapEntryCount; i++) {
+		MEM::MEMBLOCK::AddRegion(alloc,
+				MemoryMapRequest.response->entries[i]->base,
+				MemoryMapRequest.response->entries[i]->length,
+				MemoryMapRequest.response->entries[i]->type);
+
 		info->MemoryMap[i].AddressBase = MemoryMapRequest.response->entries[i]->base;
 		info->MemoryMap[i].Length = MemoryMapRequest.response->entries[i]->length;
 		info->MemoryMap[i].Type = MemoryMapRequest.response->entries[i]->type;
@@ -185,6 +193,8 @@ void LimineEntry() {
 			info->MemoryMap[i].Type = MEMMAP_KERNEL_AND_MODULES;
 		}
 	}
+
+	MEM::MEMBLOCK::ListRegions(alloc);
 
 	const char *cmdline = KernelFileRequest.response->kernel_file->cmdline;
 	usize len = Strnlen(cmdline, MAX_CMDLINE_LENGTH);
