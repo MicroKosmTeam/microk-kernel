@@ -6,20 +6,21 @@
 
 #include <arch/x64/io/io.hpp>
 
-static usize MessagePos;
-static char Message[MAX_PRINTK_MESSAGE_LENGTH];
+static usize EarlyBufferPos;
+static usize EarlyBufferStartPos;
+static const usize EARLY_BUFFER_SIZE = 65536;
+static char EarlyBuffer[EARLY_BUFFER_SIZE];
 
 namespace PRINTK {
-static void FlushMessage() {
+static void FlushEarlyBuffer() {
 	KInfo *info = GetInfo();
-	Message[MessagePos] = '\0';
+	EarlyBuffer[EarlyBufferPos] = '\0';
 
 	if(info->KernelPort != NULL) {
-		info->KernelPort->PutString(info->KernelPort, Message);
+		info->KernelPort->PutString(info->KernelPort, EarlyBuffer + EarlyBufferStartPos);
 	}
 
-	MessagePos = 0;
-	Memset(Message, 0, MAX_PRINTK_MESSAGE_LENGTH);
+	EarlyBufferStartPos = ++EarlyBufferPos;
 }
 
 static void PutChar(char ch) {
@@ -27,15 +28,15 @@ static void PutChar(char ch) {
 
 	bool justNewline = false;
 
-	if (MessagePos >= MAX_PRINTK_MESSAGE_LENGTH) {
-		FlushMessage();
+	if (EarlyBufferPos >= MAX_PRINTK_MESSAGE_LENGTH) {
+		FlushEarlyBuffer();
 		justNewline = true;
 	}
 
-	Message[MessagePos++] = ch;
+	EarlyBuffer[EarlyBufferPos++] = ch;
 
 	if (ch == '\n' && !justNewline) {
-		FlushMessage();
+		FlushEarlyBuffer();
 		justNewline = true;
 	}
 }
@@ -112,6 +113,9 @@ void VPrintK(char *format, va_list ap) {
 }
 
 void EarlyInit() {
+	Memset(EarlyBuffer, 0, EARLY_BUFFER_SIZE);
+	EarlyBufferPos = EarlyBufferStartPos = 0;
+
 	PrintK(PRINTK_DEBUG MODULE_NAME "Serial PrintK started.\n");
 }
 }

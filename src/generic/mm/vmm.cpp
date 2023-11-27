@@ -2,6 +2,7 @@
 #include <mm/pmm.hpp>
 #include <sys/printk.hpp>
 #include <init/kinfo.hpp>
+#include <mm/memblock.hpp>
 
 namespace VMM {
 uptr PhysicalToVirtual(uptr value) {
@@ -21,30 +22,33 @@ uptr VirtualToPhysical(uptr value) {
 }
 
 
-uptr NewVirtualSpace() {
+VirtualSpace *NewVirtualSpace() {
+	VirtualSpace *space = new VirtualSpace;
+
 #if defined(ARCH_x64)
-	return x86_64::NewVirtualSpace();
+	space->VirtualHierarchyTop = x86_64::NewVirtualSpace();
 #endif
-	return 0;
+
+	return space;
 }
 
 
-void LoadVirtualSpace(uptr space) {
+void LoadVirtualSpace(VirtualSpace *space) {
 #if defined(ARCH_x64)
-	x86_64::LoadVirtualSpace(space);
+	x86_64::LoadVirtualSpace(space->VirtualHierarchyTop);
 #endif
 }
 
 
-void MapPage(uptr space, uptr phys, uptr virt, usize flags) {
+void MapPage(VirtualSpace *space, uptr phys, uptr virt, usize flags) {
 #if defined(ARCH_x64)
-	x86_64::MapPage(space, phys, virt, flags);
+	x86_64::MapPage(space->VirtualHierarchyTop, phys, virt, flags);
 #endif
 }
 
-void ForkSpace(uptr newSpace, uptr oldSpace, usize flags) {
+void ForkSpace(VirtualSpace *newSpace, VirtualSpace *oldSpace, usize flags) {
 #if defined(ARCH_x64)
-	x86_64::ForkSpace(newSpace, oldSpace, flags);
+	x86_64::ForkSpace(newSpace->VirtualHierarchyTop, oldSpace->VirtualHierarchyTop, flags);
 #endif
 }
 
@@ -60,7 +64,7 @@ void InitVMM() {
 
 }
 
-void PrepareKernelVirtualSpace(uptr space) {
+void PrepareKernelVirtualSpace(VirtualSpace *space) {
 	KInfo *info = GetInfo();
 	
 	uptr essentialStartAddr = (uptr)&__KernelBinaryEssentialStart - info->KernelVirtualBase + info->KernelPhysicalBase;
@@ -142,13 +146,13 @@ void PrepareKernelVirtualSpace(uptr space) {
 	}
 }
 
-void PrepareUserVirtualSpace(uptr space) {
+void PrepareUserVirtualSpace(VirtualSpace *space) {
 	KInfo *info = GetInfo();
 
 	ForkSpace(space, info->KernelVirtualSpace, 0);
 }
 
-void MMap(uptr space, uptr src, uptr dest, usize length, usize flags) {
+void MMap(VirtualSpace *space, uptr src, uptr dest, usize length, usize flags) {
 	ROUND_DOWN_TO_PAGE(src);
 	ROUND_DOWN_TO_PAGE(dest);
 	ROUND_UP_TO_PAGE(length);
@@ -160,7 +164,7 @@ void MMap(uptr space, uptr src, uptr dest, usize length, usize flags) {
 	}
 }
 	
-void VMAlloc(uptr space, uptr virt, usize length, usize flags) {
+void VMAlloc(VirtualSpace *space, uptr virt, usize length, usize flags) {
 	ROUND_DOWN_TO_PAGE(virt);
 	ROUND_UP_TO_PAGE(length);
 
@@ -174,7 +178,7 @@ void VMAlloc(uptr space, uptr virt, usize length, usize flags) {
 	}
 }
 
-void VMCopyAlloc(uptr space, uptr virt, usize length, usize flags, uptr data, uptr virtDataStart, usize dataLen) {
+void VMCopyAlloc(VirtualSpace *space, uptr virt, usize length, usize flags, uptr data, uptr virtDataStart, usize dataLen) {
 	ROUND_DOWN_TO_PAGE(virt);
 	ROUND_UP_TO_PAGE(length);
 

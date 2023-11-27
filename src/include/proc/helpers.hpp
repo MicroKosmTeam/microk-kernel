@@ -24,23 +24,13 @@ namespace PROC {
 		return proc;
 	}
 
-	inline uptr GetVirtualSpace(PROC::ProcessBase *proc) {
+	inline VMM::VirtualSpace *GetVirtualSpace(PROC::ProcessBase *proc) {
 		KInfo *info = GetInfo();
 
 		SpinlockLock(&info->KernelScheduler->SchedulerLock);
-		uptr procSpace = proc->VirtualMemorySpace;
+		VMM::VirtualSpace *procSpace = proc->VirtualMemorySpace;
 		SpinlockUnlock(&info->KernelScheduler->SchedulerLock);
 
 		return procSpace;
-	}
-
-	inline VMM::PageList *GetPageList(PROC::ProcessBase *proc) {
-		KInfo *info = GetInfo();
-
-		SpinlockLock(&info->KernelScheduler->SchedulerLock);
-		VMM::PageList *procList = proc->ExecutablePageList;
-		SpinlockUnlock(&info->KernelScheduler->SchedulerLock);
-
-		return procList;
 	}
 }

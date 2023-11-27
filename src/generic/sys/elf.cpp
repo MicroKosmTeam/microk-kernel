@@ -14,25 +14,23 @@
 
 usize LoadELFCoreModule(u8 *data, usize size);
 
-int LoadProgramHeaders(u8 *data, usize size, Elf64_Ehdr *elfHeader, uptr space);
-/*void LinkSymbols(u8 *data, usize size, Elf64_Ehdr *elfHeader);*/
-usize LoadProcess(Elf64_Ehdr *elfHeader, uptr space, VMM::PageList *elfPages);
+int LoadProgramHeaders(u8 *data, usize size, Elf64_Ehdr *elfHeader, VMM::VirtualSpace *space);
+usize LoadProcess(Elf64_Ehdr *elfHeader, VMM::VirtualSpace *space);
 
 u64 LoadELF(u8 *data, usize size) {
-	uptr space = VMM::NewVirtualSpace();
+	VMM::VirtualSpace *space = VMM::NewVirtualSpace();
 	VMM::PrepareUserVirtualSpace(space);
 	
 	Elf64_Ehdr *elfHeader = (Elf64_Ehdr*)data;
 	
-	VMM::PageList *elfPages = NULL;
 	LoadProgramHeaders(data, size, elfHeader, space);
 /*	LinkSymbols(data, size, elfHeader);*/
-	usize pid = LoadProcess(elfHeader, space, elfPages);
+	usize pid = LoadProcess(elfHeader, space);
 
 	return pid;
 }
 
-int LoadProgramHeaders(u8 *data, usize size, Elf64_Ehdr *elfHeader, uptr space) {
+int LoadProgramHeaders(u8 *data, usize size, Elf64_Ehdr *elfHeader, VMM::VirtualSpace *space) {
 	KInfo *info = GetInfo();
 
 	(void)info;
@@ -79,10 +77,10 @@ int LoadProgramHeaders(u8 *data, usize size, Elf64_Ehdr *elfHeader, uptr space) 
 	return 0;
 }
 
-usize LoadProcess(Elf64_Ehdr *elfHeader, uptr space, VMM::PageList *elfPages) {
+usize LoadProcess(Elf64_Ehdr *elfHeader, VMM::VirtualSpace *space) {
 	KInfo *info = GetInfo();
 	
-	PROC::UserProcess *proc = (PROC::UserProcess*)PROC::CreateProcess((PROC::ProcessBase*)info->KernelProcess, PROC::ExecutableUnitType::PT_USER, space, elfPages, 0, 0);
+	PROC::UserProcess *proc = (PROC::UserProcess*)PROC::CreateProcess((PROC::ProcessBase*)info->KernelProcess, PROC::ExecutableUnitType::PT_USER, space, 0, 0);
 
 	PROC::UserThread *thread = (PROC::UserThread*)PROC::CreateThread((PROC::ProcessBase*)proc, elfHeader->e_entry, 64 * 1024, 0, 0);
 

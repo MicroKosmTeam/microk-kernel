@@ -21,29 +21,12 @@
 #define ROUND_UP_TO_PAGE(x) \
 	ROUND_UP_TO(x, PAGE_SIZE)
 
+/* Forward definition */
+namespace MEM::MEMBLOCK {
+	struct MemblockAllocator;
+}
+
 namespace VMM {
-	struct COWMetadata {
-		uptr PhysicalAddressOfOriginal;
-		uptr PhysicalAddressOfCopy;
-
-		usize VirtualReferences;
-		uptr VirtualAddresses[];
-	};
-
-	struct PageMetadata {
-		bool IsCOW;
-		union {
-			uptr PhysicalAddress;
-			COWMetadata *COW;
-		} Data;
-	};
-
-	struct PageList {
-		usize PageCount;
-		usize AllocatedSize;
-		PageMetadata Pages[];
-	};
-
 	inline
 	usize ConvertUserFlags(usize flags) {
 		usize ret = VMM_FLAGS_USER;
@@ -67,23 +50,28 @@ namespace VMM {
 		return ret;
 	}
 
+	struct VirtualSpace {
+		uptr VirtualHierarchyTop;
+		MEM::MEMBLOCK::MemblockAllocator *VirtualMemoryLayout;
+	};
+
 	uptr PhysicalToVirtual(uptr value);
 	uptr VirtualToPhysical(uptr value);
 	
-	uptr NewVirtualSpace();
-	void LoadVirtualSpace(uptr space);
+	VirtualSpace *NewVirtualSpace();
+	void LoadVirtualSpace(VirtualSpace *space);
 
-	void MapPage(uptr space, uptr phys, uptr virt, usize flags);
+	void MapPage(VirtualSpace *space, uptr phys, uptr virt, usize flags);
 	void ForkSpace(uptr newSpace, uptr oldSpace, usize flags);
 
-	void MMap(uptr space, uptr src, uptr dest, usize length, usize flags);
+	void MMap(VirtualSpace *space, uptr src, uptr dest, usize length, usize flags);
 
-	void VMAlloc(uptr space, uptr virt, usize length, usize flags);
-	void VMCopyAlloc(uptr space, uptr virt, usize length, usize flags, uptr data, uptr virtDataStart, usize dataLen);
+	void VMAlloc(VirtualSpace *space, uptr virt, usize length, usize flags);
+	void VMCopyAlloc(VirtualSpace *space, uptr virt, usize length, usize flags, uptr data, uptr virtDataStart, usize dataLen);
 
 	void InitVMM();
-	void PrepareKernelVirtualSpace(uptr space);
-	void PrepareUserVirtualSpace(uptr space);
+	void PrepareKernelVirtualSpace(VirtualSpace *space);
+	void PrepareUserVirtualSpace(VirtualSpace *space);
 }
 
 #endif /* MM_VMM_HPP_ */

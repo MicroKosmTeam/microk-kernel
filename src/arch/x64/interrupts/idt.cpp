@@ -174,8 +174,8 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 
 				x86_64::UpdateLocalCPUStruct(&coreInfo->CPUStruct,
 						             info->KernelScheduler->CurrentThread->Thread->KernelStack,
-						             VMM::VirtualToPhysical(proc->VirtualMemorySpace),
-							     VMM::VirtualToPhysical(proc->VirtualMemorySpace));
+						             VMM::VirtualToPhysical(proc->VirtualMemorySpace->VirtualHierarchyTop),
+							     VMM::VirtualToPhysical(proc->VirtualMemorySpace->VirtualHierarchyTop));
 
 				//x86_64::APIC::WriteAPIC(apic, APIC_REGISTER_EOI, 0);
 

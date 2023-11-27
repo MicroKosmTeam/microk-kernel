@@ -1,6 +1,7 @@
 #include <mm/bootmem.hpp>
 #include <sys/panic.hpp>
 #include <mm/memory.hpp>
+#include <sys/printk.hpp>
 #include <cdefs.h>
 
 namespace BOOTMEM {
@@ -43,7 +44,8 @@ namespace BOOTMEM {
 		(void)address;
 
 		DeactivateBootmem();
-		Memset(BootMemData.Memory, 0, CONFIG_BOOTMEM_SIZE);
+
+		PRINTK::PrintK(PRINTK_DEBUG "Bootmem memory was freed at: 0x%x\r\n", address);
 
 		PANIC("Bootmem memory was freed");
 		return;

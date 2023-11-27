@@ -114,7 +114,7 @@ int BootCPUInit() {
 	SetMSR(MSR_GSBASE, 0, 0);
 
 	SetMSR(MSR_KERNELGSBASE, (uptr)&coreInfo->CPUStruct, (uptr)&coreInfo->CPUStruct >> 32);
-	UpdateLocalCPUStruct(&coreInfo->CPUStruct, 0, VMM::VirtualToPhysical(info->KernelVirtualSpace), VMM::VirtualToPhysical(info->KernelVirtualSpace));
+	UpdateLocalCPUStruct(&coreInfo->CPUStruct, 0, 0, 0);
 
 	coreInfo->CPUStruct.TopologyStructure = (uptr)core;
 
@@ -218,7 +218,7 @@ int CurrentCPUInit(DEV::CPU::TopologyStructure *core) {
 	SetMSR(MSR_GSBASE, 0, 0);
 
 	SetMSR(MSR_KERNELGSBASE, (uptr)&coreInfo->CPUStruct, (uptr)&coreInfo->CPUStruct >> 32);
-	UpdateLocalCPUStruct(&coreInfo->CPUStruct, 0, VMM::VirtualToPhysical(info->KernelVirtualSpace), VMM::VirtualToPhysical(info->KernelVirtualSpace));
+	UpdateLocalCPUStruct(&coreInfo->CPUStruct, 0, VMM::VirtualToPhysical(info->KernelVirtualSpace->VirtualHierarchyTop), VMM::VirtualToPhysical(info->KernelVirtualSpace->VirtualHierarchyTop));
 
 	coreInfo->CPUStruct.TopologyStructure = (uptr)core;
 

@@ -56,7 +56,7 @@ usize HandleSyscallMemoryVMAlloc(const_userptr_t userBase, usize length, usize f
 	uptr base = (uptr)userBase;
 
 	PROC::UserProcess *proc = (PROC::UserProcess*)PROC::GetProcess();
-	uptr procSpace = GetVirtualSpace((PROC::ProcessBase*)proc);
+	VMM::VirtualSpace *procSpace = GetVirtualSpace((PROC::ProcessBase*)proc);
 	
 	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Calling VMAlloc for PID %d. Base: 0x%x, Length: %d bytes, Flags: 0x%x.\r\n", proc->ID, base, length, flags);
 
@@ -77,7 +77,7 @@ usize HandleSyscallMemoryMMap(const_userptr_t userSrc, const_userptr_t userDest,
 	uptr dest = (uptr)userDest;
 
 	PROC::UserProcess *proc = (PROC::UserProcess*)PROC::GetProcess();
-	uptr procSpace = GetVirtualSpace((PROC::ProcessBase*)proc);
+	VMM::VirtualSpace *procSpace = GetVirtualSpace((PROC::ProcessBase*)proc);
 
 	VMM::MMap(procSpace, src, dest, length, VMM::ConvertUserFlags(flags));
 

@@ -73,14 +73,14 @@ static usize RequestTID(ProcessBase *parent) {
 	return parent->Threads.ThreadIDBase++;
 }
 
-ProcessBase *CreateProcess(ProcessBase *parent, ExecutableUnitType type, uptr virtualMemorySpace, VMM::PageList *pageList, u8 priority, u16 flags) {
+	
+ProcessBase *CreateProcess(ProcessBase *parent, ExecutableUnitType type, VMM::VirtualSpace *virtualMemorySpace, u8 priority, u16 flags) {
 	KInfo *info = GetInfo();
 	ProcessBase *process = (ProcessBase*)CreateExecutableUnitHeader(parent, type, false, priority, flags);
 	if(process == NULL) return NULL;
 
 	process->ID = RequestPID();
 	process->VirtualMemorySpace = virtualMemorySpace;
-	process->ExecutablePageList = pageList;
 
 	switch(type) {
 		case ExecutableUnitType::PT_KERNEL:
@@ -161,7 +161,7 @@ ThreadBase *CreateThread(ProcessBase *parent, uptr entrypoint, usize stackSize, 
 			KernelProcess *kernelParent = (KernelProcess*)parent;
 			
 			usize highestFree = kernelParent->HighestFree;
-			uptr space = kernelParent->VirtualMemorySpace;
+			VMM::VirtualSpace *space = kernelParent->VirtualMemorySpace;
 
 			for (uptr i = highestFree - stackSize; i < highestFree; i+= PAGE_SIZE) {
 				uptr physical = (uptr)PMM::RequestPage();
@@ -185,7 +185,7 @@ ThreadBase *CreateThread(ProcessBase *parent, uptr entrypoint, usize stackSize, 
 			UserProcess *userParent = (UserProcess*)parent;
 
 			usize highestFree = userParent->HighestFree;
-			uptr space = userParent->VirtualMemorySpace;
+			VMM::VirtualSpace *space = userParent->VirtualMemorySpace;
 
 			for (uptr i = highestFree - stackSize; i < highestFree; i+= PAGE_SIZE) {
 				uptr physical = (uptr)PMM::RequestPage();

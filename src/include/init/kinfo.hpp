@@ -82,10 +82,8 @@ struct KInfo {
 	PROC::MessageManager *KernelMessageManager;
 	PROC::Scheduler *KernelScheduler;
 	PROC::KernelProcess *KernelProcess;
-	uptr KernelVirtualSpace; /* Kernel virtual memory space */
+	VMM::VirtualSpace *KernelVirtualSpace; /* Kernel virtual memory space */
 	uptr KernelStack; /* Start of kernel stack */
-
-	VMM::PageList *KernelHeapPageList;
 
 #ifdef CONFIG_KERNEL_MODULES
 	/* Module information */
