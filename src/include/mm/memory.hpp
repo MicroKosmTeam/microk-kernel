@@ -12,6 +12,21 @@
 #define MEMMAP_KERNEL_AND_MODULES     0x06
 #define MEMMAP_FRAMEBUFFER            0x07
 
+#define MEMMAP_GENERIC_COUNT          8
+
+#define MEMMAP_KERNEL_ESSENTIALS      0x80
+#define MEMMAP_KERNEL_TEXT            0x81
+#define MEMMAP_KERNEL_RODATA          0x82
+#define MEMMAP_KERNEL_DATA            0x83
+#define MEMMAP_KERNEL_DYNAMIC         0x84
+#define MEMMAP_KERNEL_BSS             0x85
+#define MEMMAP_KERNEL_BITMAP          0x86
+#define MEMMAP_KERNEL_STACK           0x87
+#define MEMMAP_KERNEL_DEVICE          0x88
+#define MEMMAP_KERNEL_FILE            0x89
+
+#define MEMMAP_KERNEL_SPECIFIC_COUNT  10
+#define MEMMAP_KERNEL_SPECIFIC_START  0x80
 
 void *Memset(void *start, u8 value, u64 num);
 void *Memcpy(void *dest, void *src, usize n);
@@ -74,21 +89,41 @@ namespace MEM {
 	};
 
 	inline const char *MemoryTypeToString(u8 type) {
-		const char *memTypeStrings[] = {
+		if (type >= 0x80) {
+			type -= 0x80;
+
+			const char *KernelMemTypeStrings[MEMMAP_KERNEL_SPECIFIC_COUNT] = {
+				"Kernel Essentials",
+				"Kernel Text",
+				"Kernel ROData",
+				"Kernel Data",
+				"Kernel Dynamic",
+				"Kernel BSS",
+				"Kernel Bitmap",
+				"Kernel Stack",
+				"Kernel Device",
+				"Kernel File"
+			};
+
+			return KernelMemTypeStrings[type];
+		}
+
+		const char *GenericMemTypeStrings[MEMMAP_GENERIC_COUNT] = {
 			"Usable",
 			"Reserved",
 			"ACPI Reclaimable",
 			"ACPI NVS",
 			"Bad",
-			"Bootloader reclaimable",
-			"Kernel and modules",
+			"Bootloader Reclaimable",
+			"Kernel And Modules",
 			"Framebuffer"
 		};
 
-		return memTypeStrings[type];
+		return GenericMemTypeStrings[type];
 	}
 
 	void Init();
+	void CatalogueKernelMemory();
 	void FreeBootMemory();
 	void InvokeOOM();
 }

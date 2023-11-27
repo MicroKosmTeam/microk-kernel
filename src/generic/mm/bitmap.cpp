@@ -74,8 +74,10 @@ void InitPageFrameAllocator() {
 
 	FreeMemory = memorySize;
 
-	MEM::MEMBLOCK::MemblockRegion *baseRegion = MEM::MEMBLOCK::FindFreeRegion(info->PhysicalMemoryChunks, bitmapSize);
-	baseRegion = MEM::MEMBLOCK::AddRegion(info->PhysicalMemoryChunks, baseRegion->Base, bitmapSize, MEMMAP_KERNEL_AND_MODULES);
+	ROUND_UP_TO_PAGE(bitmapSize);
+	MEM::MEMBLOCK::MemblockRegion *baseRegion = MEM::MEMBLOCK::FindFreeRegion(info->PhysicalMemoryChunks, bitmapSize, false);
+	PRINTK::PrintK(PRINTK_DEBUG "Memblock chosen region base: 0x%x\r\n", baseRegion->Base);
+	baseRegion = MEM::MEMBLOCK::AddRegion(info->PhysicalMemoryChunks, baseRegion->Base, bitmapSize, MEMMAP_KERNEL_BITMAP);
 	largestFree = (void*)VMM::PhysicalToVirtual(baseRegion->Base);
 
 	// Initialize bitmap
@@ -92,12 +94,6 @@ void InitPageFrameAllocator() {
 			UnreservePages((void*)current->Base, current->Length / PAGE_SIZE);
 		}
 	}
-
-	// Locking the memory below 1MB
-	ReservePages(0, 0x100);
-
-	// Locking the page bitmap
-	ReservePages(PageBitmap.buffer, PageBitmap.size / PAGE_SIZE + 1);
 
 	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Bitmap allocator started: %dkb of memory in total.\r\n", memorySize / 1024);
 }

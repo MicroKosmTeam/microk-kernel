@@ -173,17 +173,17 @@ void LimineEntry() {
 	MEM::MEMBLOCK::MemblockAllocator *alloc = MEM::MEMBLOCK::InitializeAllocator();
 
 	for (usize i = 0; i < MemoryMapRequest.response->entry_count; i++) {
-		MEM::MEMBLOCK::AddRegion(alloc,
-				MemoryMapRequest.response->entries[i]->base,
-				MemoryMapRequest.response->entries[i]->length,
-				MemoryMapRequest.response->entries[i]->type);
+		uptr base = MemoryMapRequest.response->entries[i]->base;
+		usize length = MemoryMapRequest.response->entries[i]->length;
+		u8 type = MemoryMapRequest.response->entries[i]->type;
 
-/*
-		if (info->MemoryMap[i].Type == MEMMAP_BOOTLOADER_RECLAIMABLE &&
-		    info->MemoryMap[i].AddressBase + info->MemoryMap[i].Length == stackPtr - info->HigherHalfMapping) {
-			info->MemoryMap[i].Type = MEMMAP_KERNEL_AND_MODULES;
+		if (type == MEMMAP_BOOTLOADER_RECLAIMABLE &&
+		    base + length == stackPtr - info->HigherHalfMapping) {
+			type = MEMMAP_KERNEL_STACK;
 		}
-*/
+		
+		MEM::MEMBLOCK::AddRegion(alloc, base, length, type);
+
 	}
 
 	MEM::MEMBLOCK::ListRegions(alloc);
@@ -205,6 +205,14 @@ void LimineEntry() {
 		PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Allocating for %d modules.\r\n", moduleCount);
 
 		for (int i = 0; i < moduleCount; i++) {
+			usize fileSize = ModuleRequest.response->modules[i]->size;
+			ROUND_UP_TO_PAGE(fileSize);
+
+			MEM::MEMBLOCK::AddRegion(alloc,
+				(uptr)ModuleRequest.response->modules[i]->address - info->HigherHalfMapping,
+				fileSize,
+				MEMMAP_KERNEL_FILE);
+
 			info->BootFiles[i].Address = (uptr)ModuleRequest.response->modules[i]->address;
 			info->BootFiles[i].Size = ModuleRequest.response->modules[i]->size;
 			Strncpy(info->BootFiles[i].Path, ModuleRequest.response->modules[i]->path, MAX_FILE_NAME_LENGTH);

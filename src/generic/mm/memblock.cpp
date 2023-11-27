@@ -32,6 +32,10 @@ void SetupSlabAllocation(MemblockAllocator *alloc, SLAB::SlabAllocator *slab) {
 MemblockRegion *AddRegion(MemblockAllocator *alloc, uptr base, usize length, u8 type) {
 	MemblockRegion *region;
 
+	if (length == 0) {
+		return NULL;
+	}
+
 	if (alloc->Regions.Head == NULL) {
 		region = (MemblockRegion*)alloc->RegionInternalAlloc(alloc);
 
@@ -104,6 +108,8 @@ MemblockRegion *AddRegion(MemblockAllocator *alloc, uptr base, usize length, u8 
 					current->Length -= length;
 
 					current->Previous = region;
+
+					return region;
 				} else if (current->Length == length) {
 					/* Same region, just change the type */
 
@@ -174,12 +180,20 @@ MemblockRegion *AddRegion(MemblockAllocator *alloc, uptr base, usize length, u8 
 	return NULL;
 }
 
-MemblockRegion *FindRegion(MemblockAllocator *alloc, u8 type, usize size) {
+MemblockRegion *FindRegion(MemblockAllocator *alloc, u8 type, usize size, bool fromHead) {
 	MemblockRegion *current;
 
-	for(current = (MemblockRegion*)alloc->Regions.Head ; current != NULL ; current = (MemblockRegion*)current->Next) {
-		if (current->Length >= size && current->Type == type) {
-			return current;
+	if (fromHead) {
+		for(current = (MemblockRegion*)alloc->Regions.Head; current != NULL ; current = (MemblockRegion*)current->Next) {
+			if (current->Length >= size && current->Type == type) {
+				return current;
+			}
+		}
+	} else {
+		for(current = (MemblockRegion*)alloc->Regions.Tail; current != NULL ; current = (MemblockRegion*)current->Previous) {
+			if (current->Length >= size && current->Type == type) {
+				return current;
+			}
 		}
 	}
 

@@ -32,11 +32,11 @@ namespace MEM::MEMBLOCK {
 
 	MemblockRegion *AddRegion(MemblockAllocator *alloc, uptr base, usize length, u8 type);
 
-	MemblockRegion *FindRegion(MemblockAllocator *alloc, u8 type, usize size);
+	MemblockRegion *FindRegion(MemblockAllocator *alloc, u8 type, usize size, bool fromHead);
 
 	inline __attribute__((always_inline))
-	MemblockRegion *FindFreeRegion(MemblockAllocator *alloc, usize size) {
-		return FindRegion(alloc, MEMMAP_USABLE, size);
+	MemblockRegion *FindFreeRegion(MemblockAllocator *alloc, usize size, bool fromHead) {
+		return FindRegion(alloc, MEMMAP_USABLE, size, fromHead);
 	}
 
 	void ListRegions(MemblockAllocator *alloc);
