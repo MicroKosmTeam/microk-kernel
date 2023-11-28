@@ -5,12 +5,12 @@ bool Bitmap::operator[](u64 index) {
 }
 
 bool Bitmap::Get(u64 index) {
-        if (index > size * 8) return false;
+        if (index > Size * 8) return false;
         u64 byteIndex = index / 8;
         u8 bitIndex = index % 8;
         u8 bitIndexer = 0b10000000 >> bitIndex;
 
-        if ((buffer[byteIndex] & bitIndexer) > 0) {
+        if ((Buffer[byteIndex] & bitIndexer) > 0) {
                 return true;
         }
 
@@ -18,14 +18,14 @@ bool Bitmap::Get(u64 index) {
 }
 
 bool Bitmap::Set(u64 index, bool value) {
-        if (index > size * 8) return false;
+        if (index > Size * 8) return false;
         u64 byteIndex = index / 8;
         u8 bitIndex = index % 8;
         u8 bitIndexer = 0b10000000 >> bitIndex;
 
-        buffer[byteIndex] &= ~bitIndexer;
+        Buffer[byteIndex] &= ~bitIndexer;
         if (value) {
-                buffer[byteIndex] |= bitIndexer;
+                Buffer[byteIndex] |= bitIndexer;
         }
 
         return true;

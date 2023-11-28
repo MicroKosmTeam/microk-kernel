@@ -46,34 +46,6 @@ void InvokeOOM() {
 void Init() {
 	KInfo *info = GetInfo();
 
-	/*
-	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Contiguous regions:\r\n");
-	bool isAllUnusable = true;
-	uptr base = info->MemoryMap[0].Base;
-	usize length = info->MemoryMap[0].Length;
-
-	for (usize region = 1; region < info->MemoryMapEntryCount; region++) {
-		if (info->MemoryMap[region - 1].Base + info->MemoryMap[region - 1].Length == info->MemoryMap[region].Base) {
-			length += info->MemoryMap[region].Length;
-			if(isAllUnusable) isAllUnusable = info->MemoryMap[region].Type == MEMMAP_USABLE ? false : true;
-		} else {
-			PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME " %s area: [0x%x - 0x%x]\r\n",
-				isAllUnusable ? "Unusable" : "Usable",
-				base,
-				base + length);
-
-			base = info->MemoryMap[region].Base;
-			length = info->MemoryMap[region].Length;
-			isAllUnusable = info->MemoryMap[region].Type == MEMMAP_USABLE ? false : true;
-		}
-	}
-
-	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME " %s area: [0x%x - 0x%x]\r\n",
-				isAllUnusable ? "Unusable" : "Usable",
-				base,
-				base + length);
-	*/
-
 	CatalogueKernelMemory();
 
 	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Provided physical RAM map:\r\n");
@@ -86,6 +58,8 @@ void Init() {
 				current->Base + current->Length,
 				MemoryTypeToString(current->Type));
 	}
+	
+	DetectContinuousMemoryRegions();
 
 
 	/* Enabling the page frame allocator */
@@ -168,6 +142,58 @@ void CatalogueKernelMemory() {
 	MEM::MEMBLOCK::AddRegion(info->PhysicalMemoryChunks, dataStartAddr, dataEndAddr - dataStartAddr, MEMMAP_KERNEL_DATA);
 	MEM::MEMBLOCK::AddRegion(info->PhysicalMemoryChunks, dynamicStartAddr, dynamicEndAddr - dynamicStartAddr, MEMMAP_KERNEL_DYNAMIC);
 	MEM::MEMBLOCK::AddRegion(info->PhysicalMemoryChunks, bssStartAddr, bssEndAddr - bssStartAddr, MEMMAP_KERNEL_BSS);
+}
+
+void DetectContinuousMemoryRegions() {
+	KInfo *info = GetInfo();
+
+	uptr base = 0;
+	usize length = 0;
+
+	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Contiguous regions:\r\n");
+	for (MEM::MEMBLOCK::MemblockRegion *current = (MEM::MEMBLOCK::MemblockRegion*)info->PhysicalMemoryChunks->Regions.Head;
+	     current != NULL;
+	     current = (MEM::MEMBLOCK::MemblockRegion*)current->Next) {
+
+		if (current->Base > base + length) {
+			if (base != 0) {
+				char *intro;
+
+				if (base < 0x100000) {
+					intro = "DMA";
+				} else if (base < 0x100000000) {
+					intro = "DMA32";
+				} else {
+					intro = "Normal";
+				}
+
+				PRINTK::PrintK(PRINTK_DEBUG " %s Memory Area: [0x%x - 0x%x]\r\n",
+					intro,
+					base,
+					base + length);
+			}
+
+			base = current->Base;
+			length = 0;
+		}
+			
+		length += current->Length;
+	}
+
+	char *intro;
+
+	if (base < 0x100000) {
+		intro = "DMA";
+	} else if (base < 0x100000000) {
+		intro = "DMA32";
+	} else {
+		intro = "Normal";
+	}
+
+	PRINTK::PrintK(PRINTK_DEBUG " %s Memory Area: [0x%x - 0x%x]\r\n",
+			intro,
+			base,
+			base + length);
 }
 
 void FreeBootMemory() {

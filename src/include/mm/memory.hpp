@@ -29,9 +29,18 @@
 #define MEMMAP_KERNEL_SPECIFIC_START  0x80
 
 void *Memset(void *start, u8 value, u64 num);
+void *Memset16(void *start, u16 value, usize num);
+void *Memset32(void *start, u32 value, usize num);
+void *Memset64(void *start, u64 value, usize num);
+
+void *Memclr(void *start, usize num);
+
 void *Memcpy(void *dest, void *src, usize n);
+
 int Memcmp(const void* buf1, const void* buf2, usize count);
+
 void *Memmove(void *dest, const void *src, usize n);
+
 
 void *Malloc(usize size);
 
@@ -124,6 +133,7 @@ namespace MEM {
 
 	void Init();
 	void CatalogueKernelMemory();
+	void DetectContinuousMemoryRegions();
 	void FreeBootMemory();
 	void InvokeOOM();
 }

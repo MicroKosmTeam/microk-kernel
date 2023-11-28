@@ -17,10 +17,10 @@ static void ReservePage(void *address);
 static void ReservePages(void *address, usize pageCount);
 
 static void InitBitmap(usize bitmapSize, void *bufferAddress) {
-	PageBitmap.size = bitmapSize;
-	PageBitmap.buffer = (u8*)bufferAddress;
+	PageBitmap.Size = bitmapSize;
+	PageBitmap.Buffer = (u8*)bufferAddress;
 	for (usize i = 0; i < bitmapSize; i++) {
-		*(u8*)(PageBitmap.buffer + i) = 0;
+		*(u8*)(PageBitmap.Buffer + i) = 0;
 	}
 }
 static void UnreservePage(void *address) {
@@ -49,7 +49,7 @@ static void UnreservePages(void *address, usize pageCount) {
 	}
 }
 
-static void ReservePages(void *address, usize pageCount) {
+static __attribute__((unused)) void ReservePages(void *address, usize pageCount) {
 	for (usize i = 0; i < pageCount; i++) {
 		ReservePage((void*)((usize)address + (i * PAGE_SIZE)));
 	}
@@ -68,7 +68,7 @@ void InitPageFrameAllocator() {
 
 	void *largestFree = NULL;
 
-	usize memorySize = MEM::MEMBLOCK::GetTotalMemorySize(info->PhysicalMemoryChunks);
+	usize memorySize = MEM::MEMBLOCK::GetTotalSpanningLength(info->PhysicalMemoryChunks);
 
 	usize bitmapSize = memorySize / PAGE_SIZE / 8 + 1;
 
@@ -84,7 +84,7 @@ void InitPageFrameAllocator() {
 	InitBitmap(bitmapSize, largestFree);
 
 	// Reserve all pages
-	ReservePages(0, memorySize / PAGE_SIZE + 1);
+	Memset(largestFree, 0xFF, bitmapSize);
 
 	// Unreserve usable pages (we do it because the mmap can have holes in it)
 	for (MEM::MEMBLOCK::MemblockRegion *current = (MEM::MEMBLOCK::MemblockRegion*)info->PhysicalMemoryChunks->Regions.Head;
@@ -101,7 +101,7 @@ void InitPageFrameAllocator() {
 #define MAX_TRIES 4 
 void *RequestPage() {
 	for (int i = 0; i < MAX_TRIES; ++i) {
-		for (; PageBitmapIndex < PageBitmap.size * 8; PageBitmapIndex++) {
+		for (; PageBitmapIndex < PageBitmap.Size * 8; PageBitmapIndex++) {
 			if(PageBitmap[PageBitmapIndex] == true) continue;
 			LockPage((void*)(PageBitmapIndex * PAGE_SIZE));
 
@@ -117,7 +117,7 @@ void *RequestPage() {
 
 void *RequestPages(usize pages) {
 	for (int i = 0; i < MAX_TRIES; ++i) {
-		for (; PageBitmapIndex < (PageBitmap.size - pages)* 8; PageBitmapIndex++) {
+		for (; PageBitmapIndex < (PageBitmap.Size - pages)* 8; PageBitmapIndex++) {
 			bool free = true;
 			for (usize i = 0; i < pages; i++) {
 				if(PageBitmap[PageBitmapIndex + i]) { free = false; break; };

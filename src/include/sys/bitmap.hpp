@@ -2,11 +2,11 @@
 
 #include <cstdint.hpp>
 
-class Bitmap {
-public:
-	bool operator[](u64 index);
-	bool Get(u64 index);
-	bool Set(u64 index, bool value);
-	usize size;
-	u8 *buffer;
+struct Bitmap {
+	bool operator[](usize index);
+	bool Get(usize index);
+	bool Set(usize index, bool value);
+
+	usize Size;
+	u8 *Buffer;
 };
