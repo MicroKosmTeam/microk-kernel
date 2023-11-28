@@ -15,5 +15,5 @@ void *Memclr(void *start, usize num) {
 		return Memset16(start, 0, num);
 	}
 
-	return Memset(start, 0, num);
+	return Memclr(start, num);
 }

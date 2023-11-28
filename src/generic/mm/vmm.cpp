@@ -189,7 +189,7 @@ void VMCopyAlloc(VirtualSpace *space, uptr virt, usize length, usize flags, uptr
 
 	for (; virt < end; virt += PAGE_SIZE) {
 		phys = (uptr)PMM::RequestPage();
-		Memset((void*)VMM::PhysicalToVirtual(phys), 0, PAGE_SIZE);
+		Memclr((void*)VMM::PhysicalToVirtual(phys), PAGE_SIZE);
 
 		if (virtDataStart <= virt) {
 			copyLen = dataLen > PAGE_SIZE ? PAGE_SIZE : dataLen;

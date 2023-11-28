@@ -65,7 +65,7 @@ SlabCache *InitializeSlabCache(SlabAllocator *allocator, usize objectSize) {
 	}
 
 	SlabCache *cache = (SlabCache*)allocator->SlabCacheInternalAlloc(allocator);
-	Memset(cache, 0, sizeof(SlabCache));
+	Memclr(cache, sizeof(SlabCache));
 
 	cache->Allocator = allocator;
 	cache->ObjectSize = objectSize;
@@ -82,7 +82,7 @@ void FreeSlabCache(SlabCache *cache) {
 
 Slab *CreateSlab(SlabCache *cache) {
 	Slab *slab = (Slab*)cache->Allocator->SlabInternalAlloc(cache->Allocator);
-	Memset(slab, 0, sizeof(Slab));
+	Memclr(slab, sizeof(Slab));
 
 	slab->ParentList = &cache->FreeSlabs;
 	AddElementToList(slab, &cache->FreeSlabs);

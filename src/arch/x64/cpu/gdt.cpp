@@ -26,7 +26,7 @@ void LoadNewStackInTSS(TSS *tss, uptr stackPointer) {
 
 void TSSInit(GDT *gdt, TSS *tss, uptr stackPointer) {
 	/* Cleaning the TSS struct */
-	Memset(tss, 0, sizeof(*tss));
+	Memclr(tss, sizeof(*tss));
 
 	LoadNewStackInTSS(tss, stackPointer);
 

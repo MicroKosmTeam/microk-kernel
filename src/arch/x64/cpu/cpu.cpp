@@ -152,7 +152,7 @@ int CurrentCPUInit(DEV::CPU::TopologyStructure *core) {
 	IDTInit((IDTEntry*)coreInfo->IDT, &coreInfo->_IDTR);
 	
 	u32 vendor[4];
-	Memset(vendor, 0, sizeof(u32) * 4);
+	Memclr(vendor, sizeof(u32) * 4);
 	u32 maxIntelLevel = 0, maxAmdLevel = 0;
 	u32 ignored = 0;
 	u32 feature;

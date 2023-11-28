@@ -209,7 +209,7 @@ void FreeBootMemory() {
 
 			current->Type = MEMMAP_USABLE;
 
-			Memset((void*)VMM::PhysicalToVirtual(current->Base), 0, current->Length);
+			Memclr((void*)VMM::PhysicalToVirtual(current->Base), current->Length);
 			PMM::FreePages((void*)current->Base, current->Length / PAGE_SIZE);
 		}
 	}

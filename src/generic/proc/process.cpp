@@ -92,7 +92,7 @@ ProcessBase *CreateProcess(ProcessBase *parent, ExecutableUnitType type, VMM::Vi
 
 			userProcess->UserTaskBlock = (UserTCB*)PMM::RequestPage();
 			UserTCB *tcb = (UserTCB*)((uptr)userProcess->UserTaskBlock + info->HigherHalfMapping);
-			Memset(tcb, 0, PAGE_SIZE);
+			Memclr(tcb, PAGE_SIZE);
 
 			userProcess->HighestFree -= PAGE_SIZE;
 			VMM::MapPage(userProcess->VirtualMemorySpace, (uptr)userProcess->UserTaskBlock, userProcess->HighestFree, VMM_FLAGS_USER_DATA);
@@ -136,7 +136,7 @@ ThreadBase *CreateThread(ProcessBase *parent, uptr entrypoint, usize stackSize, 
 	/* Initializing thread variables */
 	thread->ID = RequestTID(parent);
 	thread->Context = new CPUStatus;
-	Memset(thread->Context, 0, sizeof(CPUStatus));
+	Memclr(thread->Context, sizeof(CPUStatus));
 
 	/* Adding the thread to the list in the parent */
 	ThreadBase *precedingThread = parent->Threads.Tail;
@@ -166,7 +166,7 @@ ThreadBase *CreateThread(ProcessBase *parent, uptr entrypoint, usize stackSize, 
 			for (uptr i = highestFree - stackSize; i < highestFree; i+= PAGE_SIZE) {
 				uptr physical = (uptr)PMM::RequestPage();
 				VMM::MapPage(space, physical, i, VMM_FLAGS_KERNEL_DATA);
-				Memset((void*)(physical + info->HigherHalfMapping), 0, PAGE_SIZE);
+				Memclr((void*)(physical + info->HigherHalfMapping), PAGE_SIZE);
 			}
 
 			kernelThread->KernelStack = highestFree;
@@ -190,7 +190,7 @@ ThreadBase *CreateThread(ProcessBase *parent, uptr entrypoint, usize stackSize, 
 			for (uptr i = highestFree - stackSize; i < highestFree; i+= PAGE_SIZE) {
 				uptr physical = (uptr)PMM::RequestPage();
 				VMM::MapPage(space, physical, i, VMM_FLAGS_USER_DATA);
-				Memset((void*)(physical + info->HigherHalfMapping), 0, PAGE_SIZE);
+				Memclr((void*)(physical + info->HigherHalfMapping), PAGE_SIZE);
 			}
 
 			userThread->Context->IretRIP = entrypoint;
@@ -209,7 +209,7 @@ ThreadBase *CreateThread(ProcessBase *parent, uptr entrypoint, usize stackSize, 
 			for (uptr i = highestFree - kernelStackSize; i < highestFree; i+= PAGE_SIZE) {
 				uptr physical = (uptr)PMM::RequestPage();
 				VMM::MapPage(space, physical, i, VMM_FLAGS_KERNEL_DATA);
-				Memset((void*)(physical + info->HigherHalfMapping), 0, PAGE_SIZE);
+				Memclr((void*)(physical + info->HigherHalfMapping), PAGE_SIZE);
 			}
 
 			userThread->KernelStack = highestFree;

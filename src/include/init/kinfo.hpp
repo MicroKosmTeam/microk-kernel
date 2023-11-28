@@ -119,7 +119,7 @@ struct KInfo {
  */
 inline void InitInfo() {
 	extern KInfo KernelInfo;
-	Memset(&KernelInfo, 0, sizeof(KInfo));
+	Memclr(&KernelInfo, sizeof(KInfo));
 }
 
 /*

@@ -7,12 +7,12 @@ int InitializeKernelTables() {
 
 	info->KernelBaseSystemTable = (uptr)PMM::RequestPage();
 	KBST *kbst = (KBST*)(info->KernelBaseSystemTable + info->HigherHalfMapping);
-	Memset(kbst, 0, PAGE_SIZE);
+	Memclr(kbst, PAGE_SIZE);
 	PopulateKBST(kbst);
 
 	info->BootFileSystemTable = (uptr)PMM::RequestPage();
 	BFST *bfst = (BFST*)(info->BootFileSystemTable + info->HigherHalfMapping);
-	Memset(bfst, 0, PAGE_SIZE);
+	Memclr(bfst, PAGE_SIZE);
 	PopulateBFST(bfst);
 
 	return 0;

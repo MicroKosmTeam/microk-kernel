@@ -14,7 +14,7 @@ namespace BOOTMEM {
 	} BootMemData;
 
 	void ActivateBootmem() {
-		Memset(BootMemData.Memory, 0, CONFIG_BOOTMEM_SIZE);
+		Memclr(BootMemData.Memory, CONFIG_BOOTMEM_SIZE);
 		BootMemData.LastPosition = 0;
 		BootMemData.Active = true;
 	}

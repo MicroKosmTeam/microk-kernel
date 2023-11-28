@@ -13,7 +13,7 @@
 __attribute__((aligned(PAGE_SIZE))) SyscallFunctionCallback SyscallVector[SYSCALL_VECTOR_END];
 
 void InitSyscalls() {
-	Memset(SyscallVector, 0, SYSCALL_VECTOR_END * sizeof(SyscallFunctionCallback));
+	Memclr(SyscallVector, SYSCALL_VECTOR_END * sizeof(SyscallFunctionCallback));
 
 	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Initializing system call API.\r\n");
 	SyscallVector[SYSCALL_DEBUG_PRINTK] = (SyscallFunctionCallback)(void*)HandleSyscallDebugPrintK;
@@ -286,7 +286,7 @@ usize HandleSyscallProcReturn(usize returnCode) {
 	asm volatile("mov %%gs:16, %0" : "=r"(userStackBase) : : "memory");
 /*
 	CPUStatus context;
-	Memset(&context, 0, sizeof(context));
+	Memclr(&context, sizeof(context));
 	context.RBX = *(u64*)kernelStack;
 	context.R12 = *(u64*)(kernelStack - 8);
 	context.R13 = *(u64*)(kernelStack - 16);

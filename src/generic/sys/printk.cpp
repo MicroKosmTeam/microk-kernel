@@ -113,7 +113,7 @@ void VPrintK(char *format, va_list ap) {
 }
 
 void EarlyInit() {
-	Memset(EarlyBuffer, 0, EARLY_BUFFER_SIZE);
+	Memclr(EarlyBuffer, EARLY_BUFFER_SIZE);
 	EarlyBufferPos = EarlyBufferStartPos = 0;
 
 	PrintK(PRINTK_DEBUG MODULE_NAME "Serial PrintK started.\n");

@@ -84,7 +84,7 @@ void InitPageFrameAllocator() {
 	InitBitmap(bitmapSize, largestFree);
 
 	// Reserve all pages
-	Memset(largestFree, 0xFF, bitmapSize);
+	Memset64(largestFree, ~((u64)0), bitmapSize);
 
 	// Unreserve usable pages (we do it because the mmap can have holes in it)
 	for (MEM::MEMBLOCK::MemblockRegion *current = (MEM::MEMBLOCK::MemblockRegion*)info->PhysicalMemoryChunks->Regions.Head;
