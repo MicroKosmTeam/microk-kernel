@@ -14,6 +14,8 @@ namespace MEM::HEAP {
 		SLAB::SlabCache *Size1k;
 		SLAB::SlabCache *Size2k;
 		SLAB::SlabCache *Size4k;
+		SLAB::SlabCache *Size8k;
+		SLAB::SlabCache *Size16k;
 	};
 
 	Heap *InitializeHeap(SLAB::SlabAllocator *allocator);

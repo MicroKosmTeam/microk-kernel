@@ -16,6 +16,8 @@ Heap *InitializeHeap(SLAB::SlabAllocator *allocator) {
 	heap->Size1k = SLAB::InitializeSlabCache(allocator, 1024);
 	heap->Size2k = SLAB::InitializeSlabCache(allocator, 2048);
 	heap->Size4k = SLAB::InitializeSlabCache(allocator, 4096);
+	heap->Size8k = SLAB::InitializeSlabCache(allocator, 8192);
+	heap->Size16k = SLAB::InitializeSlabCache(allocator, 16384);
 	
 	PRINTK::PrintK(PRINTK_DEBUG "Kernel heap initialized.\r\n");
 
@@ -27,7 +29,7 @@ void *Alloc(Heap *heap, usize size) {
 		size = 32;
 	}
 
-	if (size > 4096) {
+	if (size > 16384) {
 		return NULL;
 	}
 
@@ -50,6 +52,10 @@ void *Alloc(Heap *heap, usize size) {
 			return SLAB::Alloc(heap->Size2k);
 		case 4096:
 			return SLAB::Alloc(heap->Size4k);
+		case 8192:
+			return SLAB::Alloc(heap->Size8k);
+		case 16384:
+			return SLAB::Alloc(heap->Size16k);
 		default:
 			return NULL;
 	}
@@ -83,14 +89,26 @@ void Free(Heap *heap, void *address, usize size) {
 			return SLAB::Free(heap->Size2k, address);
 		case 4096:
 			return SLAB::Free(heap->Size4k, address);
+		case 8192:
+			return SLAB::Free(heap->Size8k, address);
+		case 16384:
+			return SLAB::Free(heap->Size16k, address);
 		default:
 			return;
 	}
 }
 
 void Free(Heap *heap, void *address) {
-	(void)heap;
-	(void)address;
+	SLAB::Free(heap->Size32, address);
+	SLAB::Free(heap->Size64, address);
+	SLAB::Free(heap->Size128, address);
+	SLAB::Free(heap->Size256, address);
+	SLAB::Free(heap->Size512, address);
+	SLAB::Free(heap->Size1k, address);
+	SLAB::Free(heap->Size2k, address);
+	SLAB::Free(heap->Size4k, address);
+	SLAB::Free(heap->Size8k, address);
+	SLAB::Free(heap->Size16k, address);
 }
 
 }
