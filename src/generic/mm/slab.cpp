@@ -67,9 +67,23 @@ SlabCache *InitializeSlabCache(SlabAllocator *allocator, usize objectSize) {
 	SlabCache *cache = (SlabCache*)allocator->SlabCacheInternalAlloc(allocator);
 	Memclr(cache, sizeof(SlabCache));
 
+	usize pageCount = objectSize / PAGE_SIZE + 1; /*
+	for (usize pages = pageCount; pages <= SLAB_MAXIMUM_PAGES; ++pages) {
+		usize waste = pages * PAGE_SIZE % (objectSize + sizeof(u32));
+
+		if (waste <= SLAB_MINIMUM_ALLOC) {
+			pageCount = pages;
+			break;
+		}
+	}
+
+	PRINTK::PrintK(PRINTK_DEBUG "%d pages for least waste with object of size %d\r\n", pageCount, objectSize + sizeof(u32));*/
+
+	cache->PagesPerSlab = pageCount;
+
 	cache->Allocator = allocator;
 	cache->ObjectSize = objectSize;
-	cache->ElementsPerSlab = PAGE_SIZE / objectSize;
+	cache->ElementsPerSlab = PAGE_SIZE * cache->PagesPerSlab / (objectSize + sizeof(u32)); /* Object size + signature */
 	
 	CreateSlab(cache);
 
@@ -87,9 +101,20 @@ Slab *CreateSlab(SlabCache *cache) {
 	slab->ParentList = &cache->FreeSlabs;
 	AddElementToList(slab, &cache->FreeSlabs);
 
-	slab->StartAddress = VMM::PhysicalToVirtual((uptr)PMM::RequestPage());
+	if (cache->PagesPerSlab == 1) {
+		slab->StartAddress = VMM::PhysicalToVirtual((uptr)PMM::RequestPage());
+	} else {
+		slab->StartAddress = VMM::PhysicalToVirtual((uptr)PMM::RequestPages(cache->PagesPerSlab));
+	}
+
 	slab->ActiveElements = 0;
 	slab->FirstFreeSlot = 0;
+
+	for (usize element = 0; element < cache->ElementsPerSlab; ++element) {
+		u32 *slot = (u32*)(slab->StartAddress + (cache->ObjectSize + sizeof(u32)) * element);
+
+		*slot = SLAB_ELEMENT_FREE;
+	}
 
 	++cache->TotalSlabs;
 
@@ -105,7 +130,7 @@ void *ReserveSpaceInSlab(Slab *slab, SlabCache *cache) {
 	if (!cache->EmergencyAllocate) {
 		if (cache == cache->Allocator->SlabStructureCache ||
 		    cache == cache->Allocator->SlabCacheStructureCache) {
-			if (slab->ActiveElements + 2 >= PAGE_SIZE / cache->ObjectSize) {
+			if (slab->ActiveElements + 2 >= cache->PagesPerSlab * PAGE_SIZE / cache->ObjectSize) {
 				cache->EmergencyAllocate = true;
 
 				slab = CreateSlab(cache);
@@ -115,18 +140,22 @@ void *ReserveSpaceInSlab(Slab *slab, SlabCache *cache) {
 		}
 	}
 
-	slab->StatusSlots[slab->FirstFreeSlot] = SLAB_STATUS_USED;
-		
-	void *addr = (void*)(slab->StartAddress + slab->FirstFreeSlot * cache->ObjectSize);
+	u32 *slot = (u32*)(slab->StartAddress + (cache->ObjectSize + sizeof(u32)) * slab->FirstFreeSlot);
+	*slot = SLAB_ELEMENT_USED;
+
+	void *addr = (void*)((uptr)slot + sizeof(u32));
 
 	slab->FirstFreeSlot = (usize)-1;
-	for (usize slot = 0; slot < cache->ElementsPerSlab; ++slot) {
-		if (slab->StatusSlots[slot] == SLAB_STATUS_FREE) {
-			slab->FirstFreeSlot = slot;
+
+	for (usize element = 0; element < cache->ElementsPerSlab; ++element) {
+		u32 *slot = (u32*)(slab->StartAddress + (cache->ObjectSize + sizeof(u32)) * element);
+
+		if (*slot == SLAB_ELEMENT_FREE) {
+			slab->FirstFreeSlot = element;
 			break;
 		}
 	}
-	
+
 	++slab->ActiveElements;
 
 	if (slab->FirstFreeSlot == (usize)-1 || slab->ActiveElements > PAGE_SIZE * cache->ObjectSize) {
@@ -140,18 +169,20 @@ void *ReserveSpaceInSlab(Slab *slab, SlabCache *cache) {
 }
 
 void FreeSpaceInSlab(Slab *slab, SlabCache *cache, void *ptr) {
-	if ((uptr)ptr % SLAB_MINIMUM_ALLOC) {
-		/* Unaligned free */
+	if ((uptr)ptr < slab->StartAddress) {
 		return;
 	}
 
-	usize element = ((uptr)ptr - slab->StartAddress) / cache->ElementsPerSlab;
+	u32 *slot = (u32*)((uptr)ptr - sizeof(u32));
 
-	if (slab->StatusSlots[element] == SLAB_STATUS_FREE) {
+	if (*slot != SLAB_ELEMENT_USED) {
 		return;
 	}
 
-	slab->StatusSlots[element] = SLAB_STATUS_FREE;
+	usize element = ((uptr)slot - slab->StartAddress) / (cache->ObjectSize + sizeof(u32));
+		
+	slab->FirstFreeSlot = element;
+	*slot = SLAB_STATUS_FREE;
 	--slab->ActiveElements;
 
 	if (slab->ParentList == &cache->FullSlabs) {

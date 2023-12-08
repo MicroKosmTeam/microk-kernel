@@ -9,6 +9,10 @@
 #define SLAB_STATUS_USED 1
 
 #define SLAB_MINIMUM_ALLOC 32
+#define SLAB_MAXIMUM_PAGES 256 
+
+#define SLAB_ELEMENT_FREE 0xDEAD
+#define SLAB_ELEMENT_USED 0xDA7A
 
 namespace MEM::SLAB {
 	struct Slab : public ListHead {
@@ -17,8 +21,6 @@ namespace MEM::SLAB {
 		uptr StartAddress;
 		usize ActiveElements;
 		usize FirstFreeSlot;
-	
-		u8 StatusSlots[PAGE_SIZE / SLAB_MINIMUM_ALLOC];
 	};
 	
 	struct SlabAllocator;
@@ -33,6 +35,8 @@ namespace MEM::SLAB {
 		usize ElementsPerSlab;
 		usize ObjectSize;
 		usize TotalSlabs;
+
+		usize PagesPerSlab;
 
 		bool EmergencyAllocate;
 	};
