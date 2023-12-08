@@ -91,4 +91,10 @@ int InitializeBootCPU() {
 	return 0;
 }
 
+usize GetContextSize() {
+#if defined(ARCH_x64)
+	return x86_64::GetContextSize();
+#endif
+}
+
 }

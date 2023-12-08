@@ -9,12 +9,14 @@
 #include <init/kinfo.hpp>
 
 void *Malloc(usize size) {
+	PRINTK::PrintK(PRINTK_DEBUG "Generic malloc called for size %d\r\n", size);
+
 	KInfo *info = GetInfo();
 
-	if(BOOTMEM::BootmemIsActive()) {
-		return BOOTMEM::Malloc(size);
-	} else if (info->KernelHeap != NULL) {
+	if (info->KernelHeap != NULL) {
 		return MEM::HEAP::Alloc(info->KernelHeap, size);
+	} else if(BOOTMEM::BootmemIsActive()) {
+		return BOOTMEM::Malloc(size);
 	}
 
 	return NULL;
@@ -35,10 +37,36 @@ void Free(void *ptr, usize size) {
 		return MEM::HEAP::Free(info->KernelHeap, ptr, size);
 	}
 }
+	
+static bool OOMInvoked = false;
 
 namespace MEM {
 void InvokeOOM() {
-	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "OOM invoked, system is out of memory.\r\n");
+	PANIC("Out of memory");
+
+	if (OOMInvoked) {
+		/* Recursive OOM calls are illegal and mean the system has nowhere enough memory for its operation */
+		PANIC("Out of memory");
+		
+	}
+
+	PRINTK::PrintK(PRINTK_DEBUG "OOM invoked, system is out of memory.\r\n");
+
+	/* We should first try compressing memory */ 
+	OOMInvoked = false;
+	return;
+
+	/* If we really have no memory left, then we must flush all caches and free unused slabs */ 
+	OOMInvoked = false;
+	return;
+
+	/* If it's not enogh, we will be killing various processes with the lowest priority */
+	OOMInvoked = false;
+	return;
+
+	/* If all processes are killed, and we still have no free memory, that means the systemhas
+	 * has too little RAM for operation or that there is a bug in the kernel
+	 */
 
 	PANIC("Out of memory");
 }
@@ -46,9 +74,39 @@ void InvokeOOM() {
 void Init() {
 	KInfo *info = GetInfo();
 
+	/* Give correct type descriptors to the memory regions */
 	CatalogueKernelMemory();
 
-	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Provided physical RAM map:\r\n");
+	/* Detect which memory regions are physically contiguous */
+	DetectContinuousMemoryRegions();
+
+	/* Enabling the page frame allocator */
+	PMM::InitPageFrameAllocator();
+
+	/* Initialize the slab allocator */
+	info->KernelSlabAllocator = SLAB::InitializeAllocator();
+
+	/* Initialize global kernel slab caches */
+	info->VirtualSpaceCache = SLAB::InitializeSlabCache(info->KernelSlabAllocator, sizeof(VMM::VirtualSpace));
+	info->MemblockAllocatorCache = SLAB::InitializeSlabCache(info->KernelSlabAllocator, sizeof(MEMBLOCK::MemblockAllocator));
+	info->MemblockRegionCache = SLAB::InitializeSlabCache(info->KernelSlabAllocator, sizeof(MEMBLOCK::MemblockRegion));
+	info->TopologyStructureCache = SLAB::InitializeSlabCache(info->KernelSlabAllocator, sizeof(DEV::CPU::TopologyStructure));
+	info->SchedulerCache = SLAB::InitializeSlabCache(info->KernelSlabAllocator, sizeof(PROC::Scheduler));
+
+	/* Initializing virtual memory */
+	VMM::InitVMM();
+	
+	/* Free bootloader-used memory that is no longer needed */
+	FreeBootMemory();
+
+
+	/* Initializing the heap */
+	info->KernelHeap = HEAP::InitializeHeap(info->KernelSlabAllocator);
+
+	/* With the heap initialized, disable new bootmem allocations */
+	BOOTMEM::DeactivateBootmem();
+
+	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Physical Memory Map:\r\n");
 
 	for (MEM::MEMBLOCK::MemblockRegion *current = (MEM::MEMBLOCK::MemblockRegion*)info->PhysicalMemoryChunks->Regions.Head;
 	     current != NULL;
@@ -58,29 +116,6 @@ void Init() {
 				current->Base + current->Length,
 				MemoryTypeToString(current->Type));
 	}
-	
-	DetectContinuousMemoryRegions();
-
-
-	/* Enabling the page frame allocator */
-	PMM::InitPageFrameAllocator();
-
-	/* Initializing virtual memory */
-	VMM::InitVMM();
-
-	/* Initialize the slab allocator */
-	info->KernelSlabAllocator = SLAB::InitializeAllocator();
-
-
-	MEM::MEMBLOCK::SetupSlabAllocation(info->PhysicalMemoryChunks, info->KernelSlabAllocator);
-
-	/* Initializing the heap */
-	info->KernelHeap = HEAP::InitializeHeap(info->KernelSlabAllocator);
-
-	/* With the heap initialized, disable new bootmem allocations */
-	BOOTMEM::DeactivateBootmem();
-
-	FreeBootMemory();
 }
 
 void CatalogueKernelMemory() {
@@ -142,6 +177,11 @@ void CatalogueKernelMemory() {
 	MEM::MEMBLOCK::AddRegion(info->PhysicalMemoryChunks, dataStartAddr, dataEndAddr - dataStartAddr, MEMMAP_KERNEL_DATA);
 	MEM::MEMBLOCK::AddRegion(info->PhysicalMemoryChunks, dynamicStartAddr, dynamicEndAddr - dynamicStartAddr, MEMMAP_KERNEL_DYNAMIC);
 	MEM::MEMBLOCK::AddRegion(info->PhysicalMemoryChunks, bssStartAddr, bssEndAddr - bssStartAddr, MEMMAP_KERNEL_BSS);
+	
+	PRINTK::PrintK(PRINTK_DEBUG "Kernel file at 0x%x\r\n", info->KernelFileAddress);
+	ROUND_UP_TO_PAGE(info->KernelFileSize);
+
+	MEM::MEMBLOCK::AddRegion(info->PhysicalMemoryChunks, VMM::VirtualToPhysical(info->KernelFileAddress), info->KernelFileSize, MEMMAP_KERNEL_FILE);
 }
 
 void DetectContinuousMemoryRegions() {

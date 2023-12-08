@@ -15,8 +15,10 @@ void Panic(const char *message, const char *file, const char *function, unsigned
 	UnwindStack(64);
 
 	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "\r\n [Hanging now...]\r\n\r\n");
-
+	
         while (true);
+
+	__builtin_unreachable();
 }
 
 void Oops(const char *message, const char *file, const char *function, unsigned int line) {

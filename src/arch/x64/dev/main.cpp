@@ -9,15 +9,7 @@
 #include <arch/x64/dev/pit.hpp>
 #include <arch/x64/dev/ioapic.hpp>
 
-static u8 ValidateACPITable(u8 *ptr, usize size) {
-	u8 checksum = 0;
-
-	for (usize i = 0; i < size; ++i) checksum += ptr[i];
-
-	return checksum;
-}
-
-static inline void AddIOAPICToMachine(DEV::CPU::TopologyStructure *machine, x86_64::IOAPIC::IOAPIC *ioapic) {
+static void AddIOAPICToMachine(DEV::CPU::TopologyStructure *machine, x86_64::IOAPIC::IOAPIC *ioapic) {
 	x86_64::PerMachineTopology *machineTopology = (x86_64::PerMachineTopology*)machine->ArchitectureSpecificInformation;
 
 	x86_64::IOAPICNode *current = machineTopology->IOAPICList;
@@ -38,11 +30,34 @@ static inline void AddIOAPICToMachine(DEV::CPU::TopologyStructure *machine, x86_
 	if (previous != NULL) previous->Next = current;
 }
 
+
 namespace x86_64 {
+static u8 ValidateACPITable(u8 *ptr, usize size) {
+	u8 checksum = 0;
+
+	for (usize i = 0; i < size; ++i) checksum += ptr[i];
+
+	return checksum;
+}
+
+static void PrintDebugACPITableInfo(uptr addr) {
+	SDTHeader *sdtHeader = (SDTHeader*)addr;
+
+	char sig[5];
+	sig[4] = '\0';
+
+	Memcpy(sig, sdtHeader->Signature, 4);
+
+	PRINTK::PrintK(PRINTK_DEBUG "ACPI: %s 0x%x\r\n", sig, addr);
+}
+
 int InitDevices() {
 	KInfo *info = GetInfo();
 
 	RSDP2 *rsdp = (RSDP2*)info->RSDP;
+
+	DEV::CPU::TopologyStructure *machine = info->DefaultMachine;
+	PerMachineTopology *machineInfo = (PerMachineTopology*)machine->ArchitectureSpecificInformation;
 
 	/* We only accept ACPI 2.0+ */
 	if (rsdp->Revision < 2) {
@@ -71,18 +86,21 @@ int InitDevices() {
 	/* Scan through all the entries in the SDT */
 	usize entries = (sdtAddr->Length - sizeof(SDTHeader)) / size;
 	for (usize i = 0; i < entries; i++) {
-		uptr addr = *(uptr*)((uptr)sdtAddr + sizeof(SDTHeader) + (i * size));
-		SDTHeader *newSDTHeader = (SDTHeader*)(addr + info->HigherHalfMapping);
-				
-		if (ValidateACPITable((u8*)newSDTHeader, newSDTHeader->Length))
-			continue;
+		uptr addr = VMM::PhysicalToVirtual(*(uptr*)((uptr)sdtAddr + sizeof(SDTHeader) + (i * size)));
 
-		if (Memcmp(newSDTHeader->Signature, "APIC", 4) == 0) {
-			HandleMADT((MADTHeader*)newSDTHeader);
-		} else if (Memcmp(newSDTHeader->Signature, "SRAT", 4) == 0) {
-			HandleSRAT((SRATHeader*)newSDTHeader);
-		} else if (Memcmp(newSDTHeader->Signature, "HPET", 4) == 0) {
-			HandleHPET((HPETHeader*)newSDTHeader);
+		SDTHeader *sdtHeader = (SDTHeader*)addr;
+		if (ValidateACPITable((u8*)sdtHeader, sdtHeader->Length)) {
+			continue;
+		}
+
+		PrintDebugACPITableInfo(addr);
+
+		if (Memcmp(sdtHeader->Signature, "APIC", 4) == 0) {
+			machineInfo->ACPI_TableMADT = addr;
+		} else if (Memcmp(sdtHeader->Signature, "SRAT", 4) == 0) {
+			machineInfo->ACPI_TableSRAT = addr;
+		} else if (Memcmp(sdtHeader->Signature, "HPET", 4) == 0) {
+			machineInfo->ACPI_TableHPET = addr;
 		}
 	}
 

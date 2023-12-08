@@ -1,6 +1,8 @@
 #pragma once
 #include <cstdint.hpp>
 
+
+
 namespace DEV::CPU {
 	struct TopologyStructure {
 		u32 ID;
@@ -22,4 +24,6 @@ namespace DEV::CPU {
 	TopologyStructure *ProgressToNextLevel(TopologyStructure *parent, u32 id);
 
 	int InitializeBootCPU();
+
+	usize GetContextSize();
 }

@@ -1,53 +1,24 @@
 #pragma once
 #include <cdefs.h>
 #include <cstdint.hpp>
-
+#include <mm/slab.hpp>
+#include <sys/list.hpp>
 #include <proc/process.hpp>
 
 namespace PROC {
-	#define SCHEDULER_DEFAULT_QUEUES 3
+	struct Scheduler : public ListHead {
+		/* NUMA scheduling ? */
+		Scheduler *ParentScheduler;
 
-	#define SCHEDULER_RUNNING_QUEUE  0
-	#define SCHEDULER_WAITING_QUEUE  1
-	#define SCHEDULER_BLOCKED_QUEUE  2
+		DEV::CPU::TopologyStructure *Domain;
 
-	#define SCHEDULER_DEFAULT_QUANTUM 1
-
-	struct SchedulerNode {
-		ThreadBase *Thread = NULL;
-		usize Quantum = 0;
-
-		SchedulerNode *Next = NULL;
-		SchedulerNode *Previous = NULL;
+		MEM::SLAB::SlabCache *ProcessSlabCache;
+		MEM::SLAB::SlabCache *ThreadSlabCache;
 	};
 
-	struct SchedulerQueue {
-		usize ThreadCount = 0;
+	Scheduler *InitializeScheduler();
+	void DeinitializeScheduler(Scheduler *scheduler);
 
-		SchedulerNode *Head = NULL;
-		SchedulerNode *Tail = NULL;
-	};
-
-	struct Scheduler {
-		SchedulerNode *CurrentThread = NULL;
-
-		usize ElapsedQuantum = 0;
-
-		bool SchedulerLock = false;
-
-		usize QueueCount = 0;
-		SchedulerQueue *Queues[];
-	};
-
-	Scheduler *InitializeScheduler(usize queueCount);
-	int DeinitializeScheduler(Scheduler *scheduler);
-
-	int AddThreadToQueue(Scheduler *scheduler, usize queue, ThreadBase *thread);
-	ThreadBase *RemoveThreadFromQueue(Scheduler *scheduler, usize queue, usize pid, usize tid);
-	ThreadBase *GetThreadFromQueue(Scheduler *scheduler, usize queue, usize pid, usize tid);
-	ThreadBase *GetThread(Scheduler *scheduler, usize pid, usize tid);
-
-	int RecalculateScheduler(Scheduler *scheduler);
-
-	void PrintSchedulerStatus(Scheduler *scheduler);
+	Process *CreateProcess(Scheduler *scheduler, ExecutableUnitType type, VMM::VirtualSpace *space);
+	Thread *CreateThread(Scheduler *scheduler, Process *parent);
 }

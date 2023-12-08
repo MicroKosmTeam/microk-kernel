@@ -1,66 +1,21 @@
 #pragma once
 #include <cstdint.hpp>
-
+#include <dev/cpu.hpp>
+#include <sys/list.hpp>
 #include <mm/vmm.hpp>
 #include <sys/tables.hpp>
-#include <arch/x64/interrupts/idt.hpp>
 
 namespace PROC {
 	enum ExecutableUnitState {
-		P_READY,		/* Process is ready to run */
-		P_RUNNING,		/* Process is currently running */
-		P_WAITING,		/* Process is currently waiting */
-		P_DONE,			/* Process is no longer alive */
-		P_MESSAGE,
+		PS_RUNNING = 1,
+		PS_WAITING,
+		PS_BLOCKED,
+		PS_DONE
 	};
 
 	enum ExecutableUnitType {
-		PT_KERNEL,		/* Process running in kernel mode */
-		PT_USER,		/* Process running in user mode */
-		PT_REALTIME,		/* A realtime process running in kernel mode, has the highest priority */
-		PT_VM,			/* A virtual machine process, managed by the kernel's VM manager*/
-	};
-
-	struct ExecutableUnitHeader {
-		usize ID;
-		u8 Priority;
-		u16 Flags;
-
-		bool IsThread;
-	
-		ExecutableUnitHeader *Parent;
-
-		ExecutableUnitState State;
-		ExecutableUnitType Type;
-	};
-
-	struct ThreadBase : public ExecutableUnitHeader {
-		CPUStatus *Context;
-		uptr KernelStack;
-
-		ThreadBase *Next;
-		ThreadBase *Previous;
-	};
-
-	struct ThreadList {
-		usize ThreadCount;
-		usize ThreadIDBase;
-
-		ThreadBase *Head;
-		ThreadBase *Tail;
-	};
-
-	struct ProcessBase : public ExecutableUnitHeader {
-		VMM::VirtualSpace *VirtualMemorySpace;
-		uptr HighestFree;
-
-		ThreadList Threads;
-	};
-
-	struct KernelProcess : public ProcessBase {
-	};
-
-	struct KernelThread : public ThreadBase {
+		PT_KERNEL = 1,
+		PT_USER
 	};
 
 	struct UserTCB : public TableHeader {
@@ -71,35 +26,57 @@ namespace PROC {
 		u32 ServiceTableListOffset;
 	}__attribute__((packed));
 
-	struct UserProcess : public ProcessBase {
-		UserTCB *UserTaskBlock;
+	struct ExecutableUnitHeader : public ListHead {
+		usize ID;
+		u8 Priority;
+		u16 Flags;
+
+		bool IsThread;
+	
+		ExecutableUnitHeader *Parent;
+
+		ExecutableUnitState State;
+		ExecutableUnitType Type;
+
 	};
 
-	struct UserThread : public ThreadBase {
-		uptr UserStack;
+	struct Thread : public ExecutableUnitHeader {
+		usize *Context;
+		DEV::CPU::TopologyStructure *RunningThread;
+
+		uptr KernelStack;
+
+		union {
+			struct {
+
+			} KernelThread;
+
+			struct {
+				uptr UserStack;
+			} UserThread;
+		};
 	};
 
-	struct RealtimeProcess : public ProcessBase {
+	
+	struct Process: public ExecutableUnitHeader {
+		DEV::CPU::TopologyStructure *Domain;
+
+		VMM::VirtualSpace *VirtualMemorySpace;
+		uptr HighestFree;
+
+		usize ThreadCount;
+		usize ThreadIDBase;
+
+		List Threads;
+
+		union {
+			struct  {
+
+			} KernelProcess;
+
+			struct {
+				UserTCB *UserTaskBlock;
+			} UserProcess;
+		};
 	};
-
-	struct RealtimeThread : public ThreadBase {
-	};
-
-	struct VMProcess : public ProcessBase {
-	};
-
-	struct VMThread : public ThreadBase {
-	};
-
-	ProcessBase *CreateProcess(ProcessBase *parent, ExecutableUnitType type, VMM::VirtualSpace *virtualMemorySpace, u8 priority, u16 flags);
-	int DeleteProcess(ProcessBase *process);
-
-	ThreadBase *CreateThread(ProcessBase *parent, uptr entrypoint, usize stackSize, u8 priority, u16 flags);
-	ThreadBase *FindThread(ProcessBase *process, usize id);
-	int DeleteThread(ThreadBase *thread);
-
-	int SetExecutableUnitState(ExecutableUnitHeader *unit, ExecutableUnitState state);
-
-	void PopulateUserTCB(UserTCB *tcb, UserProcess *userProcess);
-	void PopulateKBST(KBST *kbst);
 }

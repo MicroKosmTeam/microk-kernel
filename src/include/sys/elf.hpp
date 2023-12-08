@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint.hpp>
+#include <debug/symbol.hpp>
 
-
-u64 LoadELF(u8 *data, usize size);
+usize LoadELF(u8 *data, usize size);
+SYMBOL::SymbolPair *ExportSymbolTable(u8 *data, usize size);

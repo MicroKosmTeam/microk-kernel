@@ -70,7 +70,7 @@ SlabCache *InitializeSlabCache(SlabAllocator *allocator, usize objectSize) {
 	cache->Allocator = allocator;
 	cache->ObjectSize = objectSize;
 	cache->ElementsPerSlab = PAGE_SIZE / objectSize;
-
+	
 	CreateSlab(cache);
 
 	return cache;
@@ -83,7 +83,7 @@ void FreeSlabCache(SlabCache *cache) {
 Slab *CreateSlab(SlabCache *cache) {
 	Slab *slab = (Slab*)cache->Allocator->SlabInternalAlloc(cache->Allocator);
 	Memclr(slab, sizeof(Slab));
-
+	
 	slab->ParentList = &cache->FreeSlabs;
 	AddElementToList(slab, &cache->FreeSlabs);
 

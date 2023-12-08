@@ -48,7 +48,6 @@ SECTIONS
 	. = ALIGN(0x1000);
 
 	PROVIDE(__KernelBinaryRODataStart = .);
-
 	.rodata : {
 		*(.rodata .rodata.*)
 	} :rodata

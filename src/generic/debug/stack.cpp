@@ -1,8 +1,9 @@
 #include <cstdint.hpp>
 
 #include <debug/stack.hpp>
+#include <debug/symbol.hpp>
 #include <sys/panic.hpp>
-#include <sys/symbol.hpp>
+#include <init/kinfo.hpp>
 #include <sys/printk.hpp>
 
 uptr __stack_chk_guard = 0;
@@ -19,21 +20,22 @@ struct StackFrame {
 }__attribute__((packed));
 
 void UnwindStack(int MaxFrames) {
-	MaxFrames = 0; /*Temporary debug measure */
+	KInfo *info = GetInfo();
+	(void)info;
 
-
-	StackFrame *stk;
-	stk = (StackFrame*)__builtin_frame_address(0);
+	StackFrame *stk = (StackFrame*)__builtin_frame_address(0);
 	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Stack trace:\r\n");
 
 	for(int frame = 0; stk && frame < MaxFrames; ++frame) {
+		if((uptr)stk->RBP < info->HigherHalfMapping || stk->RIP < info->KernelVirtualBase) {
+
+			break;
+		}
+
 		/* Unwind to previous stack frame */
 		const char *name = SYMBOL::AddressToSymbolName(stk->RIP);
-		PRINTK::PrintK(PRINTK_DEBUG "  Stack frame: 0x%x\r\n", stk);
-		PRINTK::PrintK(PRINTK_DEBUG "  0x%x   %s\r\n", stk->RIP, name);
 
-		if(stk->RBP == NULL)
-			break;
+		PRINTK::PrintK(PRINTK_DEBUG "  0x%x   %s\r\n", stk->RIP, name);
 
 		stk = stk->RBP;
 	}

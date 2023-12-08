@@ -12,25 +12,7 @@
 #include <proc/process.hpp>
 #include <proc/scheduler.hpp>
 
-usize LoadELFCoreModule(u8 *data, usize size);
-
-int LoadProgramHeaders(u8 *data, usize size, Elf64_Ehdr *elfHeader, VMM::VirtualSpace *space);
-usize LoadProcess(Elf64_Ehdr *elfHeader, VMM::VirtualSpace *space);
-
-u64 LoadELF(u8 *data, usize size) {
-	VMM::VirtualSpace *space = VMM::NewVirtualSpace();
-	VMM::PrepareUserVirtualSpace(space);
-	
-	Elf64_Ehdr *elfHeader = (Elf64_Ehdr*)data;
-	
-	LoadProgramHeaders(data, size, elfHeader, space);
-/*	LinkSymbols(data, size, elfHeader);*/
-	usize pid = LoadProcess(elfHeader, space);
-
-	return pid;
-}
-
-int LoadProgramHeaders(u8 *data, usize size, Elf64_Ehdr *elfHeader, VMM::VirtualSpace *space) {
+static int LoadProgramHeaders(u8 *data, usize size, Elf64_Ehdr *elfHeader, VMM::VirtualSpace *space) {
 	KInfo *info = GetInfo();
 
 	(void)info;
@@ -77,16 +59,92 @@ int LoadProgramHeaders(u8 *data, usize size, Elf64_Ehdr *elfHeader, VMM::Virtual
 	return 0;
 }
 
-usize LoadProcess(Elf64_Ehdr *elfHeader, VMM::VirtualSpace *space) {
+
+static usize LoadProcess(Elf64_Ehdr *elfHeader, VMM::VirtualSpace *space) {
 	KInfo *info = GetInfo();
-	
-	PROC::UserProcess *proc = (PROC::UserProcess*)PROC::CreateProcess((PROC::ProcessBase*)info->KernelProcess, PROC::ExecutableUnitType::PT_USER, space, 0, 0);
+	(void)elfHeader;
 
-	PROC::UserThread *thread = (PROC::UserThread*)PROC::CreateThread((PROC::ProcessBase*)proc, elfHeader->e_entry, 64 * 1024, 0, 0);
-
-	PROC::AddThreadToQueue(info->KernelScheduler, SCHEDULER_RUNNING_QUEUE, thread);
+	PROC::Process *proc = PROC::CreateProcess(info->KernelScheduler, PROC::ExecutableUnitType::PT_USER, space);
+	PROC::Thread *thread = PROC::CreateThread(info->KernelScheduler, proc);
+	(void)thread;
 
 	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Process created with PID: 0x%x\r\n", proc->ID);
 	
 	return proc->ID;
+}
+
+usize LoadELF(u8 *data, usize size) {
+	VMM::VirtualSpace *space = VMM::NewVirtualSpace();
+	VMM::PrepareUserVirtualSpace(space);
+	
+	Elf64_Ehdr *elfHeader = (Elf64_Ehdr*)data;
+	
+	LoadProgramHeaders(data, size, elfHeader, space);
+	usize pid = LoadProcess(elfHeader, space);
+
+	return pid;
+}
+
+SYMBOL::SymbolPair *ExportSymbolTable(u8 *data, usize size) {
+	(void)size;
+	Elf64_Ehdr *elfHeader = (Elf64_Ehdr*)data;
+
+        usize sectionHeaderSize = elfHeader->e_shentsize;
+        usize sectionHeaderOffset = elfHeader->e_shoff;
+        usize sectionHeaderNumber = elfHeader->e_shnum;
+
+        Elf64_Shdr *sectionHeader;
+        Elf64_Shdr *symtab = NULL;
+        Elf64_Shdr *strtab = NULL;
+
+        Elf64_Shdr *sectionStrtab = (Elf64_Shdr*)(data + sectionHeaderOffset + sectionHeaderSize * elfHeader->e_shstrndx);
+        const char *sectionStrtabData = (const char*)(data + sectionStrtab->sh_offset);
+
+        for (usize i = 0; i < sectionHeaderNumber; i++) {
+                sectionHeader = (Elf64_Shdr*)(data + sectionHeaderOffset + sectionHeaderSize * i);
+
+                PRINTK::PrintK(PRINTK_DEBUG "Section: %s\r\n", &sectionStrtabData[sectionHeader->sh_name]);
+
+                switch(sectionHeader->sh_type) {
+                        case SHT_SYMTAB: {
+                                symtab = sectionHeader;
+                                }
+                                break;
+                        case SHT_STRTAB: {
+                                if (elfHeader->e_shstrndx == i) break;
+                                strtab = sectionHeader;
+                                }
+                                break;
+                }
+        }
+
+        usize symbolNumber = symtab->sh_size / symtab->sh_entsize;
+        const char *strtabData = (const char*)(data + strtab->sh_offset);
+
+        PRINTK::PrintK(PRINTK_DEBUG "Symbol table: 0x%x\r\n", symtab);
+        PRINTK::PrintK(PRINTK_DEBUG "String table: 0x%x\r\n", strtab);
+        PRINTK::PrintK(PRINTK_DEBUG "There are %d symbols.\r\n", symbolNumber);
+
+	symbolNumber = 2;
+
+	SYMBOL::SymbolPair *symbolVector = (SYMBOL::SymbolPair*)Malloc(sizeof(SYMBOL::SymbolPair) * (symbolNumber + 1));
+	if (symbolVector == NULL) {
+		return NULL;
+	}
+
+        Elf64_Sym *symbol;
+
+        for (usize i = 0; i < symbolNumber; i++) {
+                symbol = (Elf64_Sym*)(data + symtab->sh_offset + symtab->sh_entsize * i);
+
+		symbolVector[i].Address = symbol->st_value;
+		symbolVector[i].Name = &strtabData[symbol->st_name];
+
+		PRINTK::PrintK(PRINTK_DEBUG " Symbol: %s at 0x%x\r\n", symbolVector[i].Address, symbolVector[i].Name);
+        }
+
+	symbolVector[symbolNumber].Address = -1;
+	symbolVector[symbolNumber].Name = NULL;
+
+	return symbolVector;
 }

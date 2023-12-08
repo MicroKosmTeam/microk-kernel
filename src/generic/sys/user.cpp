@@ -3,8 +3,6 @@
 #include <mm/memory.hpp>
 #include <mm/string.hpp>
 
-#define USER_READ_MEMORY_CEILING 0x00007FFFFFFFFFFF
-#define USER_ALLOC_MEMORY_CEILING 0x0000700000000000
 
 int CheckUserMemory(const_userptr_t userAddress, usize length) {
 	uptr address = (uptr)userAddress;

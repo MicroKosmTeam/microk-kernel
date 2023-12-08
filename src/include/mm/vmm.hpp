@@ -1,6 +1,7 @@
 #ifndef MM_VMM_HPP_
 #define MM_VMM_HPP_
 
+#include "memblock.hpp"
 #include <cdefs.h>
 #include <cstdint.hpp>
 #include <mm/memory.hpp>
@@ -24,6 +25,7 @@
 /* Forward definition */
 namespace MEM::MEMBLOCK {
 	struct MemblockAllocator;
+	struct MemblockRegion;
 }
 
 namespace VMM {
@@ -66,8 +68,8 @@ namespace VMM {
 
 	void MMap(VirtualSpace *space, uptr src, uptr dest, usize length, usize flags);
 
-	void VMAlloc(VirtualSpace *space, uptr virt, usize length, usize flags);
-	void VMCopyAlloc(VirtualSpace *space, uptr virt, usize length, usize flags, uptr data, uptr virtDataStart, usize dataLen);
+	MEM::MEMBLOCK::MemblockRegion *VMAlloc(VirtualSpace *space, uptr virt, usize length, usize flags);
+MEM::MEMBLOCK::MemblockRegion *VMCopyAlloc(VirtualSpace *space, uptr virt, usize length, usize flags, uptr data, uptr virtDataStart, usize dataLen);
 
 	void InitVMM();
 	void PrepareKernelVirtualSpace(VirtualSpace *space);

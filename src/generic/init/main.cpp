@@ -28,6 +28,7 @@
 
 #include <dev/cpu.hpp>
 #include <sys/arch.hpp>
+#include <sys/elf.hpp>
 #include <mm/memory.hpp>
 #include <sys/panic.hpp>
 #include <sys/printk.hpp>
@@ -41,6 +42,7 @@ extern "C" void CPUPause();
 extern "C" __attribute__((noreturn))
 void KernelStart() {
 	KInfo *info = GetInfo();
+	(void)info;
 
 	/* Loading early serial printk */
 	PRINTK::EarlyInit();
@@ -53,15 +55,18 @@ void KernelStart() {
 	/* Starting the memory subsystem */
 	MEM::Init();
 
+	//info->KernelSymbolTable = ExportSymbolTable((u8*)info->KernelFileAddress, info->KernelFileSize);
+
 	/* Starting architecture-specific instructions */
 	ARCH::SetupArch();
 
-	info->KernelScheduler = PROC::InitializeScheduler(SCHEDULER_DEFAULT_QUEUES);
+	info->KernelScheduler = PROC::InitializeScheduler();
+/*
 	info->KernelMessageManager = PROC::IPCMessageManagerInitialize();
 
 	InitSyscalls();
 	InitializeKernelTables();
-
+*/
 #ifdef CONFIG_KERNEL_MODULES
 	usize moduleSize;
 	u8 *addr;
@@ -71,14 +76,16 @@ void KernelStart() {
 	if (addr != NULL) {
 		PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Loading user module from 0x%x\r\n", addr);
 		usize pid = LoadExecutableFile(addr, moduleSize);
-
+		(void)pid;
+/*
 		PROC::UserThread *thread = (PROC::UserThread*)PROC::GetThread(info->KernelScheduler, pid, 0);
 		PROC::SetExecutableUnitState(thread, PROC::ExecutableUnitState::P_READY);
 
-		PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Switching to user module.\r\n");
+		PRINTK::PrintK(PRINTK_DEBUG "Switching to user module.\r\n");
 
 		u64 tsc = __builtin_ia32_rdtsc() + 0x1000000;
 		x86_64::SetMSR(MSR_TSC_DEADLINE, tsc & 0xFFFFFFFF, tsc >> 32);
+*/
 	} else PANIC("Could not find User Module");
 #endif
 

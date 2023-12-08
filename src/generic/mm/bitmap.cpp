@@ -75,8 +75,7 @@ void InitPageFrameAllocator() {
 	FreeMemory = memorySize;
 
 	ROUND_UP_TO_PAGE(bitmapSize);
-	MEM::MEMBLOCK::MemblockRegion *baseRegion = MEM::MEMBLOCK::FindFreeRegion(info->PhysicalMemoryChunks, bitmapSize, false);
-	PRINTK::PrintK(PRINTK_DEBUG "Memblock chosen region base: 0x%x\r\n", baseRegion->Base);
+	MEM::MEMBLOCK::MemblockRegion *baseRegion = MEM::MEMBLOCK::FindFreeRegion(info->PhysicalMemoryChunks, bitmapSize, true);
 	baseRegion = MEM::MEMBLOCK::AddRegion(info->PhysicalMemoryChunks, baseRegion->Base, bitmapSize, MEMMAP_KERNEL_BITMAP);
 	largestFree = (void*)VMM::PhysicalToVirtual(baseRegion->Base);
 
@@ -98,10 +97,10 @@ void InitPageFrameAllocator() {
 	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Bitmap allocator started: %dkb of memory in total.\r\n", memorySize / 1024);
 }
 
-#define MAX_TRIES 4 
+#define MAX_TRIES 2
 void *RequestPage() {
 	for (int i = 0; i < MAX_TRIES; ++i) {
-		for (; PageBitmapIndex < PageBitmap.Size * 8; PageBitmapIndex++) {
+		for (; PageBitmapIndex < PageBitmap.Size * 8; ++PageBitmapIndex) {
 			if(PageBitmap[PageBitmapIndex] == true) continue;
 			LockPage((void*)(PageBitmapIndex * PAGE_SIZE));
 
@@ -111,7 +110,7 @@ void *RequestPage() {
 		// Try again 
 		PageBitmapIndex = 0;
 	}
-	
+
 	return NULL;
 }
 

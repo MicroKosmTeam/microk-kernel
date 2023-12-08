@@ -13,6 +13,77 @@
 #include <arch/x64/interrupts/idt.hpp>
 
 namespace x86_64 {
+	struct InterruptContext {
+		u64 VectorNumber;
+		u64 ErrorCode;
+
+		u64 IP;
+		u64 CS;
+		u64 RFLAGS;
+		u64 SP;
+		u64 SS;
+	} __attribute__((packed));
+
+	struct CommonRegisterContext {
+		u64 R15;
+		u64 R14;
+		u64 R13;
+		u64 R12;
+		u64 R11;
+		u64 R10;
+		u64 R9;
+		u64 R8;
+
+		u64 RDX;
+		u64 RCX;
+		u64 RBX;
+		u64 RAX;
+
+		u64 RSI;
+		u64 RDI;
+	} __attribute__((packed));
+
+	struct SIMDContext {
+		u64 ZMM31[8];
+		u64 ZMM30[8];
+		u64 ZMM29[8];
+		u64 ZMM28[8];
+		u64 ZMM27[8];
+		u64 ZMM26[8];
+		u64 ZMM25[8];
+		u64 ZMM24[8];
+		u64 ZMM23[8];
+		u64 ZMM22[8];
+		u64 ZMM21[8];
+		u64 ZMM20[8];
+		u64 ZMM19[8];
+		u64 ZMM18[8];
+		u64 ZMM17[8];
+		u64 ZMM16[8];
+		u64 ZMM15[8];
+		u64 ZMM14[8];
+		u64 ZMM13[8];
+		u64 ZMM12[8];
+		u64 ZMM11[8];
+		u64 ZMM10[8];
+		u64 ZMM9[8];
+		u64 ZMM8[8];
+		u64 ZMM7[8];
+		u64 ZMM6[8];
+		u64 ZMM5[8];
+		u64 ZMM4[8];
+		u64 ZMM3[8];
+		u64 ZMM2[8];
+		u64 ZMM1[8];
+		u64 ZMM0[8];
+	} __attribute__((packed));
+
+	struct BasicCPUContext {
+		SIMDContext SIMDRegisters;
+		CommonRegisterContext CommonRegisters;
+		InterruptContext InterruptStub;
+	} __attribute__((packed));
+
 	struct LocalCPUStruct {
 		/* The stack used during a syscall */
 		uptr TaskKernelStack;
@@ -47,6 +118,10 @@ namespace x86_64 {
 
 	struct PerMachineTopology {
 		u8 Vendor;
+
+		uptr ACPI_TableMADT;
+		uptr ACPI_TableHPET;
+		uptr ACPI_TableSRAT;
 
 		IOAPICNode *IOAPICList;
 	};
@@ -97,7 +172,11 @@ namespace x86_64 {
 		return stackPtr;
 	}
 
-
+	inline __attribute__((always_inline))
+	usize GetContextSize() {
+		return sizeof(BasicCPUContext);
+	}
+	
 	int BootCPUInit();
 	int UpdatePerCPUStack(DEV::CPU::TopologyStructure *core, usize stackSize);
 	int CurrentCPUInit(DEV::CPU::TopologyStructure *core);

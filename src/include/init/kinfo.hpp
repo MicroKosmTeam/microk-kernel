@@ -38,6 +38,7 @@
 #include <dev/cpu.hpp>
 #include <proc/scheduler.hpp>
 #include <dev/earlycon.hpp>
+#include <debug/symbol.hpp>
 
 /*
  * struct: Framebuffer 
@@ -71,17 +72,26 @@ struct KInfo {
 	MEM::SLAB::SlabAllocator *KernelSlabAllocator;          /* Slab allocator */
 	MEM::HEAP::Heap *KernelHeap;                            /* Generic heap allocator */
 
+	MEM::SLAB::SlabCache *VirtualSpaceCache;
+	MEM::SLAB::SlabCache *MemblockAllocatorCache;
+	MEM::SLAB::SlabCache *MemblockRegionCache;
+	MEM::SLAB::SlabCache *TopologyStructureCache;
+	MEM::SLAB::SlabCache *SchedulerCache;
+
 	uptr HigherHalfMapping; /* Start of higher half mapping */
 	uptr KernelPhysicalBase; /* Start of the kernel in physical memory */
 	uptr KernelVirtualBase; /* Start of the kernel in virtual memory */
 
+	uptr KernelFileAddress;
+	usize KernelFileSize;
+	SYMBOL::SymbolPair *KernelSymbolTable;
 
 	DEV::CPU::TopologyStructure *DefaultMachine;
 	DEV::CPU::TopologyStructure *BootCore;
 
 	PROC::MessageManager *KernelMessageManager;
 	PROC::Scheduler *KernelScheduler;
-	PROC::KernelProcess *KernelProcess;
+	PROC::Process *KernelProcess;
 	VMM::VirtualSpace *KernelVirtualSpace; /* Kernel virtual memory space */
 	uptr KernelStack; /* Start of kernel stack */
 

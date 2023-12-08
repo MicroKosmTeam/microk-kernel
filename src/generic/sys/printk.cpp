@@ -8,7 +8,7 @@
 
 static usize EarlyBufferPos;
 static usize EarlyBufferStartPos;
-static const usize EARLY_BUFFER_SIZE = 65536;
+static const usize EARLY_BUFFER_SIZE = 256 * 1024;
 static char EarlyBuffer[EARLY_BUFFER_SIZE];
 
 namespace PRINTK {
@@ -28,8 +28,12 @@ static void PutChar(char ch) {
 
 	bool justNewline = false;
 
-	if (EarlyBufferPos >= MAX_PRINTK_MESSAGE_LENGTH) {
+	if (EarlyBufferPos + 1 > EARLY_BUFFER_SIZE) {
 		FlushEarlyBuffer();
+
+		Memclr(EarlyBuffer, EARLY_BUFFER_SIZE);
+		EarlyBufferPos = EarlyBufferStartPos = 0;
+
 		justNewline = true;
 	}
 

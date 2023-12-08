@@ -16,7 +16,7 @@ void InitSyscalls() {
 	Memclr(SyscallVector, SYSCALL_VECTOR_END * sizeof(SyscallFunctionCallback));
 
 	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Initializing system call API.\r\n");
-	SyscallVector[SYSCALL_DEBUG_PRINTK] = (SyscallFunctionCallback)(void*)HandleSyscallDebugPrintK;
+	SyscallVector[SYSCALL_DEBUG_PRINTK] = (SyscallFunctionCallback)(void*)HandleSyscallDebugPrintK;/*
 	SyscallVector[SYSCALL_MEMORY_VMALLOC] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryVMAlloc;
 	
 	SyscallVector[SYSCALL_MEMORY_MMAP] = (SyscallFunctionCallback)(void*)HandleSyscallMemoryMMap;
@@ -25,7 +25,7 @@ void InitSyscalls() {
 	SyscallVector[SYSCALL_IPC_MESSAGE_SEND] = (SyscallFunctionCallback)(void*)HandleSyscallIPCMessageSend;
 	SyscallVector[SYSCALL_IPC_MESSAGE_RECEIVE] = (SyscallFunctionCallback)(void*)HandleSyscallIPCMessageReceive;
 	
-	SyscallVector[SYSCALL_PROC_EXIT] = (SyscallFunctionCallback)(void*)HandleSyscallProcExit;
+	SyscallVector[SYSCALL_PROC_EXIT] = (SyscallFunctionCallback)(void*)HandleSyscallProcExit;*/
 
 }
 
@@ -46,7 +46,7 @@ usize HandleSyscallDebugPrintK(const_userptr_t userString) {
 
 	return 0;
 }
-
+/*
 usize HandleSyscallMemoryVMAlloc(const_userptr_t userBase, usize length, usize flags) {
 	if (CheckUserMemory(userBase, length)) {
 		PANIC("Bad memory");
@@ -56,7 +56,7 @@ usize HandleSyscallMemoryVMAlloc(const_userptr_t userBase, usize length, usize f
 	uptr base = (uptr)userBase;
 
 	PROC::UserProcess *proc = (PROC::UserProcess*)PROC::GetProcess();
-	VMM::VirtualSpace *procSpace = GetVirtualSpace((PROC::ProcessBase*)proc);
+	VMM::VirtualSpace *procSpace = GetVirtualSpace((PROC::Process*)proc);
 	
 	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Calling VMAlloc for PID %d. Base: 0x%x, Length: %d bytes, Flags: 0x%x.\r\n", proc->ID, base, length, flags);
 
@@ -77,7 +77,7 @@ usize HandleSyscallMemoryMMap(const_userptr_t userSrc, const_userptr_t userDest,
 	uptr dest = (uptr)userDest;
 
 	PROC::UserProcess *proc = (PROC::UserProcess*)PROC::GetProcess();
-	VMM::VirtualSpace *procSpace = GetVirtualSpace((PROC::ProcessBase*)proc);
+	VMM::VirtualSpace *procSpace = GetVirtualSpace((PROC::Process*)proc);
 
 	VMM::MMap(procSpace, src, dest, length, VMM::ConvertUserFlags(flags));
 
@@ -145,7 +145,7 @@ usize HandleSyscallProcExit(usize exitCode) {
 
 	return 0;
 }
-
+*/
 
 #ifdef UNDEF
 
@@ -173,7 +173,7 @@ usize HandleSyscallMemoryVMFree(const_userptr_t userBase, usize length) {
 	uptr base = (uptr)userBase;
 
 	PROC::UserProcess *proc = (PROC::UserProcess*)PROC::GetProcess();
-	VMM::VirtualSpace *procSpace = GetVirtualSpace((PROC::ProcessBase*)proc);
+	VMM::VirtualSpace *procSpace = GetVirtualSpace((PROC::Process*)proc);
 
 	if (base % PAGE_SIZE) {
 		base -= base % PAGE_SIZE;
@@ -200,7 +200,7 @@ usize HandleSyscallMemoryUnMap(uptr base, usize length) {
 		return -1; /* Make sure it is in valid memory */
 
 	PROC::UserProcess *proc = (PROC::UserProcess*)PROC::GetProcess();
-	VMM::VirtualSpace *procSpace = GetVirtualSpace((PROC::ProcessBase*)proc);
+	VMM::VirtualSpace *procSpace = GetVirtualSpace((PROC::Process*)proc);
 
 	if (base % PAGE_SIZE) base -= base % PAGE_SIZE;
 	if (length % PAGE_SIZE) length += PAGE_SIZE - length % PAGE_SIZE;
@@ -250,8 +250,8 @@ usize HandleSyscallProcFork() {
 	VMM::PageList *parentPages = NULL, *childPages = NULL;
 
 	parentProc = (PROC::UserProcess*)(PROC::UserProcess*)PROC::GetProcess();
-	parentSpace = GetVirtualSpace((PROC::ProcessBase*)(PROC::ProcessBase*)parentProc);
-	parentPages = GetPageList((PROC::ProcessBase*)parentProc);
+	parentSpace = GetVirtualSpace((PROC::Process*)(PROC::Process*)parentProc);
+	parentPages = GetPageList((PROC::Process*)parentProc);
 
 	parentSpace->Fork(childSpace, false);
 
@@ -268,8 +268,8 @@ usize HandleSyscallProcFork() {
 		childPages->Pages[currentPage].Data.COW->VirtualAddresses[0] = (addr - addr % PAGE_SIZE);
 	}*/
 
-	childProc = (PROC::UserProcess*)PROC::CreateProcess((PROC::ProcessBase*)parentProc, PROC::ExecutableUnitType::PT_USER, childSpace, childPages, 0, 0);
-	PROC::UserThread *thread = (PROC::UserThread*)PROC::CreateThread((PROC::ProcessBase*)childProc, entrypoint, 64 * 1024, 0, 0);
+	childProc = (PROC::UserProcess*)PROC::CreateProcess((PROC::Process*)parentProc, PROC::ExecutableUnitType::PT_USER, childSpace, childPages, 0, 0);
+	PROC::UserThread *thread = (PROC::UserThread*)PROC::CreateThread((PROC::Process*)childProc, entrypoint, 64 * 1024, 0, 0);
 
 	PROC::AddThreadToQueue(info->KernelScheduler, SCHEDULER_RUNNING_QUEUE, thread);
 

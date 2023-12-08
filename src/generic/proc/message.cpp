@@ -1,9 +1,10 @@
 #include <proc/message.hpp>
 #include <sys/printk.hpp>
+#include <mm/pmm.hpp>
 
 namespace PROC {
-static MessageQueue *CreateMessageQueue(MessageManager *manager, ProcessBase *owner, usize preallocateSize) {
-	MessageQueue *queue = (MessageQueue*)Malloc(sizeof(MessageQueue) + preallocateSize);
+static MessageQueue *CreateMessageQueue(MessageManager *manager, Process *owner, usize preallocateSize) {
+	MessageQueue *queue = (MessageQueue*)VMM::PhysicalToVirtual((uptr)PMM::RequestPages((sizeof(MessageQueue) + preallocateSize) / PAGE_SIZE));
 
 	queue->Owner = owner;
 	queue->FreeSize = queue->AllocatedSize = preallocateSize;
@@ -28,7 +29,7 @@ MessageManager *IPCMessageManagerInitialize() {
 	return manager;
 }
 
-int IPCMessageQueueCtl(MessageManager *manager, ProcessBase *proc, QueueOperationStruct *ctlStruct) {
+int IPCMessageQueueCtl(MessageManager *manager, Process *proc, QueueOperationStruct *ctlStruct) {
 	MessageQueue *queue;
 	int returnVal;
 
@@ -53,7 +54,7 @@ int IPCMessageQueueCtl(MessageManager *manager, ProcessBase *proc, QueueOperatio
 	return returnVal;
 }
 
-int IPCMessageSend(MessageManager *manager, usize queueID, ProcessBase *proc, const u8 *messagePointer, usize messageLength, usize messageType, usize messageFlags) {
+int IPCMessageSend(MessageManager *manager, usize queueID, Process *proc, const u8 *messagePointer, usize messageLength, usize messageType, usize messageFlags) {
 	MessageQueue *queue = manager->Queues[queueID];
 	Message *message = (Message*)((uptr)queue + queue->FirstFreeByteOffset);
 	
@@ -85,7 +86,7 @@ int IPCMessageSend(MessageManager *manager, usize queueID, ProcessBase *proc, co
 	return 0;
 }
 
-int IPCMessageReceive(MessageManager *manager, usize queueID, ProcessBase *proc, u8 *messageBufferPointer, usize maxMessageLength, usize messageType, usize messageFlags) {
+int IPCMessageReceive(MessageManager *manager, usize queueID, Process *proc, u8 *messageBufferPointer, usize maxMessageLength, usize messageType, usize messageFlags) {
 	if (manager->TotalQueues < queueID) {
 		return -EINVALID;
 	}

@@ -19,7 +19,7 @@ namespace PROC {
 
 	struct MessageQueue {
 		usize ID;
-		ProcessBase *Owner;
+		Process *Owner;
 
 		usize AllocatedSize;
 		usize FreeSize;
@@ -55,8 +55,8 @@ namespace PROC {
 	}__attribute__((packed));
 
 	MessageManager *IPCMessageManagerInitialize();
-	int IPCMessageQueueCtl(MessageManager *manager, ProcessBase *proc, QueueOperationStruct *ctlStruct);
-	int IPCMessageSend(MessageManager *manager, usize queueID, ProcessBase *proc, const u8 *messagePointer, usize messageLength, usize messageType, usize messageFlags);
-	int IPCMessageReceive(MessageManager *manager, usize queueID, ProcessBase *proc, u8 *messageBufferPointer, usize maxMessageLength, usize messageType, usize messageFlags);
+	int IPCMessageQueueCtl(MessageManager *manager, Process *proc, QueueOperationStruct *ctlStruct);
+	int IPCMessageSend(MessageManager *manager, usize queueID, Process *proc, const u8 *messagePointer, usize messageLength, usize messageType, usize messageFlags);
+	int IPCMessageReceive(MessageManager *manager, usize queueID, Process *proc, u8 *messageBufferPointer, usize maxMessageLength, usize messageType, usize messageFlags);
 
 }

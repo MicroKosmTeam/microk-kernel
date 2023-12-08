@@ -3,8 +3,7 @@
 
 #include <cstdint.hpp>
 #include <sys/list.hpp>
-#include <mm/bootmem.hpp>
-#include <mm/slab.hpp>
+#include <mm/memory.hpp>
 
 /* For loop to scan all region
 	for (MEM::MEMBLOCK::MemblockRegion *current = (MEM::MEMBLOCK::MemblockRegion*)info->PhysicalMemoryChunks->Regions.Head;
@@ -21,14 +20,9 @@ namespace MEM::MEMBLOCK {
 
 	struct MemblockAllocator {
 		List Regions;
-
-		SLAB::SlabCache *SlabMemblockRegionCache;
-		
-		void *(*RegionInternalAlloc)(MemblockAllocator *alloc);
 	};
 
 	MemblockAllocator *InitializeAllocator();
-	void SetupSlabAllocation(MemblockAllocator *alloc, SLAB::SlabAllocator *slab);
 
 	MemblockRegion *AddRegion(MemblockAllocator *alloc, uptr base, usize length, u8 type);
 

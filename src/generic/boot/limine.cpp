@@ -186,8 +186,10 @@ void LimineEntry() {
 
 	}
 
-	MEM::MEMBLOCK::ListRegions(alloc);
 	info->PhysicalMemoryChunks = alloc;
+
+	info->KernelFileAddress = (uptr)KernelFileRequest.response->kernel_file->address;
+	info->KernelFileSize = (uptr)KernelFileRequest.response->kernel_file->size;
 
 	const char *cmdline = KernelFileRequest.response->kernel_file->cmdline;
 	usize len = Strnlen(cmdline, MAX_CMDLINE_LENGTH);

@@ -3,6 +3,7 @@
 #include <sys/printk.hpp>
 #include <init/kinfo.hpp>
 #include <mm/memblock.hpp>
+#include <mm/slab.hpp>
 
 namespace VMM {
 uptr PhysicalToVirtual(uptr value) {
@@ -23,11 +24,17 @@ uptr VirtualToPhysical(uptr value) {
 
 
 VirtualSpace *NewVirtualSpace() {
-	VirtualSpace *space = new VirtualSpace;
+	KInfo *info = GetInfo();
+	VirtualSpace *space = (VirtualSpace*)MEM::SLAB::Alloc(info->VirtualSpaceCache);
+
+	usize addressableSpace;
 
 #if defined(ARCH_x64)
 	space->VirtualHierarchyTop = x86_64::NewVirtualSpace();
+	addressableSpace = x86_64::GetTotalAddressableMemory();
 #endif
+	space->VirtualMemoryLayout = MEM::MEMBLOCK::InitializeAllocator();
+	MEM::MEMBLOCK::AddRegion(space->VirtualMemoryLayout, 0, addressableSpace / 2 - PAGE_SIZE, MEMMAP_USABLE);
 
 	return space;
 }
@@ -164,23 +171,35 @@ void MMap(VirtualSpace *space, uptr src, uptr dest, usize length, usize flags) {
 	}
 }
 	
-void VMAlloc(VirtualSpace *space, uptr virt, usize length, usize flags) {
+MEM::MEMBLOCK::MemblockRegion *VMAlloc(VirtualSpace *space, uptr virt, usize length, usize flags) {
 	ROUND_DOWN_TO_PAGE(virt);
 	ROUND_UP_TO_PAGE(length);
+	
+	MEM::MEMBLOCK::MemblockRegion *region = MEM::MEMBLOCK::AddRegion(space->VirtualMemoryLayout, virt, length, MEMMAP_KERNEL_VMALLOC);
 
 	uptr end = virt + length;
 	uptr phys;
 
 	for (; virt < end; virt += PAGE_SIZE) {
 		phys = (uptr)PMM::RequestPage();
+
+		if (phys < PAGE_SIZE) {
+			MEM::InvokeOOM();
+		}
+		
+		Memclr((void*)VMM::PhysicalToVirtual(phys), PAGE_SIZE);
 	
 		MapPage(space, phys, virt, flags);
 	}
+
+	return region;
 }
 
-void VMCopyAlloc(VirtualSpace *space, uptr virt, usize length, usize flags, uptr data, uptr virtDataStart, usize dataLen) {
+MEM::MEMBLOCK::MemblockRegion *VMCopyAlloc(VirtualSpace *space, uptr virt, usize length, usize flags, uptr data, uptr virtDataStart, usize dataLen) {
 	ROUND_DOWN_TO_PAGE(virt);
 	ROUND_UP_TO_PAGE(length);
+
+	MEM::MEMBLOCK::MemblockRegion *region = MEM::MEMBLOCK::AddRegion(space->VirtualMemoryLayout, virt, length, MEMMAP_KERNEL_VMALLOC);
 
 	uptr end = virt + length;
 	uptr phys;
@@ -189,6 +208,10 @@ void VMCopyAlloc(VirtualSpace *space, uptr virt, usize length, usize flags, uptr
 
 	for (; virt < end; virt += PAGE_SIZE) {
 		phys = (uptr)PMM::RequestPage();
+		if (phys < PAGE_SIZE) {
+			MEM::InvokeOOM();
+		}
+
 		Memclr((void*)VMM::PhysicalToVirtual(phys), PAGE_SIZE);
 
 		if (virtDataStart <= virt) {
@@ -202,5 +225,7 @@ void VMCopyAlloc(VirtualSpace *space, uptr virt, usize length, usize flags, uptr
 	
 		MapPage(space, phys, virt, flags);
 	}
+
+	return region;
 }
 }

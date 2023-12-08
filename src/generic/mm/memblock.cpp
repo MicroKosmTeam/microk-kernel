@@ -1,43 +1,37 @@
 #include <mm/memblock.hpp>
 
 #include <sys/printk.hpp>
+#include <mm/bootmem.hpp>
+#include <mm/slab.hpp>
+#include <init/kinfo.hpp>
 
 namespace MEM::MEMBLOCK {
-static void *BootmemRegionInternalAlloc(MemblockAllocator *alloc) {
-	(void)alloc;
-	return BOOTMEM::Malloc(sizeof(MemblockRegion));
-}
-
-static void *NormalRegionInternalAlloc(MemblockAllocator *alloc) {
-	return SLAB::Alloc(alloc->SlabMemblockRegionCache);
+static void *RegionInternalAlloc() {
+	KInfo *info = GetInfo();
+	if (info->MemblockRegionCache != NULL) {
+		return SLAB::Alloc(info->MemblockRegionCache);
+	} else {
+		return BOOTMEM::Malloc(sizeof(MemblockRegion));
+	}
 }
 
 MemblockAllocator *InitializeAllocator() {
 	MemblockAllocator *allocator = (MemblockAllocator*)BOOTMEM::Malloc(sizeof(MemblockAllocator));
-	allocator->SlabMemblockRegionCache = NULL;
-	allocator->RegionInternalAlloc = BootmemRegionInternalAlloc;
-
 	allocator->Regions.Head = NULL;
 	allocator->Regions.Tail = NULL;
 	
 	return allocator;
 }
 	
-void SetupSlabAllocation(MemblockAllocator *alloc, SLAB::SlabAllocator *slab) {
-	alloc->SlabMemblockRegionCache = SLAB::InitializeSlabCache(slab, sizeof(MemblockRegion));
-
-	alloc->RegionInternalAlloc = NormalRegionInternalAlloc;
-}
-	
 MemblockRegion *AddRegion(MemblockAllocator *alloc, uptr base, usize length, u8 type) {
 	MemblockRegion *region;
-
+					
 	if (length == 0) {
 		return NULL;
 	}
 
 	if (alloc->Regions.Head == NULL) {
-		region = (MemblockRegion*)alloc->RegionInternalAlloc(alloc);
+		region = (MemblockRegion*)RegionInternalAlloc();
 
 		region->Base = base;
 		region->Length = length;
@@ -64,7 +58,7 @@ MemblockRegion *AddRegion(MemblockAllocator *alloc, uptr base, usize length, u8 
 					return NULL;
 				} else /* base + length < current->Base + current->Length) */ {
 					/* Insert before */
-					region = (MemblockRegion*)alloc->RegionInternalAlloc(alloc);
+					region = (MemblockRegion*)RegionInternalAlloc();
 				
 					region->Base = base;
 					region->Length = length;
@@ -89,7 +83,7 @@ MemblockRegion *AddRegion(MemblockAllocator *alloc, uptr base, usize length, u8 
 			} else if (current->Base == base) {
 				if (current->Length > length) {
 					/* Split at the start */
-					region = (MemblockRegion*)alloc->RegionInternalAlloc(alloc);
+					region = (MemblockRegion*)RegionInternalAlloc();
 				
 					region->Base = base;
 					region->Length = length;
@@ -123,14 +117,37 @@ MemblockRegion *AddRegion(MemblockAllocator *alloc, uptr base, usize length, u8 
 			} else /* current->Base < base */ {
 				if (current->Base + current->Length > base + length) {
 					/* Split and insert in the middle */
-					region = (MemblockRegion*)alloc->RegionInternalAlloc(alloc);
+					region = (MemblockRegion*)RegionInternalAlloc();
+
+					MemblockRegion *currentSplit = (MemblockRegion*)RegionInternalAlloc();
+					currentSplit->Base = base + length;
+					currentSplit->Length = current->Length - length - (base - current->Base);
+					currentSplit->Type = current->Type;
+					currentSplit->Previous = region;
+
+					if (current->Next != NULL) {
+						current->Next->Previous = currentSplit;
+						currentSplit->Next = current->Next;
+					} else {
+						alloc->Regions.Tail = currentSplit;
+						currentSplit->Next = NULL;
+					}
+
+
+					current->Length = base - current->Base;
+					current->Next = region;
+					
+					region->Previous = current;
+					region->Next = currentSplit;
 				
 					region->Base = base;
 					region->Length = length;
 					region->Type = type;
+					
+					return region;
 				} else if (current->Base + current->Length == base + length) {
 					/* Split at the end */
-					region = (MemblockRegion*)alloc->RegionInternalAlloc(alloc);
+					region = (MemblockRegion*)RegionInternalAlloc();
 				
 					region->Base = base;
 					region->Length = length;
@@ -146,7 +163,6 @@ MemblockRegion *AddRegion(MemblockAllocator *alloc, uptr base, usize length, u8 
 					region->Previous = current;
 
 					current->Length -= length;
-
 					current->Next = region;
 
 					return region;
@@ -156,7 +172,7 @@ MemblockRegion *AddRegion(MemblockAllocator *alloc, uptr base, usize length, u8 
 						continue;
 					} else {
 						/* This is the last block, add it here */
-						region = (MemblockRegion*)alloc->RegionInternalAlloc(alloc);
+						region = (MemblockRegion*)RegionInternalAlloc();
 
 						region->Base = base;
 						region->Length = length;
@@ -232,7 +248,7 @@ void ListRegions(MemblockAllocator *alloc) {
 	}
 
 	for(current = (MemblockRegion*)alloc->Regions.Head ; current != NULL ; current = (MemblockRegion*)current->Next) {
-		PRINTK::PrintK(PRINTK_DEBUG "Region [0x%x - 0x%x].\r\n", current->Base, current->Base + current->Length);
+		PRINTK::PrintK(PRINTK_DEBUG "Region [0x%x - 0x%x] of type \"%s\".\r\n", current->Base, current->Base + current->Length, MEM::MemoryTypeToString(current->Type));
 	}
 
 }

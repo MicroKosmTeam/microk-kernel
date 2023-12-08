@@ -24,8 +24,10 @@
 #define MEMMAP_KERNEL_STACK           0x87
 #define MEMMAP_KERNEL_DEVICE          0x88
 #define MEMMAP_KERNEL_FILE            0x89
+#define MEMMAP_KERNEL_VMALLOC         0x8A
+#define MEMMAP_KERNEL_CONTEXT         0x8B
 
-#define MEMMAP_KERNEL_SPECIFIC_COUNT  10
+#define MEMMAP_KERNEL_SPECIFIC_COUNT  12
 #define MEMMAP_KERNEL_SPECIFIC_START  0x80
 
 void *Memset(void *start, u8 value, u64 num);
@@ -111,7 +113,9 @@ namespace MEM {
 				"Kernel Bitmap",
 				"Kernel Stack",
 				"Kernel Device",
-				"Kernel File"
+				"Kernel File",
+				"Kernel VMAlloc Memory",
+				"Kenrel Thread Context"
 			};
 
 			return KernelMemTypeStrings[type];

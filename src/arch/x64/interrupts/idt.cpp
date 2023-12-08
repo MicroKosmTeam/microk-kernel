@@ -102,8 +102,6 @@ static inline void PrintRegs(CPUStatus *context) {
 }
 
 extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
-	KInfo *info = GetInfo();
-
 	DEV::CPU::TopologyStructure *core;
 	x86_64::GetCoreTopologyStruct(&core);
 	x86_64::PerCoreCPUTopology *coreInfo = (x86_64::PerCoreCPUTopology*)core->ArchitectureSpecificInformation;
@@ -112,6 +110,10 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 	switch(context->VectorNumber) {
 		case 0:
 			PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Division by zero.\r\n");
+			break;
+		case 1:
+			PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Trap\r\n");
+			PrintRegs(context);
 			break;
 		case 6:
 			PrintRegs(context);
@@ -127,12 +129,12 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 			break;
 			}
 		case 14: {
-			uptr page;
+			uptr page = 0;
 			bool protectionViolation = context->ErrorCode & 0b1;
 			bool writeAccess = (context->ErrorCode & 0b10) >> 1;
 			bool byUser = (context->ErrorCode & 0b100) >> 2;
 			bool wasInstructionFetch = (context->ErrorCode & 0b1000) >> 4;
-			asm("mov %%cr2,%0" : "=r"(page));
+			asm("mov %%cr2, %0" : "=r"(page));
 
 			PrintRegs(context);
 			PRINTK::PrintK(PRINTK_DEBUG
@@ -153,39 +155,10 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 			x86_64::APIC::APIC *apic = coreInfo->LocalAPIC;
 			PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "APIC at 0x%x\r\n", apic);
 
-			if(info->KernelScheduler != NULL) {
-				if(info->KernelScheduler->CurrentThread != NULL) {
-					Memcpy(info->KernelScheduler->CurrentThread->Thread->Context, context, sizeof(CPUStatus));
-				}
-
-				if(context->IretCS != GDT_OFFSET_KERNEL_CODE) { 
-					context->IretCS = GDT_OFFSET_USER_CODE;
-					context->IretSS = GDT_OFFSET_USER_CODE + 0x08;
-				}
-
-				info->KernelScheduler->ElapsedQuantum += 1;
-				if(PROC::RecalculateScheduler(info->KernelScheduler) == -1) PANIC("Recalculating the scheduler failed");
-				
-				if(info->KernelScheduler->CurrentThread == NULL) PANIC("AAAA");
-				
-				PROC::ProcessBase *proc = PROC::GetProcess();
-
-				Memcpy(context, info->KernelScheduler->CurrentThread->Thread->Context, sizeof(CPUStatus));
-
-				x86_64::UpdateLocalCPUStruct(&coreInfo->CPUStruct,
-						             info->KernelScheduler->CurrentThread->Thread->KernelStack,
-						             VMM::VirtualToPhysical(proc->VirtualMemorySpace->VirtualHierarchyTop),
-							     VMM::VirtualToPhysical(proc->VirtualMemorySpace->VirtualHierarchyTop));
-
 				//x86_64::APIC::WriteAPIC(apic, APIC_REGISTER_EOI, 0);
 
 				//u64 tsc = __builtin_ia32_rdtsc() + 0x1000000;
 				//x86_64::SetMSR(MSR_TSC_DEADLINE, tsc & 0xFFFFFFFF, tsc >> 32);
-
-				VMM::LoadVirtualSpace(proc->VirtualMemorySpace);
-				
-				UpdateKernelTables();
-			}
 			}
 			break;
 		case 254:

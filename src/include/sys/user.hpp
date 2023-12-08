@@ -1,6 +1,9 @@
 #pragma once
 #include <cstdint.hpp>
 
+#define USER_READ_MEMORY_CEILING  0x0000800000000000
+#define USER_ALLOC_MEMORY_CEILING 0x0000700000000000
+
 /* Simple __userptr struct to make sure userptr_t and
  * const_userptr_t don't get mixed up with other pointers
  */

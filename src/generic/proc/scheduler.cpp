@@ -1,298 +1,121 @@
 #include <proc/scheduler.hpp>
-#include <arch/x64/cpu/stack.hpp>
-#include <sys/printk.hpp>
 #include <init/kinfo.hpp>
-#include <mm/pmm.hpp>
+#include <sys/printk.hpp>
 #include <sys/panic.hpp>
-#include <sys/user.hpp>
-#include <sys/locks.hpp>
+#include <sys/math.hpp>
+#include <mm/pmm.hpp>
 
 namespace PROC {
+Scheduler *InitializeScheduler() {
+	KInfo *info = GetInfo();
 
-Scheduler *InitializeScheduler(usize queueCount) {
-	Scheduler *scheduler = (Scheduler*)Malloc(sizeof(Scheduler) + queueCount * sizeof(SchedulerQueue));
+	Scheduler *scheduler = (Scheduler*)MEM::SLAB::Alloc(info->SchedulerCache);
 
-	scheduler->SchedulerLock = false;
-	scheduler->CurrentThread = NULL;
-	scheduler->QueueCount = queueCount;
-	scheduler->ElapsedQuantum = -1;
-
-	for (usize currentQueue = 0; currentQueue < queueCount; ++currentQueue) { 
-		scheduler->Queues[currentQueue] = new SchedulerQueue;
-		scheduler->Queues[currentQueue]->ThreadCount = 0;
-		scheduler->Queues[currentQueue]->Head = NULL;
-		scheduler->Queues[currentQueue]->Tail = NULL;
-	}
+	scheduler->ParentScheduler = NULL;
+	scheduler->ProcessSlabCache = MEM::SLAB::InitializeSlabCache(info->KernelSlabAllocator, sizeof(Process));
+	scheduler->ThreadSlabCache = MEM::SLAB::InitializeSlabCache(info->KernelSlabAllocator, sizeof(Thread));
 
 	return scheduler;
 }
 
-int DeinitializeScheduler(Scheduler *scheduler) {
-	if(scheduler == NULL) return -1;
-	SpinlockLock(&scheduler->SchedulerLock);
-
-	for (usize currentQueue = 0; currentQueue < scheduler->QueueCount; ++currentQueue) { 
-		if(scheduler->Queues[currentQueue]->Head != NULL) {
-			SchedulerNode *node = scheduler->Queues[currentQueue]->Head;
-			while(node != scheduler->Queues[currentQueue]->Tail) {
-				node = node->Next;
-				delete node->Previous;
-			}
-
-			delete scheduler->Queues[currentQueue]->Tail;
-		}
-
-		delete scheduler->Queues[currentQueue];
-	}
+void DeinitializeScheduler(Scheduler *scheduler) {
+	MEM::SLAB::FreeSlabCache(scheduler->ProcessSlabCache);
+	MEM::SLAB::FreeSlabCache(scheduler->ThreadSlabCache);
 
 	Free(scheduler);
-
-	return 0;
 }
 
-int AddThreadToQueue(Scheduler *scheduler, usize queue, ThreadBase *thread) {
-	if (scheduler == NULL || scheduler->Queues[queue] == NULL || thread == NULL) return -1;
-	SpinlockLock(&scheduler->SchedulerLock);
-
-	SchedulerNode *newNode = new SchedulerNode;
-	newNode->Thread = thread;
-	newNode->Quantum = SCHEDULER_DEFAULT_QUANTUM;
-	newNode->Next = NULL;
-	newNode->Previous = NULL;
-
-	if(scheduler->Queues[queue]->Head == NULL) {
-		scheduler->Queues[queue]->Head = newNode;
-		scheduler->Queues[queue]->Tail = newNode;
-	} else {
-		SchedulerNode *node = scheduler->Queues[queue]->Head;
-		while(node != scheduler->Queues[queue]->Tail) {
-			if(node->Thread->Priority < thread->Priority)
-				break;
-
-			node = node->Next;
-		}
-
-		SchedulerNode *oldNextNode = node->Next;
-		if(oldNextNode == NULL) {
-			scheduler->Queues[queue]->Tail = newNode;
-		} else {
-			oldNextNode->Previous = newNode;
-		}
-
-		newNode->Next = oldNextNode;
-		newNode->Previous = node;
-		node->Next = newNode;
-	}
-
-
-	SpinlockUnlock(&scheduler->SchedulerLock);
-	return 0;
-}
-
-ThreadBase *RemoveThreadFromQueue(Scheduler *scheduler, usize queue, usize pid, usize tid) {
-	if (scheduler == NULL || scheduler->Queues[queue] == NULL || scheduler->Queues[queue]->Head == NULL) return NULL;
-	SpinlockLock(&scheduler->SchedulerLock);
-
-	ThreadBase *thread = NULL;
+Process *CreateProcess(Scheduler *scheduler, ExecutableUnitType type, VMM::VirtualSpace *space) {
+	Process *proc = (Process*)MEM::SLAB::Alloc(scheduler->ProcessSlabCache);
 	
-	SchedulerNode *node = scheduler->Queues[queue]->Head;
+	proc->Type = type;
 
-	while(node != scheduler->Queues[queue]->Tail) {
-		if(node->Thread->Parent->ID == pid && node->Thread->ID == tid) {
-			SchedulerNode *previous = node->Previous;
-			SchedulerNode *next = node->Next;
+	proc->Domain = scheduler->Domain;
+	proc->VirtualMemorySpace = space;
 
-			if(previous != NULL) {
-				previous->Next = next;
-			} else {
-				scheduler->Queues[queue]->Head = next;
+	MEM::MEMBLOCK::MemblockRegion *highestFree = MEM::MEMBLOCK::FindFreeRegion(space->VirtualMemoryLayout, PAGE_SIZE, false);
+	proc->HighestFree = highestFree->Base + highestFree->Length;
+
+	PRINTK::PrintK(PRINTK_DEBUG "Highest free: 0x%x\r\n", proc->HighestFree);
+
+	proc->ThreadCount = 0;
+	proc->ThreadIDBase = 0;
+
+	switch (type) {
+		case ExecutableUnitType::PT_KERNEL:
+			break;
+		case ExecutableUnitType::PT_USER:
+			break;
+		default:
+			PRINTK::PrintK(PRINTK_ERROR "Unknown process type: 0x%x\r\n", type);
+			OOPS("Unknown process type");
+			MEM::SLAB::Free(scheduler->ProcessSlabCache, proc);
+			return NULL;
+	}
+
+	return proc;
+
+}
+
+Thread *CreateThread(Scheduler *scheduler, Process *parent) {
+	Thread *thread = (Thread*)MEM::SLAB::Alloc(scheduler->ThreadSlabCache);
+
+	thread->Type = parent->Type;
+
+	thread->Parent = parent;
+
+	uptr contextPage = VMM::PhysicalToVirtual((uptr)PMM::RequestPage());
+	Memclr((void*)contextPage, PAGE_SIZE);
+
+	parent->HighestFree -= PAGE_SIZE;
+	VMM::MapPage(parent->VirtualMemorySpace, VMM::VirtualToPhysical(contextPage), parent->HighestFree, VMM_FLAGS_KERNEL_DATA);
+	thread->Context = (usize*)parent->HighestFree;
+
+	MEM::MEMBLOCK::MemblockRegion *contextRegion =
+		MEM::MEMBLOCK::AddRegion(parent->VirtualMemorySpace->VirtualMemoryLayout,
+				         parent->HighestFree, PAGE_SIZE, MEMMAP_KERNEL_CONTEXT);
+	(void)contextRegion;
+
+	thread->KernelStack = parent->HighestFree;
+	parent->HighestFree -= KERNEL_STACK_SIZE;
+
+	MEM::MEMBLOCK::MemblockRegion *kernelStackRegion =
+		VMM::VMAlloc(parent->VirtualMemorySpace, parent->HighestFree,
+			     KERNEL_STACK_SIZE, VMM_FLAGS_KERNEL_DATA);
+
+	kernelStackRegion->Type = MEMMAP_KERNEL_STACK;
+	
+	parent->HighestFree -= PAGE_SIZE;
+
+	switch(parent->Type) {
+		case ExecutableUnitType::PT_KERNEL:
+			break;
+		case ExecutableUnitType::PT_USER: {
+			thread->UserThread.UserStack = parent->HighestFree;
+			parent->HighestFree -= KERNEL_STACK_SIZE;
+
+			MEM::MEMBLOCK::MemblockRegion *userStackRegion = 
+				VMM::VMAlloc(parent->VirtualMemorySpace, parent->HighestFree,
+					     KERNEL_STACK_SIZE, VMM_FLAGS_USER_DATA);
+
+			userStackRegion->Type = MEMMAP_KERNEL_STACK;
+	
+			parent->HighestFree -= PAGE_SIZE;
+
 			}
-			next->Previous = previous;
+			break;
+		default:
+			PRINTK::PrintK(PRINTK_ERROR "Unknown process type: 0x%x\r\n", parent->Type);
+			OOPS("Unknown process type");
+			MEM::SLAB::Free(scheduler->ProcessSlabCache, thread);
+			return NULL;
 
-			thread = node->Thread;
-
-			delete node;
-		
-			SpinlockUnlock(&scheduler->SchedulerLock);
-			return thread;
-		}
-
-		node = node->Next;
+	
 	}
 
+	MEM::MEMBLOCK::ListRegions(parent->VirtualMemorySpace->VirtualMemoryLayout);
 
-
-	if(node->Thread->Parent->ID == pid && node->Thread->ID == tid) {
-		if(scheduler->Queues[queue]->Head == scheduler->Queues[queue]->Tail) {
-			scheduler->Queues[queue]->Head = NULL;
-			scheduler->Queues[queue]->Tail = NULL;
-		} else {
-			SchedulerNode *previous = node->Previous;
-			previous->Next = NULL;
-			scheduler->Queues[queue]->Tail = previous;
-		}
-			
-		thread = node->Thread;
-		
-		delete node;
-	} else {
-		SpinlockUnlock(&scheduler->SchedulerLock);
-
-		return NULL;
-	}
-
-	SpinlockUnlock(&scheduler->SchedulerLock);
 	return thread;
 }
 
-ThreadBase *GetThreadFromQueue(Scheduler *scheduler, usize queue, usize pid, usize tid) {
-	if (scheduler == NULL || scheduler->Queues[queue] == NULL || scheduler->Queues[queue]->Head == NULL) return NULL;
-	SpinlockLock(&scheduler->SchedulerLock);
-
-	ThreadBase *thread = NULL;
-
-	SchedulerNode *node = scheduler->Queues[queue]->Head;
-	while(node != scheduler->Queues[queue]->Tail) {
-		if(node->Thread->Parent->ID == pid && node->Thread->ID == tid) {
-			thread = node->Thread;
-			SpinlockUnlock(&scheduler->SchedulerLock);
-			return thread;
-		}
-
-		node = node->Next;
-	}
-
-	if(node->Thread->Parent->ID == pid && node->Thread->ID == tid) {
-		thread = node->Thread;
-	} else {
-		SpinlockUnlock(&scheduler->SchedulerLock);
-
-		return NULL;
-	}
-
-	SpinlockUnlock(&scheduler->SchedulerLock);
-	return thread;
-}
-	
-ThreadBase *GetThread(Scheduler *scheduler, usize pid, usize tid) {
-	if(scheduler == NULL) return NULL;
-	SpinlockLock(&scheduler->SchedulerLock);
-
-	ThreadBase *thread = NULL;
-	for (usize currentQueue = 0; currentQueue < scheduler->QueueCount; ++currentQueue) { 
-		SchedulerNode *node = scheduler->Queues[currentQueue]->Head;
-		while(node != scheduler->Queues[currentQueue]->Tail) {
-			if(node->Thread->Parent->ID == pid && node->Thread->ID == tid) {
-				thread = node->Thread;
-				SpinlockUnlock(&scheduler->SchedulerLock);
-				return thread;
-			}
-
-			node = node->Next;
-		}
-
-		if(node->Thread->Parent->ID == pid && node->Thread->ID == tid) {
-			thread = node->Thread;
-			SpinlockUnlock(&scheduler->SchedulerLock);
-			return thread;
-		}
-	}
-
-	SpinlockUnlock(&scheduler->SchedulerLock);
-	return NULL;
-}
-
-int RecalculateScheduler(Scheduler *scheduler) {
-	if(scheduler == NULL) return -1;
-	SpinlockLock(&scheduler->SchedulerLock);
-
-	/* Check wether the current thread has used up its available quantum */
-	if(scheduler->CurrentThread == NULL) {
-		if(scheduler->Queues[SCHEDULER_RUNNING_QUEUE]->Head != NULL) {
-			scheduler->CurrentThread = scheduler->Queues[SCHEDULER_RUNNING_QUEUE]->Head;
-			scheduler->ElapsedQuantum = 0;
-			SpinlockUnlock(&scheduler->SchedulerLock);
-			return 0;
-		} else {
-			SpinlockUnlock(&scheduler->SchedulerLock);
-			return -1;
-		}
-	}
-
-	if(scheduler->ElapsedQuantum >= scheduler->CurrentThread->Quantum) {
-		/* If there are no threads in the running queue after this one, we'll swap it with the waiting queue 
-		 * Otherwise, we'll just remove it and push it in the waiting queue */
-	
-		if(scheduler->Queues[SCHEDULER_RUNNING_QUEUE]->Head->Next == NULL) {
-			if(scheduler->Queues[SCHEDULER_WAITING_QUEUE]->Head == NULL &&
-			   scheduler->Queues[SCHEDULER_BLOCKED_QUEUE]->Head == NULL) {
-				/* This is executed if there is just one process that is running
-				 * we don't erase the elapsed quantum, as we want to switch to
-				 * a new process as soon as we can
-				 */
-				SpinlockUnlock(&scheduler->SchedulerLock);
-				return 0;
-			} else {
-				SchedulerQueue *oldRunning = scheduler->Queues[SCHEDULER_RUNNING_QUEUE];
-				scheduler->Queues[SCHEDULER_RUNNING_QUEUE] = scheduler->Queues[SCHEDULER_WAITING_QUEUE];
-				scheduler->Queues[SCHEDULER_WAITING_QUEUE] = oldRunning;
-			}
-		} else {
-			SpinlockUnlock(&scheduler->SchedulerLock);
-			ThreadBase *thread = RemoveThreadFromQueue(scheduler, SCHEDULER_RUNNING_QUEUE, scheduler->CurrentThread->Thread->Parent->ID, scheduler->CurrentThread->Thread->ID);
-			AddThreadToQueue(scheduler, SCHEDULER_WAITING_QUEUE, thread);
-			SpinlockLock(&scheduler->SchedulerLock);
-		}
-		
-		scheduler->CurrentThread = scheduler->Queues[SCHEDULER_RUNNING_QUEUE]->Head;
-		scheduler->ElapsedQuantum = 0;
-
-		SpinlockUnlock(&scheduler->SchedulerLock);
-		return 1;
-	} else {
-		/* Things can continue normally */	
-		SpinlockUnlock(&scheduler->SchedulerLock);
-		return 0;
-	}
-
-}
-
-void PrintSchedulerStatus(Scheduler *scheduler) {
-	if(scheduler == NULL) return;
-	SpinlockLock(&scheduler->SchedulerLock);
-
-	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Printing debug status of scheduler at 0x%x\r\n"
-		       " Current thread:                      0x%x\r\n"
-		       " Elapsed quantum:                     0x%x\r\n"
-		       " Queue count:                         0x%x\r\n",
-		       scheduler, scheduler->CurrentThread, scheduler->ElapsedQuantum, scheduler->QueueCount);
-
-
-	ThreadBase *thread = NULL;
-	for (usize currentQueue = 0; currentQueue < scheduler->QueueCount; ++currentQueue) { 
-		PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "  Queue:                              0x%x\r\n", currentQueue);
-		SchedulerNode *node = scheduler->Queues[currentQueue]->Head;
-		if(node == NULL) PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "   Empty\r\n");
-		else {
-			thread = node->Thread;
-			while(node != scheduler->Queues[currentQueue]->Tail) {
-				PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "   Thread:                            0x%x\r\n"
-					       "    TID:                              0x%x\r\n"
-					       "    PID:                              0x%x\r\n",
-					       thread, thread->ID, thread->Parent->ID);
-
-				node = node->Next;
-				thread = node->Thread;
-			}
-
-			PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "   Thread:                            0x%x\r\n"
-				       "    TID:                              0x%x\r\n"
-				       "    PID:                              0x%x\r\n",
-				       thread, thread->ID, thread->Parent->ID);
-		}
-
-	}
-
-	SpinlockUnlock(&scheduler->SchedulerLock);
-}
 }

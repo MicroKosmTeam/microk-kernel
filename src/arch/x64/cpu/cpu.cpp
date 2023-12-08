@@ -11,6 +11,7 @@
 #include <mm/string.hpp>
 #include <init/kinfo.hpp>
 #include <mm/bootmem.hpp>
+#include <arch/x64/dev/main.hpp>
 
 extern "C" void SyscallEntry();
 
@@ -110,13 +111,9 @@ int BootCPUInit() {
 	/* Jumpstart interrupts */
 	IDTInit((IDTEntry*)coreInfo->IDT, &coreInfo->_IDTR);
 	
-	/* Initializing the user GSBASE MSR to 0 */
-	SetMSR(MSR_GSBASE, 0, 0);
-
-	SetMSR(MSR_KERNELGSBASE, (uptr)&coreInfo->CPUStruct, (uptr)&coreInfo->CPUStruct >> 32);
-	UpdateLocalCPUStruct(&coreInfo->CPUStruct, 0, 0, 0);
-
 	coreInfo->CPUStruct.TopologyStructure = (uptr)core;
+
+	InitDevices();
 
 	return 0;
 }
@@ -233,6 +230,36 @@ void UpdateLocalCPUStruct(LocalCPUStruct *cpuStruct, uptr taskKernelStack, uptr 
 	cpuStruct->TaskKernelStack = taskKernelStack;
 	cpuStruct->UserCR3 = userCR3;
 	cpuStruct->KernelCR3 = kernelCR3;
+}
+
+void UpdateCPUContext(BasicCPUContext *context, uptr sp, uptr ip, usize argc, usize argv, bool user) {
+	context->InterruptStub.IP = ip;
+	context->InterruptStub.SP = sp;
+
+	if (context->InterruptStub.RFLAGS == 0) {
+
+		u64 flags = 0;
+		asm volatile ("push %%rax\n\t"
+			      "pushf\n\t"
+			      "pop %%rax\n\t"
+			      "mov %0, %%rax\n\t"
+			      "pop %%rax\n\t" : "=r"(flags));
+
+		context->InterruptStub.RFLAGS = flags;
+	}
+
+	if (user) {
+		context->InterruptStub.CS = GDT_OFFSET_USER_CODE;
+		context->InterruptStub.SS = GDT_OFFSET_USER_CODE + 0x8;
+	} else {
+		context->InterruptStub.CS = GDT_OFFSET_KERNEL_CODE;
+		context->InterruptStub.SS = GDT_OFFSET_KERNEL_CODE + 0x8;
+	}
+
+	if (argc != 0 && argv != 0) {
+		context->CommonRegisters.RDI = argc;
+		context->CommonRegisters.RSI = argv;
+	}
 }
 
 }

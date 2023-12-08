@@ -27,7 +27,7 @@ namespace x86_64 {
 
 #define VMM_FLAGS_KERNEL_CODE (VMM_FLAGS_ACCESSIBLE)
 
-#define VMM_FLAGS_KERNEL_RODATA (VMM_FLAGS_ACCESSIBLE | VMM_FLAGS_NOEXEC)
+#define VMM_FLAGS_KERNEL_RODATA (VMM_FLAGS_ACCESSIBLE)
 
 #define VMM_FLAGS_KERNEL_DATA (1 << x86_64::PT_Flag::Present | \
 			       1 << x86_64::PT_Flag::NX | \
@@ -59,6 +59,8 @@ namespace x86_64 {
 	
 	uptr NewVirtualSpace();
 	void LoadVirtualSpace(uptr topLevel);
+
+	u64 GetTotalAddressableMemory();
 	
 	int ForkSpace(uptr newSpace, uptr oldSpace, usize flags);
 	int MapPage(uptr rootPageTable, uptr phys, uptr virt, usize flags);

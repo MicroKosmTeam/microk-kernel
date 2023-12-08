@@ -25,4 +25,15 @@ namespace MATH {
 	usize UpperPowerOfTwoUSIZE(usize x) {
 		return UpperPowerOfTwoU64(x);
 	}
+
+	inline __attribute__((always_inline))
+	usize POW(usize num, usize pow) {
+		usize result = 1;
+
+		while (pow--) {
+			result *= num;
+		}
+
+		return result;
+	}
 }
