@@ -2,15 +2,21 @@
 #include <init/kinfo.hpp>
 #include <mm/pmm.hpp>
 #include <sys/printk.hpp>
+#include <sys/math.hpp>
 
 inline __attribute__((always_inline))
 void InvalidatePage(uptr virt) {
-	asm volatile ("invlpg (%0)" : : "r"(virt));
+	asm volatile ("invlpg [%0]" : : "r"(virt));
 }
 
 inline __attribute__((always_inline))
 uptr AllocatePage() {
 	uptr address = (uptr)PMM::RequestPage();
+
+	if (address < PAGE_SIZE) {
+		MEM::InvokeOOM();
+	}
+
 	Memset((void*)VMM::PhysicalToVirtual(address), 0 , PAGE_SIZE);
 	return address;
 }
@@ -26,7 +32,6 @@ volatile u64 *GetNextLevel(volatile u64 *topLevel, usize idx, bool allocate) {
 	}
 
 	uptr newPage = AllocatePage();
-	if(newPage == 0) return NULL;
 
 	topLevel[idx] = newPage | VMM_FLAGS_USER_GENERIC;
 	return (volatile u64*)VMM::PhysicalToVirtual(newPage);
@@ -46,6 +51,11 @@ uptr NewVirtualSpace() {
 void LoadVirtualSpace(uptr topLevel) {
 	/* This loads the page directory into memory */
 	asm volatile ("mov %0, %%cr3" : : "r" (VMM::VirtualToPhysical(topLevel)) : "memory");
+}
+	
+u64 GetTotalAddressableMemory() {
+	const usize ADDRESSABLE_BITS = 48;
+	return MATH::POW(2, ADDRESSABLE_BITS);
 }
 
 int ForkSpace(uptr newSpace, uptr oldSpace, usize flags) {

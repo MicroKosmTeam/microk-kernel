@@ -46,6 +46,7 @@ ifeq ($(ARCH), x86_64)
 	 -mno-red-zone              \
 	 -m64                       \
 	 -mabi=sysv                 \
+	 -masm=intel \
 	 -mcmodel=kernel            \
 	 -march=x86-64 
 
