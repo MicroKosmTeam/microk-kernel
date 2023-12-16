@@ -61,7 +61,7 @@ namespace MEM::SLAB {
 	void FreeSlab(Slab *slab, SlabCache *cache);
 
 	void *ReserveSpaceInSlab(Slab *slab, SlabCache *cache);
-	void FreeSpaceInSlab(Slab *slab, SlabCache *cache, void *ptr);
+	bool FreeSpaceInSlab(Slab *slab, SlabCache *cache, void *ptr);
 }
 
 #endif /* MM_SLAB_HPP_ */

@@ -55,8 +55,23 @@ void *Alloc(SlabCache *cache) {
 }
 
 void Free(SlabCache *cache, void *ptr) {
-	(void)cache;
-	(void)ptr;
+	Slab *slab = (Slab*)GetListHead(&cache->PartialSlabs);
+	while (slab) {
+		if(FreeSpaceInSlab(slab, cache, ptr)) {
+			return;
+		}
+
+		slab = (Slab*)slab->Next;
+	}
+
+	slab = (Slab*)GetListHead(&cache->FullSlabs);
+	while (slab) {
+		if(FreeSpaceInSlab(slab, cache, ptr)) {
+			return;
+		}
+
+		slab = (Slab*)slab->Next;
+	}
 }
 
 SlabCache *InitializeSlabCache(SlabAllocator *allocator, usize objectSize) {
@@ -168,15 +183,15 @@ void *ReserveSpaceInSlab(Slab *slab, SlabCache *cache) {
 	return addr;
 }
 
-void FreeSpaceInSlab(Slab *slab, SlabCache *cache, void *ptr) {
+bool FreeSpaceInSlab(Slab *slab, SlabCache *cache, void *ptr) {
 	if ((uptr)ptr < slab->StartAddress) {
-		return;
+		return false;
 	}
 
 	u32 *slot = (u32*)((uptr)ptr - sizeof(u32));
 
 	if (*slot != SLAB_ELEMENT_USED) {
-		return;
+		return false;
 	}
 
 	usize element = ((uptr)slot - slab->StartAddress) / (cache->ObjectSize + sizeof(u32));
@@ -190,5 +205,7 @@ void FreeSpaceInSlab(Slab *slab, SlabCache *cache, void *ptr) {
 	} else if (slab->ActiveElements == 0) {
 		MoveElementToList((ListHead*)slab, slab->ParentList, &cache->FreeSlabs);
 	}
+
+	return true;
 }
 }
