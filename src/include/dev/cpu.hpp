@@ -21,9 +21,10 @@ namespace DEV::CPU {
 	};
 
 	TopologyStructure *CreateTopologyStructure(TopologyStructure *parent, u32 id);
-	TopologyStructure *ProgressToNextLevel(TopologyStructure *parent, u32 id);
+	TopologyStructure *FindTopologyStructure(TopologyStructure *parent, u32 id);
 
 	int InitializeBootCPU();
 
 	usize GetContextSize();
+	void UpdateCPUContext(u8 *context, uptr sp, uptr ip, usize argc, usize argv, bool user);
 }

@@ -60,13 +60,12 @@ void KernelStart() {
 	/* Starting architecture-specific instructions */
 	ARCH::SetupArch();
 
-	info->KernelScheduler = PROC::InitializeScheduler();
-/*
+	info->KernelScheduler = PROC::InitializeScheduler(NULL);
 	info->KernelMessageManager = PROC::IPCMessageManagerInitialize();
 
 	InitSyscalls();
 	InitializeKernelTables();
-*/
+
 #ifdef CONFIG_KERNEL_MODULES
 	usize moduleSize;
 	u8 *addr;
@@ -81,8 +80,9 @@ void KernelStart() {
 		PROC::UserThread *thread = (PROC::UserThread*)PROC::GetThread(info->KernelScheduler, pid, 0);
 		PROC::SetExecutableUnitState(thread, PROC::ExecutableUnitState::P_READY);
 
+*/
 		PRINTK::PrintK(PRINTK_DEBUG "Switching to user module.\r\n");
-
+/*
 		u64 tsc = __builtin_ia32_rdtsc() + 0x1000000;
 		x86_64::SetMSR(MSR_TSC_DEADLINE, tsc & 0xFFFFFFFF, tsc >> 32);
 */

@@ -41,7 +41,7 @@ namespace PROC {
 	};
 
 	struct Thread : public ExecutableUnitHeader {
-		usize *Context;
+		u8 *Context;
 		DEV::CPU::TopologyStructure *RunningThread;
 
 		uptr KernelStack;

@@ -50,7 +50,7 @@ uptr NewVirtualSpace() {
 
 void LoadVirtualSpace(uptr topLevel) {
 	/* This loads the page directory into memory */
-	asm volatile ("mov %0, %%cr3" : : "r" (VMM::VirtualToPhysical(topLevel)) : "memory");
+	asm volatile ("mov %%cr3, %0" : : "r" (VMM::VirtualToPhysical(topLevel)) : "memory");
 }
 	
 u64 GetTotalAddressableMemory() {

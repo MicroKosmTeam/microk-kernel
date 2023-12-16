@@ -109,7 +109,7 @@ int BootCPUInit() {
 	TSSInit(&coreInfo->GlobalDescriptorTable, &coreInfo->TaskStateSegment, coreInfo->InterruptStack);
 
 	/* Jumpstart interrupts */
-	IDTInit((IDTEntry*)coreInfo->IDT, &coreInfo->_IDTR);
+	IDTInit((IDTEntry*)IDT, &_IDTR);
 	
 	coreInfo->CPUStruct.TopologyStructure = (uptr)core;
 
@@ -146,15 +146,16 @@ int CurrentCPUInit(DEV::CPU::TopologyStructure *core) {
 	TSSInit(&coreInfo->GlobalDescriptorTable, &coreInfo->TaskStateSegment, coreInfo->InterruptStack);
 
 	/* Jumpstart interrupts */
-	IDTInit((IDTEntry*)coreInfo->IDT, &coreInfo->_IDTR);
+	IDTInit((IDTEntry*)IDT, &_IDTR);
 	
 	u32 vendor[4];
 	Memclr(vendor, sizeof(u32) * 4);
 	u32 maxIntelLevel = 0, maxAmdLevel = 0;
 	u32 ignored = 0;
-	u32 feature;
-	__get_cpuid(0, &maxIntelLevel, &vendor[0], &vendor[2], &vendor[1]);
-	__get_cpuid(0x80000000, &maxAmdLevel, &ignored, &ignored, &ignored);
+	u32 feature = 0;
+	u32 apicID = 0;
+	__get_cpuid_count(0, 0, &maxIntelLevel, &vendor[0], &vendor[2], &vendor[1]);
+	__get_cpuid_count(0x80000000, 0, &maxAmdLevel, &ignored, &ignored, &ignored);
 
 	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME 
 			"CPUID max supported Intel level: 0x%x\r\n"
@@ -164,7 +165,7 @@ int CurrentCPUInit(DEV::CPU::TopologyStructure *core) {
 	if (maxIntelLevel >= 0x00000001 &&
 	    maxIntelLevel <= 0x0000ffff) {
 		u32 vendorInfo = 0;
-		__get_cpuid(1, &vendorInfo, &coreInfo->CPUIDFlags[0], &coreInfo->CPUIDFlags[1], &coreInfo->CPUIDFlags[2]);
+		__get_cpuid_count(1, 0, &vendorInfo, &feature, &coreInfo->CPUIDFlags[0], &coreInfo->CPUIDFlags[1]);
 
 		u32 family, model, stepping;
 		family = GetFamily(vendorInfo);
@@ -177,30 +178,38 @@ int CurrentCPUInit(DEV::CPU::TopologyStructure *core) {
 			"Stepping: 0x%x\r\n"
 			, family, model, stepping);
 
+		apicID = (feature & 0xFF000000) >> 24;
 	}
 
-	if (maxIntelLevel >= 0x00000007) {
-		__get_cpuid(0x00000007,  &ignored, &ignored, &feature, &ignored);
+	/* To get x2APIC data */
+	if (maxIntelLevel >= 0x0000000b) {
+		__get_cpuid_count(0x0000000b, 0, &ignored, &ignored, &ignored, &feature);
+
+		if (feature != apicID && feature != 0) {
+			apicID = feature;
+		}
 	}
 
 	if (maxAmdLevel >= 0x80000001 &&
 	    maxAmdLevel <= 0x8000ffff) {
-		__get_cpuid(0x80000001, &ignored, &ignored, &feature, &feature);
+		__get_cpuid_count(0x80000001, 0, &ignored, &ignored, &feature, &feature);
 	}
 
-	if (coreInfo->CPUIDFlags[2] & FLAGS_2_IS_XAPIC_PRESENT) {
-		APIC::APIC *localAPIC = (APIC::APIC*)APIC::CreateAPICDevice();
-		coreInfo->LocalAPIC = localAPIC;
+	core->ID = apicID;
 
+	if (coreInfo->CPUIDFlags[1] & FLAGS_1_IS_XAPIC_PRESENT) {/*
 		bool isX2APIC;
 
-		if (coreInfo->CPUIDFlags[1] & FLAGS_1_IS_X2APIC_PRESENT) {
+		if (coreInfo->CPUIDFlags[0] & FLAGS_0_IS_X2APIC_PRESENT) {
 			isX2APIC = true;
 		} else {
 			isX2APIC = false;
 		}
 	
-		DEV::InitializeDevice((DEV::Device*)localAPIC, isX2APIC);
+		APIC::APIC *localAPIC = (APIC::APIC*)APIC::CreateAPICDevice();
+		coreInfo->LocalAPIC = localAPIC;
+
+		DEV::InitializeDevice((DEV::Device*)localAPIC, isX2APIC);*/
 	} else {
 		PANIC("No local APIC found");
 	}
@@ -219,12 +228,8 @@ int CurrentCPUInit(DEV::CPU::TopologyStructure *core) {
 
 	coreInfo->CPUStruct.TopologyStructure = (uptr)core;
 
-
 	return 0;
 }
-/*
-   Function that initializes the x86CPU class
-*/
 
 void UpdateLocalCPUStruct(LocalCPUStruct *cpuStruct, uptr taskKernelStack, uptr userCR3, uptr kernelCR3) {
 	cpuStruct->TaskKernelStack = taskKernelStack;
@@ -242,7 +247,7 @@ void UpdateCPUContext(BasicCPUContext *context, uptr sp, uptr ip, usize argc, us
 		asm volatile ("push %%rax\n\t"
 			      "pushf\n\t"
 			      "pop %%rax\n\t"
-			      "mov %0, %%rax\n\t"
+			      "mov %%rax, %0\n\t"
 			      "pop %%rax\n\t" : "=r"(flags));
 
 		context->InterruptStub.RFLAGS = flags;

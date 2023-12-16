@@ -20,3 +20,8 @@ void AddElementToList(ListHead *element, ListHead *prev, List *list);
 
 void MoveElementToList(ListHead *element, List *origin, List *destination);
 
+ListHead *PopListHead(List *list);
+inline __attribute__((always_inline))
+void PushListTail(ListHead *element, List *list) {
+	AddElementToList(element, list);
+}

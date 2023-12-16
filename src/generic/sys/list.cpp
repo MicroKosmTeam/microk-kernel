@@ -68,3 +68,23 @@ void MoveElementToList(ListHead *element, List *origin, List *destination) {
 	}
 
 }
+
+ListHead *PopListHead(List *list) {
+	if (list->Head == NULL) {
+		return NULL;
+	}
+		
+	ListHead *element = list->Head;
+
+	if (list->Head == list->Tail) {
+		list->Head = list->Tail = NULL;
+
+		return element;
+	} else {
+		list->Head = element->Next;
+		list->Head->Previous = NULL;
+		element->Next = NULL;
+
+		return element;
+	}
+}

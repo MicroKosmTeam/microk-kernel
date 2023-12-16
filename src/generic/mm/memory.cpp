@@ -99,7 +99,6 @@ void Init() {
 	/* Free bootloader-used memory that is no longer needed */
 	FreeBootMemory();
 
-
 	/* Initializing the heap */
 	info->KernelHeap = HEAP::InitializeHeap(info->KernelSlabAllocator);
 

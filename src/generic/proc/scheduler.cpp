@@ -6,14 +6,16 @@
 #include <mm/pmm.hpp>
 
 namespace PROC {
-Scheduler *InitializeScheduler() {
+Scheduler *InitializeScheduler(Scheduler *parent) {
 	KInfo *info = GetInfo();
 
 	Scheduler *scheduler = (Scheduler*)MEM::SLAB::Alloc(info->SchedulerCache);
 
-	scheduler->ParentScheduler = NULL;
+	scheduler->ParentScheduler = parent;
 	scheduler->ProcessSlabCache = MEM::SLAB::InitializeSlabCache(info->KernelSlabAllocator, sizeof(Process));
 	scheduler->ThreadSlabCache = MEM::SLAB::InitializeSlabCache(info->KernelSlabAllocator, sizeof(Thread));
+
+	scheduler->RunningThread = NULL;
 
 	return scheduler;
 }
@@ -23,6 +25,20 @@ void DeinitializeScheduler(Scheduler *scheduler) {
 	MEM::SLAB::FreeSlabCache(scheduler->ThreadSlabCache);
 
 	Free(scheduler);
+}
+	
+void Tick(Scheduler *scheduler, u8 *context, usize contextSize) {
+	if (scheduler->RunningThread != NULL) {
+		Memcpy(scheduler->RunningThread->Context, context, contextSize);
+
+		PushListTail(PopListHead(&scheduler->RunningQueue), &scheduler->RunningQueue);
+	}
+	
+	scheduler->RunningThread = (Thread*)GetListHead(&scheduler->RunningQueue);
+	
+	if (scheduler->RunningThread != NULL) {
+		Memcpy(context, scheduler->RunningThread->Context, contextSize);
+	}
 }
 
 Process *CreateProcess(Scheduler *scheduler, ExecutableUnitType type, VMM::VirtualSpace *space) {
@@ -57,7 +73,7 @@ Process *CreateProcess(Scheduler *scheduler, ExecutableUnitType type, VMM::Virtu
 
 }
 
-Thread *CreateThread(Scheduler *scheduler, Process *parent) {
+Thread *CreateThread(Scheduler *scheduler, Process *parent, uptr entry) {
 	Thread *thread = (Thread*)MEM::SLAB::Alloc(scheduler->ThreadSlabCache);
 
 	thread->Type = parent->Type;
@@ -66,7 +82,9 @@ Thread *CreateThread(Scheduler *scheduler, Process *parent) {
 
 	uptr contextPage = VMM::PhysicalToVirtual((uptr)PMM::RequestPage());
 	Memclr((void*)contextPage, PAGE_SIZE);
-
+	
+	thread->Context = (u8*)contextPage;
+/*
 	parent->HighestFree -= PAGE_SIZE;
 	VMM::MapPage(parent->VirtualMemorySpace, VMM::VirtualToPhysical(contextPage), parent->HighestFree, VMM_FLAGS_KERNEL_DATA);
 	thread->Context = (usize*)parent->HighestFree;
@@ -75,6 +93,7 @@ Thread *CreateThread(Scheduler *scheduler, Process *parent) {
 		MEM::MEMBLOCK::AddRegion(parent->VirtualMemorySpace->VirtualMemoryLayout,
 				         parent->HighestFree, PAGE_SIZE, MEMMAP_KERNEL_CONTEXT);
 	(void)contextRegion;
+*/
 
 	thread->KernelStack = parent->HighestFree;
 	parent->HighestFree -= KERNEL_STACK_SIZE;
@@ -89,6 +108,7 @@ Thread *CreateThread(Scheduler *scheduler, Process *parent) {
 
 	switch(parent->Type) {
 		case ExecutableUnitType::PT_KERNEL:
+			DEV::CPU::UpdateCPUContext(thread->Context, thread->KernelStack , entry, 0, 0, false);
 			break;
 		case ExecutableUnitType::PT_USER: {
 			thread->UserThread.UserStack = parent->HighestFree;
@@ -102,6 +122,8 @@ Thread *CreateThread(Scheduler *scheduler, Process *parent) {
 	
 			parent->HighestFree -= PAGE_SIZE;
 
+			DEV::CPU::UpdateCPUContext(thread->Context, thread->UserThread.UserStack, entry, 0, 0, true);
+
 			}
 			break;
 		default:
@@ -114,6 +136,8 @@ Thread *CreateThread(Scheduler *scheduler, Process *parent) {
 	}
 
 	MEM::MEMBLOCK::ListRegions(parent->VirtualMemorySpace->VirtualMemoryLayout);
+
+	PushListTail(thread, &scheduler->RunningQueue);
 
 	return thread;
 }

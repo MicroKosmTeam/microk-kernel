@@ -109,9 +109,10 @@ int InitDevices() {
 
 int HandleMADT(MADTHeader *madt) {
 	KInfo *info = GetInfo();
-
+/*
 	PerCoreCPUTopology *bootCoreInfo = (PerCoreCPUTopology*)info->BootCore->ArchitectureSpecificInformation;
-
+	PerCoreCPUTopology *coreInfo = bootCoreInfo;
+*/
 	MADTRecord *record;
 	uptr offset = sizeof(MADTHeader);
 	while(offset < madt->Length) {
@@ -126,17 +127,15 @@ int HandleMADT(MADTHeader *madt) {
 				               " - APIC ID: %d\r\n"
 					       " - Flags: %d\r\n",
 						plapic->ACPIProcessorID, plapic->APICID, plapic->Flags);
-
-				if (plapic->APICID == bootCoreInfo->LocalAPIC->ID) {
-					PRINTK::PrintK(PRINTK_DEBUG " - It's the current CPU.\r\n");
-					info->BootCore->ID = plapic->ACPIProcessorID;
-				} else {
-					DEV::CPU::TopologyStructure *coreParent = info->BootCore->Parent;
-					DEV::CPU::TopologyStructure *core = DEV::CPU::CreateTopologyStructure(coreParent, plapic->ACPIProcessorID);
-
-					PerCoreCPUTopology *coreInfo = new PerCoreCPUTopology;
+/*
+				if (plapic->ACPIProcessorID != info->BootCore->ID) {
+					coreInfo = new PerCoreCPUTopology;
 					core->ArchitectureSpecificInformation = (void*)coreInfo;
 				}
+
+				APIC::APIC *localAPIC = (APIC::APIC*)APIC::CreateAPICDevice();
+				coreInfo->LocalAPIC = localAPIC;
+*/
 
 				}
 				break;
@@ -208,6 +207,8 @@ int HandleMADT(MADTHeader *madt) {
 }
 
 int HandleSRAT(SRATHeader *srat) {
+	KInfo *info = GetInfo();
+
 	SRATRecord *record;
 	uptr offset = sizeof(SRATHeader);
 	while(offset < srat->Length) {
@@ -225,6 +226,22 @@ int HandleSRAT(SRATHeader *srat) {
 					       " - SAPIC EID: %d\r\n"
 					       " - Clock Domain: %d\r\n",
 					       domain, lapicAffinity->APIC_ID, lapicAffinity->Flags, lapicAffinity->SAPIC_EID, lapicAffinity->ClockDomain);
+
+
+				DEV::CPU::TopologyStructure *node = DEV::CPU::FindTopologyStructure(info->DefaultMachine, domain);
+				
+				if (node == NULL) {
+					PRINTK::PrintK(PRINTK_DEBUG "Create node #%d.\r\n", domain);
+					node = DEV::CPU::CreateTopologyStructure(info->DefaultMachine, domain);
+				}
+
+				if (lapicAffinity->APIC_ID != info->BootCore->ID) {
+					DEV::CPU::TopologyStructure *core = DEV::CPU::CreateTopologyStructure(node, lapicAffinity->APIC_ID);
+					(void)core;
+				} else {
+					PRINTK::PrintK(PRINTK_DEBUG " - It's the current CPU.\r\n");
+					info->BootCore->Parent = node;
+				}
 				}
 				break;
 			case SRAT_RECORD_TYPE_MEMORY_AFFINITY: {
@@ -236,6 +253,13 @@ int HandleSRAT(SRATHeader *srat) {
 					       " - Range: [0x%x - 0x%x]\r\n"
 					       " - Flags: %d\r\n",
 					       memAffinity->Domain, base, base + length, memAffinity->Flags);
+
+				DEV::CPU::TopologyStructure *node = DEV::CPU::FindTopologyStructure(info->DefaultMachine, memAffinity->Domain);
+				
+				if (node == NULL) {
+					PRINTK::PrintK(PRINTK_DEBUG "Create node #%d.\r\n", memAffinity->Domain);
+					node = DEV::CPU::CreateTopologyStructure(info->DefaultMachine, memAffinity->Domain);
+				}
 				}
 				break;
 			case SRAT_RECORD_TYPE_PROCESSOR_LOCAL_x2APIC_AFFINITY: {

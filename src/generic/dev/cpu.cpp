@@ -14,30 +14,36 @@ namespace DEV::CPU {
 TopologyStructure *CreateTopologyStructure(TopologyStructure *parent, u32 id) {
 	TopologyStructure *structure = new TopologyStructure;
 
-	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Creating topology structure #%d under parent #%d\r\n", id, parent->ID);
-
 	structure->ID = id;
 	structure->Parent = parent;
 	structure->Children.First = structure->Children.Last = NULL;
 
 	TopologyStructure *oldLastChild = parent->Children.Last;
+
+	if (structure->Children.First == NULL) {
+		structure->Children.First = structure->Children.Last = structure;
+	}
+
 	oldLastChild->Next = structure;
 	structure->Previous = oldLastChild;
 	parent->Children.Last = structure;
 
 	return structure;
 }
-
-TopologyStructure *ProgressToNextLevel(TopologyStructure *parent, u32 id) {
+	
+TopologyStructure *FindTopologyStructure(TopologyStructure *parent, u32 id) {
 	TopologyStructure *current = parent->Children.First;
 
 	if (current == NULL) return NULL;
 
-	do {
-		if (current->ID == id) return current;
+	while (current) {
+		if (current->ID == id) {
+			PRINTK::PrintK(PRINTK_DEBUG "found id %d\r\n", id);
+			return current;
+		}
 
 		current = current->Next;
-	} while (current != parent->Children.Last);
+	}
 
 	return NULL;
 }
@@ -94,6 +100,12 @@ int InitializeBootCPU() {
 usize GetContextSize() {
 #if defined(ARCH_x64)
 	return x86_64::GetContextSize();
+#endif
+}
+
+void UpdateCPUContext(u8 *context, uptr sp, uptr ip, usize argc, usize argv, bool user) {
+#if defined(ARCH_x64)
+	return x86_64::UpdateCPUContext((x86_64::BasicCPUContext*)context, sp, ip, argc, argv, user);
 #endif
 }
 

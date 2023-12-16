@@ -62,10 +62,9 @@ static int LoadProgramHeaders(u8 *data, usize size, Elf64_Ehdr *elfHeader, VMM::
 
 static usize LoadProcess(Elf64_Ehdr *elfHeader, VMM::VirtualSpace *space) {
 	KInfo *info = GetInfo();
-	(void)elfHeader;
 
 	PROC::Process *proc = PROC::CreateProcess(info->KernelScheduler, PROC::ExecutableUnitType::PT_USER, space);
-	PROC::Thread *thread = PROC::CreateThread(info->KernelScheduler, proc);
+	PROC::Thread *thread = PROC::CreateThread(info->KernelScheduler, proc, elfHeader->e_entry);
 	(void)thread;
 
 	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Process created with PID: 0x%x\r\n", proc->ID);

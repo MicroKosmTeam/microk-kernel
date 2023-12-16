@@ -5,7 +5,6 @@
 /* Max number of interrupts in x86_64 is 256 */
 #define IDT_MAX_DESCRIPTORS 256
 
-
 struct IDTEntry {
 	u16    ISRLow;      // The lower 16 bits of the ISR's address
 	u16    KernelCs;    // The GDT segment selector that the CPU will load into CS before calling the ISR
@@ -20,6 +19,9 @@ struct IDTR {
 	u16	Limit;
 	u64	Base;
 } __attribute__((packed));
+
+extern __attribute__((section(".interrupt"), aligned(0x1000))) IDTEntry IDT[IDT_MAX_DESCRIPTORS];
+extern __attribute__((section(".interrupt"), aligned(0x1000))) IDTR _IDTR;
 
 struct CPUStatus {
 	u64 R15;

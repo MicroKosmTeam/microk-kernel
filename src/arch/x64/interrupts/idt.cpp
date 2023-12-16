@@ -14,6 +14,8 @@
 #include <arch/x64/interrupts/idt.hpp>
 #include <arch/x64/cpu/cpu.hpp>
 
+__attribute__((section(".interrupt"), aligned(0x1000))) IDTEntry IDT[IDT_MAX_DESCRIPTORS];
+__attribute__((section(".interrupt"), aligned(0x1000))) IDTR _IDTR;
 
 /* Function to set a descriptor in the GDT */
 static void IDTSetDescriptor(IDTEntry *idt, u8 vector, void *isr, u8 ist, u8 flags) {
@@ -102,11 +104,14 @@ static inline void PrintRegs(CPUStatus *context) {
 }
 
 extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
+	KInfo *info = GetInfo();
+
 	DEV::CPU::TopologyStructure *core;
 	x86_64::GetCoreTopologyStruct(&core);
 	x86_64::PerCoreCPUTopology *coreInfo = (x86_64::PerCoreCPUTopology*)core->ArchitectureSpecificInformation;
 
 	PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Core topology structure: 0x%x\r\n", core);
+
 	switch(context->VectorNumber) {
 		case 0:
 			PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "Division by zero.\r\n");
@@ -152,13 +157,18 @@ extern "C" CPUStatus *InterruptHandler(CPUStatus *context) {
 			break;
 		case 32: {
 			PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "APIC ticked!!\r\n");
+
 			x86_64::APIC::APIC *apic = coreInfo->LocalAPIC;
 			PRINTK::PrintK(PRINTK_DEBUG MODULE_NAME "APIC at 0x%x\r\n", apic);
+
+			PROC::Tick(info->KernelScheduler, (u8*)context, sizeof(CPUStatus));
 
 				//x86_64::APIC::WriteAPIC(apic, APIC_REGISTER_EOI, 0);
 
 				//u64 tsc = __builtin_ia32_rdtsc() + 0x1000000;
 				//x86_64::SetMSR(MSR_TSC_DEADLINE, tsc & 0xFFFFFFFF, tsc >> 32);
+				//
+			PrintRegs(context);
 			}
 			break;
 		case 254:
