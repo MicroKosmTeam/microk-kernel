@@ -1,0 +1,241 @@
+#include <memory.hpp>
+#include <printk.hpp>
+#include <panic.hpp>
+#include <pmm.hpp>
+#include <vmm.hpp>
+#include <bootmem.hpp>
+#include <kinfo.hpp>
+
+namespace MEM {
+void Init() {
+	KInfo *info = GetInfo();
+
+	/* Give correct type descriptors to the memory regions */
+	CatalogueKernelMemory();
+
+	/* Detect which memory regions are physically contiguous */
+	DetectContinuousMemoryRegions();
+
+	/* Initializing virtual memory */
+	VMM::InitVMM();
+
+	/* Free bootloader-used memory that is no longer needed */
+	//FreeBootMemory();
+
+	/* With the heap initialized, disable new bootmem allocations */
+	BOOTMEM::DeactivateBootMemory();
+
+	PRINTK::PrintK(PRINTK_DEBUG "Physical Memory Map:\r\n");
+
+	for (MEM::MEMBLOCK::MemblockRegion *current = (MEM::MEMBLOCK::MemblockRegion*)info->PhysicalMemoryChunks->Regions.Head;
+	     current != NULL;
+	     current = (MEM::MEMBLOCK::MemblockRegion*)current->Next) {
+		PRINTK::PrintK(PRINTK_DEBUG " [0x%x - 0x%x] -> %s\r\n",
+				current->Base,
+				current->Base + current->Length,
+				MemoryTypeToString(current->Type));
+	}
+}
+
+void CatalogueKernelMemory() {
+	KInfo *info = GetInfo();
+
+	PRINTK::PrintK(PRINTK_DEBUG 
+			"Total kernel size: [0x%x - 0x%x] -> %d bytes\r\n"
+			"        Essential: [0x%x - 0x%x] -> %d bytes\r\n"
+			"             Text: [0x%x - 0x%x] -> %d bytes\r\n"
+			"           ROData: [0x%x - 0x%x] -> %d bytes\r\n"
+			"             Data: [0x%x - 0x%x] -> %d bytes\r\n"
+			"          Dynamic: [0x%x - 0x%x] -> %d bytes\r\n"
+			"              BSS: [0x%x - 0x%x] -> %d bytes\r\n",
+			&__KernelBinaryEssentialStart, &__KernelBinaryBSSEnd, (&__KernelBinaryBSSEnd - &__KernelBinaryEssentialStart),
+			&__KernelBinaryEssentialStart, &__KernelBinaryEssentialEnd, (&__KernelBinaryEssentialEnd - &__KernelBinaryEssentialStart),
+			&__KernelBinaryTextStart, &__KernelBinaryTextEnd, (&__KernelBinaryTextEnd - &__KernelBinaryTextStart),
+			&__KernelBinaryRODataStart, &__KernelBinaryRODataEnd, (&__KernelBinaryRODataEnd - &__KernelBinaryRODataStart),
+			&__KernelBinaryDataStart, &__KernelBinaryDataEnd, (&__KernelBinaryDataEnd - &__KernelBinaryDataStart),
+			&__KernelBinaryDynamicStart, &__KernelBinaryDynamicEnd, (&__KernelBinaryDynamicEnd - &__KernelBinaryDynamicStart),
+			&__KernelBinaryBSSStart, &__KernelBinaryBSSEnd, (&__KernelBinaryBSSEnd - &__KernelBinaryBSSStart)
+			);
+
+	uptr essentialStartAddr = (uptr)&__KernelBinaryEssentialStart - info->KernelVirtualBase + info->KernelPhysicalBase;
+	uptr essentialEndAddr = (uptr)&__KernelBinaryEssentialEnd - info->KernelVirtualBase + info->KernelPhysicalBase;
+
+	uptr textStartAddr = (uptr)&__KernelBinaryTextStart - info->KernelVirtualBase + info->KernelPhysicalBase;
+	uptr textEndAddr = (uptr)&__KernelBinaryTextEnd - info->KernelVirtualBase + info->KernelPhysicalBase;
+
+	uptr rodataStartAddr = (uptr)&__KernelBinaryRODataStart - info->KernelVirtualBase + info->KernelPhysicalBase;
+	uptr rodataEndAddr = (uptr)&__KernelBinaryRODataEnd - info->KernelVirtualBase + info->KernelPhysicalBase;
+
+	uptr dataStartAddr = (uptr)&__KernelBinaryDataStart - info->KernelVirtualBase + info->KernelPhysicalBase;
+	uptr dataEndAddr = (uptr)&__KernelBinaryDataEnd - info->KernelVirtualBase + info->KernelPhysicalBase;
+
+	uptr dynamicStartAddr = (uptr)&__KernelBinaryDynamicStart - info->KernelVirtualBase + info->KernelPhysicalBase;
+	uptr dynamicEndAddr = (uptr)&__KernelBinaryDynamicEnd - info->KernelVirtualBase + info->KernelPhysicalBase;
+
+	uptr bssStartAddr = (uptr)&__KernelBinaryBSSStart - info->KernelVirtualBase + info->KernelPhysicalBase;
+	uptr bssEndAddr = (uptr)&__KernelBinaryBSSEnd - info->KernelVirtualBase + info->KernelPhysicalBase;
+
+	ROUND_DOWN_TO_PAGE(essentialStartAddr);
+	ROUND_DOWN_TO_PAGE(textStartAddr);
+	ROUND_DOWN_TO_PAGE(rodataStartAddr);
+	ROUND_DOWN_TO_PAGE(dataStartAddr);
+	ROUND_DOWN_TO_PAGE(dynamicStartAddr);
+	ROUND_DOWN_TO_PAGE(bssStartAddr);
+
+	ROUND_UP_TO_PAGE(essentialEndAddr);
+	ROUND_UP_TO_PAGE(textEndAddr);
+	ROUND_UP_TO_PAGE(rodataEndAddr);
+	ROUND_UP_TO_PAGE(dataEndAddr);
+	ROUND_UP_TO_PAGE(dynamicEndAddr);
+	ROUND_UP_TO_PAGE(bssEndAddr);
+
+
+	MEM::MEMBLOCK::AddRegion(info->PhysicalMemoryChunks, essentialStartAddr, essentialEndAddr - essentialStartAddr, MEMMAP_KERNEL_ESSENTIALS);
+	MEM::MEMBLOCK::AddRegion(info->PhysicalMemoryChunks, textStartAddr, textEndAddr - textStartAddr, MEMMAP_KERNEL_TEXT);
+	MEM::MEMBLOCK::AddRegion(info->PhysicalMemoryChunks, rodataStartAddr, rodataEndAddr - rodataStartAddr, MEMMAP_KERNEL_RODATA);
+	MEM::MEMBLOCK::AddRegion(info->PhysicalMemoryChunks, dataStartAddr, dataEndAddr - dataStartAddr, MEMMAP_KERNEL_DATA);
+	MEM::MEMBLOCK::AddRegion(info->PhysicalMemoryChunks, dynamicStartAddr, dynamicEndAddr - dynamicStartAddr, MEMMAP_KERNEL_DYNAMIC);
+	MEM::MEMBLOCK::AddRegion(info->PhysicalMemoryChunks, bssStartAddr, bssEndAddr - bssStartAddr, MEMMAP_KERNEL_BSS);
+}
+
+void DetectContinuousMemoryRegions() {
+	KInfo *info = GetInfo();
+
+	uptr base = 0;
+	usize length = 0;
+
+	PRINTK::PrintK(PRINTK_DEBUG "Contiguous regions:\r\n");
+	for (MEM::MEMBLOCK::MemblockRegion *current = (MEM::MEMBLOCK::MemblockRegion*)info->PhysicalMemoryChunks->Regions.Head;
+	     current != NULL;
+	     current = (MEM::MEMBLOCK::MemblockRegion*)current->Next) {
+
+		if (current->Base > base + length) {
+			if (base != 0) {
+				char *intro;
+
+				if (base < 0x100000) {
+					intro = "DMA";
+				} else if (base < 0x100000000) {
+					intro = "DMA32";
+				} else {
+					intro = "Normal";
+				}
+
+				PRINTK::PrintK(PRINTK_DEBUG " %s Memory Area: [0x%x - 0x%x]\r\n",
+					intro,
+					base,
+					base + length);
+			}
+
+			base = current->Base;
+			length = 0;
+		}
+			
+		length += current->Length;
+	}
+
+	char *intro;
+
+	if (base < 0x100000) {
+		intro = "DMA";
+	} else if (base < 0x100000000) {
+		intro = "DMA32";
+	} else {
+		intro = "Normal";
+	}
+
+	PRINTK::PrintK(PRINTK_DEBUG " %s Memory Area: [0x%x - 0x%x]\r\n",
+			intro,
+			base,
+			base + length);
+}
+
+void FreeBootMemory() {
+	KInfo *info = GetInfo();
+
+	for (MEM::MEMBLOCK::MemblockRegion *current = (MEM::MEMBLOCK::MemblockRegion*)info->PhysicalMemoryChunks->Regions.Head;
+	     current != NULL;
+	     current = (MEM::MEMBLOCK::MemblockRegion*)current->Next) {
+
+		if (current->Type == MEMMAP_BOOTLOADER_RECLAIMABLE) {
+			PRINTK::PrintK(PRINTK_DEBUG " Freeing boot data: [0x%x - 0x%x]\r\n",
+				       current->Base, current->Base + current->Length);
+
+			current->Type = MEMMAP_USABLE;
+
+			Memclr((void*)VMM::PhysicalToVirtual(current->Base), current->Length);
+			PMM::FreePages((void*)current->Base, current->Length / PAGE_SIZE);
+		}
+	}
+
+}
+}
+
+extern "C" int memcmp(const void* buf1, const void* buf2, usize count) {
+	return Memcmp(buf1, buf2, count);
+}
+
+extern "C" void *memcpy(void *dest, void *src, usize n) {
+	return Memcpy(dest, src, n);
+}
+
+extern "C" void *memmove(void *dest, const void *src, usize n) {
+	return Memmove(dest, src, n);
+}
+
+extern "C" void *memset(void *start, u8 value, usize num) {
+	return Memset(start, value, num);
+}
+
+void *Memclr(void *start, usize num) {
+	return Memset(start, 0, num);
+}
+
+int Memcmp(const void* buf1, const void* buf2, usize count) {
+	if(!count)
+		return(0);
+
+	while(--count && *(char*)buf1 == *(char*)buf2 ) {
+		buf1 = (char*)buf1 + 1;
+		buf2 = (char*)buf2 + 1;
+	}
+
+	return(*((unsigned char*)buf1) - *((unsigned char*)buf2));
+}
+
+void *Memcpy(void *dest, void *src, usize n) {
+	char *csrc = (char *)src;
+	char *cdest = (char *)dest;
+
+	for (usize i=0; i<n; i++) cdest[i] = csrc[i];
+
+	return dest;
+}
+
+void *Memmove(void *dest, const void *src, usize n) {
+	u8 *pdest = (u8 *)dest;
+	const u8 *psrc = (const u8 *)src;
+
+	if (src > dest) {
+		for (usize i = 0; i < n; i++) {
+			pdest[i] = psrc[i];
+		}
+	} else if (src < dest) {
+		for (usize i = n; i > 0; i--) {
+			pdest[i-1] = psrc[i-1];
+		}
+	}
+
+	return dest;
+}
+
+void *Memset(void *start, u8 value, usize num) {
+	num /= sizeof(u8);
+
+	for (usize i = 0; i < num; i++) {
+		*(u8*)((uptr)start + i) = value;
+	}
+
+
+	return start;
+}
