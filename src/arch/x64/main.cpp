@@ -19,13 +19,13 @@ void Init() {
 	UpdatePerCPUStack(info->BootCore, KERNEL_STACK_SIZE);
 	CurrentCPUInit(info->BootCore);
 
+/*
 	DEV::CPU::TopologyStructure *machine = info->DefaultMachine;
 	PerMachineTopology *machineInfo = (PerMachineTopology*)machine->ArchitectureSpecificInformation;
 	
 	if (machineInfo->ACPI_TableSRAT!= 0) {
 		HandleSRAT((SRATHeader*)machineInfo->ACPI_TableSRAT);
 	}
-/*
 	if (machineInfo->ACPI_TableMADT != 0) {
 		HandleMADT((MADTHeader*)machineInfo->ACPI_TableMADT);
 	}
