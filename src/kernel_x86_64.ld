@@ -19,10 +19,10 @@ PHDRS
 SECTIONS
 {
 	/* We wanna be placed in the topmost 2GiB of the address space, for optimisations */
-	/* Any address in this region will do, but often 0xffffffff80000000 is chosen as */
-	/* that is the beginning of the region. */
+	/* Any address in this region will do, we choose 0xffffffffff800000 (-8MB) */
+	/* as it will be more than enough memory for our microkernel. */
 
-	. = 0xffffffff80000000;
+	. = 0xffffffffff800000;
 
 	PROVIDE(__KernelBinaryEssentialStart = .);
 

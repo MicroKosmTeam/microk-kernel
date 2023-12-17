@@ -15,9 +15,7 @@ COMMON_CFLAGS = -ffreestanding             \
 	 -Wextra                    \
 	 -Werror                    \
 	 -Wno-write-strings         \
-	 -Wno-shift-count-overflow \
-	 -Wno-expansion-to-defined \
-	 -Og                        \
+	 -O3                        \
 	 -fno-rtti                  \
 	 -fno-exceptions            \
 	 -fno-lto                   \
@@ -39,7 +37,6 @@ ARCH_OBJS += $(patsubst $(ARCH_SOURCES)/%.asm, $(ARCH_SOURCES)/%.o, $(ARCH_ASMSR
 
 ifeq ($(ARCH), x86_64)
 	CFLAGS = $(COMMON_CFLAGS) -mno-80387 \
-	 -mno-80387                 \
          -mno-mmx                   \
          -mno-sse                   \
          -mno-sse2                  \
@@ -47,7 +44,7 @@ ifeq ($(ARCH), x86_64)
 	 -m64                       \
 	 -mabi=sysv                 \
 	 -masm=intel \
-	 -mcmodel=kernel            \
+	 -mcmodel=kernel \
 	 -march=x86-64 
 
 	LDFLAGS += -m elf_x86_64
@@ -56,7 +53,7 @@ ifeq ($(ARCH), x86_64)
 else ifeq ($(ARCH), aarch64)
 	CFLAGS = $(COMMON_CFLAGS) -march=armv8-a \
          -mabi=lp64     \
-	 -mcmodel=large
+	 -mcmodel=tiny
 
 	LDFLAGS += -m aarch64elf
 	ASMFLAGS = 
