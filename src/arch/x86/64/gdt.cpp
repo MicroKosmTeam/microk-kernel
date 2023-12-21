@@ -2,15 +2,35 @@
    File: arch/x64/cpu/gdt.cpp
 */
 
-#include <mm/memory.hpp>
-#include <arch/x64/cpu/gdt.hpp>
+#include <memory.hpp>
+#include <arch/x86/gdt.hpp>
 
-namespace x86_64 {
+void FlushGDT(GDTPointer *gdt) {
+	asm volatile ("lgdt [%0]\n\t"
+		      "push 0x28\n\t"
+		      "lea %%rax, [%%rip + 1f]\n\t"
+		      "push %%rax\n\t"
+		      "retfq\n\t"
+		      "1:\n\t"
+		      "mov ax, 0x30\n\t"
+		      "mov ds, ax\n\t"
+		      "mov es, ax\n\t"
+		      "mov ss, ax\n\t"
+		      "mov fs, ax\n\t"
+		      "mov gs, ax\n\t"
+		      : : "r"(gdt));
+}
+
+void FlushTSS() {
+	asm volatile ("mov ax, 0x48\n\t"
+		      "ltr ax\n\t");
+}
+
+
+namespace x86 {
 /*
    Function that initializes the TSS given the current kernel stack
 */
-	
-
 void LoadNewStackInTSS(TSS *tss, uptr stackPointer) {
 	/* Initializing the stack pointer */
 	tss->RSP0 = stackPointer;

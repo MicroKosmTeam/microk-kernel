@@ -1,5 +1,4 @@
 #pragma once
-
 #include <cstdint.hpp>
 
 /* Setting the Kernel offset in the GDT (5th entry) */
@@ -8,7 +7,11 @@
 
 struct GDTPointer{
 	u16 Size;
+#if defined(__x86_64)
 	u64 Offset;
+#else
+	u32 Offset;
+#endif
 }__attribute__((packed));
 
 struct GDTEntry{
@@ -21,6 +24,7 @@ struct GDTEntry{
 }__attribute__((packed));
 
 struct TSS {
+#if defined(__x86_64__)
 	u32 Reserved0;
 	u64 RSP0;
 	u64 RSP1;
@@ -36,26 +40,69 @@ struct TSS {
 	u64 Reserved2;
 	u16 Reserved3;
 	u16 IOPBOffset;
+#else
+	u16 Link;
+	u16 Reserved0;
+	u32 ESP0;
+	u16 SS0;
+	u16 Reserved1;
+	u32 ESP1;
+	u16 SS1;
+	u16 Reserved2;
+	u32 ESP2;
+	u16 SS2;
+	u16 Reserved3;
+	u32 CR3;
+	u32 EIP;
+	u32 EFLAGS;
+	u32 EAX;
+	u32 ECX;
+	u32 EDX;
+	u32 EBX;
+	u32 ESP;
+	u32 EBP;
+	u32 ESI;
+	u32 EDI;
+	u16 ES;
+	u16 Reserved4;
+	u16 CS;
+	u16 Reserved5;
+	u16 SS;
+	u16 Reserved6;
+	u16 DS;
+	u16 Reserved7;
+	u16 FS;
+	u16 Reserved8;
+	u16 GS;
+	u16 Reserved9;
+	u16 LDTR;
+	u16 Reserved10;
+	u16 Reserved11;
+	u16 IOPBOffset;
+	u32 SSP;
+#endif
 } __attribute__((packed));
 
 struct GDT {
 	GDTEntry Null;
+
 	GDTEntry KernelCode16Bit;
 	GDTEntry KernelData16Bit;
+
 	GDTEntry KernelCode32Bit;
 	GDTEntry KernelData32Bit;
+
 	GDTEntry KernelCode64Bit;
 	GDTEntry KernelData64Bit;
+
 	GDTEntry UserCode;
 	GDTEntry UserData;
+
 	GDTEntry TSSLow;
 	GDTEntry TSSHigh;
 } __attribute__((packed));
 
-extern "C" void FlushGDT(GDTPointer *pointer);
-extern "C" void FlushTSS();
-
-namespace x86_64 {
+namespace x86 {
 	void LoadGDT(GDT *gdt, GDTPointer *gdtPointer);
 
 	void LoadNewStackInTSS(TSS *tss, uptr stackPointer);

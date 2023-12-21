@@ -1,15 +1,56 @@
 [bits 64]
-%include "src/arch/x64/cpu/macros.asm"
 
-section .interrupt
+%macro pushall 0
+push rdi
+push rsi
+
+push rax
+push rbx
+push rcx
+push rdx
+
+push r8
+push r9
+push r10
+push r11
+push r12
+push r13
+push r14
+push r15
+
+%endmacro
+
+%macro popall 0
+
+pop r15
+pop r14
+pop r13
+pop r12
+pop r11
+pop r10
+pop r9
+pop r8
+
+pop rdx
+pop rcx
+pop rbx
+pop rax
+
+pop rsi
+pop rdi
+
+add rsp, 16
+
+%endmacro
+
+%macro exitisr 0
+o64 iret
+%endmacro
 
 %macro isr_err_stub 1
 isr_stub_%+%1:
 
 push %1
-
-swapgs_if_necessary_begin %1
-switch_to_kernel_cr3 %1
 
 pushall
 mov rdi, rsp
@@ -17,11 +58,7 @@ call InterruptHandler
 mov rsp, rax
 popall
 
-switch_to_user_cr3 %1
-swapgs_if_necessary_end %1
-
 exitisr
-
 %endmacro
 
 %macro isr_no_err_stub 1
@@ -30,21 +67,16 @@ isr_stub_%+%1:
 push 0
 push %1
 
-swapgs_if_necessary_begin %1
-switch_to_kernel_cr3 %1
-
 pushall
 mov rdi, rsp
 call InterruptHandler
 mov rsp, rax
 popall
 
-switch_to_user_cr3 %1
-swapgs_if_necessary_end %1
-
 exitisr
-
 %endmacro
+
+section .interrupt
 
 ; Handling functions
 extern InterruptHandler
@@ -307,8 +339,8 @@ isr_no_err_stub   254
 isr_no_err_stub   255
 
 ; The isr stub table
-global isrStubTable
-isrStubTable:
+global ISRStubTable
+ISRStubTable:
 %assign i 0
 %rep    256
 dq isr_stub_%+i

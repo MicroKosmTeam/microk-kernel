@@ -30,10 +30,23 @@
 #include <printk.hpp>
 #include <kinfo.hpp>
 
+#include <arch/x86/gdt.hpp>
+#include <arch/x86/idt.hpp>
+
+
 extern "C" __attribute__((noreturn))
 void KernelStart() {
 	KInfo *info = GetInfo();
 	(void)info;
+
+	GDT gdt;
+	GDTPointer pointer;
+	TSS tss;
+
+	x86::LoadGDT(&gdt, &pointer);
+	x86::TSSInit(&gdt, &tss, 0);
+
+	x86::IDTInit();
 
 	//DEV::CPU::InitializeBootCPU();
 
@@ -42,6 +55,9 @@ void KernelStart() {
 
 	/* Starting the memory subsystem */
 	MEM::Init();
+
+	asm volatile ("mov rax, 0x69");
+	asm volatile ("int 1");
 
 	//info->KernelSymbolTable = ExportSymbolTable((u8*)info->KernelFileAddress, info->KernelFileSize);
 
