@@ -22,9 +22,6 @@ void Init() {
 	/* Free bootloader-used memory that is no longer needed */
 	//FreeBootMemory();
 
-	/* With the heap initialized, disable new bootmem allocations */
-	BOOTMEM::DeactivateBootMemory();
-
 	PRINTK::PrintK(PRINTK_DEBUG "Physical Memory Map:\r\n");
 
 	for (MEM::MEMBLOCK::MemblockRegion *current = (MEM::MEMBLOCK::MemblockRegion*)info->PhysicalMemoryChunks->Regions.Head;

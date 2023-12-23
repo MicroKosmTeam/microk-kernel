@@ -53,6 +53,9 @@ struct KInfo {
 
 	uptr RSDP;
 	uptr DeviceTree;
+
+	uptr ManagerExecutableAddress;
+	usize ManagerExecutableSize;
 };
 
 /*

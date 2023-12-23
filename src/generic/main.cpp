@@ -29,70 +29,19 @@
 #include <panic.hpp>
 #include <printk.hpp>
 #include <kinfo.hpp>
-
-#include <arch/x86/gdt.hpp>
-#include <arch/x86/idt.hpp>
-
+#include <cpu.hpp>
+#include <bootmem.hpp>
 
 extern "C" __attribute__((noreturn))
 void KernelStart() {
 	KInfo *info = GetInfo();
 	(void)info;
 
-	GDT gdt;
-	GDTPointer pointer;
-	TSS tss;
-
-	x86::LoadGDT(&gdt, &pointer);
-	x86::TSSInit(&gdt, &tss, 0);
-
-	x86::IDTInit();
-
-	//DEV::CPU::InitializeBootCPU();
-
-	/* Parsing cmdline arguments */
-	//ParseArgs();
-
-	/* Starting the memory subsystem */
+	ARCH::InitializeBootCPU();
 	MEM::Init();
+	ARCH::InitializeCPUFeatures();
+	BOOTMEM::DeactivateBootMemory();
 
-	asm volatile ("mov rax, 0x69");
-	asm volatile ("int 1");
-
-	//info->KernelSymbolTable = ExportSymbolTable((u8*)info->KernelFileAddress, info->KernelFileSize);
-
-	/* Starting architecture-specific instructions */
-	//ARCH::SetupArch();
-/*
-	info->KernelScheduler = PROC::InitializeScheduler(NULL);
-	info->KernelMessageManager = PROC::IPCMessageManagerInitialize();
-
-	InitSyscalls();
-	InitializeKernelTables();
-
-#ifdef CONFIG_KERNEL_MODULES
-	usize moduleSize;
-	u8 *addr;
-
-	addr = (u8*)FindFile(info->UserModuleName, &moduleSize);
-	
-	if (addr != NULL) {
-		PRINTK::PrintK(PRINTK_DEBUG "Loading user module from 0x%x\r\n", addr);
-		usize pid = LoadExecutableFile(addr, moduleSize);
-		(void)pid;
-
-		PROC::UserThread *thread = (PROC::UserThread*)PROC::GetThread(info->KernelScheduler, pid, 0);
-		PROC::SetExecutableUnitState(thread, PROC::ExecutableUnitState::P_READY);
-
-
-		PRINTK::PrintK(PRINTK_DEBUG "Switching to user module.\r\n");
-
-		u64 tsc = __builtin_ia32_rdtsc() + 0x1000000;
-		x86_64::SetMSR(MSR_TSC_DEADLINE, tsc & 0xFFFFFFFF, tsc >> 32);
-
-	} else PANIC("Could not find User Module");
-#endif
-*/
 	PRINTK::PrintK(PRINTK_DEBUG "Kernel startup complete.\r\n");
 
 	/* We are done */

@@ -5,46 +5,13 @@
 #include <pmm.hpp>
 #include <arch/x86/idt.hpp>
 
-__attribute__((section(".interrupt"), aligned(0x10))) IDTEntry IDT[IDT_MAX_DESCRIPTORS];
-__attribute__((section(".interrupt"), aligned(0x10))) IDTR _IDTR;
-
 /* ISR stub table, declared in assembly code */
 extern "C" void *ISRStubTable[];
+extern "C" x86::InterruptStatus *InterruptHandler(x86::InterruptStatus *context);
 
 namespace x86 {
-/* Function to set a descriptor in the IDT */
-void IDTSetDescriptor(u8 vector, void *isr, u8 ist, u8 flags) {
-	/* Create new descriptor */
-	volatile IDTEntry *descriptor = &IDT[vector];
-
-	/* Setting parameters */
-	descriptor->ISRLow = (u64)isr & 0xFFFF;
-	descriptor->KernelCs = GDT_OFFSET_KERNEL_CODE;
-	descriptor->IST = ist;
-	descriptor->Attributes = flags;
-	descriptor->ISRMid = ((u64)isr >> 16) & 0xFFFF;
-	descriptor->ISRHigh = ((u64)isr >> 32) & 0xFFFFFFFF;
-	descriptor->Reserved0 = 0;
-}
-
-/* Function to initialize the IDT */
-void IDTInit() {
-	/* Set base and size in the pointer */
-	_IDTR.Base = (uptr)&IDT[0];
-	_IDTR.Limit = (u16)sizeof(IDTEntry) * IDT_MAX_DESCRIPTORS - 1;
-
-	/* Fill in the 32 exception handlers */
-	for (u8 vector = 0; vector < 32; vector++) {
-		IDTSetDescriptor(vector, ISRStubTable[vector], 0, 0x8E);
-	}
-	
-	/* Load the new IDT */
-	asm volatile ("lidt %0" : : "m"(_IDTR));
-
-	/* Set the interrupt flag */
-	asm volatile ("sti");
-}
-}
+__attribute__((section(".interrupt"), aligned(0x10))) IDTEntry IDT[IDT_MAX_DESCRIPTORS];
+__attribute__((section(".interrupt"), aligned(0x10))) IDTR _IDTR;
 
 static inline void PrintRegs(InterruptStatus *context) {
 	PRINTK::PrintK(PRINTK_DEBUG " -> RAX: 0x%x\r\n"
@@ -90,6 +57,40 @@ static inline void PrintRegs(InterruptStatus *context) {
 			context->Base.IretRSP,
 			context->Base.IretSS);
 }
+
+/* Function to set a descriptor in the IDT */
+void IDTSetDescriptor(u8 vector, void *isr, u8 ist, u8 flags) {
+	/* Create new descriptor */
+	volatile IDTEntry *descriptor = &IDT[vector];
+
+	/* Setting parameters */
+	descriptor->ISRLow = (u64)isr & 0xFFFF;
+	descriptor->KernelCs = GDT_OFFSET_KERNEL_CODE;
+	descriptor->IST = ist;
+	descriptor->Attributes = flags;
+	descriptor->ISRMid = ((u64)isr >> 16) & 0xFFFF;
+	descriptor->ISRHigh = ((u64)isr >> 32) & 0xFFFFFFFF;
+	descriptor->Reserved0 = 0;
+}
+
+/* Function to initialize the IDT */
+void IDTInit() {
+	/* Set base and size in the pointer */
+	_IDTR.Base = (uptr)&IDT[0];
+	_IDTR.Limit = (u16)sizeof(IDTEntry) * IDT_MAX_DESCRIPTORS - 1;
+
+	/* Fill in the 32 exception handlers */
+	for (u8 vector = 0; vector < 32; vector++) {
+		IDTSetDescriptor(vector, ISRStubTable[vector], 0, 0x8E);
+	}
+	
+	/* Load the new IDT */
+	asm volatile ("lidt %0" : : "m"(_IDTR));
+
+	/* Set the interrupt flag */
+	asm volatile ("sti");
+}
+
 
 extern "C" InterruptStatus *InterruptHandler(InterruptStatus *context) {
 	switch(context->Base.VectorNumber) {
@@ -143,4 +144,5 @@ extern "C" InterruptStatus *InterruptHandler(InterruptStatus *context) {
 	}
 	
 	return context;
+}
 }

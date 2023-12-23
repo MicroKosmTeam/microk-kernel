@@ -26,15 +26,6 @@ static volatile limine_entry_point_request EntryPointRequest {
 	.entry = &LimineEntry
 };
 
-/* Module request */
-static volatile limine_module_request ModuleRequest {
-	.id = LIMINE_MODULE_REQUEST,
-	.revision = 0,
-	.response = NULL,
-	.internal_module_count = 0,
-	.internal_modules = 0
-};
-
 /* High half direct mapping start request */
 static volatile limine_hhdm_request HHDMRequest {
 	.id = LIMINE_HHDM_REQUEST,
@@ -77,6 +68,26 @@ static volatile limine_dtb_request DTBRequest {
 	.id = LIMINE_DTB_REQUEST,
 	.revision = 0,
 	.response = NULL
+};
+
+/* Forcing the bootloader to provide the user manager */
+static volatile limine_internal_module UserManagerModule {
+	.path = "./manager.kmd",
+	.cmdline = NULL,
+	.flags = LIMINE_INTERNAL_MODULE_REQUIRED,
+};
+
+static volatile limine_internal_module *InternalModules[] {
+	&UserManagerModule,
+};
+
+/* Module request */
+static volatile limine_module_request ModuleRequest {
+	.id = LIMINE_MODULE_REQUEST,
+	.revision = 1,
+	.response = NULL,
+	.internal_module_count = 1,
+	.internal_modules = (limine_internal_module**)InternalModules,
 };
 
 /* Main Limine initialization function */
@@ -144,47 +155,16 @@ void LimineEntry() {
 
 	/* Setting all the memory used by BOOTMEM as used */
 	MEM::MEMBLOCK::AddRegion(info->PhysicalMemoryChunks,
-			bootmemRegionBase, bootmemRegionLength, MEMMAP_KERNEL_AND_MODULES);
+			bootmemRegionBase, bootmemRegionLength, MEMMAP_KERNEL_BOOTMEM);
 
 
 	/* Enabling the page frame allocator */
 	PMM::InitPageFrameAllocator(LIMINE_MEMORY_MAP_LIMIT);
 
+	info->ManagerExecutableAddress = (uptr)ModuleRequest.response->modules[0]->address;
+	info->ManagerExecutableSize = ModuleRequest.response->modules[0]->size;
 
-	/* Transporting files 
-	const char *cmdline = KernelFileRequest.response->kernel_file->cmdline;
-	usize len = Strnlen(cmdline, MAX_CMDLINE_LENGTH);
-	info->KernelArgs = (const char*)BOOTMEM::Malloc(len + 1);
-	Memcpy((u8*)info->KernelArgs, (u8*)cmdline, len);
-	*(char*)&info->KernelArgs[len] = '\0';
-
-	if(ModuleRequest.response != NULL) {
-		int moduleCount = ModuleRequest.response->module_count;
-		info->FileCount = moduleCount;
-
-		info->BootFiles = (BootFile*)BOOTMEM::Malloc(moduleCount * sizeof(BootFile));
-
-		PRINTK::PrintK(PRINTK_DEBUG "Allocating for %d modules.\r\n", moduleCount);
-
-		for (int i = 0; i < moduleCount; i++) {
-			usize fileSize = ModuleRequest.response->modules[i]->size;
-			ROUND_UP_TO_PAGE(fileSize);
-
-			MEM::MEMBLOCK::AddRegion(alloc,
-				(uptr)ModuleRequest.response->modules[i]->address - info->HigherHalfMapping,
-				fileSize,
-				MEMMAP_KERNEL_FILE);
-
-			info->BootFiles[i].Address = (uptr)ModuleRequest.response->modules[i]->address;
-			info->BootFiles[i].Size = ModuleRequest.response->modules[i]->size;
-			Strncpy(info->BootFiles[i].Path, ModuleRequest.response->modules[i]->path, MAX_FILE_NAME_LENGTH);
-		
-			Strncpy(info->BootFiles[i].Cmdline, ModuleRequest.response->modules[i]->cmdline, MAX_FILE_NAME_LENGTH);
-		}
-	} else {
-		info->FileCount = 0;
-		info->BootFiles = NULL;
-	}*/
+	PRINTK::PrintK(PRINTK_DEBUG "Manager executable at 0x%x is %d bytes\r\n", info->ManagerExecutableAddress, info->ManagerExecutableSize);
 
 	if(RSDPRequest.response == NULL) {
 		PRINTK::PrintK(PRINTK_DEBUG "WARNING: no RSDP found.\r\n");
