@@ -48,11 +48,7 @@ bool IsBootMemoryActive() {
 __attribute__((malloc))
 void *Malloc(usize size) {
 	if (BootMemory.LastPosition + size >= BootMemory.MaximumPosition) {
-		DeactivateBootMemory();
-
 		PANIC("No remaining bootmem memory");
-
-		__builtin_unreachable();
 	}
 
 	void *seg = (void*)(BootMemory.MemoryStart + BootMemory.LastPosition);

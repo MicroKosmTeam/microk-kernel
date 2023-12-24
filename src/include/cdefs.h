@@ -24,3 +24,7 @@
 #define ENOMEMORY   9
 #define EPERMISSION 10
 #define ENOTPRESENT 11
+
+/* Limiting maximum bootmem allocation space */
+#define MAXIMUM_BOOTMEM_MEMORY (4 * 1024 * 1024)
+
