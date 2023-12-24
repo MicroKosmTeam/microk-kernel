@@ -1,7 +1,7 @@
 #pragma once
-#include <cstdint.hpp>
-#include <list.hpp>
+#include <object.hpp>
 
-struct TCB : public ListHead {
-	
-}__attribute__((packed));
+namespace TASK {
+	ThreadControlBlock *CreateThread(VirtualSpace *space, SchedulerContext *context);
+	SchedulerContext *CreateSchedulerContext();
+}

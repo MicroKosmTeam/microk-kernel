@@ -26,14 +26,9 @@ uptr VirtualToPhysical(uptr value) {
 VirtualSpace *NewVirtualSpace() {
 	VirtualSpace *space = (VirtualSpace*)BOOTMEM::Malloc(sizeof(VirtualSpace));
 
-	usize addressableSpace;
-
 #if defined(__x86_64__)
 	space->VirtualHierarchyTop = x86_64::NewVirtualSpace();
-	addressableSpace = x86_64::GetTotalAddressableMemory();
 #endif
-	space->VirtualMemoryLayout = MEM::MEMBLOCK::InitializeAllocator();
-	MEM::MEMBLOCK::AddRegion(space->VirtualMemoryLayout, 0, addressableSpace / 2 - PAGE_SIZE, MEMMAP_USABLE);
 
 	return space;
 }
@@ -134,10 +129,12 @@ void PrepareKernelVirtualSpace(VirtualSpace *space) {
 	for (MEM::MEMBLOCK::MemblockRegion *current = (MEM::MEMBLOCK::MemblockRegion*)info->PhysicalMemoryChunks->Regions.Head;
 	     current != NULL;
 	     current = (MEM::MEMBLOCK::MemblockRegion*)current->Next) {
+
 		/* We will skip any memory that is not usable by our kernel */
 		if (current->Type == MEMMAP_BAD_MEMORY ||
 		    current->Type == MEMMAP_RESERVED ||
-		    current->Type == MEMMAP_ACPI_NVS) continue;
+		    current->Type == MEMMAP_ACPI_NVS ||
+		    current->Type == MEMMAP_ACPI_RECLAIMABLE) continue;
 
 		/* We find the base and the top by rounding to the closest page boundary */
 		uptr base = current->Base;
@@ -170,12 +167,10 @@ void MMap(VirtualSpace *space, uptr src, uptr dest, usize length, usize flags) {
 	}
 }
 	
-MEM::MEMBLOCK::MemblockRegion *VMAlloc(VirtualSpace *space, uptr virt, usize length, usize flags) {
+void VMAlloc(VirtualSpace *space, uptr virt, usize length, usize flags) {
 	ROUND_DOWN_TO_PAGE(virt);
 	ROUND_UP_TO_PAGE(length);
 	
-	MEM::MEMBLOCK::MemblockRegion *region = MEM::MEMBLOCK::AddRegion(space->VirtualMemoryLayout, virt, length, MEMMAP_KERNEL_VMALLOC);
-
 	uptr end = virt + length;
 	uptr phys;
 
@@ -186,15 +181,11 @@ MEM::MEMBLOCK::MemblockRegion *VMAlloc(VirtualSpace *space, uptr virt, usize len
 	
 		MapPage(space, phys, virt, flags);
 	}
-
-	return region;
 }
 
-MEM::MEMBLOCK::MemblockRegion *VMCopyAlloc(VirtualSpace *space, uptr virt, usize length, usize flags, uptr data, uptr virtDataStart, usize dataLen) {
+void VMCopyAlloc(VirtualSpace *space, uptr virt, usize length, usize flags, uptr data, uptr virtDataStart, usize dataLen) {
 	ROUND_DOWN_TO_PAGE(virt);
 	ROUND_UP_TO_PAGE(length);
-
-	MEM::MEMBLOCK::MemblockRegion *region = MEM::MEMBLOCK::AddRegion(space->VirtualMemoryLayout, virt, length, MEMMAP_KERNEL_VMALLOC);
 
 	uptr end = virt + length;
 	uptr phys;
@@ -217,7 +208,5 @@ MEM::MEMBLOCK::MemblockRegion *VMCopyAlloc(VirtualSpace *space, uptr virt, usize
 	
 		MapPage(space, phys, virt, flags);
 	}
-
-	return region;
 }
 }

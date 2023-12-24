@@ -1,8 +1,6 @@
 #pragma once
-#include <cstdint.hpp>
+#include <object.hpp>
 
-struct CapabilitySpace {
-
-};
-
-
+namespace CAPABILITY {
+	void InitializeRootSpace();
+}

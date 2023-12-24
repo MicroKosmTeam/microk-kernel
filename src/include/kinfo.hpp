@@ -25,7 +25,7 @@
 
 #pragma once
 #include <cdefs.h>
-#include <cstdint.hpp>
+#include <object.hpp>
 #include <memory.hpp>
 #include <vmm.hpp>
 #include <memblock.hpp>
@@ -48,7 +48,7 @@ struct KInfo {
 	uptr KernelPhysicalBase; /* Start of the kernel in physical memory */
 	uptr KernelVirtualBase; /* Start of the kernel in virtual memory */
 
-	VMM::VirtualSpace *KernelVirtualSpace; /* Kernel virtual memory space */
+	VirtualSpace *KernelVirtualSpace; /* Kernel virtual memory space */
 	uptr KernelStack; /* Start of kernel stack */
 
 	uptr RSDP;
@@ -56,6 +56,9 @@ struct KInfo {
 
 	uptr ManagerExecutableAddress;
 	usize ManagerExecutableSize;
+
+	usize CapabilityNodeSize;
+	CapabilitySpace RootCapabilitySpace;
 };
 
 /*

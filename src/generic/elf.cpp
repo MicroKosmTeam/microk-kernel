@@ -10,7 +10,7 @@
 #include <vmm.hpp>
 #include <kinfo.hpp>
 
-static int LoadProgramHeaders(u8 *data, usize size, Elf64_Ehdr *elfHeader, VMM::VirtualSpace *space) {
+static int LoadProgramHeaders(u8 *data, usize size, Elf64_Ehdr *elfHeader, VirtualSpace *space) {
 	KInfo *info = GetInfo();
 
 	(void)info;
@@ -58,7 +58,7 @@ static int LoadProgramHeaders(u8 *data, usize size, Elf64_Ehdr *elfHeader, VMM::
 }
 
 
-static usize LoadProcess(Elf64_Ehdr *elfHeader, VMM::VirtualSpace *space) {
+static usize LoadProcess(Elf64_Ehdr *elfHeader, VirtualSpace *space) {
 	KInfo *info = GetInfo();
 /*
 	PROC::Process *proc = PROC::CreateProcess(info->KernelScheduler, PROC::ExecutableUnitType::PT_USER, space);
@@ -75,7 +75,7 @@ static usize LoadProcess(Elf64_Ehdr *elfHeader, VMM::VirtualSpace *space) {
 }
 
 usize LoadELF(u8 *data, usize size) {
-	VMM::VirtualSpace *space = VMM::NewVirtualSpace();
+	VirtualSpace *space = VMM::NewVirtualSpace();
 	VMM::PrepareUserVirtualSpace(space);
 	
 	Elf64_Ehdr *elfHeader = (Elf64_Ehdr*)data;

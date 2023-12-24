@@ -52,42 +52,6 @@ namespace MEM {
 		u8 Type;
 	};
 
-	inline const char *MemoryTypeToString(u8 type) {
-		if (type >= 0x80) {
-			type -= 0x80;
-
-			const char *KernelMemTypeStrings[MEMMAP_KERNEL_SPECIFIC_COUNT] = {
-				"Kernel Essentials",
-				"Kernel Text",
-				"Kernel ROData",
-				"Kernel Data",
-				"Kernel Dynamic",
-				"Kernel BSS",
-				"Kernel BootMem",
-				"Kernel Bitmap",
-				"Kernel Stack",
-				"Kernel VMAlloc Memory"
-			};
-
-			return KernelMemTypeStrings[type];
-		}
-
-		const char *GenericMemTypeStrings[MEMMAP_GENERIC_COUNT] = {
-			"Usable",
-			"Reserved",
-			"ACPI Reclaimable",
-			"ACPI NVS",
-			"Bad",
-			"Bootloader Reclaimable",
-			"Kernel And Modules",
-			"Framebuffer"
-		};
-
-		return GenericMemTypeStrings[type];
-	}
-
 	void Init();
-	void CatalogueKernelMemory();
-	void DetectContinuousMemoryRegions();
-	void FreeBootMemory();
+	const char *MemoryTypeToString(u8 type);
 }

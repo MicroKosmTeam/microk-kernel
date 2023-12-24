@@ -1,14 +1,5 @@
 #pragma once
-#include <cstdint.hpp>
-
-struct ListHead {
-	ListHead *Next, *Previous;
-};
-
-struct List {
-	ListHead *Head;
-	ListHead *Tail;
-};
+#include <object.hpp>
 
 inline __attribute__((always_inline))
 ListHead *GetListHead(List *list) {

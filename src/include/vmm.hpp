@@ -1,6 +1,6 @@
 #pragma once
-#include "memblock.hpp"
 #include <cdefs.h>
+#include <object.hpp>
 #include <cstdint.hpp>
 #include <memory.hpp>
 
@@ -19,12 +19,6 @@
 
 #define ROUND_UP_TO_PAGE(x) \
 	ROUND_UP_TO(x, PAGE_SIZE)
-
-/* Forward definition */
-namespace MEM::MEMBLOCK {
-	struct MemblockAllocator;
-	struct MemblockRegion;
-}
 
 namespace VMM {
 	inline
@@ -50,11 +44,6 @@ namespace VMM {
 		return ret;
 	}
 
-	struct VirtualSpace {
-		uptr VirtualHierarchyTop;
-		MEM::MEMBLOCK::MemblockAllocator *VirtualMemoryLayout;
-	};
-
 	uptr PhysicalToVirtual(uptr value);
 	uptr VirtualToPhysical(uptr value);
 	
@@ -66,8 +55,8 @@ namespace VMM {
 
 	void MMap(VirtualSpace *space, uptr src, uptr dest, usize length, usize flags);
 
-	MEM::MEMBLOCK::MemblockRegion *VMAlloc(VirtualSpace *space, uptr virt, usize length, usize flags);
-MEM::MEMBLOCK::MemblockRegion *VMCopyAlloc(VirtualSpace *space, uptr virt, usize length, usize flags, uptr data, uptr virtDataStart, usize dataLen);
+	void VMAlloc(VirtualSpace *space, uptr virt, usize length, usize flags);
+	void VMCopyAlloc(VirtualSpace *space, uptr virt, usize length, usize flags, uptr data, uptr virtDataStart, usize dataLen);
 
 	void InitVMM();
 	void PrepareKernelVirtualSpace(VirtualSpace *space);

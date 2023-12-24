@@ -10,33 +10,10 @@ namespace MEM {
 void Init() {
 	KInfo *info = GetInfo();
 
-	/* Give correct type descriptors to the memory regions */
-	CatalogueKernelMemory();
-
-	/* Detect which memory regions are physically contiguous */
-	DetectContinuousMemoryRegions();
-
 	/* Initializing virtual memory */
 	VMM::InitVMM();
 
-	/* Free bootloader-used memory that is no longer needed */
-	//FreeBootMemory();
-
-	PRINTK::PrintK(PRINTK_DEBUG "Physical Memory Map:\r\n");
-
-	for (MEM::MEMBLOCK::MemblockRegion *current = (MEM::MEMBLOCK::MemblockRegion*)info->PhysicalMemoryChunks->Regions.Head;
-	     current != NULL;
-	     current = (MEM::MEMBLOCK::MemblockRegion*)current->Next) {
-		PRINTK::PrintK(PRINTK_DEBUG " [0x%x - 0x%x] -> %s\r\n",
-				current->Base,
-				current->Base + current->Length,
-				MemoryTypeToString(current->Type));
-	}
-}
-
-void CatalogueKernelMemory() {
-	KInfo *info = GetInfo();
-
+	/* Give correct type descriptors to the memory regions */
 	PRINTK::PrintK(PRINTK_DEBUG 
 			"Total kernel size: [0x%x - 0x%x] -> %d bytes\r\n"
 			"        Essential: [0x%x - 0x%x] -> %d bytes\r\n"
@@ -93,63 +70,9 @@ void CatalogueKernelMemory() {
 	MEM::MEMBLOCK::AddRegion(info->PhysicalMemoryChunks, dataStartAddr, dataEndAddr - dataStartAddr, MEMMAP_KERNEL_DATA);
 	MEM::MEMBLOCK::AddRegion(info->PhysicalMemoryChunks, dynamicStartAddr, dynamicEndAddr - dynamicStartAddr, MEMMAP_KERNEL_DYNAMIC);
 	MEM::MEMBLOCK::AddRegion(info->PhysicalMemoryChunks, bssStartAddr, bssEndAddr - bssStartAddr, MEMMAP_KERNEL_BSS);
-}
 
-void DetectContinuousMemoryRegions() {
-	KInfo *info = GetInfo();
-
-	uptr base = 0;
-	usize length = 0;
-
-	PRINTK::PrintK(PRINTK_DEBUG "Contiguous regions:\r\n");
-	for (MEM::MEMBLOCK::MemblockRegion *current = (MEM::MEMBLOCK::MemblockRegion*)info->PhysicalMemoryChunks->Regions.Head;
-	     current != NULL;
-	     current = (MEM::MEMBLOCK::MemblockRegion*)current->Next) {
-
-		if (current->Base > base + length) {
-			if (base != 0) {
-				char *intro;
-
-				if (base < 0x100000) {
-					intro = "DMA";
-				} else if (base < 0x100000000) {
-					intro = "DMA32";
-				} else {
-					intro = "Normal";
-				}
-
-				PRINTK::PrintK(PRINTK_DEBUG " %s Memory Area: [0x%x - 0x%x]\r\n",
-					intro,
-					base,
-					base + length);
-			}
-
-			base = current->Base;
-			length = 0;
-		}
-			
-		length += current->Length;
-	}
-
-	char *intro;
-
-	if (base < 0x100000) {
-		intro = "DMA";
-	} else if (base < 0x100000000) {
-		intro = "DMA32";
-	} else {
-		intro = "Normal";
-	}
-
-	PRINTK::PrintK(PRINTK_DEBUG " %s Memory Area: [0x%x - 0x%x]\r\n",
-			intro,
-			base,
-			base + length);
-}
-
-void FreeBootMemory() {
-	KInfo *info = GetInfo();
-
+	/* Free bootloader-used memory that is no longer needed */
+	/*
 	for (MEM::MEMBLOCK::MemblockRegion *current = (MEM::MEMBLOCK::MemblockRegion*)info->PhysicalMemoryChunks->Regions.Head;
 	     current != NULL;
 	     current = (MEM::MEMBLOCK::MemblockRegion*)current->Next) {
@@ -163,9 +86,55 @@ void FreeBootMemory() {
 			Memclr((void*)VMM::PhysicalToVirtual(current->Base), current->Length);
 			PMM::FreePages((void*)current->Base, current->Length / PAGE_SIZE);
 		}
+	}*/
+
+	PRINTK::PrintK(PRINTK_DEBUG "Physical Memory Map:\r\n");
+
+	for (MEM::MEMBLOCK::MemblockRegion *current = (MEM::MEMBLOCK::MemblockRegion*)info->PhysicalMemoryChunks->Regions.Head;
+	     current != NULL;
+	     current = (MEM::MEMBLOCK::MemblockRegion*)current->Next) {
+		PRINTK::PrintK(PRINTK_DEBUG " [0x%x - 0x%x] -> %s\r\n",
+				current->Base,
+				current->Base + current->Length,
+				MemoryTypeToString(current->Type));
+	}
+}
+
+const char *MemoryTypeToString(u8 type) {
+		if (type >= 0x80) {
+			type -= 0x80;
+
+			const char *KernelMemTypeStrings[MEMMAP_KERNEL_SPECIFIC_COUNT] = {
+				"Kernel Essentials",
+				"Kernel Text",
+				"Kernel ROData",
+				"Kernel Data",
+				"Kernel Dynamic",
+				"Kernel BSS",
+				"Kernel BootMem",
+				"Kernel Bitmap",
+				"Kernel Stack",
+				"Kernel VMAlloc Memory"
+			};
+
+			return KernelMemTypeStrings[type];
+		}
+
+		const char *GenericMemTypeStrings[MEMMAP_GENERIC_COUNT] = {
+			"Usable",
+			"Reserved",
+			"ACPI Reclaimable",
+			"ACPI NVS",
+			"Bad",
+			"Bootloader Reclaimable",
+			"Kernel And Modules",
+			"Framebuffer"
+		};
+
+		return GenericMemTypeStrings[type];
 	}
 
-}
+
 }
 
 extern "C" int memcmp(const void* buf1, const void* buf2, usize count) {

@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint.hpp>
+#include <object.hpp>
 
 #define MSR_TSC_VALUE    0x00000010
 #define MSR_APIC_BASE    0x0000001B
@@ -52,6 +53,11 @@ namespace x86 {
 		u64 RSI;
 		u64 RDI;
 	}__attribute__((packed));
+
+	struct ArchSchedulerContext : public SchedulerContext {
+		GeneralRegisters Registers;
+		InterruptStack ReturnStatus;
+	};
 
         inline __attribute__((always_inline))
         void GetMSR(u32 msr, u32 *lo, u32 *hi) {
