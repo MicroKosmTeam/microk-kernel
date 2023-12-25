@@ -132,27 +132,6 @@ void *RequestPage() {
 	return NULL;
 }
 
-void *RequestPages(usize pages) {
-	for (int i = 0; i < MAX_TRIES; ++i) {
-		for (; PhysicalMemory.PageBitmapIndex < (PhysicalMemory.PageBitmap.Size - pages)* 8; PhysicalMemory.PageBitmapIndex++) {
-			bool free = true;
-			for (usize i = 0; i < pages; i++) {
-				if(PhysicalMemory.PageBitmap[PhysicalMemory.PageBitmapIndex + i]) { free = false; break; };
-			}
-
-			if (free) {
-				LockPages((void*)(PhysicalMemory.PageBitmapIndex * PAGE_SIZE), pages);
-
-				return (void*)(PhysicalMemory.PageBitmapIndex * PAGE_SIZE);
-			}
-
-		}
-	}
-
-	// No more memory
-	return NULL;
-}
-
 bool FreePage(void *address) {
 	usize index = (usize)address / PAGE_SIZE;
 	if(PhysicalMemory.PageBitmap[index] == false) {
