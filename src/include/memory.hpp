@@ -53,5 +53,6 @@ namespace MEM {
 	};
 
 	void Init();
+	void Deinit();
 	const char *MemoryTypeToString(u8 type);
 }

@@ -5,6 +5,7 @@
 #include <vmm.hpp>
 #include <bootmem.hpp>
 #include <kinfo.hpp>
+#include <capability.hpp>
 
 namespace MEM {
 void Init() {
@@ -92,11 +93,29 @@ void Init() {
 
 	for (MEM::MEMBLOCK::MemblockRegion *current = (MEM::MEMBLOCK::MemblockRegion*)info->PhysicalMemoryChunks->Regions.Head;
 	     current != NULL;
-	     current = (MEM::MEMBLOCK::MemblockRegion*)current->Next) {
+	     current = (MEM::MEM BLOCK::MemblockRegion*)current->Next) {
 		PRINTK::PrintK(PRINTK_DEBUG " [0x%x - 0x%x] -> %s\r\n",
 				current->Base,
 				current->Base + current->Length,
 				MemoryTypeToString(current->Type));
+	}
+}
+	
+void Deinit() {
+	KInfo *info = GetInfo();
+	BOOTMEM::DeactivateBootMemory();
+
+	for (MEM::MEMBLOCK::MemblockRegion *current = (MEM::MEMBLOCK::MemblockRegion*)info->PhysicalMemoryChunks->Regions.Head;
+	     current != NULL;
+	     current = (MEM::MEMBLOCK::MemblockRegion*)current->Next) {
+		switch (current->Type) {
+			case MEMMAP_USABLE:
+				CAPABILITY::OriginateCapability(&info->RootCapabilitySpace, current->Base, current->Length, UNTYPED_MEMORY, CapabilityRights::GRANT | CapabilityRights::RETYPE);
+				break;
+			default:
+				CAPABILITY::OriginateCapability(&info->RootCapabilitySpace, current->Base, current->Length, UNTYPED_MEMORY, 0);
+				break;
+		}
 	}
 }
 

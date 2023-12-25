@@ -35,14 +35,18 @@
 
 extern "C" __attribute__((noreturn))
 void KernelStart() {
-	KInfo *info = GetInfo();
-	(void)info;
-
 	ARCH::InitializeBootCPU();
 	MEM::Init();
 	CAPABILITY::InitializeRootSpace();
 	ARCH::InitializeCPUFeatures();
-	BOOTMEM::DeactivateBootMemory();
+
+	/* Load user process */
+	/* ... */
+
+	MEM::Deinit();
+
+	/* Launch user process */
+	/* ... */
 
 	PRINTK::PrintK(PRINTK_DEBUG "Kernel startup complete.\r\n");
 

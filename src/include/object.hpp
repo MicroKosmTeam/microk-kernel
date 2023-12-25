@@ -14,20 +14,22 @@ enum ObjectType {
 	NULL_CAPABILITY = 0,
 	UNTYPED_MEMORY,
 	FRAMES,
+	TCB,
 };
 
-struct CapabilityRights {
-	u8 Read : 1;
-	u8 Write : 1;
-	u8 Grant : 1;
-	u8 Revoke : 1;
-	u8 Retype : 1;
-}__attribute__((packed));
+enum CapabilityRights {
+	READ = 1 << 0,
+	WRITE = 1 << 1,
+	GRANT = 1 << 2,
+	REVOKE = 1 << 3,
+	RETYPE = 1 << 4,
+};
 
 struct Capability {
 	ObjectType Type;
 	uptr Object;
-	CapabilityRights AccessRights;
+	usize Size;
+	u32 AccessRights;
 };
 
 struct CapabilityNode : public ListHead {
