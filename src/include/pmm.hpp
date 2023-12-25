@@ -5,6 +5,17 @@
 #include <memory.hpp>
 
 namespace PMM {
+	struct PhysicalMemoryManagerStruct {
+		usize FreeMemory;
+		usize ReservedMemory;
+		usize UsedMemory;
+
+		bool Initialized = false;
+		Bitmap PageBitmap;
+		usize PageBitmapIndex = 0; // Last page searched
+
+	};
+
 	void InitPageFrameAllocator(usize upperLimit);
 
 	void *RequestPage();

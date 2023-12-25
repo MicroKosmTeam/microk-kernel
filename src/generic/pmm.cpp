@@ -3,12 +3,8 @@
 #include <panic.hpp>
 #include <kinfo.hpp>
 
-static usize FreeMemory;
-static usize ReservedMemory;
-static usize UsedMemory;
-static bool Initialized = false;
-static Bitmap PageBitmap;
-static usize PageBitmapIndex = 0; // Last page searched
+namespace PMM {
+static PhysicalMemoryManagerStruct PhysicalMemory;
 
 static void InitBitmap(usize bitmapSize, void *bufferAddress);
 static void UnreservePage(void *address);
@@ -17,32 +13,34 @@ static void ReservePage(void *address);
 static void ReservePages(void *address, usize pageCount);
 
 static void InitBitmap(usize bitmapSize, void *bufferAddress) {
-	PageBitmap.Size = bitmapSize;
-	PageBitmap.Buffer = (u8*)bufferAddress;
+	PhysicalMemory.PageBitmap.Size = bitmapSize;
+	PhysicalMemory.PageBitmap.Buffer = (u8*)bufferAddress;
 	for (usize i = 0; i < bitmapSize; i++) {
-		*(u8*)(PageBitmap.Buffer + i) = 0;
+		*(u8*)(PhysicalMemory.PageBitmap.Buffer + i) = 0;
 	}
 }
+
 static void UnreservePage(void *address) {
 	usize index = (usize)address / PAGE_SIZE;
-	if(PageBitmap[index] == false) return;
-	if(PageBitmap.Set(index, false)) {
-		FreeMemory += PAGE_SIZE;
-		ReservedMemory -= PAGE_SIZE;
-		if(PageBitmapIndex > index) {
-			PageBitmapIndex = index; // Making sure that we don't miss free pages
+	if(PhysicalMemory.PageBitmap[index] == false) return;
+	if(PhysicalMemory.PageBitmap.Set(index, false)) {
+		PhysicalMemory.FreeMemory += PAGE_SIZE;
+		PhysicalMemory.ReservedMemory -= PAGE_SIZE;
+		if(PhysicalMemory.PageBitmapIndex > index) {
+			PhysicalMemory.PageBitmapIndex = index; // Making sure that we don't miss free pages
 		}
 	}
 }
 
 static void ReservePage(void *address) {
 	usize index = (usize)address / PAGE_SIZE;
-	if(PageBitmap[index] == true) return;
-	if(PageBitmap.Set(index, true)) {
-		FreeMemory -= PAGE_SIZE;
-		ReservedMemory += PAGE_SIZE;
+	if(PhysicalMemory.PageBitmap[index] == true) return;
+	if(PhysicalMemory.PageBitmap.Set(index, true)) {
+		PhysicalMemory.FreeMemory -= PAGE_SIZE;
+		PhysicalMemory.ReservedMemory += PAGE_SIZE;
 	}
 }
+
 static void UnreservePages(void *address, usize pageCount) {
 	for (usize i = 0; i < pageCount; i++) {
 		UnreservePage((void*)((usize)address + (i * PAGE_SIZE)));
@@ -56,12 +54,13 @@ static __attribute__((unused)) void ReservePages(void *address, usize pageCount)
 }
 
 
-namespace PMM {
 void InitPageFrameAllocator(usize upperLimit) {
-	if (Initialized) return;
-	Initialized = true;
-
 	KInfo *info = GetInfo();
+	Memclr(&PhysicalMemory, sizeof(PhysicalMemoryManagerStruct));
+
+	if (PhysicalMemory.Initialized) return;
+	PhysicalMemory.Initialized = true;
+
 	void *largestFree = NULL;
 
 	usize memorySize = MEM::MEMBLOCK::GetTotalSpanningLength(info->PhysicalMemoryChunks);
@@ -119,15 +118,15 @@ void InitPageFrameAllocator(usize upperLimit) {
 #define MAX_TRIES 2
 void *RequestPage() {
 	for (int i = 0; i < MAX_TRIES; ++i) {
-		for (; PageBitmapIndex < PageBitmap.Size * 8; ++PageBitmapIndex) {
-			if(PageBitmap[PageBitmapIndex] == true) continue;
-			LockPage((void*)(PageBitmapIndex * PAGE_SIZE));
+		for (; PhysicalMemory.PageBitmapIndex < PhysicalMemory.PageBitmap.Size * 8; ++PhysicalMemory.PageBitmapIndex) {
+			if(PhysicalMemory.PageBitmap[PhysicalMemory.PageBitmapIndex] == true) continue;
+			LockPage((void*)(PhysicalMemory.PageBitmapIndex * PAGE_SIZE));
 
-			return (void*)(PageBitmapIndex * PAGE_SIZE);
+			return (void*)(PhysicalMemory.PageBitmapIndex * PAGE_SIZE);
 		}
 
 		// Try again 
-		PageBitmapIndex = 0;
+		PhysicalMemory.PageBitmapIndex = 0;
 	}
 
 	return NULL;
@@ -135,16 +134,16 @@ void *RequestPage() {
 
 void *RequestPages(usize pages) {
 	for (int i = 0; i < MAX_TRIES; ++i) {
-		for (; PageBitmapIndex < (PageBitmap.Size - pages)* 8; PageBitmapIndex++) {
+		for (; PhysicalMemory.PageBitmapIndex < (PhysicalMemory.PageBitmap.Size - pages)* 8; PhysicalMemory.PageBitmapIndex++) {
 			bool free = true;
 			for (usize i = 0; i < pages; i++) {
-				if(PageBitmap[PageBitmapIndex + i]) { free = false; break; };
+				if(PhysicalMemory.PageBitmap[PhysicalMemory.PageBitmapIndex + i]) { free = false; break; };
 			}
 
 			if (free) {
-				LockPages((void*)(PageBitmapIndex * PAGE_SIZE), pages);
+				LockPages((void*)(PhysicalMemory.PageBitmapIndex * PAGE_SIZE), pages);
 
-				return (void*)(PageBitmapIndex * PAGE_SIZE);
+				return (void*)(PhysicalMemory.PageBitmapIndex * PAGE_SIZE);
 			}
 
 		}
@@ -156,16 +155,16 @@ void *RequestPages(usize pages) {
 
 bool FreePage(void *address) {
 	usize index = (usize)address / PAGE_SIZE;
-	if(PageBitmap[index] == false) {
+	if(PhysicalMemory.PageBitmap[index] == false) {
 		return false;
 	}
 
-	if(PageBitmap.Set(index, false)) {
-		FreeMemory += PAGE_SIZE;
-		UsedMemory -= PAGE_SIZE;
+	if(PhysicalMemory.PageBitmap.Set(index, false)) {
+		PhysicalMemory.FreeMemory += PAGE_SIZE;
+		PhysicalMemory.UsedMemory -= PAGE_SIZE;
 
-		if(PageBitmapIndex > index) {
-			PageBitmapIndex = index; // Making sure that we don't miss free pages
+		if(PhysicalMemory.PageBitmapIndex > index) {
+			PhysicalMemory.PageBitmapIndex = index; // Making sure that we don't miss free pages
 		}
 	}
 
@@ -174,13 +173,13 @@ bool FreePage(void *address) {
 
 bool LockPage(void *address) {
 	usize index = (usize)address / PAGE_SIZE;
-	if(PageBitmap[index] == true) {
+	if(PhysicalMemory.PageBitmap[index] == true) {
 		return false;
 	}
 	
-	if(PageBitmap.Set(index, true)) {
-		FreeMemory -= PAGE_SIZE;
-		UsedMemory += PAGE_SIZE;
+	if(PhysicalMemory.PageBitmap.Set(index, true)) {
+		PhysicalMemory.FreeMemory -= PAGE_SIZE;
+		PhysicalMemory.UsedMemory += PAGE_SIZE;
 	}
 
 	return true;
@@ -201,14 +200,14 @@ void LockPages(void *address, usize pageCount) {
 }
 
 usize GetFreeMem() {
-	return FreeMemory;
+	return PhysicalMemory.FreeMemory;
 }
 
 usize GetUsedMem() {
-	return UsedMemory;
+	return PhysicalMemory.UsedMemory;
 }
 
 usize GetReservedMem() {
-	return ReservedMemory;
+	return PhysicalMemory.ReservedMemory;
 }
 }

@@ -93,7 +93,7 @@ void Init() {
 
 	for (MEM::MEMBLOCK::MemblockRegion *current = (MEM::MEMBLOCK::MemblockRegion*)info->PhysicalMemoryChunks->Regions.Head;
 	     current != NULL;
-	     current = (MEM::MEM BLOCK::MemblockRegion*)current->Next) {
+	     current = (MEM::MEMBLOCK::MemblockRegion*)current->Next) {
 		PRINTK::PrintK(PRINTK_DEBUG " [0x%x - 0x%x] -> %s\r\n",
 				current->Base,
 				current->Base + current->Length,
