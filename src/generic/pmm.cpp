@@ -116,6 +116,31 @@ void InitPageFrameAllocator(usize upperLimit) {
 }
 
 #define MAX_TRIES 2
+/*
+void *RequestPage() {
+	KInfo *info = GetInfo();
+
+	for (MEM::MEMBLOCK::MemblockRegion *current = (MEM::MEMBLOCK::MemblockRegion*)info->PhysicalMemoryChunks->Regions.Head;
+	     current != NULL;
+	     current = (MEM::MEMBLOCK::MemblockRegion*)current->Next) {
+		if (current->Type != MEMMAP_USABLE || current->Length == 0) {
+			continue;
+		}
+			
+		void *currentAddr = (void*)current->Base;
+
+		current->Base += PAGE_SIZE;
+		current->Length -= PAGE_SIZE;
+
+		return currentAddr;
+	}
+
+	PANIC("NOMEM");
+
+	return NULL;
+}
+*/
+
 void *RequestPage() {
 	for (int i = 0; i < MAX_TRIES; ++i) {
 		for (; PhysicalMemory.PageBitmapIndex < PhysicalMemory.PageBitmap.Size * 8; ++PhysicalMemory.PageBitmapIndex) {
@@ -129,7 +154,7 @@ void *RequestPage() {
 		PhysicalMemory.PageBitmapIndex = 0;
 	}
 
-	return NULL;
+	PANIC("NOMEM");
 }
 
 bool FreePage(void *address) {
