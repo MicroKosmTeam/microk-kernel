@@ -105,15 +105,21 @@ void Deinit() {
 	KInfo *info = GetInfo();
 	BOOTMEM::DeactivateBootMemory();
 
+	/* Make sure we have enough preallocated space in the root capability space */
+	CAPABILITY::CreateCapabilityNode(&info->RootCapabilitySpace);
+
 	for (MEM::MEMBLOCK::MemblockRegion *current = (MEM::MEMBLOCK::MemblockRegion*)info->PhysicalMemoryChunks->Regions.Head;
 	     current != NULL;
 	     current = (MEM::MEMBLOCK::MemblockRegion*)current->Next) {
 		switch (current->Type) {
 			case MEMMAP_USABLE:
-				CAPABILITY::OriginateCapability(&info->RootCapabilitySpace, current->Base, current->Length, UNTYPED_MEMORY, CapabilityRights::GRANT | CapabilityRights::RETYPE);
+				CAPABILITY::OriginateCapability(&info->RootCapabilitySpace, current->Base, current->Length, ObjectType::UNTYPED_MEMORY, CapabilityRights::GRANT | CapabilityRights::RETYPE);
+				break;
+			case MEMMAP_KERNEL_VMALLOC:
+				CAPABILITY::OriginateCapability(&info->RootCapabilitySpace, current->Base, current->Length, ObjectType::FRAMES, CapabilityRights::GRANT | CapabilityRights::RETYPE);
 				break;
 			default:
-				CAPABILITY::OriginateCapability(&info->RootCapabilitySpace, current->Base, current->Length, UNTYPED_MEMORY, 0);
+				CAPABILITY::OriginateCapability(&info->RootCapabilitySpace, current->Base, current->Length, ObjectType::UNTYPED_MEMORY, 0);
 				break;
 		}
 	}

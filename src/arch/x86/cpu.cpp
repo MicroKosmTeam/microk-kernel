@@ -1,6 +1,8 @@
 #include <cpuid.h>
 #include <printk.hpp>
 #include <memory.hpp>
+#include <kinfo.hpp>
+#include <capability.hpp>
 #include <arch/x86/cpu.hpp>
 #include <arch/x86/idt.hpp>
 #include <arch/x86/gdt.hpp>

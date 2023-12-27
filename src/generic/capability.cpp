@@ -10,11 +10,17 @@ void InitializeRootSpace() {
 
 	info->CapabilityNodeSize = PAGE_SIZE;
 
-	CapabilityNode *rootNode = (CapabilityNode*)VMM::PhysicalToVirtual((uptr)PMM::RequestPage());
-	Memclr(rootNode, PAGE_SIZE);
+	CapabilitySpace *rootSpace = &info->RootCapabilitySpace;
+	CreateCapabilityNode(rootSpace);
+}
 
-	AddElementToList(rootNode, &info->RootCapabilitySpace.CapabilityNodeList);
+CapabilityNode *CreateCapabilityNode(CapabilitySpace *space) {
+	CapabilityNode *node = (CapabilityNode*)VMM::PhysicalToVirtual((uptr)PMM::RequestPage());
+	Memclr(node, PAGE_SIZE);
 
+	AddElementToList(node, &space->CapabilityNodeList);
+
+	return node;
 }
 	
 Capability *OriginateCapability(CapabilitySpace *space, uptr object, usize size, ObjectType type, u32 accessRights) {
@@ -40,10 +46,8 @@ Capability *OriginateCapability(CapabilitySpace *space, uptr object, usize size,
 
 	if (!found) {
 		PRINTK::PrintK(PRINTK_DEBUG "New node to be originated.\r\n");
-		node = (CapabilityNode*)VMM::PhysicalToVirtual((uptr)PMM::RequestPage());
-		Memclr(node, PAGE_SIZE);
-
-		AddElementToList(node, &info->RootCapabilitySpace.CapabilityNodeList);
+		node = CreateCapabilityNode(&info->RootCapabilitySpace);
+	
 		capability = &node->Slots[0];
 	}
 
@@ -52,7 +56,7 @@ Capability *OriginateCapability(CapabilitySpace *space, uptr object, usize size,
 	capability->Size = size;
 	capability->AccessRights = accessRights;
 
-	PRINTK::PrintK(PRINTK_DEBUG "Originated capability of object 0x%x (%d bytes) of type 0x%x and with the following access rights: 0x%x\r\n", capability->Object, capability->Size, capability->Type, capability->AccessRights);
+	PRINTK::PrintK(PRINTK_DEBUG "Originated capability 0x%x of object 0x%x (%d bytes) of type 0x%x and with the following access rights: 0x%x\r\n", capability, capability->Object, capability->Size, capability->Type, capability->AccessRights);
 
 	return capability;
 }
