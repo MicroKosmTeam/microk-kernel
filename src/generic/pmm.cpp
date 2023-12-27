@@ -4,8 +4,7 @@
 #include <kinfo.hpp>
 
 namespace PMM {
-static MEM::MEMBLOCK::MemblockRegion *FreeRegion;
-static MEM::MEMBLOCK::MemblockRegion *VMAllocRegion;
+static PhysicalMemoryManagerStruct PhysicalMemoryManager;
 
 static void FindNextFreeRegion() {
 	KInfo *info = GetInfo();
@@ -17,38 +16,47 @@ static void FindNextFreeRegion() {
 			continue;
 		}
 
-		FreeRegion = current;
+		PhysicalMemoryManager.FreeRegion = current;
 		break;
 	}
 
-	VMAllocRegion = MEM::MEMBLOCK::AddRegion(info->PhysicalMemoryChunks, FreeRegion->Base, PAGE_SIZE, MEMMAP_KERNEL_VMALLOC);
+	PhysicalMemoryManager.VMAllocRegion = MEM::MEMBLOCK::AddRegion(info->PhysicalMemoryChunks, PhysicalMemoryManager.FreeRegion->Base, PAGE_SIZE, MEMMAP_KERNEL_VMALLOC);
 }
 
 
-void InitPageFrameAllocator(usize upperLimit) {
-	(void)upperLimit;
-	FreeRegion = NULL;
-	VMAllocRegion = NULL;
+void Init() {
+	PhysicalMemoryManager.FreeRegion = NULL;
+	PhysicalMemoryManager.VMAllocRegion = NULL;
+
+	PhysicalMemoryManager.IsActive = true;
+}
+
+void Deinit() {
+	PhysicalMemoryManager.IsActive = false;
 }
 
 void *RequestPage() {
-	if (FreeRegion != NULL && FreeRegion->Length >= PAGE_SIZE) {
-		uptr addr = FreeRegion->Base;
+	if (!PhysicalMemoryManager.IsActive) {
+		return NULL;
+	}
 
-		FreeRegion->Length -= PAGE_SIZE;
-		FreeRegion->Base += PAGE_SIZE;
+	if (PhysicalMemoryManager.FreeRegion != NULL && PhysicalMemoryManager.FreeRegion->Length >= PAGE_SIZE) {
+		uptr addr = PhysicalMemoryManager.FreeRegion->Base;
 
-		VMAllocRegion->Length += PAGE_SIZE;
+		PhysicalMemoryManager.FreeRegion->Length -= PAGE_SIZE;
+		PhysicalMemoryManager.FreeRegion->Base += PAGE_SIZE;
+
+		PhysicalMemoryManager.VMAllocRegion->Length += PAGE_SIZE;
 
 		return (void*)addr;
 	} else {
-		if (VMAllocRegion != NULL) {
-			VMAllocRegion->Next = FreeRegion->Next;
-			FreeRegion->Next->Previous = VMAllocRegion;
+		if (PhysicalMemoryManager.VMAllocRegion != NULL) {
+			PhysicalMemoryManager.VMAllocRegion->Next = PhysicalMemoryManager.FreeRegion->Next;
+			PhysicalMemoryManager.FreeRegion->Next->Previous = PhysicalMemoryManager.VMAllocRegion;
 		}
 
 		FindNextFreeRegion();
-		return (void*)(VMAllocRegion->Base);
+		return (void*)(PhysicalMemoryManager.VMAllocRegion->Base);
 	}
 
 	PANIC("NOMEM");

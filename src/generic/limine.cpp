@@ -159,7 +159,7 @@ void LimineEntry() {
 
 
 	/* Enabling the page frame allocator */
-	PMM::InitPageFrameAllocator(LIMINE_MEMORY_MAP_LIMIT);
+	PMM::Init();
 
 	info->ManagerExecutableAddress = (uptr)ModuleRequest.response->modules[0]->address;
 	info->ManagerExecutableSize = ModuleRequest.response->modules[0]->size;

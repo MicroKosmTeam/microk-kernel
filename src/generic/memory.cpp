@@ -11,6 +11,18 @@ namespace MEM {
 void Init() {
 	KInfo *info = GetInfo();
 
+	PRINTK::PrintK(PRINTK_DEBUG "Physical Memory Map:\r\n");
+
+	for (MEM::MEMBLOCK::MemblockRegion *current = (MEM::MEMBLOCK::MemblockRegion*)info->PhysicalMemoryChunks->Regions.Head;
+	     current != NULL;
+	     current = (MEM::MEMBLOCK::MemblockRegion*)current->Next) {
+		PRINTK::PrintK(PRINTK_DEBUG " [0x%x - 0x%x] -> %s\r\n",
+				current->Base,
+				current->Base + current->Length,
+				MemoryTypeToString(current->Type));
+	}
+
+
 	/* Initializing virtual memory */
 	VMM::InitVMM();
 
@@ -64,7 +76,6 @@ void Init() {
 	ROUND_UP_TO_PAGE(dynamicEndAddr);
 	ROUND_UP_TO_PAGE(bssEndAddr);
 
-
 	MEM::MEMBLOCK::AddRegion(info->PhysicalMemoryChunks, essentialStartAddr, essentialEndAddr - essentialStartAddr, MEMMAP_KERNEL_ESSENTIALS);
 	MEM::MEMBLOCK::AddRegion(info->PhysicalMemoryChunks, textStartAddr, textEndAddr - textStartAddr, MEMMAP_KERNEL_TEXT);
 	MEM::MEMBLOCK::AddRegion(info->PhysicalMemoryChunks, rodataStartAddr, rodataEndAddr - rodataStartAddr, MEMMAP_KERNEL_RODATA);
@@ -88,17 +99,6 @@ void Init() {
 			PMM::FreePages((void*)current->Base, current->Length / PAGE_SIZE);
 		}
 	}*/
-
-	PRINTK::PrintK(PRINTK_DEBUG "Physical Memory Map:\r\n");
-
-	for (MEM::MEMBLOCK::MemblockRegion *current = (MEM::MEMBLOCK::MemblockRegion*)info->PhysicalMemoryChunks->Regions.Head;
-	     current != NULL;
-	     current = (MEM::MEMBLOCK::MemblockRegion*)current->Next) {
-		PRINTK::PrintK(PRINTK_DEBUG " [0x%x - 0x%x] -> %s\r\n",
-				current->Base,
-				current->Base + current->Length,
-				MemoryTypeToString(current->Type));
-	}
 }
 	
 void Deinit() {
@@ -108,6 +108,18 @@ void Deinit() {
 	/* Make sure we have enough preallocated space in the root capability space */
 	CAPABILITY::CreateCapabilityNode(&info->RootCapabilitySpace);
 
+	PRINTK::PrintK(PRINTK_DEBUG "Final Memory Map:\r\n");
+
+	for (MEM::MEMBLOCK::MemblockRegion *current = (MEM::MEMBLOCK::MemblockRegion*)info->PhysicalMemoryChunks->Regions.Head;
+	     current != NULL;
+	     current = (MEM::MEMBLOCK::MemblockRegion*)current->Next) {
+		PRINTK::PrintK(PRINTK_DEBUG " [0x%x - 0x%x] -> %s\r\n",
+				current->Base,
+				current->Base + current->Length,
+				MemoryTypeToString(current->Type));
+	}
+
+
 	for (MEM::MEMBLOCK::MemblockRegion *current = (MEM::MEMBLOCK::MemblockRegion*)info->PhysicalMemoryChunks->Regions.Head;
 	     current != NULL;
 	     current = (MEM::MEMBLOCK::MemblockRegion*)current->Next) {
@@ -116,7 +128,10 @@ void Deinit() {
 				CAPABILITY::OriginateCapability(&info->RootCapabilitySpace, current->Base, current->Length, ObjectType::UNTYPED_MEMORY, CapabilityRights::GRANT | CapabilityRights::RETYPE);
 				break;
 			case MEMMAP_KERNEL_VMALLOC:
-				CAPABILITY::OriginateCapability(&info->RootCapabilitySpace, current->Base, current->Length, ObjectType::FRAMES, CapabilityRights::GRANT | CapabilityRights::RETYPE);
+				CAPABILITY::OriginateCapability(&info->RootCapabilitySpace, current->Base, current->Length, ObjectType::FRAMES, 0);
+				break;
+			case MEMMAP_FRAMEBUFFER:
+				CAPABILITY::OriginateCapability(&info->RootCapabilitySpace, current->Base, current->Length, ObjectType::FRAMES, CapabilityRights::GRANT | CapabilityRights::WRITE | CapabilityRights::READ);
 				break;
 			default:
 				CAPABILITY::OriginateCapability(&info->RootCapabilitySpace, current->Base, current->Length, ObjectType::UNTYPED_MEMORY, 0);
@@ -139,7 +154,8 @@ const char *MemoryTypeToString(u8 type) {
 				"Kernel BootMem",
 				"Kernel Bitmap",
 				"Kernel Stack",
-				"Kernel VMAlloc Memory"
+				"Kernel VMAlloc Memory",
+				"Kernel Device Memory",
 			};
 
 			return KernelMemTypeStrings[type];
