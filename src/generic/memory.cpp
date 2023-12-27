@@ -127,6 +127,9 @@ void Deinit() {
 			case MEMMAP_USABLE:
 				CAPABILITY::OriginateCapability(&info->RootCapabilitySpace, current->Base, current->Length, ObjectType::UNTYPED_MEMORY, CapabilityRights::GRANT | CapabilityRights::RETYPE);
 				break;
+			case MEMMAP_KERNEL_DEVICE:
+				/* TODO */
+				break;
 			case MEMMAP_KERNEL_VMALLOC:
 				CAPABILITY::OriginateCapability(&info->RootCapabilitySpace, current->Base, current->Length, ObjectType::FRAMES, 0);
 				break;

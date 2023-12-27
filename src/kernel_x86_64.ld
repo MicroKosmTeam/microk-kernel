@@ -21,7 +21,6 @@ SECTIONS
 	/* We wanna be placed in the topmost 2GiB of the address space, for optimisations */
 	/* Any address in this region will do, we choose 0xffffffffff800000 (-8MB) */
 	/* as it will be more than enough memory for our microkernel. */
-
 	. = 0xffffffffff800000;
 
 	PROVIDE(__KernelBinaryEssentialStart = .);

@@ -29,20 +29,24 @@
 #include <panic.hpp>
 #include <printk.hpp>
 #include <kinfo.hpp>
+#include <loader.hpp>
 #include <cpu.hpp>
 #include <bootmem.hpp>
 #include <capability.hpp>
 
 extern "C" __attribute__((noreturn))
 void KernelStart() {
+	KInfo *info = GetInfo();
+
 	ARCH::InitializeBootCPU();
 	MEM::Init();
 	CAPABILITY::InitializeRootSpace();
-	ARCH::InitializeCPUFeatures();
 
-	/* Load user process */
+	/* Initialize scheduler */
 	/* ... */
 
+	ARCH::InitializeCPUFeatures();
+	LOADER::LoadELF((u8*)info->ManagerExecutableAddress, info->ManagerExecutableSize);
 	MEM::Deinit();
 
 	/* Launch user process */

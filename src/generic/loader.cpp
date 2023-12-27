@@ -1,6 +1,6 @@
 #include <elf.h>
 #include <elf64.h>
-#include <elf.hpp>
+#include <loader.hpp>
 #include <printk.hpp>
 #include <memory.hpp>
 #include <string.hpp>
@@ -9,6 +9,53 @@
 #include <pmm.hpp>
 #include <vmm.hpp>
 #include <kinfo.hpp>
+
+namespace LOADER {
+static bool VerifyELF(Elf64_Ehdr *elfHeader);
+static int LoadProgramHeaders(u8 *data, usize size, Elf64_Ehdr *elfHeader, VirtualSpace *space);
+static usize LoadProcess(Elf64_Ehdr *elfHeader, VirtualSpace *space);
+
+usize LoadELF(u8 *data, usize size) {
+	VirtualSpace *space = VMM::NewVirtualSpace();
+	VMM::PrepareUserVirtualSpace(space);
+	
+	Elf64_Ehdr *elfHeader = (Elf64_Ehdr*)data;
+	
+	(void)size;
+	if(VerifyELF(elfHeader)) {
+		PRINTK::PrintK(PRINTK_DEBUG "Valid ELF header.\r\n");
+
+		LoadProgramHeaders(data, size, elfHeader, space);
+		usize pid = LoadProcess(elfHeader, space);
+		
+		return pid;
+	} else {
+		OOPS("Invalid ELF file");
+		return -1;
+	}
+}
+
+static bool VerifyELF(Elf64_Ehdr *elfHeader) {
+	if (elfHeader->e_ident[EI_MAG0] != ELFMAG0 ||
+	    elfHeader->e_ident[EI_MAG1] != ELFMAG1 ||
+	    elfHeader->e_ident[EI_MAG2] != ELFMAG2 ||
+	    elfHeader->e_ident[EI_MAG3] != ELFMAG3) {
+		/* Invalid ELF magic */
+		return false;
+	}
+
+	if (elfHeader->e_ident[EI_CLASS] != ELFCLASS64) {
+		/* Invalid machine type */
+		return false;
+	}
+
+	if (elfHeader->e_type != ET_EXEC) {
+		/* Not a classic executble file */
+		return false;
+	}
+
+	return true;
+}
 
 static int LoadProgramHeaders(u8 *data, usize size, Elf64_Ehdr *elfHeader, VirtualSpace *space) {
 	KInfo *info = GetInfo();
@@ -73,15 +120,4 @@ static usize LoadProcess(Elf64_Ehdr *elfHeader, VirtualSpace *space) {
 	(void)space;
 	return 0;
 }
-
-usize LoadELF(u8 *data, usize size) {
-	VirtualSpace *space = VMM::NewVirtualSpace();
-	VMM::PrepareUserVirtualSpace(space);
-	
-	Elf64_Ehdr *elfHeader = (Elf64_Ehdr*)data;
-	
-	LoadProgramHeaders(data, size, elfHeader, space);
-	usize pid = LoadProcess(elfHeader, space);
-
-	return pid;
 }
