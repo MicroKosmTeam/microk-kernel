@@ -58,7 +58,7 @@ struct KInfo {
 	usize ManagerExecutableSize;
 
 	usize CapabilityNodeSize;
-	CapabilitySpace RootCapabilitySpace;
+	CapabilitySpace *RootCapabilitySpace;
 };
 
 /*

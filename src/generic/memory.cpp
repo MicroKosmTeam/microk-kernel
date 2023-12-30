@@ -111,7 +111,7 @@ void Deinit() {
 	usize cnodesRequired = memoryRegionsCount / capabilityCountPerPage + 1;
 
 	do {
-		CAPABILITY::CreateCNode(&info->RootCapabilitySpace, VMM::PhysicalToVirtual((uptr)PMM::RequestPage()));
+		CAPABILITY::CreateCNode(info->RootCapabilitySpace, VMM::PhysicalToVirtual((uptr)PMM::RequestPage()));
 	} while(--cnodesRequired);
 
 	PRINTK::PrintK(PRINTK_DEBUG "Final Memory Map:\r\n");
@@ -130,13 +130,13 @@ void Deinit() {
 	     current = (MEM::MEMBLOCK::MemblockRegion*)current->Next) {
 		switch (current->Type) {
 			case MEMMAP_USABLE:
-				CAPABILITY::Originate(&info->RootCapabilitySpace, current->Base, current->Length, ObjectType::UNTYPED, CapabilityRights::GRANT | CapabilityRights::RETYPE);
+				CAPABILITY::Originate(info->RootCapabilitySpace, current->Base, current->Length, ObjectType::UNTYPED, CapabilityRights::GRANT | CapabilityRights::RETYPE);
 				break;
 			case MEMMAP_KERNEL_DEVICE:
 				/* TODO */
 				break;
 			case MEMMAP_FRAMEBUFFER:
-				CAPABILITY::Originate(&info->RootCapabilitySpace, current->Base, current->Length, ObjectType::FRAMES, CapabilityRights::GRANT | CapabilityRights::WRITE | CapabilityRights::READ);
+				CAPABILITY::Originate(info->RootCapabilitySpace, current->Base, current->Length, ObjectType::FRAMES, CapabilityRights::GRANT | CapabilityRights::WRITE | CapabilityRights::READ);
 				break;
 			case MEMMAP_KERNEL_VMALLOC:
 			default:

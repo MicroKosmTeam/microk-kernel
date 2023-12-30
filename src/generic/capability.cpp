@@ -9,16 +9,22 @@ void InitializeRootSpace() {
 	KInfo *info = GetInfo();
 
 	info->CapabilityNodeSize = PAGE_SIZE;
+	info->RootCapabilitySpace = (CapabilitySpace*)VMM::PhysicalToVirtual((uptr)PMM::RequestPage());
 
-	CapabilitySpace *rootSpace = &info->RootCapabilitySpace;
+	CapabilitySpace *rootSpace = info->RootCapabilitySpace;
+	Memclr(rootSpace, PAGE_SIZE);
+
 	CreateCNode(rootSpace, VMM::PhysicalToVirtual((uptr)PMM::RequestPage()));
+	Originate(rootSpace, (uptr)rootSpace, sizeof(CapabilitySpace), ObjectType::CSPACE, CapabilityRights::NONE);
 }
 
 CapabilityNode *CreateCNode(CapabilitySpace *space, uptr addr) {
 	CapabilityNode *node = (CapabilityNode*)addr;
 	Memclr(node, PAGE_SIZE);
 
+	Originate(space, node, (uptr)node, PAGE_SIZE, ObjectType::CNODE, CapabilityRights::REVOKE | CapabilityRights::GRANT | CapabilityRights::RETYPE);
 	AddElementToList(node, &space->CapabilityNodeList);
+
 
 	return node;
 }

@@ -17,12 +17,15 @@ struct List {
 enum ObjectType {
 	NULL_CAPABILITY = 0,
 	UNTYPED,
+	CSPACE,
 	CNODE,
 	FRAMES,
-	TCB,
+	TASK_CONTROL_BLOCK,
+	SCHEDULER_CONTEXT,
 };
 
 enum CapabilityRights {
+	NONE = 0,
 	READ = 1 << 0,
 	WRITE = 1 << 1,
 	GRANT = 1 << 2,
