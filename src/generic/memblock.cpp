@@ -234,6 +234,17 @@ usize GetTotalSpanningLength(MemblockAllocator *alloc) {
 	}
 }
 
+usize GetTotalElements(MemblockAllocator *alloc) {
+	usize count = 0;
+	
+	MemblockRegion *current;
+	for(current = (MemblockRegion*)alloc->Regions.Head ; current != NULL ; current = (MemblockRegion*)current->Next) {
+		++count;
+	}
+
+	return count;
+}
+
 void ListRegions(MemblockAllocator *alloc) {
 	MemblockRegion *current;
 

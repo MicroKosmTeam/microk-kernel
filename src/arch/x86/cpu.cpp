@@ -1,4 +1,5 @@
 #include <cpuid.h>
+#include <pmm.hpp>
 #include <printk.hpp>
 #include <memory.hpp>
 #include <kinfo.hpp>
@@ -84,7 +85,7 @@ inline static int EnableSyscalls() {
 
 void LoadEssentialCPUStructures() {
 	x86::LoadGDT(&gdt, &pointer);
-	x86::TSSInit(&gdt, &tss, 0);
+	x86::TSSInit(&gdt, &tss, VMM::PhysicalToVirtual((uptr)PMM::RequestPage()) + PAGE_SIZE);
 	x86::IDTInit();
 }
 
@@ -173,5 +174,47 @@ void InitializeCPUFeatures() {
 
 void InitializeBootCPU() {
 	LoadEssentialCPUStructures();
+}
+
+__attribute__((noreturn))
+void GoToUserspace(SchedulerContext *context) {
+	InterruptStatus *stack = (InterruptStatus*)(context->SP - sizeof(InterruptStatus));
+
+	/* Copy over general registers */
+	Memcpy(&stack->Registers, &context->Registers, sizeof(GeneralRegisters));
+
+	/* Set up the interrupt stack frame */
+	InterruptStack *intStub = &stack->Base;
+	Memclr(intStub, sizeof(InterruptStack));
+	intStub->IretRIP = context->IP;
+	intStub->IretRSP = context->SP;
+	intStub->IretRFLAGS = context->RFLAGS;
+
+	if (!context->InKernel) {
+		intStub->IretCS = GDT_OFFSET_USER_CODE;
+	} else {
+		intStub->IretCS = GDT_OFFSET_KERNEL_CODE;
+	}
+
+	asm volatile ("mov %%rsp, %0\n\t"
+		      "mov %%rbp, %1\n\t"
+		      "pop %%r15\n\t"
+		      "pop %%r14\n\t"
+		      "pop %%r13\n\t"
+		      "pop %%r12\n\t"
+		      "pop %%r11\n\t"
+		      "pop %%r10\n\t"
+		      "pop %%r9\n\t"
+		      "pop %%r8\n\t"
+		      "pop %%rdx\n\t"
+		      "pop %%rcx\n\t"
+		      "pop %%rbx\n\t"
+		      "pop %%rax\n\t"
+		      "pop %%rsi\n\t"
+		      "pop %%rdi\n\t"
+		      "add %%rsp, 16\n\t"
+		      "iretq\n\t" : : "r"(stack), "r"(context->BP));
+
+	__builtin_unreachable();
 }
 }

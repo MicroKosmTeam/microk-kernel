@@ -20,4 +20,13 @@ void InitializeCPUFeatures() {
 #endif
 }
 
+__attribute__((noreturn))
+void GoToUserspace(SchedulerContext *context) {
+#if defined(__x86_64__)
+	x86::GoToUserspace(context);
+#else
+#endif
+
+}
+
 }

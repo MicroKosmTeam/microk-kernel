@@ -106,7 +106,13 @@ void Deinit() {
 	BOOTMEM::DeactivateBootMemory();
 
 	/* Make sure we have enough preallocated space in the root capability space */
-	CAPABILITY::CreateCapabilityNode(&info->RootCapabilitySpace);
+	usize capabilityCountPerPage = (info->CapabilityNodeSize - sizeof(CapabilityNode)) / sizeof(Capability);
+	usize memoryRegionsCount = MEMBLOCK::GetTotalElements(info->PhysicalMemoryChunks);
+	usize cnodesRequired = memoryRegionsCount / capabilityCountPerPage + 1;
+
+	do {
+		CAPABILITY::CreateCNode(&info->RootCapabilitySpace, VMM::PhysicalToVirtual((uptr)PMM::RequestPage()));
+	} while(--cnodesRequired);
 
 	PRINTK::PrintK(PRINTK_DEBUG "Final Memory Map:\r\n");
 
@@ -119,25 +125,24 @@ void Deinit() {
 				MemoryTypeToString(current->Type));
 	}
 
-
 	for (MEM::MEMBLOCK::MemblockRegion *current = (MEM::MEMBLOCK::MemblockRegion*)info->PhysicalMemoryChunks->Regions.Head;
 	     current != NULL;
 	     current = (MEM::MEMBLOCK::MemblockRegion*)current->Next) {
 		switch (current->Type) {
 			case MEMMAP_USABLE:
-				CAPABILITY::OriginateCapability(&info->RootCapabilitySpace, current->Base, current->Length, ObjectType::UNTYPED_MEMORY, CapabilityRights::GRANT | CapabilityRights::RETYPE);
+				CAPABILITY::Originate(&info->RootCapabilitySpace, current->Base, current->Length, ObjectType::UNTYPED, CapabilityRights::GRANT | CapabilityRights::RETYPE);
 				break;
 			case MEMMAP_KERNEL_DEVICE:
 				/* TODO */
 				break;
 			case MEMMAP_KERNEL_VMALLOC:
-				CAPABILITY::OriginateCapability(&info->RootCapabilitySpace, current->Base, current->Length, ObjectType::FRAMES, 0);
+				CAPABILITY::Originate(&info->RootCapabilitySpace, current->Base, current->Length, ObjectType::FRAMES, 0);
 				break;
 			case MEMMAP_FRAMEBUFFER:
-				CAPABILITY::OriginateCapability(&info->RootCapabilitySpace, current->Base, current->Length, ObjectType::FRAMES, CapabilityRights::GRANT | CapabilityRights::WRITE | CapabilityRights::READ);
+				CAPABILITY::Originate(&info->RootCapabilitySpace, current->Base, current->Length, ObjectType::FRAMES, CapabilityRights::GRANT | CapabilityRights::WRITE | CapabilityRights::READ);
 				break;
 			default:
-				CAPABILITY::OriginateCapability(&info->RootCapabilitySpace, current->Base, current->Length, ObjectType::UNTYPED_MEMORY, 0);
+				CAPABILITY::Originate(&info->RootCapabilitySpace, current->Base, current->Length, ObjectType::UNTYPED, 0);
 				break;
 		}
 	}

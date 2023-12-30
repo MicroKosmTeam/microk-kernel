@@ -8,6 +8,7 @@
 #include <stdarg.h>
 #include <pmm.hpp>
 #include <vmm.hpp>
+#include <cpu.hpp>
 #include <kinfo.hpp>
 
 namespace LOADER {
@@ -104,9 +105,23 @@ static int LoadProgramHeaders(u8 *data, usize size, Elf64_Ehdr *elfHeader, Virtu
 	return 0;
 }
 
-
 static usize LoadProcess(Elf64_Ehdr *elfHeader, VirtualSpace *space) {
 	KInfo *info = GetInfo();
+/*
+	uptr stackAddr = 0x10000000000;
+	usize stackSize = 0x100000;
+
+	SchedulerContext *context = (SchedulerContext*)VMM::PhysicalToVirtual((uptr)PMM::RequestPage());
+	context->IP = elfHeader->e_entry;
+	context->SP = stackAddr;
+	context->BP = stackAddr;
+	context->RFLAGS = 0x202;
+
+	VMM::VMAlloc(space, stackAddr - stackSize, stackSize, VMM_FLAGS_USER_DATA);
+
+	VMM::LoadVirtualSpace(space);
+	ARCH::GoToUserspace(context);
+*/
 /*
 	PROC::Process *proc = PROC::CreateProcess(info->KernelScheduler, PROC::ExecutableUnitType::PT_USER, space);
 	PROC::Thread *thread = PROC::CreateThread(info->KernelScheduler, proc, elfHeader->e_entry);

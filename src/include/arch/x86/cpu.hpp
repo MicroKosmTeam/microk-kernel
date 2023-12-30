@@ -24,41 +24,6 @@
 #define MSR_KERNELGSBASE 0xC0000102
 
 namespace x86 {
-	struct InterruptStack {
-		u64 VectorNumber;
-		u64 ErrorCode;
-
-		u64 IretRIP;
-		u64 IretCS;
-		u64 IretRFLAGS;
-		u64 IretRSP;
-		u64 IretSS;
-	}__attribute__((packed));
-
-	struct GeneralRegisters {
-		u64 R15;
-		u64 R14;
-		u64 R13;
-		u64 R12;
-		u64 R11;
-		u64 R10;
-		u64 R9;
-		u64 R8;
-
-		u64 RDX;
-		u64 RCX;
-		u64 RBX;
-		u64 RAX;
-
-		u64 RSI;
-		u64 RDI;
-	}__attribute__((packed));
-
-	struct ArchSchedulerContext : public SchedulerContext {
-		GeneralRegisters Registers;
-		InterruptStack ReturnStatus;
-	};
-
         inline __attribute__((always_inline))
         void GetMSR(u32 msr, u32 *lo, u32 *hi) {
                 asm volatile("rdmsr" : "=a"(*lo), "=d"(*hi) : "c"(msr));
@@ -73,4 +38,8 @@ namespace x86 {
 	void InitializeCPUFeatures();
 
 	void InitializeBootCPU();
+
+	__attribute__((noreturn))
+	void GoToUserspace(SchedulerContext *context);
+
 }

@@ -1,6 +1,10 @@
 #pragma once
 #include <cstdint.hpp>
 
+#if defined(__x86_64__)
+#include <arch/x86/object.hpp>
+#endif
+
 struct ListHead {
 	ListHead *Next, *Previous;
 };
@@ -12,7 +16,8 @@ struct List {
 
 enum ObjectType {
 	NULL_CAPABILITY = 0,
-	UNTYPED_MEMORY,
+	UNTYPED,
+	CNODE,
 	FRAMES,
 	TCB,
 };
@@ -49,6 +54,7 @@ struct SchedulerContext;
 
 struct ThreadControlBlock : public ListHead {
 	usize TaskID;
+	u8 Priority;
 
 	VirtualSpace *MemorySpace;
 	SchedulerContext *Context;
@@ -56,5 +62,16 @@ struct ThreadControlBlock : public ListHead {
 };
 
 struct SchedulerContext {
+	uptr SP;
+	uptr BP;
+	uptr IP;
+	
+#if defined(__x86_64__)
+	x86::GeneralRegisters Registers;
+	u64 RFLAGS;
+#endif
+	
+	bool InKernel;
+
 	usize Budget;
-};
+}__attribute__((packed));
