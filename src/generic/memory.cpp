@@ -135,14 +135,11 @@ void Deinit() {
 			case MEMMAP_KERNEL_DEVICE:
 				/* TODO */
 				break;
-			case MEMMAP_KERNEL_VMALLOC:
-				CAPABILITY::Originate(&info->RootCapabilitySpace, current->Base, current->Length, ObjectType::FRAMES, 0);
-				break;
 			case MEMMAP_FRAMEBUFFER:
 				CAPABILITY::Originate(&info->RootCapabilitySpace, current->Base, current->Length, ObjectType::FRAMES, CapabilityRights::GRANT | CapabilityRights::WRITE | CapabilityRights::READ);
 				break;
+			case MEMMAP_KERNEL_VMALLOC:
 			default:
-				CAPABILITY::Originate(&info->RootCapabilitySpace, current->Base, current->Length, ObjectType::UNTYPED, 0);
 				break;
 		}
 	}
