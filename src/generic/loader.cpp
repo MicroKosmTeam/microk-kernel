@@ -85,18 +85,16 @@ static int LoadProgramHeaders(u8 *data, usize size, Elf64_Ehdr *elfHeader, Virtu
 
 		switch (programHeader->p_flags) {
 			case PF_R: /* ROData */
-				flags = VMM_FLAGS_USER_RODATA;
+				flags = VMM_FLAGS_USER | VMM_FLAGS_READ | VMM_FLAGS_NOEXEC;
 				break;
 			case PF_R | PF_X: /* Text */
-				flags = VMM_FLAGS_USER_CODE;
+				flags = VMM_FLAGS_USER | VMM_FLAGS_READ;
 				break;
 			case PF_R | PF_W: /* Data or BSS */
-				flags = VMM_FLAGS_USER_DATA;
+				flags = VMM_FLAGS_USER | VMM_FLAGS_READ | VMM_FLAGS_WRITE | VMM_FLAGS_NOEXEC;
 				break;
-			default:
-			case PF_R | PF_W | PF_X: /* Generic */
-				flags = VMM_FLAGS_USER_GENERIC;
-				break;
+			default: /* Unknown section, just skip */
+				continue;
 		}
 				
 		VMM::VMCopyAlloc(space, virtAddr, memSize, flags, fileOffset, virtAddr, fileSize);

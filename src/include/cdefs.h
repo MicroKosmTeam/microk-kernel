@@ -8,10 +8,12 @@
 #error Unsupported architecture
 #endif
 
-#define PAGE_PROTECTION_READ    0b0001
-#define PAGE_PROTECTION_WRITE   0b0010
-#define PAGE_PROTECTION_EXEC    0b0100
-#define PAGE_PROTECTION_NOCACHE 0b1000
+#define PAGE_PROTECTION_READ    ((usize)(1 << 0))
+#define PAGE_PROTECTION_WRITE   ((usize)(1 << 1))
+#define PAGE_PROTECTION_EXEC    ((usize)(1 << 2))
+#define PAGE_PROTECTION_NOCACHE ((usize)(1 << 3)) 
+#define PAGE_PROTECTION_HUGE    ((usize)(1 << 4))
+#define PAGE_PROTECTION_HUGER   ((usize)(1 << 5))
 
 #define EAGAIN      1
 #define EBADREQUEST  2
