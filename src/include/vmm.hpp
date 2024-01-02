@@ -26,7 +26,7 @@ namespace VMM {
 		usize ret = VMM_FLAGS_USER;
 
 		if (flags & PAGE_PROTECTION_READ) {
-			ret |= VMM_FLAGS_ACCESSIBLE;
+			ret |= VMM_FLAGS_READ;
 		}
 		
 		if (flags & PAGE_PROTECTION_WRITE) {
@@ -51,7 +51,8 @@ namespace VMM {
 	void LoadVirtualSpace(VirtualSpace *space);
 
 	void MapPage(VirtualSpace *space, uptr phys, uptr virt, usize flags);
-	void ForkSpace(uptr newSpace, uptr oldSpace, usize flags);
+	void MapPage(VirtualSpace *space, uptr phys, uptr virt, usize flags, bool hugerPage);
+	void ForkSpace(VirtualSpace *newSpace, VirtualSpace *oldSpace, usize flags);
 
 	void MMap(VirtualSpace *space, uptr src, uptr dest, usize length, usize flags);
 

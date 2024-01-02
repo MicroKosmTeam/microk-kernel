@@ -9,7 +9,7 @@ namespace x86_64 {
 	        WriteThrough  = 3,
         	CacheDisabled = 4,
 	        Accessed      = 5,
-        	LargerPages   = 7,
+        	HugePages     = 7,
 		Global        = 8,
         	Custom0       = 9,
 	        Custom1       = 10,
@@ -18,40 +18,15 @@ namespace x86_64 {
 	};
 
 #define PAGE_SIZE 0x1000
+#define HUGE_PAGE_SIZE (512 * PAGE_SIZE)
+#define HUGER_PAGE_SIZE (512 * HUGE_PAGE_SIZE)
 
-#define VMM_FLAGS_ACCESSIBLE ((usize)1 << x86_64::PT_Flag::Present)
+#define VMM_FLAGS_READ       ((usize)1 << x86_64::PT_Flag::Present)
 #define VMM_FLAGS_NOEXEC     ((usize)1 << x86_64::PT_Flag::NX)
 #define VMM_FLAGS_WRITE      ((usize)1 << x86_64::PT_Flag::ReadWrite)
 #define VMM_FLAGS_NOCACHE    ((usize)1 << x86_64::PT_Flag::CacheDisabled)
 #define VMM_FLAGS_USER       ((usize)1 << x86_64::PT_Flag::UserSuper)
-
-#define VMM_FLAGS_KERNEL_CODE (VMM_FLAGS_ACCESSIBLE)
-
-#define VMM_FLAGS_KERNEL_RODATA (VMM_FLAGS_ACCESSIBLE)
-
-#define VMM_FLAGS_KERNEL_DATA ((usize)1 << x86_64::PT_Flag::Present | \
-			       (usize)1 << x86_64::PT_Flag::NX | \
-			      (usize)1 << x86_64::PT_Flag::ReadWrite)
-
-#define VMM_FLAGS_KERNEL_GENERIC ((usize)1 << x86_64::PT_Flag::Present | \
-			         (usize)1 << x86_64::PT_Flag::ReadWrite)
-
-
-#define VMM_FLAGS_USER_CODE ((usize)1 << x86_64::PT_Flag::Present | \
-			    (usize)1 << x86_64::PT_Flag::UserSuper)
-
-#define VMM_FLAGS_USER_RODATA ((usize)1 << x86_64::PT_Flag::Present | \
-			      (usize)1 << x86_64::PT_Flag::NX | \
-			      (usize)1 <<x86_64::PT_Flag::UserSuper)
-
-#define VMM_FLAGS_USER_DATA ((usize)1 << x86_64::PT_Flag::Present | \
-			    (usize)1 << x86_64::PT_Flag::NX | \
-			      (usize)1 << x86_64::PT_Flag::ReadWrite | \
-			      (usize)1 << x86_64::PT_Flag::UserSuper)
-
-#define VMM_FLAGS_USER_GENERIC ((usize)1 << x86_64::PT_Flag::Present | \
-		               (usize)1 << x86_64::PT_Flag::ReadWrite | \
-				1 << x86_64::PT_Flag::UserSuper)
+#define VMM_FLAGS_HUGE       ((usize)1 << x86_64::PT_Flag::HugePages)
 
 #define PTE_ADDR_MASK 0x000ffffffffff000
 #define PTE_GET_ADDR(VALUE) ((VALUE) & PTE_ADDR_MASK)
@@ -63,7 +38,7 @@ namespace x86_64 {
 	u64 GetTotalAddressableMemory();
 	
 	int ForkSpace(uptr newSpace, uptr oldSpace, usize flags);
-	int MapPage(uptr rootPageTable, uptr phys, uptr virt, usize flags);
+	int MapPage(uptr rootPageTable, uptr phys, uptr virt, usize flags, bool hugerPage);
 	int FlagPage(uptr rootPageTable, uptr virt, usize flags);
 	int UnmapPage(uptr rootPageTable, uptr virt);
 

@@ -29,7 +29,7 @@ volatile u64 *GetNextLevel(volatile u64 *topLevel, usize idx, bool allocate) {
 
 	uptr newPage = AllocatePage();
 
-	topLevel[idx] = newPage | VMM_FLAGS_USER_GENERIC;
+	topLevel[idx] = newPage | VMM_FLAGS_USER | VMM_FLAGS_READ | VMM_FLAGS_WRITE;
 	return (volatile u64*)VMM::PhysicalToVirtual(newPage);
 }
 
@@ -69,7 +69,7 @@ int ForkSpace(uptr newSpace, uptr oldSpace, usize flags) {
 	return 0;
 }
 
-int MapPage(uptr rootPageTable, uptr phys, uptr virt, usize flags) {
+int MapPage(uptr rootPageTable, uptr phys, uptr virt, usize flags, bool hugerPage) {
 	usize pml4Entry = (virt & (0x1ffull << 39)) >> 39;
 	usize pml3Entry = (virt & (0x1ffull << 30)) >> 30;
 	usize pml2Entry = (virt & (0x1ffull << 21)) >> 21;
@@ -81,21 +81,34 @@ int MapPage(uptr rootPageTable, uptr phys, uptr virt, usize flags) {
 		return -ENOTPRESENT;
 	}
 
-	volatile u64 *pml2 = GetNextLevel(pml3, pml3Entry, true);
-	if (pml2 == NULL) {
-		return -ENOTPRESENT;
+	if (!hugerPage) {
+		volatile u64 *pml2 = GetNextLevel(pml3, pml3Entry, true);
+		if (pml2 == NULL) {
+			return -ENOTPRESENT;
+		}
+
+		if ((flags & VMM_FLAGS_HUGE) == 0) {
+			volatile u64 *pml1 = GetNextLevel(pml2, pml2Entry, true);
+			if (pml1 == NULL) {
+				return -ENOTPRESENT;
+			}
+
+			if ((pml1[pml1Entry] & (1 << PT_Flag::Present)) != 0) {
+				return -EINVALID;
+			}
+	
+			pml1[pml1Entry] = phys | flags;
+		} else {
+			if (virt % HUGER_PAGE_SIZE == 0) {
+				pml2[pml2Entry] = phys | flags;
+			}
+		}
+	} else {
+		if (virt % HUGER_PAGE_SIZE == 0) {
+			pml3[pml3Entry] = phys | flags;
+		}
 	}
 
-	volatile u64 *pml1 = GetNextLevel(pml2, pml2Entry, true);
-	if (pml1 == NULL) {
-		return -ENOTPRESENT;
-	}
-
-	if ((pml1[pml1Entry] & (1 << PT_Flag::Present)) != 0) {
-		return -EINVALID;
-	}
-
-	pml1[pml1Entry] = phys | flags;
 
 	InvalidatePage(virt);
 
