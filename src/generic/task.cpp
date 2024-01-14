@@ -2,6 +2,7 @@
 
 namespace TASK {
 ThreadControlBlock *InitializeTCB() {
+	return NULL;
 }
 }
 

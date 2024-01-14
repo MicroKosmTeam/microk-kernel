@@ -15,5 +15,5 @@ namespace PMM {
 	void Deinit();
 
 	void *RequestPage();
-	void *RequestPages(usize pages);
+	void *RequestPages(usize length);
 }

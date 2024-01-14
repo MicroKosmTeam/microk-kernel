@@ -28,14 +28,15 @@ usize ActivateBootMemory(uptr memoryStart, usize length) {
 
 BootMemoryStruct *DeactivateBootMemory() {
 	KInfo *info = GetInfo();
-
+	
 	ROUND_UP_TO_PAGE(BootMemory.LastPosition);
 
 	usize usableBootMemory = BootMemory.MaximumPosition - BootMemory.LastPosition;
+
 	MEM::MEMBLOCK::AddRegion(info->PhysicalMemoryChunks,
 			VMM::VirtualToPhysical(BootMemory.MemoryStart) + BootMemory.LastPosition,
 			usableBootMemory, MEMMAP_USABLE);
-
+	
 	BootMemory.Active = false;
 
 	return &BootMemory;

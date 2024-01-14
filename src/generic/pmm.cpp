@@ -63,4 +63,21 @@ void *RequestPage() {
 
 	__builtin_unreachable();
 }
+
+void *RequestPages(usize length) {
+	KInfo *info = GetInfo();
+	ROUND_UP_TO_PAGE(length);
+
+	MEM::MEMBLOCK::MemblockRegion *region = MEM::MEMBLOCK::FindFreeRegion(info->PhysicalMemoryChunks, length, true);
+
+	if (region != NULL) {
+		region = MEM::MEMBLOCK::AddRegion(info->PhysicalMemoryChunks, region->Base, length, MEMMAP_KERNEL_VMALLOC);
+		return (void*)region->Base;
+	}
+
+	PANIC("NOMEM");
+
+	__builtin_unreachable();
+
+}
 }
