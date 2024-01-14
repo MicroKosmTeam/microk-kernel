@@ -1,4 +1,5 @@
 #pragma once
+#include "cdefs.h"
 #include <cstdint.hpp>
 
 #if defined(__x86_64__)
@@ -27,10 +28,11 @@ struct List {
  * 2 - FRAMES:
  * 3 - CSPACE:
  * 4 - CNODE:
- * 5 - SCHEDULER:
- * 6 - TASK_CONTROL_BLOCK:
- * 7 - SCHEDULER_CONTEXT:
- * 8 - OBJECT_TYPE_COUNT:
+ * 5 - DOMAIN:
+ * 6 - SCHEDULER:
+ * 7 - TASK_CONTROL_BLOCK:
+ * 8 - SCHEDULER_CONTEXT:
+ * 9 - OBJECT_TYPE_COUNT:
  *  Constant that keeps count of the total amount
  *  of allowed object types.
  */
@@ -40,6 +42,7 @@ enum ObjectType {
 	FRAMES,
 	CSPACE,
 	CNODE,
+	DOMAIN,
 	SCHEDULER,
 	TASK_CONTROL_BLOCK,
 	SCHEDULER_CONTEXT,
@@ -123,6 +126,18 @@ struct VirtualSpace {
 
 struct ThreadControlBlock;
 struct SchedulerContext;
+struct Scheduler;
+
+enum ThreadStatus {
+	IDLING = 0xFF, /* Special, used for Idle task */
+	RUNNING = 0,
+	WAITING,
+	BLOCKED,
+};
+
+struct Domain {
+	Scheduler *DomainScheduler;
+};
 
 /* The scheduler itself, one exists for each domain
  * Threads can't therefore be passed from one domain to
@@ -131,10 +146,15 @@ struct SchedulerContext;
  * domain but still have the same CSpace and VirtualSpace
  */
 struct Scheduler {
+	Domain *Parent;
+	ThreadControlBlock *Running;
 
+	List Waiting[SCHEDULER_PRIORITIES];
+	List Blocked[SCHEDULER_PRIORITIES];
 };
 
 struct ThreadControlBlock : public ListHead {
+	ThreadStatus Status;
 	usize TaskID;
 	u8 Priority;
 

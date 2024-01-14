@@ -59,6 +59,8 @@ struct KInfo {
 
 	usize CapabilityNodeSize;
 	CapabilitySpace *RootCapabilitySpace;
+
+	Domain *BootDomain;
 };
 
 /*

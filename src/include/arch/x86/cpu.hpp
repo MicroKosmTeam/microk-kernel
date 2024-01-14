@@ -40,6 +40,6 @@ namespace x86 {
 	void InitializeBootCPU();
 
 	__attribute__((noreturn))
-	void GoToUserspace(SchedulerContext *context);
+	void LoadSchedulerContext(SchedulerContext *context);
 
 }

@@ -9,11 +9,8 @@
 #include <arch/x86/gdt.hpp>
 #include <arch/x86/apic.hpp>
 
-extern "C" void SyscallEntry();
-
-void SyscallEntry() {
-
-}
+extern "C" void HandleSyscall64();
+extern "C" void HandleSyscall32();
 
 namespace x86 {
 GDT gdt;
@@ -51,7 +48,7 @@ inline static u32 GetStepping(u32 sig) {
 }
 
 inline static int EnableSyscalls() {
-	PRINTK::PrintK(PRINTK_DEBUG "Syscall entries at 0x%x\r\n", &SyscallEntry);
+	PRINTK::PrintK(PRINTK_DEBUG "Syscall entries at 0x%x for 64-bit and 0x%x for 32-bit\r\n", &HandleSyscall64, HandleSyscall32);
 
 	u32 msrLo = 0, msrHi = 0;
 
@@ -61,13 +58,13 @@ inline static int EnableSyscalls() {
 	SetMSR(MSR_EFER, msrLo, msrHi);
 
 	/* Settign the higher part of the STAR MSR with the GDT offsets (low part is for EIP, unused in 64 bit mode */
-	msrLo = 0;
+	msrLo = (u32)((uptr)&HandleSyscall32 & 0xFFFFFFFF);
 	msrHi = (GDT_OFFSET_KERNEL_CODE) | (GDT_OFFSET_USER_CODE << 16);
 	SetMSR(MSR_STAR, msrLo, msrHi);
 
 	/* Setting syscall RIP for 64 bit mode in the LSTAR MSR */
-	msrLo = (uptr)&SyscallEntry;
-	msrHi = (uptr)&SyscallEntry >> 32;
+	msrLo = (u32)((uptr)&HandleSyscall64 & 0xFFFFFFFF);
+	msrHi = (u32)(((uptr)&HandleSyscall64 >> 32) & 0xFFFFFFFF);
 	SetMSR(MSR_LSTAR, msrLo, msrHi);
 
 	/* Setting syscall RIP for compatibility mode in the CSTAR MSR (for now it's 0, not supported */
@@ -177,7 +174,7 @@ void InitializeBootCPU() {
 }
 
 __attribute__((noreturn))
-void GoToUserspace(SchedulerContext *context) {
+void LoadSchedulerContext(SchedulerContext *context) {
 	InterruptStatus *stack = (InterruptStatus*)(context->SP - sizeof(InterruptStatus));
 
 	/* Copy over general registers */

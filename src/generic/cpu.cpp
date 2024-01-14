@@ -1,4 +1,7 @@
 #include <cpu.hpp>
+#include <kinfo.hpp>
+#include <pmm.hpp>
+#include <capability.hpp>
 
 #if defined(__x86_64__)
 #include <arch/x86/cpu.hpp>
@@ -14,6 +17,12 @@ void InitializeBootCPU() {
 }
 
 void InitializeCPUFeatures() {
+	KInfo *info = GetInfo();
+
+	info->BootDomain = (Domain*)VMM::PhysicalToVirtual((uptr)PMM::RequestPage());
+
+	CAPABILITY::Originate(info->RootCapabilitySpace, (uptr)info->BootDomain, sizeof(Domain), ObjectType::DOMAIN, CapabilityRights::NONE);
+
 #if defined(__x86_64__)
 	x86::InitializeCPUFeatures();
 #else
@@ -21,9 +30,9 @@ void InitializeCPUFeatures() {
 }
 
 __attribute__((noreturn))
-void GoToUserspace(SchedulerContext *context) {
+void LoadSchedulerContext(SchedulerContext *context) {
 #if defined(__x86_64__)
-	x86::GoToUserspace(context);
+	x86::LoadSchedulerContext(context);
 #else
 #endif
 

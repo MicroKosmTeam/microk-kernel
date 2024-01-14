@@ -34,6 +34,22 @@ void AddElementToList(ListHead *element, ListHead *prev, List *list) {
 	}
 }
 
+void RemoveElementFromList(ListHead *element, List *list) {
+	if (list->Head == list->Tail) {
+		list->Head = list->Tail = NULL;
+	} else {
+		if (element == list->Head) {
+			list->Head = element->Next;
+			element->Next->Previous = NULL;
+		} else if (element == list->Tail) {
+			list->Tail = element->Previous;
+			element->Previous->Next = NULL;
+		}
+	
+		element->Next = element->Previous = NULL;
+	}
+}
+
 void MoveElementToList(ListHead *element, List *origin, List *destination) {
 	if (element == origin->Head) {
 		origin->Head = element->Next;
@@ -84,6 +100,26 @@ ListHead *PopListHead(List *list) {
 		list->Head = element->Next;
 		list->Head->Previous = NULL;
 		element->Next = NULL;
+
+		return element;
+	}
+}
+
+ListHead *PopListTail(List *list) {
+	if (list->Tail == NULL) {
+		return NULL;
+	}
+		
+	ListHead *element = list->Tail;
+
+	if (list->Head == list->Tail) {
+		list->Head = list->Tail = NULL;
+
+		return element;
+	} else {
+		list->Tail = element->Previous;
+		list->Tail->Next = NULL;
+		element->Previous = NULL;
 
 		return element;
 	}

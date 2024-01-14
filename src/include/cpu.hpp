@@ -6,6 +6,5 @@ namespace ARCH {
 	void InitializeCPUFeatures();
 
 	__attribute__((noreturn))
-	void GoToUserspace(SchedulerContext *context);
-
+	void LoadSchedulerContext(SchedulerContext *context);
 }

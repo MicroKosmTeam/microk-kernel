@@ -115,10 +115,10 @@ static usize LoadProcess(Elf64_Ehdr *elfHeader, VirtualSpace *space) {
 	context->BP = stackAddr;
 	context->RFLAGS = 0x202;
 
-	VMM::VMAlloc(space, stackAddr - stackSize, stackSize, VMM_FLAGS_USER_DATA);
+	VMM::VMAlloc(space, stackAddr - stackSize, stackSize, VMM_FLAGS_READ | VMM_FLAGS_WRITE | VMM_FLAGS_NOEXEC | VMM_FLAGS_USER);
 
 	VMM::LoadVirtualSpace(space);
-	ARCH::GoToUserspace(context);
+	ARCH::LoadSchedulerContext(context);
 */
 /*
 	PROC::Process *proc = PROC::CreateProcess(info->KernelScheduler, PROC::ExecutableUnitType::PT_USER, space);
