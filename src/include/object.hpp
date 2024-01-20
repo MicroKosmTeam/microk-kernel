@@ -78,8 +78,8 @@ enum ObjectType {
  *  will be marked as executable but not accessible, causing page faults.
  *
  * 1 << 3 - GRANT:
- * 1 << 4 - REVOKE
- * 1 << 5 - MINT
+ * 1 << 4 - REVOKE:
+ * 1 << 5 - MINT:
  * 1 << 6 - RETYPE:
  */
 enum CapabilityRights {
@@ -97,11 +97,19 @@ enum CapabilityRights {
  *
  */
 struct Capability {
-	ObjectType Type;
+	u8 Type;
 	uptr Object;
 	usize Size;
 	u32 AccessRights;
 };
+
+/*
+ *
+ */
+struct CapabilityPointer {
+	/* TODO, for now just do the *EXTREMELY* insecure thing */
+	uptr Address;
+}__attribute__((packed));
 
 /*
  *

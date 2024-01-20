@@ -3,8 +3,10 @@
 
 namespace CAPABILITY {
 	void InitializeRootSpace();
-	
 	CapabilityNode *CreateCNode(CapabilitySpace *space, uptr addr);
+
+	Capability *ResolvePointer(CapabilitySpace *space, CapabilityPointer ptr);
+	CapabilityPointer GeneratePointer(Capability *capability);
 	
 	Capability *Originate(CapabilitySpace *space, uptr object, usize size, ObjectType type, u32 accessRights);
 	Capability *Originate(CapabilitySpace *space, CapabilityNode *node, uptr object, usize size, ObjectType type, u32 accessRights);

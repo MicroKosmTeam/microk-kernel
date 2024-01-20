@@ -18,15 +18,27 @@ void InitializeRootSpace() {
 	Originate(rootSpace, (uptr)rootSpace, sizeof(CapabilitySpace), ObjectType::CSPACE, CapabilityRights::NONE);
 }
 
-CapabilityNode *CreateCNode(CapabilitySpace *space, uptr addr) {
-	CapabilityNode *node = (CapabilityNode*)addr;
+CapabilityNode *CreateCNode(CapabilitySpace *space, uptr frame) {
+	CapabilityNode *node = (CapabilityNode*)frame;
 	Memclr(node, PAGE_SIZE);
 
 	Originate(space, node, (uptr)node, PAGE_SIZE, ObjectType::CNODE, CapabilityRights::REVOKE | CapabilityRights::GRANT | CapabilityRights::RETYPE);
 	AddElementToList(node, &space->CapabilityNodeList);
 
-
 	return node;
+}
+
+Capability *ResolvePointer(CapabilitySpace *space, CapabilityPointer ptr) {
+	/* TODO, implement actual *SECURE* logic */
+	(void)space;
+	return (Capability*)ptr.Address;
+}
+
+CapabilityPointer GeneratePointer(Capability *capability) {
+	/* TODO, implement actual *SECURE* logic */
+	CapabilityPointer ptr;
+	ptr.Address = (uptr)capability;
+	return ptr;
 }
 	
 Capability *Originate(CapabilitySpace *space, uptr object, usize size, ObjectType type, u32 accessRights) {
