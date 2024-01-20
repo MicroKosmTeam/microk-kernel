@@ -125,7 +125,7 @@ void VMAlloc(VirtualSpace space, uptr virt, usize length, usize flags) {
 
 		Memclr((void*)VMM::PhysicalToVirtual(phys), PAGE_SIZE);
 	
-		MapPage(space, phys, virt, flags);
+		MMap(space, phys, virt, PAGE_SIZE, flags);
 	}
 }
 
@@ -152,7 +152,7 @@ void VMCopyAlloc(VirtualSpace space, uptr virt, usize length, usize flags, uptr 
 			dataLen -= copyLen;
 		}
 	
-		MapPage(space, phys, virt, flags);
+		MMap(space, phys, virt, PAGE_SIZE, flags);
 	}
 }
 

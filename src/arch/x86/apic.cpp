@@ -143,7 +143,7 @@ int InitializeAPIC(APIC *apic) {
 
 	apic->Base = GetAPICBase();
 	apic->MappedAddress = VMM::PhysicalToVirtual(apic->Base);
-	VMM::MapPage(info->KernelVirtualSpace, apic->Base, apic->MappedAddress, VMM_FLAGS_READ | VMM_FLAGS_WRITE | VMM_FLAGS_NOEXEC);
+	VMM::MMap(info->KernelVirtualSpace, apic->Base, apic->MappedAddress, PAGE_SIZE, VMM_FLAGS_READ | VMM_FLAGS_WRITE | VMM_FLAGS_NOEXEC);
 	MEM::MEMBLOCK::AddRegion(info->PhysicalMemoryChunks, apic->Base, PAGE_SIZE, MEMMAP_KERNEL_DEVICE);
 	
 	apic->ProcessorIsBSP = IsAPICBSP();
