@@ -32,15 +32,18 @@ namespace x86_64 {
 #define PTE_GET_ADDR(VALUE) ((VALUE) & PTE_ADDR_MASK)
 #define PTE_GET_FLAGS(VALUE) ((VALUE) & ~PTE_ADDR_MASK)
 	
-	uptr NewVirtualSpace();
+	uptr NewVirtualSpace(uptr frame);
 	void LoadVirtualSpace(uptr topLevel);
 
 	u64 GetTotalAddressableMemory();
 	
-	int ForkSpace(uptr newSpace, uptr oldSpace, usize flags);
-	int MapPage(uptr rootPageTable, uptr phys, uptr virt, usize flags, bool hugerPage);
-	int FlagPage(uptr rootPageTable, uptr virt, usize flags);
+	int MapIntermediateLevel(uptr rootPageTable, usize level, uptr frame, uptr virt, usize flags);
+	int MapPage(uptr rootPageTable, uptr phys, uptr virt, usize flags);
+	
+	int UnmapIntermediateLevel(uptr rootPageTable, uptr virt);
 	int UnmapPage(uptr rootPageTable, uptr virt);
+
+	int FlagPage(uptr rootPageTable, uptr virt, usize flags);
 
 	volatile u64 *FindMappedPTE(uptr rootPageTable, uptr virt, bool allocate);
 	uptr FindMappedPage(uptr rootPageTable, uptr virt);

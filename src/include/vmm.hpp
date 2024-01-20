@@ -47,19 +47,18 @@ namespace VMM {
 	uptr PhysicalToVirtual(uptr value);
 	uptr VirtualToPhysical(uptr value);
 	
-	VirtualSpace *NewVirtualSpace();
-	void LoadVirtualSpace(VirtualSpace *space);
+	VirtualSpace NewVirtualSpace(uptr frame);
+	void LoadVirtualSpace(VirtualSpace space);
+	
+	int MapIntermediateLevel(uptr rootPageTable, usize level, uptr frame, uptr virt, usize flags);
+	int MapPage(VirtualSpace space, uptr phys, uptr virt, usize flags);
 
-	void MapPage(VirtualSpace *space, uptr phys, uptr virt, usize flags);
-	void MapPage(VirtualSpace *space, uptr phys, uptr virt, usize flags, bool hugerPage);
-	void ForkSpace(VirtualSpace *newSpace, VirtualSpace *oldSpace, usize flags);
+	void MMap(VirtualSpace space, uptr src, uptr dest, usize length, usize flags);
 
-	void MMap(VirtualSpace *space, uptr src, uptr dest, usize length, usize flags);
-
-	void VMAlloc(VirtualSpace *space, uptr virt, usize length, usize flags);
-	void VMCopyAlloc(VirtualSpace *space, uptr virt, usize length, usize flags, uptr data, uptr virtDataStart, usize dataLen);
+	void VMAlloc(VirtualSpace space, uptr virt, usize length, usize flags);
+	void VMCopyAlloc(VirtualSpace space, uptr virt, usize length, usize flags, uptr data, uptr virtDataStart, usize dataLen);
 
 	void InitVMM();
-	void PrepareKernelVirtualSpace(VirtualSpace *space);
-	void PrepareUserVirtualSpace(VirtualSpace *space);
+	void PrepareKernelVirtualSpace(VirtualSpace space);
+	void PrepareUserVirtualSpace(VirtualSpace space);
 }

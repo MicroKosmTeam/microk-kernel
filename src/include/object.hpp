@@ -120,9 +120,7 @@ struct CapabilitySpace {
 /*
  *
  */
-struct VirtualSpace {
-	uptr VirtualHierarchyTop;
-};
+typedef uptr VirtualSpace;
 
 struct ThreadControlBlock;
 struct SchedulerContext;
@@ -158,7 +156,7 @@ struct ThreadControlBlock : public ListHead {
 	usize TaskID;
 	u8 Priority;
 
-	VirtualSpace *MemorySpace;
+	VirtualSpace MemorySpace;
 	SchedulerContext *Context;
 	CapabilitySpace *CSpace;
 };

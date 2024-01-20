@@ -1,6 +1,7 @@
 #include <vmm.hpp>
 #include <pmm.hpp>
 #include <printk.hpp>
+#include <panic.hpp>
 #include <kinfo.hpp>
 #include <memblock.hpp>
 #include <bootmem.hpp>
@@ -9,7 +10,7 @@ namespace VMM {
 void InitVMM() {
 	KInfo *info = GetInfo();
 
-	info->KernelVirtualSpace = NewVirtualSpace();
+	info->KernelVirtualSpace = NewVirtualSpace((uptr)PMM::RequestPage());
 	PrepareKernelVirtualSpace(info->KernelVirtualSpace);
 
 	LoadVirtualSpace(info->KernelVirtualSpace);
@@ -18,7 +19,7 @@ void InitVMM() {
 
 }
 
-void PrepareKernelVirtualSpace(VirtualSpace *space) {
+void PrepareKernelVirtualSpace(VirtualSpace space) {
 	KInfo *info = GetInfo();
 	
 	uptr essentialStartAddr = (uptr)&__KernelBinaryEssentialStart - info->KernelVirtualBase + info->KernelPhysicalBase;
@@ -53,33 +54,12 @@ void PrepareKernelVirtualSpace(VirtualSpace *space) {
 	ROUND_UP_TO_PAGE(dynamicEndAddr);
 	ROUND_UP_TO_PAGE(bssEndAddr);
 
-	for (uptr phys = essentialStartAddr; phys < essentialEndAddr; phys += PAGE_SIZE) {
-		MapPage(space, phys, phys - info->KernelPhysicalBase + info->KernelVirtualBase, VMM_FLAGS_READ | VMM_FLAGS_WRITE);
-	}
-
-	for (uptr phys = textStartAddr; phys < textEndAddr; phys += PAGE_SIZE) {
-		MapPage(space, phys, phys - info->KernelPhysicalBase + info->KernelVirtualBase, VMM_FLAGS_READ);
-	}
-
-	for (uptr phys = rodataStartAddr; phys < rodataEndAddr; phys += PAGE_SIZE) {
-		MapPage(space, phys, phys - info->KernelPhysicalBase + info->KernelVirtualBase, VMM_FLAGS_READ | VMM_FLAGS_NOEXEC);
-	}
-
-
-	for (uptr phys = dataStartAddr; phys < dataEndAddr; phys += PAGE_SIZE) {
-		MapPage(space, phys, phys - info->KernelPhysicalBase + info->KernelVirtualBase, VMM_FLAGS_READ | VMM_FLAGS_WRITE | VMM_FLAGS_NOEXEC);
-	}
-
-	/* TODO: Dynamic sections
-	for (uptr phys = dynamicStartAddr; phys < dynamicEndAddr; phys += PAGE_SIZE) {
-		MapPage(space, phys, phys - info->KernelPhysicalBase + info->KernelVirtualBase, VMM_FLAGS_READ);
-	}
-	*/
-
-	for (uptr phys = bssStartAddr; phys < bssEndAddr; phys += PAGE_SIZE) {
-		MapPage(space, phys, phys - info->KernelPhysicalBase + info->KernelVirtualBase, VMM_FLAGS_READ | VMM_FLAGS_WRITE | VMM_FLAGS_NOEXEC);
-	}
-
+	MMap(space, essentialStartAddr, essentialStartAddr - info->KernelPhysicalBase + info->KernelVirtualBase, essentialEndAddr - essentialStartAddr, VMM_FLAGS_READ | VMM_FLAGS_WRITE);
+	MMap(space, textStartAddr, textStartAddr - info->KernelPhysicalBase + info->KernelVirtualBase, textEndAddr - textStartAddr, VMM_FLAGS_READ);
+	MMap(space, rodataStartAddr, rodataStartAddr - info->KernelPhysicalBase + info->KernelVirtualBase, rodataEndAddr - rodataStartAddr, VMM_FLAGS_READ | VMM_FLAGS_NOEXEC);
+	MMap(space, dataStartAddr, dataStartAddr - info->KernelPhysicalBase + info->KernelVirtualBase, dataEndAddr - dataStartAddr, VMM_FLAGS_READ | VMM_FLAGS_WRITE | VMM_FLAGS_NOEXEC);
+	MMap(space, bssStartAddr, bssStartAddr - info->KernelPhysicalBase + info->KernelVirtualBase, bssEndAddr - bssStartAddr, VMM_FLAGS_READ | VMM_FLAGS_WRITE | VMM_FLAGS_NOEXEC);
+	
 	/* We go through every entry in the memory map and map it in virtual memory */
 	for (MEM::MEMBLOCK::MemblockRegion *current = (MEM::MEMBLOCK::MemblockRegion*)info->PhysicalMemoryChunks->Regions.Head;
 	     current != NULL;
@@ -97,43 +77,43 @@ void PrepareKernelVirtualSpace(VirtualSpace *space) {
 
 		uptr top = base + current->Length;
 		ROUND_UP_TO_PAGE(top);
-		
-		for (uptr addr = base; addr < top;) {
-			if (addr % HUGER_PAGE_SIZE == 0 && top - addr >= HUGER_PAGE_SIZE) {
-				PRINTK::PrintK(PRINTK_DEBUG " [0x%x - 0x%x] Mapped as %d huge page.\r\n", addr, addr + HUGER_PAGE_SIZE, HUGER_PAGE_SIZE);
-				MapPage(space, addr, addr + info->HigherHalfMapping, VMM_FLAGS_READ | VMM_FLAGS_WRITE | VMM_FLAGS_NOEXEC | VMM_FLAGS_HUGE, true);
-				addr += HUGER_PAGE_SIZE;
-			} else if (addr % HUGE_PAGE_SIZE == 0 && top - addr >= HUGE_PAGE_SIZE) {
-				PRINTK::PrintK(PRINTK_DEBUG " [0x%x - 0x%x] Mapped as %d huge page.\r\n", addr, addr + HUGE_PAGE_SIZE, HUGE_PAGE_SIZE);
-				MapPage(space, addr, addr + info->HigherHalfMapping, VMM_FLAGS_READ | VMM_FLAGS_WRITE | VMM_FLAGS_NOEXEC | VMM_FLAGS_HUGE);
-				addr += HUGE_PAGE_SIZE;
-			} else {
-				MapPage(space, addr, addr + info->HigherHalfMapping, VMM_FLAGS_READ | VMM_FLAGS_WRITE | VMM_FLAGS_NOEXEC);
-				addr += PAGE_SIZE;
-			}
-		}
+	
+		MMap(space, base, base + info->HigherHalfMapping, top - base, VMM_FLAGS_READ | VMM_FLAGS_WRITE | VMM_FLAGS_NOEXEC);
 	}
 }
 
-void PrepareUserVirtualSpace(VirtualSpace *space) {
-	KInfo *info = GetInfo();
-
-	ForkSpace(space, info->KernelVirtualSpace, 0);
+void PrepareUserVirtualSpace(VirtualSpace space) {
+	PrepareKernelVirtualSpace(space);
 }
 
-void MMap(VirtualSpace *space, uptr src, uptr dest, usize length, usize flags) {
+void MMap(VirtualSpace space, uptr src, uptr dest, usize length, usize flags) {
 	ROUND_DOWN_TO_PAGE(src);
 	ROUND_DOWN_TO_PAGE(dest);
 	ROUND_UP_TO_PAGE(length);
 
-	PRINTK::PrintK(PRINTK_DEBUG "Flags: 0x%x\r\n", flags);
+	for (usize diff = 0; diff < length;) {
+		int result;
 
-	for (usize diff = 0; diff < length; diff += PAGE_SIZE) {
-		MapPage(space, src + diff, dest + diff, flags);
+		do {
+			result = MapPage(space, src + diff, dest + diff, flags);
+
+			if (result == -ENOTPRESENT) {
+				PANIC("PAGING");
+			}
+
+			if (result != 0) {
+				//PRINTK::PrintK(PRINTK_DEBUG "Missing level: %d.\r\n", result);
+				MapIntermediateLevel(space, result, (uptr)PMM::RequestPage(), dest + diff, flags);
+			} else {
+				break;
+			}
+		} while (true);
+
+		diff += PAGE_SIZE;
 	}
 }
 	
-void VMAlloc(VirtualSpace *space, uptr virt, usize length, usize flags) {
+void VMAlloc(VirtualSpace space, uptr virt, usize length, usize flags) {
 	ROUND_DOWN_TO_PAGE(virt);
 	ROUND_UP_TO_PAGE(length);
 	
@@ -149,7 +129,7 @@ void VMAlloc(VirtualSpace *space, uptr virt, usize length, usize flags) {
 	}
 }
 
-void VMCopyAlloc(VirtualSpace *space, uptr virt, usize length, usize flags, uptr data, uptr virtDataStart, usize dataLen) {
+void VMCopyAlloc(VirtualSpace space, uptr virt, usize length, usize flags, uptr data, uptr virtDataStart, usize dataLen) {
 	ROUND_DOWN_TO_PAGE(virt);
 	ROUND_UP_TO_PAGE(length);
 
@@ -193,42 +173,32 @@ uptr VirtualToPhysical(uptr value) {
 }
 
 
-VirtualSpace *NewVirtualSpace() {
-	VirtualSpace *space = (VirtualSpace*)BOOTMEM::Malloc(sizeof(VirtualSpace));
-
+VirtualSpace NewVirtualSpace(uptr frame) {
 #if defined(__x86_64__)
-	space->VirtualHierarchyTop = x86_64::NewVirtualSpace();
+	return x86_64::NewVirtualSpace(frame);
 #endif
-
-	return space;
+	return 0;
 }
 
 
-void LoadVirtualSpace(VirtualSpace *space) {
+void LoadVirtualSpace(VirtualSpace space) {
 #if defined(__x86_64__)
-	x86_64::LoadVirtualSpace(space->VirtualHierarchyTop);
+	x86_64::LoadVirtualSpace(space);
 #endif
+}
+	
+int MapIntermediateLevel(uptr rootPageTable, usize level, uptr frame, uptr virt, usize flags) {
+#if defined(__x86_64__)
+	return x86_64::MapIntermediateLevel(rootPageTable, level, frame, virt, flags);
+#endif
+	return 0;
 }
 
 
-void MapPage(VirtualSpace *space, uptr phys, uptr virt, usize flags) {
+int MapPage(VirtualSpace space, uptr phys, uptr virt, usize flags) {
 #if defined(__x86_64__)
-	x86_64::MapPage(space->VirtualHierarchyTop, phys, virt, flags, false);
+	return x86_64::MapPage(space, phys, virt, flags);
 #endif
+	return 0;
 }
-
-void MapPage(VirtualSpace *space, uptr phys, uptr virt, usize flags, bool hugerPage) {
-#if defined(__x86_64__)
-	x86_64::MapPage(space->VirtualHierarchyTop, phys, virt, flags, hugerPage);
-#endif
-}
-
-
-void ForkSpace(VirtualSpace *newSpace, VirtualSpace *oldSpace, usize flags) {
-#if defined(__x86_64__)
-	x86_64::ForkSpace(newSpace->VirtualHierarchyTop, oldSpace->VirtualHierarchyTop, flags);
-#endif
-}
-
-
 }

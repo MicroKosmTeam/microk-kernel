@@ -48,7 +48,7 @@ struct KInfo {
 	uptr KernelPhysicalBase; /* Start of the kernel in physical memory */
 	uptr KernelVirtualBase; /* Start of the kernel in virtual memory */
 
-	VirtualSpace *KernelVirtualSpace; /* Kernel virtual memory space */
+	VirtualSpace KernelVirtualSpace; /* Kernel virtual memory space */
 	uptr KernelStack; /* Start of kernel stack */
 
 	uptr RSDP;

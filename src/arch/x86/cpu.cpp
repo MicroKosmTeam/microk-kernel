@@ -163,7 +163,7 @@ void InitializeCPUFeatures() {
 	SetMSR(MSR_GSBASE, 0, 0);
 
 	SetMSR(MSR_KERNELGSBASE, (uptr)&coreInfo->CPUStruct, (uptr)&coreInfo->CPUStruct >> 32);
-	UpdateLocalCPUStruct(&coreInfo->CPUStruct, 0, VMM::VirtualToPhysical(info->KernelVirtualSpace->VirtualHierarchyTop), VMM::VirtualToPhysical(info->KernelVirtualSpace->VirtualHierarchyTop));
+	UpdateLocalCPUStruct(&coreInfo->CPUStruct, 0, VMM::VirtualToPhysical(info->KernelVirtualSpace), VMM::VirtualToPhysical(info->KernelVirtualSpace));
 
 	coreInfo->CPUStruct.TopologyStructure = (uptr)core;*/
 }

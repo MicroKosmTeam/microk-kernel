@@ -13,11 +13,11 @@
 
 namespace LOADER {
 static bool VerifyELF(Elf64_Ehdr *elfHeader);
-static int LoadProgramHeaders(u8 *data, usize size, Elf64_Ehdr *elfHeader, VirtualSpace *space);
-static usize LoadProcess(Elf64_Ehdr *elfHeader, VirtualSpace *space);
+static int LoadProgramHeaders(u8 *data, usize size, Elf64_Ehdr *elfHeader, VirtualSpace space);
+static usize LoadProcess(Elf64_Ehdr *elfHeader, VirtualSpace space);
 
 usize LoadELF(u8 *data, usize size) {
-	VirtualSpace *space = VMM::NewVirtualSpace();
+	VirtualSpace space = VMM::NewVirtualSpace((uptr)PMM::RequestPage());
 	VMM::PrepareUserVirtualSpace(space);
 	
 	Elf64_Ehdr *elfHeader = (Elf64_Ehdr*)data;
@@ -58,7 +58,7 @@ static bool VerifyELF(Elf64_Ehdr *elfHeader) {
 	return true;
 }
 
-static int LoadProgramHeaders(u8 *data, usize size, Elf64_Ehdr *elfHeader, VirtualSpace *space) {
+static int LoadProgramHeaders(u8 *data, usize size, Elf64_Ehdr *elfHeader, VirtualSpace space) {
 	KInfo *info = GetInfo();
 
 	(void)info;
@@ -103,7 +103,7 @@ static int LoadProgramHeaders(u8 *data, usize size, Elf64_Ehdr *elfHeader, Virtu
 	return 0;
 }
 
-static usize LoadProcess(Elf64_Ehdr *elfHeader, VirtualSpace *space) {
+static usize LoadProcess(Elf64_Ehdr *elfHeader, VirtualSpace space) {
 	KInfo *info = GetInfo();
 /*
 	uptr stackAddr = 0x10000000000;
