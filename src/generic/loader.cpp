@@ -10,6 +10,8 @@
 #include <vmm.hpp>
 #include <cpu.hpp>
 #include <kinfo.hpp>
+#include <capability.hpp>
+#include <task.hpp>
 
 namespace LOADER {
 static bool VerifyELF(Elf64_Ehdr *elfHeader);
@@ -17,7 +19,10 @@ static int LoadProgramHeaders(u8 *data, usize size, Elf64_Ehdr *elfHeader, Virtu
 static usize LoadProcess(Elf64_Ehdr *elfHeader, VirtualSpace space);
 
 usize LoadELF(u8 *data, usize size) {
+	KInfo *info = GetInfo();
+
 	VirtualSpace space = VMM::NewVirtualSpace((uptr)PMM::RequestPage());
+	CAPABILITY::Originate(info->RootCapabilitySpace, space, PAGE_SIZE, ObjectType::PAGING_STRUCTURE, CapabilityRights::NONE);
 	VMM::PrepareUserVirtualSpace(space);
 	
 	Elf64_Ehdr *elfHeader = (Elf64_Ehdr*)data;
@@ -105,6 +110,14 @@ static int LoadProgramHeaders(u8 *data, usize size, Elf64_Ehdr *elfHeader, Virtu
 
 static usize LoadProcess(Elf64_Ehdr *elfHeader, VirtualSpace space) {
 	KInfo *info = GetInfo();
+
+	info->RootTCB->MemorySpace = space;
+
+/*
+	tcb->Context = context;
+	tcb->CSpace = cspace;
+*/
+
 /*
 	uptr stackAddr = 0x10000000000;
 	usize stackSize = 0x100000;

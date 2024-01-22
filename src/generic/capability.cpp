@@ -3,42 +3,53 @@
 #include <pmm.hpp>
 #include <kinfo.hpp>
 #include <printk.hpp>
+#include <task.hpp>
 
 namespace CAPABILITY {
 void InitializeRootSpace() {
 	KInfo *info = GetInfo();
 
+	uptr tcbFrame = VMM::PhysicalToVirtual((uptr)PMM::RequestPage());
+
+	info->RootTCB = TASK::InitializeTCB(tcbFrame);
+	info->RootCapabilitySpace = (CapabilitySpace*)&info->RootTCB->CSpace;
 	info->CapabilityNodeSize = PAGE_SIZE;
-	info->RootCapabilitySpace = (CapabilitySpace*)VMM::PhysicalToVirtual((uptr)PMM::RequestPage());
 
-	CapabilitySpace *rootSpace = info->RootCapabilitySpace;
-	Memclr(rootSpace, PAGE_SIZE);
+	Memclr(info->RootCapabilitySpace, sizeof(CapabilitySpace));
 
-	CreateCNode(rootSpace, VMM::PhysicalToVirtual((uptr)PMM::RequestPage()));
-	Originate(rootSpace, (uptr)rootSpace, sizeof(CapabilitySpace), ObjectType::CSPACE, CapabilityRights::NONE);
+	CapabilityNode *rootNode = CreateRootCNode(info->RootCapabilitySpace, VMM::PhysicalToVirtual((uptr)PMM::RequestPage()));
+	Originate(info->RootCapabilitySpace, rootNode, RootCNodeSlots::TASK_CONTROL_BLOCK_SLOT, tcbFrame, sizeof(ThreadControlBlock), ObjectType::TASK_CONTROL_BLOCK, CapabilityRights::READ | CapabilityRights::WRITE);
+
+	PRINTK::PrintK(PRINTK_DEBUG "Root CNode initialized.\r\n");
 }
 
 CapabilityNode *CreateCNode(CapabilitySpace *space, uptr frame) {
+	KInfo *info = GetInfo();
 	CapabilityNode *node = (CapabilityNode*)frame;
-	Memclr(node, PAGE_SIZE);
+	Memclr(node, info->CapabilityNodeSize);
 
-	Originate(space, node, (uptr)node, PAGE_SIZE, ObjectType::CNODE, CapabilityRights::REVOKE | CapabilityRights::GRANT | CapabilityRights::RETYPE);
+	Originate(space, node, (uptr)node, info->CapabilityNodeSize, ObjectType::CNODE, CapabilityRights::REVOKE | CapabilityRights::GRANT | CapabilityRights::READ | CapabilityRights::WRITE | CapabilityRights::MINT);
 	AddElementToList(node, &space->CapabilityNodeList);
 
 	return node;
 }
 
-Capability *ResolvePointer(CapabilitySpace *space, CapabilityPointer ptr) {
-	/* TODO, implement actual *SECURE* logic */
-	(void)space;
-	return (Capability*)ptr.Address;
-}
+CapabilityNode *CreateRootCNode(CapabilitySpace *space, uptr frame) {
+	KInfo *info = GetInfo();
 
-CapabilityPointer GeneratePointer(Capability *capability) {
-	/* TODO, implement actual *SECURE* logic */
-	CapabilityPointer ptr;
-	ptr.Address = (uptr)capability;
-	return ptr;
+	CapabilityNode *rootNode = (CapabilityNode*)frame;
+	Memclr(rootNode, info->CapabilityNodeSize);
+
+	for (usize slot = RootCNodeSlots::NULL_SLOT; slot < RootCNodeSlots::FIRST_FREE_SLOT; ++slot) {
+		rootNode->Slots[slot].Type = ObjectType::RESERVED_SLOT;
+	}
+
+	Originate(space, rootNode, RootCNodeSlots::CSPACE_SLOT, (uptr)space, sizeof(CapabilitySpace), ObjectType::CNODE, CapabilityRights::READ | CapabilityRights::WRITE);
+	Originate(space, rootNode, RootCNodeSlots::ROOT_CNODE_SLOT, (uptr)rootNode, info->CapabilityNodeSize, ObjectType::CNODE, CapabilityRights::READ | CapabilityRights::WRITE);
+	
+	space->CapabilityNodeList.Head = space->CapabilityNodeList.Tail = rootNode;
+
+	return rootNode;
 }
 	
 Capability *Originate(CapabilitySpace *space, uptr object, usize size, ObjectType type, u32 accessRights) {
@@ -106,6 +117,21 @@ Capability *Originate(CapabilitySpace *space, CapabilityNode *node, uptr object,
 	PRINTK::PrintK(PRINTK_DEBUG "Originated capability 0x%x of object 0x%x (%d bytes) of type 0x%x and with the following access rights: 0x%x\r\n", capability, capability->Object, capability->Size, capability->Type, capability->AccessRights);
 
 	return capability;
+}
+	
+Capability *Originate(CapabilitySpace *space, CapabilityNode *node, usize slot, uptr object, usize size, ObjectType type, u32 accessRights) {
+	Capability *capability = (Capability*)&node->Slots[slot];
+	(void)space;
+
+	capability->Type = type;
+	capability->Object = object;
+	capability->Size = size;
+	capability->AccessRights = accessRights;
+
+	PRINTK::PrintK(PRINTK_DEBUG "Originated capability 0x%x of object 0x%x (%d bytes) of type 0x%x and with the following access rights: 0x%x\r\n", capability, capability->Object, capability->Size, capability->Type, capability->AccessRights);
+
+	return capability;
+
 }
 
 

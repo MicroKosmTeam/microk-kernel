@@ -1,6 +1,10 @@
 #pragma once
 #include <cstdint.hpp>
 
+#define PAGE_SIZE 0x1000
+#define HUGE_PAGE_SIZE (512 * PAGE_SIZE)
+#define HUGER_PAGE_SIZE (512 * HUGE_PAGE_SIZE)
+
 namespace x86 {
 	struct InterruptStack {
 		u64 VectorNumber;

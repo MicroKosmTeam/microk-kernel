@@ -1,5 +1,5 @@
 #pragma once
-#include "cdefs.h"
+#include <cdefs.h>
 #include <cstdint.hpp>
 
 #if defined(__x86_64__)
@@ -23,18 +23,21 @@ struct List {
 /* All the available object types that can be
  * mapped to a capability.
  *
- * 0 - NULL_CAPABILITY:
- * 1 - UNTYPED:
- * 2 - FRAMES:
- * 3 - CSPACE:
- * 4 - CNODE:
- * 5 - DOMAIN:
- * 6 - SCHEDULER:
- * 7 - TASK_CONTROL_BLOCK:
- * 8 - SCHEDULER_CONTEXT:
- * 9 - OBJECT_TYPE_COUNT:
+ * 00h - NULL_CAPABILITY:
+ * 01h - UNTYPED:
+ * 02h - FRAMES:
+ * 03h - CSPACE:
+ * 04h - CNODE:
+ * 05h - DOMAIN:
+ * 06h - SCHEDULER:
+ * 07h - TASK_CONTROL_BLOCK:
+ * 08h - SCHEDULER_CONTEXT:
+ * 09h - PAGING_STRUCTURE:
+ * 0Ah - OBJECT_TYPE_COUNT:
  *  Constant that keeps count of the total amount
  *  of allowed object types.
+ * FFh - RESERVED_SLOT:
+ *  Statically assigned slots that haven't yet been filled.
  */
 enum ObjectType {
 	NULL_CAPABILITY = 0,
@@ -46,41 +49,23 @@ enum ObjectType {
 	SCHEDULER,
 	TASK_CONTROL_BLOCK,
 	SCHEDULER_CONTEXT,
+	PAGING_STRUCTURE,
 	OBJECT_TYPE_COUNT,
+	RESERVED_SLOT = 0xFF
 };
 
 /* The rights that can be given to a capability
  *
- * 0 << 0 - NONE:
- *  The capability exists only to make sure that resource
- *  can't be touched by userspace in any way. It renders
- *  the object unusable and its status is unrevokable.
- *
+ *      0 - NONE:
  * 1 << 0 - READ:
- *  Allows the object to be mapped in virtual memory and be
- *  accessed. Any illegal write will cause a page fault.
- *
  * 1 << 1 - WRITE:
- *  Allows the object to be mapped in virtual memory and be
- *  written to.
- *  Note that it can be used without READ permissions,
- *  but it won't make any sense on some architectures, as the page
- *  will be marked as writable but not accessible, causing page faults.
- *
  * 1 << 2 - EXECUTE:
- *  Allows the object to be mapped in virtual memory and be
- *  executed. If the architecture has hardware protection, this will
- *  make a difference, otherwise it will just be used as information
- *  that the pointed object is a piece of executable code and should be
- *  treated accordingly.
- *  Note that it can be used without READ permissions,
- *  but it won't make any sense on some architectures, as the page
- *  will be marked as executable but not accessible, causing page faults.
- *
  * 1 << 3 - GRANT:
  * 1 << 4 - REVOKE:
  * 1 << 5 - MINT:
  * 1 << 6 - RETYPE:
+ * 1 << 7 - MODIFY:
+ *  Allows the object to be 
  */
 enum CapabilityRights {
 	NONE = 0,
@@ -101,21 +86,21 @@ struct Capability {
 	uptr Object;
 	usize Size;
 	u32 AccessRights;
+}__attribute__((aligned(0x8)));
+
+enum RootCNodeSlots {
+	NULL_SLOT = 0,
+	CSPACE_SLOT,
+	ROOT_CNODE_SLOT,
+	TASK_CONTROL_BLOCK_SLOT,
+	FIRST_FREE_SLOT,
 };
 
 /*
  *
  */
-struct CapabilityPointer {
-	/* TODO, for now just do the *EXTREMELY* insecure thing */
-	uptr Address;
-}__attribute__((packed));
-
-/*
- *
- */
 struct CapabilityNode : public ListHead {
-	Capability Slots[];
+	Capability Slots[PAGE_SIZE / sizeof(Capability)];
 };
 
 /*
@@ -165,8 +150,8 @@ struct ThreadControlBlock : public ListHead {
 	u8 Priority;
 
 	VirtualSpace MemorySpace;
+	CapabilitySpace CSpace;
 	SchedulerContext *Context;
-	CapabilitySpace *CSpace;
 };
 
 struct SchedulerContext {

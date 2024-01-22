@@ -58,6 +58,7 @@ struct KInfo {
 	usize ManagerExecutableSize;
 
 	usize CapabilityNodeSize;
+	ThreadControlBlock *RootTCB;
 	CapabilitySpace *RootCapabilitySpace;
 
 	Domain *BootDomain;

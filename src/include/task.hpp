@@ -3,6 +3,5 @@
 #include <object.hpp>
 
 namespace TASK {
-	ThreadControlBlock *InitializeTCB();
-
+	ThreadControlBlock *InitializeTCB(uptr frame);
 }
