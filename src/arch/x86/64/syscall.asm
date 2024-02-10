@@ -4,6 +4,9 @@ extern SyscallMain
 
 global HandleSyscall64
 HandleSyscall64:
+	; Save flags
+	pushf
+
 	; Save cross-function registers
 	push rbx
 	push r12
@@ -43,6 +46,9 @@ HandleSyscall64:
 	pop r13
 	pop r12
 	pop rbx
+	
+	; Restore flags
+	popf
 
 	o64 sysret
 

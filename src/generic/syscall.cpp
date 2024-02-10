@@ -1,4 +1,5 @@
 #include <syscall.hpp>
+#include <printk.hpp>
 #include <cdefs.h>
 
 extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize secondArgument, usize thirdArgument, usize fourthArgument, usize fithArgument, usize sixthArgument) {
@@ -11,6 +12,7 @@ extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize seco
 
 	switch (syscallNumber) {
 		case SYSCALL_VECTOR_DEBUG:
+			PRINTK::PrintK(PRINTK_DEBUG "Hello, syscall!\r\n");
 			break;
 		case SYSCALL_VECTOR_YEILD:
 			break;

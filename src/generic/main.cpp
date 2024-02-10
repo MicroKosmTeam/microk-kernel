@@ -31,6 +31,7 @@
 #include <kinfo.hpp>
 #include <loader.hpp>
 #include <cpu.hpp>
+#include <pmm.hpp>
 #include <bootmem.hpp>
 #include <sched.hpp>
 #include <capability.hpp>
@@ -39,16 +40,36 @@ extern "C" __attribute__((noreturn))
 void KernelStart() {
 	KInfo *info = GetInfo();
 
+	PRINTK::PrintK(PRINTK_DEBUG "Structs size: \r\n"
+		       "Capability:         0x%x\r\n"
+		       "CapabilityNode:     0x%x\r\n"
+		       "CapabilitySpace:    0x%x\r\n"
+		       "Domain:             0x%x\r\n"
+		       "Scheduler:          0x%x\r\n"
+		       "ThreadControlBlock: 0x%x\r\n"
+		       "SchedulerContext:   0x%x\r\n",
+		       sizeof(Capability),
+		       sizeof(CapabilityNode),
+		       sizeof(CapabilitySpace),
+		       sizeof(Domain),
+		       sizeof(Scheduler),
+		       sizeof(ThreadControlBlock),
+		       sizeof(SchedulerContext));
+
 	ARCH::InitializeBootCPU();
 	MEM::Init();
 	CAPABILITY::InitializeRootSpace();
 	ARCH::InitializeCPUFeatures();
-	SCHED::InitializeCPUScheduler(info->BootDomain);
+	SCHED::InitializeCPUScheduler(info->BootDomain, VMM::PhysicalToVirtual((uptr)PMM::RequestPage()));
+	CAPABILITY::Originate(info->RootCapabilitySpace, (uptr)info->BootDomain->DomainScheduler, sizeof(Scheduler), ObjectType::SCHEDULER, CapabilityRights::NONE);
 	LOADER::LoadELF((u8*)info->ManagerExecutableAddress, info->ManagerExecutableSize);
 	MEM::Deinit();
-
+	SCHED::Recalculate(info->BootDomain->DomainScheduler);
 
 	PRINTK::PrintK(PRINTK_DEBUG "Kernel startup complete.\r\n");
+
+	VMM::LoadVirtualSpace(info->RootTCB->MemorySpace);
+	ARCH::LoadSchedulerContext(info->RootTCB->Context);
 
 	HALT;
 

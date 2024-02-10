@@ -20,6 +20,7 @@ void InitializeCPUFeatures() {
 	KInfo *info = GetInfo();
 
 	info->BootDomain = (Domain*)VMM::PhysicalToVirtual((uptr)PMM::RequestPage());
+	Memclr(info->BootDomain, sizeof(Domain));
 
 	CAPABILITY::Originate(info->RootCapabilitySpace, (uptr)info->BootDomain, sizeof(Domain), ObjectType::DOMAIN, CapabilityRights::NONE);
 

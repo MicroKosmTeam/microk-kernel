@@ -1,10 +1,18 @@
 #include <sched.hpp>
 #include <list.hpp>
+#include <memory.hpp>
 
 namespace SCHED {
-Scheduler *InitializeCPUScheduler(Domain *domain) {
-	(void)domain;
-	return NULL;
+Scheduler *InitializeCPUScheduler(Domain *domain, uptr frame) {
+	Scheduler *scheduler = (Scheduler*)frame;
+	Memclr(scheduler, sizeof(Scheduler));
+	
+	scheduler->Parent = domain;
+	scheduler->Running = NULL;
+
+	domain->DomainScheduler = scheduler;
+
+	return scheduler;
 }
 
 void AddThread(Scheduler *scheduler, ThreadControlBlock *tcb) {
@@ -50,7 +58,9 @@ void RemoveThread(Scheduler *scheduler, ThreadControlBlock *tcb) {
 }
 
 ThreadControlBlock *Recalculate(Scheduler *scheduler) {
-	AddElementToList(scheduler->Running, &scheduler->Waiting[scheduler->Running->Priority]);
+	if (scheduler->Running != NULL) {
+		AddElementToList(scheduler->Running, &scheduler->Waiting[scheduler->Running->Priority]);
+	}
 
 	for (u8 prio = SCHEDULER_MAX_PRIORITY; prio < SCHEDULER_MIN_PRIORITY; ++prio) {
 		scheduler->Running = (ThreadControlBlock*)PopListHead(&scheduler->Waiting[prio]);

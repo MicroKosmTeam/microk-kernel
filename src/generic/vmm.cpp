@@ -20,6 +20,7 @@ void InitVMM() {
 }
 
 void PrepareKernelVirtualSpace(VirtualSpace space) {
+	PRINTK::PrintK(PRINTK_DEBUG "Preparing kernel virtual space at 0x%x\r\n", space);
 	KInfo *info = GetInfo();
 	
 	uptr essentialStartAddr = (uptr)&__KernelBinaryEssentialStart - info->KernelVirtualBase + info->KernelPhysicalBase;
@@ -64,6 +65,11 @@ void PrepareKernelVirtualSpace(VirtualSpace space) {
 	for (MEM::MEMBLOCK::MemblockRegion *current = (MEM::MEMBLOCK::MemblockRegion*)info->PhysicalMemoryChunks->Regions.Head;
 	     current != NULL;
 	     current = (MEM::MEMBLOCK::MemblockRegion*)current->Next) {
+		PRINTK::PrintK(PRINTK_DEBUG " [0x%x - 0x%x] -> %s\r\n",
+				current->Base,
+				current->Base + current->Length,
+				MEM::MemoryTypeToString(current->Type));
+
 
 		/* We will skip any memory that is not usable by our kernel */
 		if (current->Type == MEMMAP_BAD_MEMORY ||
@@ -83,7 +89,16 @@ void PrepareKernelVirtualSpace(VirtualSpace space) {
 }
 
 void PrepareUserVirtualSpace(VirtualSpace space) {
-	PrepareKernelVirtualSpace(space);
+	KInfo *info = GetInfo();
+
+	PRINTK::PrintK(PRINTK_DEBUG "Preparing user virtual space at 0x%x\r\n", space);
+
+	volatile u64 *oldSpace = (volatile u64*)info->KernelVirtualSpace;
+	volatile u64 *newSpace = (volatile u64*)space;
+
+	for (usize i = 256; i < 512; ++i) {
+		newSpace[i] = oldSpace[i];
+	}
 }
 
 void MMap(VirtualSpace space, uptr src, uptr dest, usize length, usize flags) {
@@ -102,7 +117,6 @@ void MMap(VirtualSpace space, uptr src, uptr dest, usize length, usize flags) {
 			}
 
 			if (result != 0) {
-				//PRINTK::PrintK(PRINTK_DEBUG "Missing level: %d.\r\n", result);
 				MapIntermediateLevel(space, result, (uptr)PMM::RequestPage(), dest + diff, flags);
 			} else {
 				break;

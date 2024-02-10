@@ -106,9 +106,9 @@ void Deinit() {
 	BOOTMEM::DeactivateBootMemory();
 
 	/* Make sure we have enough preallocated space in the root capability space */
-	usize capabilityCountPerPage = (info->CapabilityNodeSize - sizeof(CapabilityNode)) / sizeof(Capability);
+	usize capabilityCountPerNode = info->CapabilityNodeSize / sizeof(Capability);
 	usize memoryRegionsCount = MEMBLOCK::GetTotalElements(info->PhysicalMemoryChunks);
-	usize cnodesRequired = memoryRegionsCount / capabilityCountPerPage + 1;
+	usize cnodesRequired = memoryRegionsCount / capabilityCountPerNode + 1;
 
 	do {
 		CAPABILITY::CreateCNode(info->RootCapabilitySpace, VMM::PhysicalToVirtual((uptr)PMM::RequestPage()));

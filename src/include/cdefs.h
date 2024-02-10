@@ -32,7 +32,7 @@
 /* Limiting maximum bootmem allocation space */
 #define MAXIMUM_BOOTMEM_MEMORY (64 * 1024)
 
-#define SCHEDULER_PRIORITIES   256
+#define SCHEDULER_PRIORITIES   64
 #define SCHEDULER_MIN_PRIORITY ((u8)0xff)
 #define SCHEDULER_MAX_PRIORITY ((u8)0x00)
 

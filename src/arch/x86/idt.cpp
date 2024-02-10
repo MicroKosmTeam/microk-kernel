@@ -1,3 +1,4 @@
+#include <sched.hpp>
 #include <panic.hpp>
 #include <printk.hpp>
 #include <kinfo.hpp>
@@ -93,6 +94,8 @@ void IDTInit() {
 
 
 extern "C" InterruptStatus *InterruptHandler(InterruptStatus *context) {
+	KInfo *info = GetInfo();
+
 	switch(context->Base.VectorNumber) {
 		case 0:
 			PRINTK::PrintK(PRINTK_DEBUG "Division by zero.\r\n");
@@ -135,6 +138,32 @@ extern "C" InterruptStatus *InterruptHandler(InterruptStatus *context) {
 				       wasInstructionFetch ? "was" : "wasn't");
 
 			PANIC("Page fault");
+			}
+			break;
+		case 32: {
+			Scheduler *scheduler = info->BootDomain->DomainScheduler;
+			ThreadControlBlock *activeThread = scheduler->Running;
+			SchedulerContext *taskContext = activeThread->Context;
+
+			taskContext->SP = context->Base.IretRSP;
+			taskContext->BP = context->Base.IretRSP;
+			taskContext->IP = context->Base.IretRIP;
+			taskContext->RFLAGS = context->Base.IretRFLAGS;
+
+			Memcpy(&taskContext->Registers, &context->Registers, sizeof(GeneralRegisters));
+
+			activeThread = SCHED::Recalculate(scheduler);
+			taskContext = activeThread->Context;
+
+			VMM::LoadVirtualSpace(activeThread->MemorySpace);
+
+			context->Base.IretRSP = taskContext->SP;
+			context->Base.IretRSP = taskContext->BP;
+			context->Base.IretRIP = taskContext->IP;
+			context->Base.IretRFLAGS = taskContext->RFLAGS;
+
+			Memcpy(&context->Registers, &taskContext->Registers, sizeof(GeneralRegisters));
+
 			}
 			break;
 		default:

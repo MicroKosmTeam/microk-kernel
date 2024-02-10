@@ -9,6 +9,7 @@
 #include <pmm.hpp>
 #include <vmm.hpp>
 #include <cpu.hpp>
+#include <sched.hpp>
 #include <kinfo.hpp>
 #include <capability.hpp>
 #include <task.hpp>
@@ -111,14 +112,8 @@ static int LoadProgramHeaders(u8 *data, usize size, Elf64_Ehdr *elfHeader, Virtu
 static usize LoadProcess(Elf64_Ehdr *elfHeader, VirtualSpace space) {
 	KInfo *info = GetInfo();
 
-	info->RootTCB->MemorySpace = space;
+	/** TMP START **/
 
-/*
-	tcb->Context = context;
-	tcb->CSpace = cspace;
-*/
-
-/*
 	uptr stackAddr = 0x10000000000;
 	usize stackSize = 0x100000;
 
@@ -130,20 +125,18 @@ static usize LoadProcess(Elf64_Ehdr *elfHeader, VirtualSpace space) {
 
 	VMM::VMAlloc(space, stackAddr - stackSize, stackSize, VMM_FLAGS_READ | VMM_FLAGS_WRITE | VMM_FLAGS_NOEXEC | VMM_FLAGS_USER);
 
-	VMM::LoadVirtualSpace(space);
-	ARCH::LoadSchedulerContext(context);
-*/
-/*
-	PROC::Process *proc = PROC::CreateProcess(info->KernelScheduler, PROC::ExecutableUnitType::PT_USER, space);
-	PROC::Thread *thread = PROC::CreateThread(info->KernelScheduler, proc, elfHeader->e_entry);
-	(void)thread;
-	PRINTK::PrintK(PRINTK_DEBUG "Process created with PID: 0x%x\r\n", proc->ID);
-	
-	return proc->ID;
-*/
-	(void)info;
-	(void)elfHeader;
-	(void)space;
+	/** TMP END **/
+
+	Scheduler *sched = info->BootDomain->DomainScheduler;
+	ThreadControlBlock *tcb = info->RootTCB;
+
+	tcb->MemorySpace = space;
+	tcb->Context = context;
+	tcb->Priority = SCHEDULER_MAX_PRIORITY;
+	Memcpy(&tcb->CSpace, info->RootCapabilitySpace, sizeof(CapabilitySpace));
+
+	SCHED::AddThread(sched, tcb);
+
 	return 0;
 }
 }

@@ -86,7 +86,7 @@ struct Capability {
 	uptr Object;
 	usize Size;
 	u32 AccessRights;
-}__attribute__((aligned(0x8)));
+}__attribute__((packed, aligned(0x8)));
 
 enum RootCNodeSlots {
 	NULL_SLOT = 0,
@@ -101,7 +101,7 @@ enum RootCNodeSlots {
  */
 struct CapabilityNode : public ListHead {
 	Capability Slots[PAGE_SIZE / sizeof(Capability)];
-};
+}__attribute__((aligned(PAGE_SIZE)));
 
 /*
  *
@@ -142,7 +142,7 @@ struct Scheduler {
 
 	List Waiting[SCHEDULER_PRIORITIES];
 	List Blocked[SCHEDULER_PRIORITIES];
-};
+}__attribute__((aligned(PAGE_SIZE)));
 
 struct ThreadControlBlock : public ListHead {
 	ThreadStatus Status;
