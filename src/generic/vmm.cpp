@@ -246,9 +246,9 @@ void LoadVirtualSpace(VirtualSpace space) {
 #endif
 }
 	
-int MapIntermediateLevel(uptr rootPageTable, usize level, uptr frame, uptr virt, usize flags) {
+int MapIntermediateLevel(VirtualSpace space, usize level, uptr frame, uptr virt, usize flags) {
 #if defined(__x86_64__)
-	return x86_64::MapIntermediateLevel(rootPageTable, level, frame, virt, flags);
+	return x86_64::MapIntermediateLevel(space, level, frame, virt, flags);
 #endif
 	return 0;
 }
@@ -259,5 +259,13 @@ int MapPage(VirtualSpace space, uptr phys, uptr virt, usize flags) {
 	return x86_64::MapPage(space, phys, virt, flags);
 #endif
 	return 0;
+}
+
+uptr FindMappedPage(VirtualSpace space, uptr virt) {
+#if defined(__x86_64__)
+	return x86_64::FindMappedPage(space, virt);
+#endif
+	return 0;
+
 }
 }

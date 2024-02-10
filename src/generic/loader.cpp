@@ -123,6 +123,8 @@ static usize LoadProcess(Elf64_Ehdr *elfHeader, VirtualSpace space) {
 	context->BP = stackAddr;
 	context->RFLAGS = 0x202;
 
+	context->Registers.RDI = 0; /* Parent info */
+
 	VMM::VMAlloc(space, stackAddr - stackSize, stackSize, VMM_FLAGS_READ | VMM_FLAGS_WRITE | VMM_FLAGS_NOEXEC | VMM_FLAGS_USER);
 
 	/** TMP END **/

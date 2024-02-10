@@ -271,7 +271,7 @@ volatile u64 *FindMappedPTE(uptr rootPageTable, uptr virt, bool allocate) {
 	return &pml1[pml1Entry];
 }
 
-uptr FindMappedPage(uptr rootPageTable, uintptr_t virt) {
+uptr FindMappedPage(uptr rootPageTable, uptr virt) {
 	volatile u64 *pte = FindMappedPTE(rootPageTable, virt, false);
 
 	if (pte == NULL || (PTE_GET_FLAGS(*pte) & (1 << PT_Flag::Present)) == 0) {

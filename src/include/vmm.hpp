@@ -50,8 +50,10 @@ namespace VMM {
 	VirtualSpace NewVirtualSpace(uptr frame);
 	void LoadVirtualSpace(VirtualSpace space);
 	
-	int MapIntermediateLevel(uptr rootPageTable, usize level, uptr frame, uptr virt, usize flags);
+	int MapIntermediateLevel(VirtualSpace space, usize level, uptr frame, uptr virt, usize flags);
 	int MapPage(VirtualSpace space, uptr phys, uptr virt, usize flags);
+	
+	uptr FindMappedPage(uptr rootPageTable, uptr virt);
 
 	void MMap(VirtualSpace space, uptr src, uptr dest, usize length, usize flags);
 
