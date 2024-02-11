@@ -135,18 +135,28 @@ void Deinit() {
 	     current = (MEM::MEMBLOCK::MemblockRegion*)current->Next) {
 		switch (current->Type) {
 			case MEMMAP_USABLE:
-				CAPABILITY::Originate(info->RootCapabilitySpace, memoryNode, current->Base, current->Length, ObjectType::UNTYPED, CapabilityRights::GRANT | CapabilityRights::RETYPE);
+				CAPABILITY::Originate(info->RootCapabilitySpace, memoryNode, current->Base, current->Length, ObjectType::UNTYPED, CapabilityRights::READ | CapabilityRights::GRANT | CapabilityRights::RETYPE);
 				break;
 			case MEMMAP_KERNEL_DEVICE:
 				/* TODO */
 				break;
 			case MEMMAP_FRAMEBUFFER:
-				CAPABILITY::Originate(info->RootCapabilitySpace, memoryNode, current->Base, current->Length, ObjectType::FRAMES, CapabilityRights::GRANT | CapabilityRights::WRITE | CapabilityRights::READ);
+				CAPABILITY::Originate(info->RootCapabilitySpace, memoryNode, current->Base, current->Length, ObjectType::FRAMES, CapabilityRights::READ | CapabilityRights::GRANT | CapabilityRights::WRITE);
 				break;
 			case MEMMAP_KERNEL_VMALLOC:
 			default:
 				break;
 		}
+	}
+
+	/* Making it inacessible for new capabilities */
+	Capability *capability = &memoryNode->Slots[0];
+	for (usize cap = 0; cap < info->CapabilityNodeSize / sizeof(Capability); ++cap) {
+		if (capability->Type == 0) {
+			capability->Type = ObjectType::RESERVED_SLOT;
+		}
+
+		++capability;
 	}
 }
 

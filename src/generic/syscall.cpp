@@ -31,20 +31,37 @@ extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize seco
 
 			CapabilityNode *nodePtr = (CapabilityNode*)firstArgument;
 			usize nodeSlot = secondArgument;
-			uptr *newPtr = (uptr*)thirdArgument;
-			usize *newSize = (usize*)fourthArgument;
+			Capability *newPtr = (Capability*)thirdArgument;
 
 			if (nodePtr == NULL) {
+				PRINTK::PrintK(PRINTK_DEBUG "Using root node\r\n");
 				nodePtr = CAPABILITY::GetRootNode(info->RootCapabilitySpace);
 			}
 
 			if (nodeSlot >= info->CapabilityNodeSize / sizeof(Capability)) {
-				PANIC("Invalid CAP addressing");
+				OOPS("Invalid CAP addressing");
+				Memclr(newPtr, sizeof(Capability));
+				break;
 			}
 
-			Capability *cap = &nodePtr->Slots[nodeSlot];
-			*newPtr = cap->Object;
-			*newSize = cap->Size;
+			Capability *capability = &nodePtr->Slots[nodeSlot];
+
+			if (capability->Type == ObjectType::RESERVED_SLOT) {
+				OOPS("Addressing reserved CAP slot");
+				Memclr(newPtr, sizeof(Capability));
+				break;
+			}
+
+			if ((capability->AccessRights & CapabilityRights::READ) == 0) {
+				OOPS("Addressing non-readable CAP slot");
+				Memclr(newPtr, sizeof(Capability));
+				break;
+			}
+
+			newPtr->Type = capability->Type;
+			newPtr->Object = capability->Object;
+			newPtr->Size = capability->Size;
+			newPtr->AccessRights = capability->AccessRights;
 			}
 			break;
 		case SYSCALL_VECTOR_CALL:
