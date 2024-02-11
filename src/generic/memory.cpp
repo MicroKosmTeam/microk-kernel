@@ -110,9 +110,14 @@ void Deinit() {
 	usize memoryRegionsCount = MEMBLOCK::GetTotalElements(info->PhysicalMemoryChunks);
 	usize cnodesRequired = memoryRegionsCount / capabilityCountPerNode + 1;
 
-	do {
-		CAPABILITY::CreateCNode(info->RootCapabilitySpace, VMM::PhysicalToVirtual((uptr)PMM::RequestPage()));
-	} while(--cnodesRequired);
+	if (cnodesRequired > 1) {
+		PANIC("Unsupported more than 1 cnode for memory regions");
+	}
+
+	/* Adding the memory map CNode to its fixed slot in the root CNode */
+	CapabilityNode *rootNode = CAPABILITY::GetRootNode(info->RootCapabilitySpace);
+	CapabilityNode *memoryNode = CAPABILITY::CreateCNode(info->RootCapabilitySpace, VMM::PhysicalToVirtual((uptr)PMM::RequestPage()));
+	CAPABILITY::Originate(info->RootCapabilitySpace, rootNode, RootCNodeSlots::MEMORY_MAP_CNODE_SLOT, (uptr)memoryNode, info->CapabilityNodeSize, ObjectType::CNODE, CapabilityRights::READ);
 
 	PRINTK::PrintK(PRINTK_DEBUG "Final Memory Map:\r\n");
 
@@ -130,13 +135,13 @@ void Deinit() {
 	     current = (MEM::MEMBLOCK::MemblockRegion*)current->Next) {
 		switch (current->Type) {
 			case MEMMAP_USABLE:
-				CAPABILITY::Originate(info->RootCapabilitySpace, current->Base, current->Length, ObjectType::UNTYPED, CapabilityRights::GRANT | CapabilityRights::RETYPE);
+				CAPABILITY::Originate(info->RootCapabilitySpace, memoryNode, current->Base, current->Length, ObjectType::UNTYPED, CapabilityRights::GRANT | CapabilityRights::RETYPE);
 				break;
 			case MEMMAP_KERNEL_DEVICE:
 				/* TODO */
 				break;
 			case MEMMAP_FRAMEBUFFER:
-				CAPABILITY::Originate(info->RootCapabilitySpace, current->Base, current->Length, ObjectType::FRAMES, CapabilityRights::GRANT | CapabilityRights::WRITE | CapabilityRights::READ);
+				CAPABILITY::Originate(info->RootCapabilitySpace, memoryNode, current->Base, current->Length, ObjectType::FRAMES, CapabilityRights::GRANT | CapabilityRights::WRITE | CapabilityRights::READ);
 				break;
 			case MEMMAP_KERNEL_VMALLOC:
 			default:

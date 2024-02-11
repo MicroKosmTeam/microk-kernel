@@ -12,7 +12,8 @@ void InitializeRootSpace() {
 	uptr tcbFrame = VMM::PhysicalToVirtual((uptr)PMM::RequestPage());
 
 	info->RootTCB = TASK::InitializeTCB(tcbFrame);
-	info->RootCapabilitySpace = (CapabilitySpace*)&info->RootTCB->CSpace;
+	info->RootTCB->CSpace = (CapabilitySpace*)(tcbFrame + sizeof(ThreadControlBlock));
+	info->RootCapabilitySpace = info->RootTCB->CSpace;
 	info->CapabilityNodeSize = PAGE_SIZE;
 
 	Memclr(info->RootCapabilitySpace, sizeof(CapabilitySpace));
@@ -44,7 +45,7 @@ CapabilityNode *CreateRootCNode(CapabilitySpace *space, uptr frame) {
 		rootNode->Slots[slot].Type = ObjectType::RESERVED_SLOT;
 	}
 
-	Originate(space, rootNode, RootCNodeSlots::CSPACE_SLOT, (uptr)space, sizeof(CapabilitySpace), ObjectType::CNODE, CapabilityRights::READ | CapabilityRights::WRITE);
+	Originate(space, rootNode, RootCNodeSlots::CSPACE_SLOT, (uptr)space, sizeof(CapabilitySpace), ObjectType::CSPACE, CapabilityRights::READ | CapabilityRights::WRITE);
 	Originate(space, rootNode, RootCNodeSlots::ROOT_CNODE_SLOT, (uptr)rootNode, info->CapabilityNodeSize, ObjectType::CNODE, CapabilityRights::READ | CapabilityRights::WRITE);
 	
 	space->CapabilityNodeList.Head = space->CapabilityNodeList.Tail = rootNode;

@@ -2,6 +2,11 @@
 #include <object.hpp>
 
 namespace CAPABILITY {
+	inline __attribute__((always_inline)) 
+	CapabilityNode *GetRootNode(CapabilitySpace *space) {
+		return (CapabilityNode*)space->CapabilityNodeList.Head;
+	}
+
 	void InitializeRootSpace();
 
 	CapabilityNode *CreateCNode(CapabilitySpace *space, uptr addr);

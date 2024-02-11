@@ -93,6 +93,7 @@ enum RootCNodeSlots {
 	CSPACE_SLOT,
 	ROOT_CNODE_SLOT,
 	TASK_CONTROL_BLOCK_SLOT,
+	MEMORY_MAP_CNODE_SLOT,
 	FIRST_FREE_SLOT,
 };
 
@@ -150,7 +151,7 @@ struct ThreadControlBlock : public ListHead {
 	u8 Priority;
 
 	VirtualSpace MemorySpace;
-	CapabilitySpace CSpace;
+	CapabilitySpace *CSpace;
 	SchedulerContext *Context;
 };
 

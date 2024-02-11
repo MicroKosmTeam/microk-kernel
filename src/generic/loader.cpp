@@ -135,7 +135,6 @@ static usize LoadProcess(Elf64_Ehdr *elfHeader, VirtualSpace space) {
 	tcb->MemorySpace = space;
 	tcb->Context = context;
 	tcb->Priority = SCHEDULER_MAX_PRIORITY;
-	Memcpy(&tcb->CSpace, info->RootCapabilitySpace, sizeof(CapabilitySpace));
 
 	SCHED::AddThread(sched, tcb);
 
