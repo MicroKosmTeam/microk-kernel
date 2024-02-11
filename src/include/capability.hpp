@@ -6,7 +6,7 @@ namespace CAPABILITY {
 	CapabilityNode *GetRootNode(CapabilitySpace *space) {
 		return (CapabilityNode*)space->CapabilityNodeList.Head;
 	}
-
+	
 	void InitializeRootSpace();
 
 	CapabilityNode *CreateCNode(CapabilitySpace *space, uptr addr);
@@ -19,4 +19,5 @@ namespace CAPABILITY {
 	Capability *Retype(Capability *capability, ObjectType type, usize quantity);
 	void Revoke(Capability *capability);
 
+	int IsNodeInSpace(CapabilitySpace *space, CapabilityNode *node);
 }

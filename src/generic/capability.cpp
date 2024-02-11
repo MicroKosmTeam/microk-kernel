@@ -137,6 +137,8 @@ Capability *Originate(CapabilitySpace *space, CapabilityNode *node, usize slot, 
 
 
 Capability *Retype(CapabilitySpace *space, Capability *capability, ObjectType type, usize quantity) {
+	KInfo *info = GetInfo();
+
 	if (capability->Type != ObjectType::UNTYPED ||
 	    (capability->AccessRights & CapabilityRights::RETYPE) == 0 ||
 	    quantity == 0) {
@@ -162,8 +164,8 @@ Capability *Retype(CapabilitySpace *space, Capability *capability, ObjectType ty
 				 */
 				do {
 					node = CreateCNode(space, address);
-					newCapability = Originate(space, node, (uptr)node, PAGE_SIZE, type, capability->AccessRights);
-					address += PAGE_SIZE;
+					newCapability = Originate(space, node, (uptr)node, info->CapabilityNodeSize, type, capability->AccessRights);
+					address += info->CapabilityNodeSize;
 				} while(--quantity);
 			} else if (capability->Size == requiredObjectSize) {
 				/* Create all the CNodes and assing their respective
@@ -216,5 +218,22 @@ void Revoke(Capability *capability) {
 	}
 
 	return;
+}
+	
+int IsNodeInSpace(CapabilitySpace *space, CapabilityNode *node) {
+	if (space == NULL) {
+		return -ENOTPRESENT;
+	}
+
+	CapabilityNode *checkNode = (CapabilityNode*)space->CapabilityNodeList.Head;
+	while(checkNode != NULL) {
+		if (checkNode == node) {
+			return 0;
+		}
+
+		node = (CapabilityNode*)node->Next;
+	}
+
+	return -ENOCAP;
 }
 }
