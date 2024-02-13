@@ -40,7 +40,7 @@ namespace MATH {
 	/* Only applicable to numbers that ARE powers of two */
 	inline __attribute__((always_inline))
 	usize GetPowerOfTwo(usize num) {
-		return __builtin_ctz(n); /* Count to get trailing zeros */
+		return __builtin_ctz(num); /* Count to get trailing zeros */
 	}
 
 	inline __attribute__((always_inline))

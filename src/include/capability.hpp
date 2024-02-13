@@ -6,19 +6,19 @@ namespace CAPABILITY {
 	void InitializeRootSpace();
 
 	/* Function used to create the root cnode for each TCB */
-	int CreateRootCNode(TaskControlBlock *tcb, CapabilitySpace *cspace);
+	int CreateRootCNode(ThreadControlBlock *tcb, CapabilitySpace *cspace);
 
 	/* Function used to create normal cnodes */
 	CapabilityNode *CreateCNode(CapabilitySpace *cspace, uptr addr, usize sizeBits);
 
+	/* Function used to generate a capability and store it in a random
+	 * slot in a cnode */
+	Capability *Originate(CapabilityNode *node, uptr object, usize size, ObjectType type, u32 accessRights);
+	 
+	/* Function used to generate a capability and store it in a specific
+	 * slot in a cnode */
+	Capability *Originate(CapabilityNode *node, usize slot, uptr object, usize size, ObjectType type, u32 accessRights);
 
-
-	Capability *Originate(CapabilitySpace *space, uptr object, usize size, ObjectType type, u32 accessRights);
-	Capability *Originate(CapabilitySpace *space, CapabilityNode *node, uptr object, usize size, ObjectType type, u32 accessRights);
-	Capability *Originate(CapabilitySpace *space, CapabilityNode *node, usize slot, uptr object, usize size, ObjectType type, u32 accessRights);
-
-	Capability *Retype(Capability *capability, ObjectType type, usize quantity);
-	void Revoke(Capability *capability);
-
-	int IsNodeInSpace(CapabilitySpace *space, CapabilityNode *node);
+	/* Function that checks whether a node is present in a CSpace */
+	int IsNodeInSpace(CapabilitySpace *cspace, CapabilityNode *node);
 }

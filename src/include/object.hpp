@@ -112,10 +112,10 @@ struct Capability {
 	u32 AccessRights;
 }__attribute__((packed, aligned(0x8)));
 
-enum TCBCNodeSlots {
+enum RootCNodeSlots {
 	NULL_SLOT = 0,
 	CSPACE_SLOT,
-	TCB_CNODE_SLOT,
+	ROOT_CNODE_SLOT,
 	TASK_CONTROL_BLOCK_SLOT,
 	MEMORY_MAP_CNODE_SLOT,
 	SLOT_COUNT,
