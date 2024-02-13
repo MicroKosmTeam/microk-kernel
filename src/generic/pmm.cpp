@@ -65,6 +65,8 @@ void *RequestPage() {
 }
 
 void *RequestPages(usize length) {
+	OOPS("RequestPages is broken");
+	/* It doesn't work, TODO: fix */
 	KInfo *info = GetInfo();
 	ROUND_UP_TO_PAGE(length);
 

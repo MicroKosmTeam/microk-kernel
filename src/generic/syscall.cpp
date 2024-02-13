@@ -5,6 +5,7 @@
 #include <panic.hpp>
 #include <cdefs.h>
 
+#ifdef UNDEF
 inline __attribute__((always_inline))
 void SyscallCapCtl(usize firstArgument, usize secondArgument, usize thirdArgument, usize fourthArgument, usize fithArgument, usize sixthArgument) {
 	KInfo *info = GetInfo();
@@ -118,8 +119,15 @@ void SyscallArchCtl(usize firstArgument, usize secondArgument, usize thirdArgume
 	}
 
 }
+#endif
 
 extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize secondArgument, usize thirdArgument, usize fourthArgument, usize fithArgument, usize sixthArgument) {
+	(void)firstArgument;
+	(void)secondArgument;
+	(void)thirdArgument;
+	(void)fourthArgument;
+	(void)fithArgument;
+	(void)sixthArgument;
 	switch (syscallNumber) {
 		case SYSCALL_VECTOR_DEBUG: {
 			usize value = firstArgument;
@@ -139,6 +147,7 @@ extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize seco
 			}
 			}
 			break;
+/*
 		case SYSCALL_VECTOR_CAPCTL:
 			SyscallCapCtl(firstArgument, secondArgument, thirdArgument, fourthArgument, fithArgument, sixthArgument);
 			break;
@@ -158,6 +167,7 @@ extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize seco
 		case SYSCALL_VECTOR_REPLYRECV:
 			PRINTK::PrintK(PRINTK_DEBUG " -> ReplyRecv\r\n");
 			break;
+*/
 		default:
 			break;
 	}

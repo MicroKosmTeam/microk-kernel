@@ -3,6 +3,7 @@
 #include <pmm.hpp>
 #include <kinfo.hpp>
 #include <printk.hpp>
+#include <panic.hpp>
 #include <task.hpp>
 #include <math.hpp>
 
@@ -39,8 +40,8 @@ int CreateRootCNode(ThreadControlBlock *tcb, CapabilitySpace *cspace) {
 	 * slots we need and rounding it up to the closes power of two
 	 */
 	usize neededSlots = RootCNodeSlots::SLOT_COUNT;
-	neededSlots = MATH::UpperPowerOfTwoUSIZE(neededSlots);
 	usize cnodeSize = neededSlots * sizeof(Capability) + sizeof(CapabilityNode);
+	cnodeSize = MATH::UpperPowerOfTwoUSIZE(cnodeSize);
 	usize cnodeSizeBits = MATH::GetPowerOfTwo(cnodeSize);
 
 	/* Assign the frames in the TCB */
@@ -135,8 +136,8 @@ Capability *Originate(CapabilityNode *node, uptr object, usize size, ObjectType 
 	
 Capability *Originate(CapabilityNode *node, usize slot, uptr object, usize size, ObjectType type, u32 accessRights) {
 	/* Check whether the slot is actually valid */
-	if ((MATH::ElevatePowerOfTwo(node->SizeBits) - sizeof(CapabilityNode))
-	    / sizeof(Capability) >= slot) {
+	usize cnodeSlotsSize = MATH::ElevatePowerOfTwo(node->SizeBits) - sizeof(CapabilityNode);
+	if (cnodeSlotsSize / sizeof(Capability) <= slot) {
 		return NULL;
 	}
 

@@ -115,12 +115,21 @@ void Deinit() {
 
 	/* Adding the memory map CNode to its fixed slot in the root CNode */
 	CapabilityNode *rootNode = info->RootTCB->RootCNode;
-	CapabilityNode *memoryNode =
-		CAPABILITY::CreateCNode(info->RootCSpace,
+	CapabilityNode *memoryNode;
+
+	if (cnodeSize <= PAGE_SIZE) {
+		memoryNode = CAPABILITY::CreateCNode(info->RootCSpace,
 				        VMM::PhysicalToVirtual(
-						(uptr)PMM::RequestPages(cnodeSize / PAGE_SIZE)
+						(uptr)PMM::RequestPage()
 					),
 					cnodeSizeBits);
+	} else {
+		memoryNode = CAPABILITY::CreateCNode(info->RootCSpace,
+				        VMM::PhysicalToVirtual(
+						(uptr)PMM::RequestPages(cnodeSize)
+					),
+					cnodeSizeBits);
+	}
 
 	/* Creating the capability in the fixed slot */
 	CAPABILITY::Originate(rootNode,
