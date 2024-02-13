@@ -6,6 +6,7 @@
 #include <bootmem.hpp>
 #include <kinfo.hpp>
 #include <capability.hpp>
+#include <math.hpp>
 
 namespace MEM {
 void Init() {
@@ -106,22 +107,34 @@ void Deinit() {
 	BOOTMEM::DeactivateBootMemory();
 
 	/* Make sure we have enough preallocated space in the root capability space */
-	usize capabilityCountPerNode = info->CapabilityNodeSize / sizeof(Capability);
 	usize memoryRegionsCount = MEMBLOCK::GetTotalElements(info->PhysicalMemoryChunks);
-	usize cnodesRequired = memoryRegionsCount / capabilityCountPerNode + 1;
-
-	if (cnodesRequired > 1) {
-		PANIC("Unsupported more than 1 cnode for memory regions");
-	}
+	usize cnodeSize = memoryRegionsCount * sizeof(Capability) + sizeof(CapabilityNode);
+	ROUND_UP_TO_PAGE(cnodeSize);
+	cnodeSize = MATH::UpperPowerOfTwoUSIZE(cnodeSize);
+	usize cnodeSizeBits = MATH::GetPowerOfTwo(cnodeSize);
 
 	/* Adding the memory map CNode to its fixed slot in the root CNode */
-	CapabilityNode *rootNode = CAPABILITY::GetRootNode(info->RootCapabilitySpace);
-	CapabilityNode *memoryNode = CAPABILITY::CreateCNode(info->RootCapabilitySpace, VMM::PhysicalToVirtual((uptr)PMM::RequestPage()));
-	CAPABILITY::Originate(info->RootCapabilitySpace, rootNode, RootCNodeSlots::MEMORY_MAP_CNODE_SLOT, (uptr)memoryNode, info->CapabilityNodeSize, ObjectType::CNODE, CapabilityRights::ACCESS);
+	CapabilityNode *rootNode = info->RootTCB->RootCNode;
+	CapabilityNode *memoryNode =
+		CAPABILITY::CreateCNode(info->RootCSpace,
+				        VMM::PhysicalToVirtual(
+						(uptr)PMM::RequestPages(cnodeSize / PAGE_SIZE)
+					),
+					cnodeSizeBits);
 
+	/* Creating the capability in the fixed slot */
+	CAPABILITY::Originate(rootNode,
+			      RootCNodeSlots::MEMORY_MAP_CNODE_SLOT,
+			      (uptr)memoryNode,
+			      cnodeSize,
+			      ObjectType::CNODE,
+			      CapabilityRights::ACCESS);
+
+	/* Printing the final memory map by passing through all memblock regions */
 	PRINTK::PrintK(PRINTK_DEBUG "Final Memory Map:\r\n");
-
-	for (MEM::MEMBLOCK::MemblockRegion *current = (MEM::MEMBLOCK::MemblockRegion*)info->PhysicalMemoryChunks->Regions.Head;
+	for (MEM::MEMBLOCK::MemblockRegion *current =
+			(MEM::MEMBLOCK::MemblockRegion*)
+			info->PhysicalMemoryChunks->Regions.Head;
 	     current != NULL;
 	     current = (MEM::MEMBLOCK::MemblockRegion*)current->Next) {
 		PRINTK::PrintK(PRINTK_DEBUG " [0x%x - 0x%x] -> %s\r\n",
@@ -130,12 +143,24 @@ void Deinit() {
 				MemoryTypeToString(current->Type));
 	}
 
-	for (MEM::MEMBLOCK::MemblockRegion *current = (MEM::MEMBLOCK::MemblockRegion*)info->PhysicalMemoryChunks->Regions.Head;
+
+	/* Cataloguing the memory all memblock regions and creating capabilities accordingly */
+	for (MEM::MEMBLOCK::MemblockRegion *current =
+			(MEM::MEMBLOCK::MemblockRegion*)
+			info->PhysicalMemoryChunks->Regions.Head;
 	     current != NULL;
 	     current = (MEM::MEMBLOCK::MemblockRegion*)current->Next) {
 		switch (current->Type) {
 			case MEMMAP_USABLE:
-				CAPABILITY::Originate(info->RootCapabilitySpace, memoryNode, current->Base, current->Length, ObjectType::UNTYPED, CapabilityRights::ACCESS | CapabilityRights::SEE | CapabilityRights::RETYPE);
+				/* Usable is untyped, and userspace is free to do anything they please
+				 * with it */
+				CAPABILITY::Originate(memoryNode,
+						      current->Base,
+						      current->Length,
+						      ObjectType::UNTYPED,
+						      CapabilityRights::ACCESS |
+						      CapabilityRights::SEE |
+						      CapabilityRights::RETYPE);
 				break;
 			case MEMMAP_KERNEL_DEVICE:
 			case MEMMAP_FRAMEBUFFER:
@@ -143,16 +168,6 @@ void Deinit() {
 			default:
 				break;
 		}
-	}
-
-	/* Making it inacessible for new capabilities */
-	Capability *capability = &memoryNode->Slots[0];
-	for (usize cap = 0; cap < info->CapabilityNodeSize / sizeof(Capability); ++cap) {
-		if (capability->Type == 0) {
-			capability->Type = ObjectType::RESERVED_SLOT;
-		}
-
-		++capability;
 	}
 }
 

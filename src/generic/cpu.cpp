@@ -22,8 +22,6 @@ void InitializeCPUFeatures() {
 	info->BootDomain = (Domain*)VMM::PhysicalToVirtual((uptr)PMM::RequestPage());
 	Memclr(info->BootDomain, sizeof(Domain));
 
-	CAPABILITY::Originate(info->RootCapabilitySpace, (uptr)info->BootDomain, sizeof(Domain), ObjectType::DOMAIN, CapabilityRights::NONE);
-
 #if defined(__x86_64__)
 	x86::InitializeCPUFeatures();
 #else

@@ -40,13 +40,14 @@ int CreateRootCNode(ThreadControlBlock *tcb, CapabilitySpace *cspace) {
 	 */
 	usize neededSlots = RootCNodeSlots::SLOT_COUNT;
 	neededSlots = MATH::UpperPowerOfTwoUSIZE(neededSlots);
-	usize cnodeSizeBits = MATH::GetPowerOfTwo(neededSlots);
+	usize cnodeSize = neededSlots * sizeof(Capability) + sizeof(CapabilityNode);
+	usize cnodeSizeBits = MATH::GetPowerOfTwo(cnodeSize);
 
 	/* Assign the frames in the TCB */
 	tcb->RootCNode = (CapabilityNode*)cnodeFrame;
 
 	/* Make all the slots reserved in the root cnode */
-	Memset((void*)cnodeFrame, 0xff, sizeof(Capability) * neededSlots);
+	Memset((void*)cnodeFrame, 0xff, cnodeSize);
 
 	/* Setting the size bits */
 	tcb->RootCNode->SizeBits = cnodeSizeBits;
@@ -64,7 +65,7 @@ int CreateRootCNode(ThreadControlBlock *tcb, CapabilitySpace *cspace) {
 	Originate(tcb->RootCNode,
 		  RootCNodeSlots::ROOT_CNODE_SLOT,
 		  (uptr)tcb->RootCNode,
-		  neededSlots * sizeof(Capability),
+		  cnodeSize,
 		  ObjectType::CNODE,
 		  CapabilityRights::ACCESS);
 
@@ -83,7 +84,9 @@ int CreateRootCNode(ThreadControlBlock *tcb, CapabilitySpace *cspace) {
 }
 
 CapabilityNode *CreateCNode(CapabilitySpace *cspace, uptr addr, usize sizeBits) {
-	/* Clearing the memory area */
+	/* By the way, the size has to be:
+	 * (# of capabilities) x sizeof(Capability) + sizeof(CapabilityNode)
+	 */
 	CapabilityNode *cnode = (CapabilityNode*)addr;
 	usize cnodeSize = MATH::ElevatePowerOfTwo(sizeBits);
 	Memclr(cnode, cnodeSize);
@@ -132,7 +135,8 @@ Capability *Originate(CapabilityNode *node, uptr object, usize size, ObjectType 
 	
 Capability *Originate(CapabilityNode *node, usize slot, uptr object, usize size, ObjectType type, u32 accessRights) {
 	/* Check whether the slot is actually valid */
-	if (MATH::ElevatePowerOfTwo(node->SizeBits) / sizeof(Capability) >= slot) {
+	if ((MATH::ElevatePowerOfTwo(node->SizeBits) - sizeof(CapabilityNode))
+	    / sizeof(Capability) >= slot) {
 		return NULL;
 	}
 
