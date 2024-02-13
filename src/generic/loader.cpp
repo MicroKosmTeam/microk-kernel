@@ -22,21 +22,20 @@ static usize LoadProcess(Elf64_Ehdr *elfHeader, VirtualSpace space);
 usize LoadELF(u8 *data, usize size) {
 	KInfo *info = GetInfo();
 
-	VirtualSpace space = VMM::NewVirtualSpace((uptr)PMM::RequestPage());
-	VMM::PrepareUserVirtualSpace(space);
-
-	CAPABILITY::Originate(info->RootTCB->RootCNode,
-			      RootCNodeSlots::VIRTUAL_SPACE_ROOT_SLOT,
-			      space,
-			      PAGE_SIZE,
-			      ObjectType::PAGING_STRUCTURE,
-			      CapabilityRights::ACCESS);
-	
 	Elf64_Ehdr *elfHeader = (Elf64_Ehdr*)data;
-	
-	(void)size;
+
 	if(VerifyELF(elfHeader)) {
 		PRINTK::PrintK(PRINTK_DEBUG "Valid ELF header.\r\n");
+
+		VirtualSpace space = VMM::NewVirtualSpace((uptr)PMM::RequestPage());
+		VMM::PrepareUserVirtualSpace(space);
+
+		CAPABILITY::Originate(info->RootTCB->RootCNode,
+				      RootCNodeSlots::VIRTUAL_SPACE_ROOT_SLOT,
+				      space,
+				      PAGE_SIZE,
+				      ObjectType::PAGING_STRUCTURE,
+				      CapabilityRights::ACCESS);
 
 		LoadProgramHeaders(data, size, elfHeader, space);
 		usize pid = LoadProcess(elfHeader, space);
