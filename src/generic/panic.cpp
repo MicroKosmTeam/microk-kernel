@@ -1,5 +1,4 @@
 #include <printk.hpp>
-#include <cstdint.hpp>
 
 __attribute__((noreturn))
 void Panic(const char *message, const char *file, const char *function, unsigned int line) {

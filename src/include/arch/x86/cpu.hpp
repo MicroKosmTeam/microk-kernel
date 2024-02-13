@@ -1,5 +1,4 @@
 #pragma once
-#include <cstdint.hpp>
 #include <object.hpp>
 
 #define MSR_TSC_VALUE    0x00000010

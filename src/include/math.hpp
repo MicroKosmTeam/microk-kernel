@@ -1,5 +1,5 @@
 #pragma once
-#include <cstdint.hpp>
+#include <cdefs.h>
 
 namespace MATH {
 	inline __attribute__((always_inline))

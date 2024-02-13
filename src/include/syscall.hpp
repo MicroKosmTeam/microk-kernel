@@ -1,5 +1,5 @@
 #pragma once
-#include <cstdint.hpp>
+#include <cdefs.h>
 
 extern "C" void SyscallMain(usize syscallNumber,
 		            usize firstArgument,

@@ -1,5 +1,4 @@
 #include <cdefs.h>
-#include <cstdint.hpp>
 #include <limine.h>
 #include <panic.hpp>
 #include <main.hpp>

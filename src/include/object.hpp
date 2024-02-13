@@ -1,6 +1,5 @@
 #pragma once
 #include <cdefs.h>
-#include <cstdint.hpp>
 
 #if defined(__x86_64__)
 #include <arch/x86/object.hpp>
@@ -57,25 +56,50 @@ enum ObjectType {
 /* The rights that can be given to a capability
  *
  *      0 - NONE:
- * 1 << 0 - READ:
- * 1 << 1 - WRITE:
- * 1 << 2 - EXECUTE:
+ *       Nothing can be done with the capability.
+ *
+ * 1 << 0 - ACCESS:
+ *       The capability can used by getting its pointer.
+ *
+ * 1 << 1 - SEE:
+ *       The capability struct can be visualized by userspace.
+ *
+ * 1 << 2 - RETYPE:
+ *       The object can be retyped to another kind of object.
+ *
  * 1 << 3 - GRANT:
- * 1 << 4 - REVOKE:
- * 1 << 5 - MINT:
- * 1 << 6 - RETYPE:
- * 1 << 7 - MODIFY:
- *  Allows the object to be 
+ *       The ownership of the capability can be given to some other CSpace
+ *       (not reversible).
+ *
+ * 1 << 4 - MINT:
+ * 	 Can create a new capability can be forged with the same or fewer
+ * 	 priviledges and then granted to someone else.
+ *
+ * 1 << 5 - REVOKE:
+ *       The capability can be revoked and it will become UNTYPED.
+ *
+ *  -- FOR FRAMES ONLY --
+ * 1 << 6 - READ:
+ *       The frame can be mapped in the virtual space.
+ *
+ * 1 << 7 - WRITE:
+ *       The frame can be mapped in the virtual space and written to.
+ *
+ * 1 << 8 - EXECUTE:
+ *       The frame can be mapped in the virtual space and have NX
+ *       protection disabled on it.
  */
 enum CapabilityRights {
 	NONE = 0,
-	READ = 1 << 0,
-	WRITE = 1 << 1,
-	EXECUTE = 1 << 2,
+	ACCESS = 1 << 0,
+	SEE = 1 << 1,
+	RETYPE = 1 << 2,
 	GRANT = 1 << 3,
-	REVOKE = 1 << 4,
-	MINT = 1 << 5,
-	RETYPE = 1 << 6,
+	MINT = 1 << 4,
+	REVOKE = 1 << 5,
+	READ = 1 << 6,
+	WRITE = 1 << 7,
+	EXECUTE = 1 << 8,
 };
 
 /*

@@ -1,7 +1,6 @@
 #pragma once
 #include <cdefs.h>
 #include <object.hpp>
-#include <cstdint.hpp>
 #include <memory.hpp>
 
 #if defined(__x86_64__)
@@ -25,19 +24,19 @@ namespace VMM {
 	usize ConvertUserFlags(usize flags) {
 		usize ret = VMM_FLAGS_USER;
 
-		if (flags & PAGE_PROTECTION_READ) {
+		if ((flags & PAGE_PROTECTION_READ) != 0) {
 			ret |= VMM_FLAGS_READ;
 		}
 		
-		if (flags & PAGE_PROTECTION_WRITE) {
+		if ((flags & PAGE_PROTECTION_WRITE) != 0) {
 			ret |= VMM_FLAGS_WRITE;
 		}
 
-		if (!(flags & PAGE_PROTECTION_EXEC)) {
+		if ((flags & PAGE_PROTECTION_EXEC) == 0) {
 			ret |= VMM_FLAGS_NOEXEC;
 		}
 
-		if (flags & PAGE_PROTECTION_NOCACHE) {
+		if ((flags & PAGE_PROTECTION_NOCACHE) != 0) {
 			ret |= VMM_FLAGS_NOCACHE;
 		}
 

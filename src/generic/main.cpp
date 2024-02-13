@@ -24,7 +24,6 @@
  */
 
 #include <cdefs.h>
-#include <cstdint.hpp>
 #include <memory.hpp>
 #include <panic.hpp>
 #include <printk.hpp>

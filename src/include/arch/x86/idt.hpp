@@ -1,5 +1,4 @@
 #pragma once
-#include <cstdint.hpp>
 #include <arch/x86/gdt.hpp>
 #include <arch/x86/cpu.hpp>
 

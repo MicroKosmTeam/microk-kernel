@@ -1,6 +1,4 @@
 #pragma once
-
-#include <cstdint.hpp>
 #include <list.hpp>
 #include <memory.hpp>
 

@@ -1,5 +1,5 @@
 #pragma once
-#include <cstdint.hpp>
+#include <cdefs.h>
 
 namespace LOADER {
 	usize LoadELF(u8 *data, usize size);

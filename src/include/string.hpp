@@ -1,4 +1,4 @@
-#include <cstdint.hpp>
+#pragma once
 #include <cdefs.h>
 
 usize Strnlen(const char *str, usize maxLength);

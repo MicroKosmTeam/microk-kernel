@@ -1,6 +1,5 @@
 #pragma once
 #include <cdefs.h>
-#include <cstdint.hpp>
 
 namespace BOOTMEM {
 	struct BootMemoryStruct {

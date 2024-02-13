@@ -1,5 +1,4 @@
 #include <string.hpp>
-#include <cstdint.hpp>
 
 usize Strnlen(const char *str, usize maxLength) {
         const char *strEnd = str;

@@ -1,5 +1,5 @@
 #pragma once
-#include <cstdint.hpp>
+#include <cdefs.h>
 
 #define XAPIC_MAX_REGISTER                                0x3E
 #define X2APIC_MAX_REGISTER                               0x3F

@@ -90,7 +90,7 @@ int MapPage(uptr rootPageTable, uptr phys, uptr virt, usize flags) {
 
 	return 0;
 }
-
+/* Returns 1 if the frame wasn't used */
 int MapIntermediateLevel(uptr rootPageTable, usize level, uptr frame, uptr virt, usize flags) {
 	usize pml4Entry = (virt & (0x1ffull << 39)) >> 39;
 	usize pml3Entry = (virt & (0x1ffull << 30)) >> 30;
@@ -104,7 +104,7 @@ int MapIntermediateLevel(uptr rootPageTable, usize level, uptr frame, uptr virt,
 
 	pml4 = (volatile u64*)rootPageTable;
 
-	//PRINTK::PrintK(//PRINTK_DEBUG "PML4: 0x%x (%d)\r\n", pml4, pml4Entry);
+	//PRINTK::PrintK(PRINTK_DEBUG "PML4: 0x%x (%d)\r\n", pml4, pml4Entry);
 	pml3 = GetNextLevel(pml4, pml4Entry, 0);
 	if (pml3 == NULL) {	
 		if (level == 3) {
@@ -114,18 +114,18 @@ int MapIntermediateLevel(uptr rootPageTable, usize level, uptr frame, uptr virt,
 			}
 
 			pml4[pml4Entry] |= flags;
-			return 0;
+			return 1;
 		} else {
 			return -ENOTPRESENT;
 		}
 	} else {
 		if (level == 3) {
 			pml4[pml4Entry] |= flags;
-			return 0;
+			return 1;
 		}
 	}
 
-	//PRINTK::PrintK(//PRINTK_DEBUG "PML3: 0x%x (%d)\r\n", pml3, pml3Entry);
+	//PRINTK::PrintK(PRINTK_DEBUG "PML3: 0x%x (%d)\r\n", pml3, pml3Entry);
 	pml2 = GetNextLevel(pml3, pml3Entry, 0);
 	if (pml2 == NULL) {
 		if (level == 2) {
@@ -142,11 +142,11 @@ int MapIntermediateLevel(uptr rootPageTable, usize level, uptr frame, uptr virt,
 	} else {
 		if (level == 2) {
 			pml3[pml3Entry] |= flags;
-			return 0;
+			return 1;
 		}
 	}
 	
-	//PRINTK::PrintK(//PRINTK_DEBUG "PML2: 0x%x (%d)\r\n", pml2, pml2Entry);
+	//PRINTK::PrintK(PRINTK_DEBUG "PML2: 0x%x (%d)\r\n", pml2, pml2Entry);
 	pml1 = GetNextLevel(pml2, pml2Entry, 0);
 	if (pml1 == NULL) {
 		if (level == 1) {
@@ -163,11 +163,10 @@ int MapIntermediateLevel(uptr rootPageTable, usize level, uptr frame, uptr virt,
 	} else { 
 		if (level == 1) {
 			pml2[pml2Entry] |= flags;
-			return 0;
+			return 1;
 		}
 	}
 
-	//PRINTK::PrintK(//PRINTK_DEBUG "PML1: 0x%x (%d)\r\n", pml1, pml1Entry);
 
 	return 0;
 }

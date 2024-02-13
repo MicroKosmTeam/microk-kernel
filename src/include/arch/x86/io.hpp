@@ -1,5 +1,5 @@
 #pragma once
-#include <cstdint.hpp>
+#include <cdefs.h>
 
 namespace x86 {
 	void OutB(u16 port, u8 val);

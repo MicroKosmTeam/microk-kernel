@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include <stddef.h>
+#include <cstdint.h>
 
 #if defined(__x86_64__)
 #elif defined(__aarch64__)
@@ -41,6 +42,7 @@ typedef enum {
 	SYSCALL_VECTOR_DEBUG = 0,
 	SYSCALL_VECTOR_YEILD,
 	SYSCALL_VECTOR_CAPCTL,
+	SYSCALL_VECTOR_ARCHCTL,
 	SYSCALL_VECTOR_CALL,
 	SYSCALL_VECTOR_REPLYRECV,
 } SYSCALL_VECTOR;
@@ -50,3 +52,8 @@ typedef enum {
 	SYSCALL_CAPCTL_GET_CAP,
 	SYSCALL_CAPCTL_RETYPE,
 } SYSCALL_CAPCTL_OPS;
+
+typedef enum {
+	SYSCALL_ARCHCTL_MAP_INTERMEDIATE = 1,
+	SYSCALL_ARCHCTL_MAP_PAGE,
+} SYSCALL_ARCHCTL_OPS;

@@ -1,5 +1,5 @@
 #pragma once
-#include <cstdint.hpp>
+#include <cdefs.h>
 
 #define PAGE_SIZE 0x1000
 #define HUGE_PAGE_SIZE (512 * PAGE_SIZE)

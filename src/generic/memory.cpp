@@ -117,7 +117,7 @@ void Deinit() {
 	/* Adding the memory map CNode to its fixed slot in the root CNode */
 	CapabilityNode *rootNode = CAPABILITY::GetRootNode(info->RootCapabilitySpace);
 	CapabilityNode *memoryNode = CAPABILITY::CreateCNode(info->RootCapabilitySpace, VMM::PhysicalToVirtual((uptr)PMM::RequestPage()));
-	CAPABILITY::Originate(info->RootCapabilitySpace, rootNode, RootCNodeSlots::MEMORY_MAP_CNODE_SLOT, (uptr)memoryNode, info->CapabilityNodeSize, ObjectType::CNODE, CapabilityRights::READ);
+	CAPABILITY::Originate(info->RootCapabilitySpace, rootNode, RootCNodeSlots::MEMORY_MAP_CNODE_SLOT, (uptr)memoryNode, info->CapabilityNodeSize, ObjectType::CNODE, CapabilityRights::ACCESS);
 
 	PRINTK::PrintK(PRINTK_DEBUG "Final Memory Map:\r\n");
 
@@ -135,14 +135,10 @@ void Deinit() {
 	     current = (MEM::MEMBLOCK::MemblockRegion*)current->Next) {
 		switch (current->Type) {
 			case MEMMAP_USABLE:
-				CAPABILITY::Originate(info->RootCapabilitySpace, memoryNode, current->Base, current->Length, ObjectType::UNTYPED, CapabilityRights::READ | CapabilityRights::GRANT | CapabilityRights::RETYPE);
+				CAPABILITY::Originate(info->RootCapabilitySpace, memoryNode, current->Base, current->Length, ObjectType::UNTYPED, CapabilityRights::ACCESS | CapabilityRights::SEE | CapabilityRights::RETYPE);
 				break;
 			case MEMMAP_KERNEL_DEVICE:
-				/* TODO */
-				break;
 			case MEMMAP_FRAMEBUFFER:
-				CAPABILITY::Originate(info->RootCapabilitySpace, memoryNode, current->Base, current->Length, ObjectType::FRAMES, CapabilityRights::READ | CapabilityRights::GRANT | CapabilityRights::WRITE);
-				break;
 			case MEMMAP_KERNEL_VMALLOC:
 			default:
 				break;

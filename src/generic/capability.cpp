@@ -19,7 +19,7 @@ void InitializeRootSpace() {
 	Memclr(info->RootCapabilitySpace, sizeof(CapabilitySpace));
 
 	CapabilityNode *rootNode = CreateRootCNode(info->RootCapabilitySpace, VMM::PhysicalToVirtual((uptr)PMM::RequestPage()));
-	Originate(info->RootCapabilitySpace, rootNode, RootCNodeSlots::TASK_CONTROL_BLOCK_SLOT, tcbFrame, sizeof(ThreadControlBlock), ObjectType::TASK_CONTROL_BLOCK, CapabilityRights::READ | CapabilityRights::WRITE);
+	Originate(info->RootCapabilitySpace, rootNode, RootCNodeSlots::TASK_CONTROL_BLOCK_SLOT, tcbFrame, sizeof(ThreadControlBlock), ObjectType::TASK_CONTROL_BLOCK, CapabilityRights::ACCESS | CapabilityRights::SEE);
 
 	PRINTK::PrintK(PRINTK_DEBUG "Root CNode initialized.\r\n");
 }
@@ -29,7 +29,7 @@ CapabilityNode *CreateCNode(CapabilitySpace *space, uptr frame) {
 	CapabilityNode *node = (CapabilityNode*)frame;
 	Memclr(node, info->CapabilityNodeSize);
 
-	Originate(space, node, (uptr)node, info->CapabilityNodeSize, ObjectType::CNODE, CapabilityRights::REVOKE | CapabilityRights::GRANT | CapabilityRights::READ | CapabilityRights::WRITE | CapabilityRights::MINT);
+	Originate(space, node, (uptr)node, info->CapabilityNodeSize, ObjectType::CNODE, CapabilityRights::ACCESS);
 	AddElementToList(node, &space->CapabilityNodeList);
 
 	return node;
@@ -45,8 +45,8 @@ CapabilityNode *CreateRootCNode(CapabilitySpace *space, uptr frame) {
 		rootNode->Slots[slot].Type = ObjectType::RESERVED_SLOT;
 	}
 
-	Originate(space, rootNode, RootCNodeSlots::CSPACE_SLOT, (uptr)space, sizeof(CapabilitySpace), ObjectType::CSPACE, CapabilityRights::READ | CapabilityRights::WRITE);
-	Originate(space, rootNode, RootCNodeSlots::ROOT_CNODE_SLOT, (uptr)rootNode, info->CapabilityNodeSize, ObjectType::CNODE, CapabilityRights::READ | CapabilityRights::WRITE);
+	Originate(space, rootNode, RootCNodeSlots::CSPACE_SLOT, (uptr)space, sizeof(CapabilitySpace), ObjectType::CSPACE, CapabilityRights::ACCESS);
+	Originate(space, rootNode, RootCNodeSlots::ROOT_CNODE_SLOT, (uptr)rootNode, info->CapabilityNodeSize, ObjectType::CNODE, CapabilityRights::ACCESS);
 	
 	space->CapabilityNodeList.Head = space->CapabilityNodeList.Tail = rootNode;
 

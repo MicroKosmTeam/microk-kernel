@@ -1,5 +1,5 @@
 #pragma once
-#include <cstdint.hpp>
+#include <cdefs.h>
 
 /* Setting the Kernel offset in the GDT (5th entry) */
 #define GDT_OFFSET_KERNEL_CODE (0x08 * 5)

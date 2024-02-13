@@ -1,5 +1,5 @@
 #pragma once
-#include <cstdint.hpp>
+#include <cdefs.h>
 
 #define MEMMAP_USABLE                 0x00
 #define MEMMAP_RESERVED               0x01

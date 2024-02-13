@@ -1,7 +1,6 @@
 #pragma once
 #include <cdefs.h>
 #include <stdarg.h>
-#include <cstdint.hpp>
 
 #define PRINTK_SOH       "\001"
 #define PRINTK_ASCII_SOH '\001'
