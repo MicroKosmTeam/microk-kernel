@@ -57,7 +57,6 @@ struct KInfo {
 	uptr ManagerExecutableAddress;
 	usize ManagerExecutableSize;
 
-	usize CapabilityNodeSize;
 	ThreadControlBlock *RootTCB;
 	CapabilitySpace *RootCapabilitySpace;
 

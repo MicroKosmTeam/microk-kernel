@@ -36,4 +36,16 @@ namespace MATH {
 
 		return result;
 	}
+
+	/* Only applicable to numbers that ARE powers of two */
+	inline __attribute__((always_inline))
+	usize GetPowerOfTwo(usize num) {
+		return __builtin_ctz(n); /* Count to get trailing zeros */
+	}
+
+	inline __attribute__((always_inline))
+	usize ElevatePowerOfTwo(usize exp) {
+		return (1 << exp);
+	}
+
 }

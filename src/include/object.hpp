@@ -112,21 +112,22 @@ struct Capability {
 	u32 AccessRights;
 }__attribute__((packed, aligned(0x8)));
 
-enum RootCNodeSlots {
+enum TCBCNodeSlots {
 	NULL_SLOT = 0,
 	CSPACE_SLOT,
-	ROOT_CNODE_SLOT,
+	TCB_CNODE_SLOT,
 	TASK_CONTROL_BLOCK_SLOT,
 	MEMORY_MAP_CNODE_SLOT,
-	FIRST_FREE_SLOT,
+	SLOT_COUNT,
 };
 
 /*
  *
  */
 struct CapabilityNode : public ListHead {
-	Capability Slots[PAGE_SIZE / sizeof(Capability)];
-}__attribute__((aligned(PAGE_SIZE)));
+	u16 SizeBits;
+	Capability Slots[];
+};
 
 /*
  *
@@ -139,6 +140,22 @@ struct CapabilitySpace {
  *
  */
 typedef uptr VirtualSpace;
+
+/*
+ *
+ */
+enum EndpointStatus {
+	EP_IDLE = 1,
+	EP_SEND,
+	EP_RECV,
+};
+
+/*
+ *
+ */
+struct Endpoint {
+	EndpointStatus Status;
+};
 
 struct ThreadControlBlock;
 struct SchedulerContext;
@@ -174,8 +191,10 @@ struct ThreadControlBlock : public ListHead {
 	usize TaskID;
 	u8 Priority;
 
+	u32 VirtualRegisters[VIRTUAL_REGISTERS_SIZE];
+
 	VirtualSpace MemorySpace;
-	CapabilitySpace *CSpace;
+	CapabilityNode *RootCNode;
 	SchedulerContext *Context;
 };
 

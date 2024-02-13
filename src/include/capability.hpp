@@ -2,15 +2,16 @@
 #include <object.hpp>
 
 namespace CAPABILITY {
-	inline __attribute__((always_inline)) 
-	CapabilityNode *GetRootNode(CapabilitySpace *space) {
-		return (CapabilityNode*)space->CapabilityNodeList.Head;
-	}
-	
+	/* Function used to initialze the capability infrastructure */
 	void InitializeRootSpace();
 
-	CapabilityNode *CreateCNode(CapabilitySpace *space, uptr addr);
-	CapabilityNode *CreateRootCNode(CapabilitySpace *space, uptr frame);
+	/* Function used to create the root cnode for each TCB */
+	int CreateRootCNode(TaskControlBlock *tcb, CapabilitySpace *cspace);
+
+	/* Function used to create normal cnodes */
+	CapabilityNode *CreateCNode(CapabilitySpace *cspace, uptr addr, usize sizeBits);
+
+
 
 	Capability *Originate(CapabilitySpace *space, uptr object, usize size, ObjectType type, u32 accessRights);
 	Capability *Originate(CapabilitySpace *space, CapabilityNode *node, uptr object, usize size, ObjectType type, u32 accessRights);

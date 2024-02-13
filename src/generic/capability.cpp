@@ -9,49 +9,105 @@ namespace CAPABILITY {
 void InitializeRootSpace() {
 	KInfo *info = GetInfo();
 
+	/* Getting the page for the TCB and the cspace */
 	uptr tcbFrame = VMM::PhysicalToVirtual((uptr)PMM::RequestPage());
+	uptr cspaceFrame = VMM::PhysicalToVirtual((uptr)PMM::RequestPage());
 
+	/* Initializing the TCB and creating the root CSpace */
 	info->RootTCB = TASK::InitializeTCB(tcbFrame);
-	info->RootTCB->CSpace = (CapabilitySpace*)(tcbFrame + sizeof(ThreadControlBlock));
-	info->RootCapabilitySpace = info->RootTCB->CSpace;
-	info->CapabilityNodeSize = PAGE_SIZE;
+	info->RootCSpace = (CapabilitySpace*)cspaceFrame;
+	Memclr(cspaceFrame, PAGE_SIZE);
 
-	Memclr(info->RootCapabilitySpace, sizeof(CapabilitySpace));
-
-	CapabilityNode *rootNode = CreateRootCNode(info->RootCapabilitySpace, VMM::PhysicalToVirtual((uptr)PMM::RequestPage()));
-	Originate(info->RootCapabilitySpace, rootNode, RootCNodeSlots::TASK_CONTROL_BLOCK_SLOT, tcbFrame, sizeof(ThreadControlBlock), ObjectType::TASK_CONTROL_BLOCK, CapabilityRights::ACCESS | CapabilityRights::SEE);
-
-	PRINTK::PrintK(PRINTK_DEBUG "Root CNode initialized.\r\n");
+	/* Creating the root CNode for the */
+	CreateRootCNode(info->RootTCB, info->RootCSpace);
+	
+	PRINTK::PrintK(PRINTK_DEBUG "Root space initialized.\r\n");
 }
 
-CapabilityNode *CreateCNode(CapabilitySpace *space, uptr frame) {
+int CreateRootCNode(TaskControlBlock *tcb, CapabilitySpace *cspace) {
 	KInfo *info = GetInfo();
+
+	/* Getting the memory layout ready
+	 *  _____________________
+	 * | tcb | cnode | empty |
+	 * |_____|_______|_______|
+	 */
+	uptr tcbFrame = (uptr)tcb;
+	uptr cnodeFrame = cspaceFrame + sizeof(ThreadControlBlock);
+	ROUND_UP_TO(cnodeFrame, 16);
+
+	/* Calculate the size bits of the root cnode by seeing how many
+	 * slots we need and rounding it up to the closes power of two
+	 */
+	usize neededSlots = TCBCNodeSlots::SLOT_COUNT;
+	neededSlots = MATH::UpperPowerOfTwoUSIZE(neededSlots);
+	usize cnodeSizeBits = MATH::GetPowerOfTwo(neededSlots);
+
+	/* Assign the frames in the TCB */
+	tcb->RootCNode = (CapabilityNode*)cnodeFrame;
+
+	/* Make all the slots reserved in the root cnode */
+	Memset(cnodeFrame, 0xff, sizeof(Capability) * neededSlots);
+
+	/* Filling the fixed slots */
+
+	/* Creating the CSpace capability */
+	Originate(cspace,
+	          tcb->RootCNode,
+		  RootCNodeSlots::CSPACE_SLOT,
+		  (uptr)cspace,
+		  sizeof(CapabilitySpace),
+		  ObjectType::CSPACE,
+		  CapabilityRights::ACCESS);
+
+	/* Creating the recursive Root CNode capability */
+	Originate(cspace,
+		  tcb->RootCNode,
+		  RootCNodeSlots::ROOT_CNODE_SLOT,
+		  (uptr)tcb->RootCNode,
+		  neededSlots * sizeof(Capability),
+		  ObjectType::CNODE,
+		  CapabilityRights::ACCESS);
+
+	/* Creating the TCB capability */
+	Originate(cspace,
+	          tcb->RootCNode,
+		  RootCNodeSlots::TASK_CONTROL_BLOCK_SLOT,
+		  tcbFrame,
+		  sizeof(ThreadControlBlock),
+		  ObjectType::TASK_CONTROL_BLOCK,
+		  CapabilityRights::ACCESS);
+
+	/* Adding the CNode to the CSpace */	
+	AddElementToList(tcb->RootCNode, cspace->CapabilityNodeList);
+
+	return 0;
+}
+
+CapabilityNode *CreateCNode(CapabilitySpace *cspace, uptr addr, usize sizeBits) {
+	KInfo *info = GetInfo();
+
+	/* Clearing the memory area */
 	CapabilityNode *node = (CapabilityNode*)frame;
 	Memclr(node, info->CapabilityNodeSize);
 
-	Originate(space, node, (uptr)node, info->CapabilityNodeSize, ObjectType::CNODE, CapabilityRights::ACCESS);
+	/* Creating the recursive CNode capability */
+	Originate(cspace,
+		  node,
+		  frame,
+		  sizeBits * sizeof(Capability),
+		  ObjectType::CNODE,
+		  CapabilityRights::ACCESS);
+
+	/* adding the CNode to the CSpace */
 	AddElementToList(node, &space->CapabilityNodeList);
 
 	return node;
 }
 
-CapabilityNode *CreateRootCNode(CapabilitySpace *space, uptr frame) {
-	KInfo *info = GetInfo();
 
-	CapabilityNode *rootNode = (CapabilityNode*)frame;
-	Memclr(rootNode, info->CapabilityNodeSize);
 
-	for (usize slot = RootCNodeSlots::NULL_SLOT; slot < RootCNodeSlots::FIRST_FREE_SLOT; ++slot) {
-		rootNode->Slots[slot].Type = ObjectType::RESERVED_SLOT;
-	}
 
-	Originate(space, rootNode, RootCNodeSlots::CSPACE_SLOT, (uptr)space, sizeof(CapabilitySpace), ObjectType::CSPACE, CapabilityRights::ACCESS);
-	Originate(space, rootNode, RootCNodeSlots::ROOT_CNODE_SLOT, (uptr)rootNode, info->CapabilityNodeSize, ObjectType::CNODE, CapabilityRights::ACCESS);
-	
-	space->CapabilityNodeList.Head = space->CapabilityNodeList.Tail = rootNode;
-
-	return rootNode;
-}
 	
 Capability *Originate(CapabilitySpace *space, uptr object, usize size, ObjectType type, u32 accessRights) {
 	KInfo *info = GetInfo();
@@ -84,7 +140,7 @@ Capability *Originate(CapabilitySpace *space, uptr object, usize size, ObjectTyp
 	capability->Size = size;
 	capability->AccessRights = accessRights;
 
-	PRINTK::PrintK(PRINTK_DEBUG "Originated capability 0x%x of object 0x%x (%d bytes) of type 0x%x and with the following access rights: 0x%x\r\n", capability, capability->Object, capability->Size, capability->Type, capability->AccessRights);
+	PRINTK::PrintK(PRINTK_DEBUG "Originated capability 0x%x of object 0x%x (0x%x bytes) of type 0x%x and with the following access rights: 0x%x\r\n", capability, capability->Object, capability->Size, capability->Type, capability->AccessRights);
 
 	return capability;
 }
@@ -115,7 +171,7 @@ Capability *Originate(CapabilitySpace *space, CapabilityNode *node, uptr object,
 	capability->Size = size;
 	capability->AccessRights = accessRights;
 
-	PRINTK::PrintK(PRINTK_DEBUG "Originated capability 0x%x of object 0x%x (%d bytes) of type 0x%x and with the following access rights: 0x%x\r\n", capability, capability->Object, capability->Size, capability->Type, capability->AccessRights);
+	PRINTK::PrintK(PRINTK_DEBUG "Originated capability 0x%x of object 0x%x (0x%x bytes) of type 0x%x and with the following access rights: 0x%x\r\n", capability, capability->Object, capability->Size, capability->Type, capability->AccessRights);
 
 	return capability;
 }
@@ -129,12 +185,11 @@ Capability *Originate(CapabilitySpace *space, CapabilityNode *node, usize slot, 
 	capability->Size = size;
 	capability->AccessRights = accessRights;
 
-	PRINTK::PrintK(PRINTK_DEBUG "Originated capability 0x%x of object 0x%x (%d bytes) of type 0x%x and with the following access rights: 0x%x\r\n", capability, capability->Object, capability->Size, capability->Type, capability->AccessRights);
+	PRINTK::PrintK(PRINTK_DEBUG "Originated capability 0x%x of object 0x%x (0x%x bytes) of type 0x%x and with the following access rights: 0x%x\r\n", capability, capability->Object, capability->Size, capability->Type, capability->AccessRights);
 
 	return capability;
 
 }
-
 
 Capability *Retype(CapabilitySpace *space, Capability *capability, ObjectType type, usize quantity) {
 	KInfo *info = GetInfo();

@@ -10,6 +10,8 @@ void SyscallCapCtl(usize firstArgument, usize secondArgument, usize thirdArgumen
 	KInfo *info = GetInfo();
 	PRINTK::PrintK(PRINTK_DEBUG " -> CapCtl\r\n");
 
+	CapabilitySpace *cspace = info->RootCapabilitySpace;
+
 	usize operation = firstArgument;
 	Capability *nodeCap = (Capability*)secondArgument;
 	CapabilityNode *nodePtr;
@@ -17,12 +19,12 @@ void SyscallCapCtl(usize firstArgument, usize secondArgument, usize thirdArgumen
 
 	if (nodeCap == NULL) {
 		PRINTK::PrintK(PRINTK_DEBUG "Using root node\r\n");
-		nodePtr = CAPABILITY::GetRootNode(info->RootCapabilitySpace);
+		nodePtr = CAPABILITY::GetRootNode(cspace);
 	} else {
 		/* If the address of nodeCap is invalid, a page fault will occur, killing the running process */
 		nodePtr = (CapabilityNode*)nodeCap->Object;
 
-		if (CAPABILITY::IsNodeInSpace(info->RootCapabilitySpace, nodePtr) != 0) {
+		if (CAPABILITY::IsNodeInSpace(cspace, nodePtr) != 0) {
 			OOPS("Node isn't is space");
 			return;
 		}
@@ -137,14 +139,18 @@ extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize seco
 			}
 			}
 			break;
-		case SYSCALL_VECTOR_YEILD:
-			PRINTK::PrintK(PRINTK_DEBUG " -> Yeild\r\n");
-			break;
 		case SYSCALL_VECTOR_CAPCTL:
 			SyscallCapCtl(firstArgument, secondArgument, thirdArgument, fourthArgument, fithArgument, sixthArgument);
 			break;
 		case SYSCALL_VECTOR_ARCHCTL:
 			SyscallArchCtl(firstArgument, secondArgument, thirdArgument, fourthArgument, fithArgument, sixthArgument);
+			break;
+		case SYSCALL_VECTOR_TASKCTL:
+			SyscallArchCtl(firstArgument, secondArgument, thirdArgument, fourthArgument, fithArgument, sixthArgument);
+			break;
+
+		case SYSCALL_VECTOR_YEILD:
+			PRINTK::PrintK(PRINTK_DEBUG " -> Yeild\r\n");
 			break;
 		case SYSCALL_VECTOR_CALL:
 			PRINTK::PrintK(PRINTK_DEBUG " -> Call\r\n");
