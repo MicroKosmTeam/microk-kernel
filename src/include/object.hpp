@@ -6,7 +6,7 @@
 #endif
 
 /* Structure that is the parent of all objects
- * that will belong in a linked ListHead
+ * that will belong in a linked list
  */
 struct ListHead {
 	ListHead *Next, *Previous;
@@ -156,6 +156,8 @@ enum EndpointStatus {
  */
 struct Endpoint {
 	EndpointStatus Status;
+
+	List ThreadQueue;
 };
 
 struct ThreadControlBlock;
@@ -188,6 +190,13 @@ struct Scheduler {
 }__attribute__((aligned(PAGE_SIZE)));
 
 struct ThreadControlBlock : public ListHead {
+	/* Used to queue up the thread in endpoints and such.
+	 * Also, because a TCB can only be waiting in one EP
+	 * (thanks to the blocking behavior) we only need one
+	 * list head per ThreadControlBlock.
+	 */
+	ListHead ActionQueue;
+
 	ThreadStatus Status;
 	usize TaskID;
 	u8 Priority;
