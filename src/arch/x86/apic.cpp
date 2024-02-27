@@ -9,7 +9,6 @@
 #define MSR_APIC_FLAG_xAPIC_ENABLE  (1 << 11)
 
 namespace x86 {
-
 /* Function that reads the specified x2APIC MSR register */
 inline __attribute__((always_inline))
 void ReadX2APIC(usize registerSelector, u32 *lo, u32 *hi) {
@@ -139,7 +138,7 @@ void SetAPICBase(uptr apic, usize flags) {
 int InitializeAPIC(APIC *apic) {
 	KInfo *info = GetInfo();
 
-	apic->x2APICMode = true;
+	apic->x2APICMode = false;
 
 	apic->Base = GetAPICBase();
 	apic->MappedAddress = VMM::PhysicalToVirtual(apic->Base);

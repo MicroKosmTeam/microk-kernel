@@ -81,9 +81,9 @@ inline static int EnableSyscalls() {
 }
 
 void LoadEssentialCPUStructures() {
-	x86::LoadGDT(&gdt, &pointer);
-	x86::TSSInit(&gdt, &tss, VMM::PhysicalToVirtual((uptr)PMM::RequestPages(64 * 1024)));
-	x86::IDTInit();
+	LoadGDT(&gdt, &pointer);
+	TSSInit(&gdt, &tss, VMM::PhysicalToVirtual((uptr)PMM::RequestPages(64 * 1024) + 64 * 1024));
+	IDTInit();
 }
 
 void InitializeCPUFeatures() {
@@ -102,70 +102,6 @@ void InitializeCPUFeatures() {
 			"CPUID vendor string: %s\r\n", maxIntelLevel, maxAmdLevel, vendor);
 
 	InitializeAPIC(&apic);
-
-	/*
-	if (maxIntelLevel >= 0x00000001 &&
-	    maxIntelLevel <= 0x0000ffff) {
-		u32 vendorInfo = 0;
-		__get_cpuid_count(1, 0, &vendorInfo, &feature, &coreInfo->CPUIDFlags[0], &coreInfo->CPUIDFlags[1]);
-
-		u32 family, model, stepping;
-		family = GetFamily(vendorInfo);
-		model = GetModel(vendorInfo);
-		stepping = GetStepping(vendorInfo);
-
-		PRINTK::PrintK(PRINTK_DEBUG "CPUID processor info:\r\n"
-			"Family:   0x%x\r\n"
-			"Model:    0x%x\r\n"
-			"Stepping: 0x%x\r\n"
-			, family, model, stepping);
-
-		apicID = (feature & 0xFF000000) >> 24;
-	}
-
-	// To get x2APIC data
-	if (maxIntelLevel >= 0x0000000b) {
-		__get_cpuid_count(0x0000000b, 0, &ignored, &ignored, &ignored, &feature);
-
-		if (feature != apicID && feature != 0) {
-			apicID = feature;
-		}
-	}
-
-	if (maxAmdLevel >= 0x80000001 &&
-	    maxAmdLevel <= 0x8000ffff) {
-		__get_cpuid_count(0x80000001, 0, &ignored, &ignored, &feature, &feature);
-	}
-
-	core->ID = apicID;
-
-	if (coreInfo->CPUIDFlags[1] & FLAGS_1_IS_XAPIC_PRESENT) {
-		bool isX2APIC;
-
-		if (coreInfo->CPUIDFlags[0] & FLAGS_0_IS_X2APIC_PRESENT) {
-			isX2APIC = true;
-		} else {
-			isX2APIC = false;
-		}
-	
-		APIC::APIC *localAPIC = (APIC::APIC*)APIC::CreateAPICDevice();
-		coreInfo->LocalAPIC = localAPIC;
-
-		DEV::InitializeDevice((DEV::Device*)localAPIC, isX2APIC);
-	} else {
-		PANIC("No local APIC found");
-	}
-
-	coreInfo->TimeStampCounter = (TSC::TSC*)TSC::CreateTSCDevice();
-
-	SetIOPL();
-
-	SetMSR(MSR_GSBASE, 0, 0);
-
-	SetMSR(MSR_KERNELGSBASE, (uptr)&coreInfo->CPUStruct, (uptr)&coreInfo->CPUStruct >> 32);
-	UpdateLocalCPUStruct(&coreInfo->CPUStruct, 0, VMM::VirtualToPhysical(info->KernelVirtualSpace), VMM::VirtualToPhysical(info->KernelVirtualSpace));
-
-	coreInfo->CPUStruct.TopologyStructure = (uptr)core;*/
 }
 
 void InitializeBootCPU() {
