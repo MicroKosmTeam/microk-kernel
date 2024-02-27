@@ -4,7 +4,7 @@ namespace IPC {
 Endpoint *InitializeEndpoint(uptr frame) {
 	Endpoint *ep = (Endpoint*)frame;
 
-	ep->Status = EndpointStatus::IDLE;
+	ep->Status = EndpointStatus::EP_IDLE;
 	ep->ThreadQueue.Head = ep->ThreadQueue.Tail = NULL;
 
 	return ep;
