@@ -38,13 +38,7 @@ void AddThread(Scheduler *scheduler, ThreadControlBlock *tcb) {
 void RemoveThread(Scheduler *scheduler, ThreadControlBlock *tcb) {
 	switch (tcb->Status) {
 		case ThreadStatus::RUNNING:
-			/* We need to find another thread to substitute this one first */
-			Recalculate(scheduler);
-
-			if (scheduler->Running == tcb) {
-				/* Only one thread we have, yeet it with prejudice */
-				scheduler->Running = NULL;
-			}
+			scheduler->Running = NULL;
 		        __attribute__ ((fallthrough));
 		case ThreadStatus::WAITING:
 			RemoveElementFromList(tcb, &scheduler->Waiting[tcb->Priority]);

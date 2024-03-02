@@ -116,23 +116,24 @@ static int LoadProgramHeaders(u8 *data, usize size, Elf64_Ehdr *elfHeader, Virtu
 
 static usize LoadProcess(Elf64_Ehdr *elfHeader, VirtualSpace space) {
 	KInfo *info = GetInfo();
+	
+	SchedulerContext *context = (SchedulerContext*)VMM::PhysicalToVirtual((uptr)PMM::RequestPage());
+	
+	context->IP = elfHeader->e_entry;
 
-	/** TMP START **/
-
+	/** TMP START **
 	uptr stackAddr = 0x10000000000;
 	usize stackSize = 0x100000;
 
-	SchedulerContext *context = (SchedulerContext*)VMM::PhysicalToVirtual((uptr)PMM::RequestPage());
-	context->IP = elfHeader->e_entry;
 	context->SP = stackAddr;
 	context->BP = stackAddr;
 	context->RFLAGS = 0x202;
 
-	//context->Registers.RDI = info->RSDP - info->HigherHalfMapping; /* Parent info */
+	//context->Registers.RDI = info->RSDP - info->HigherHalfMapping; // Parent info
 
 	VMM::VMAlloc(space, stackAddr - stackSize, stackSize, VMM_FLAGS_READ | VMM_FLAGS_WRITE | VMM_FLAGS_NOEXEC | VMM_FLAGS_USER);
 
-	/** TMP END **/
+	** TMP END **/
 
 	Scheduler *sched = info->BootDomain->DomainScheduler;
 	ThreadControlBlock *tcb = info->RootTCB;

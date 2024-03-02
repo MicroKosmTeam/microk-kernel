@@ -3,6 +3,9 @@
 
 #if defined(__x86_64__)
 #include <arch/x86/object.hpp>
+#elif defined(__aarch64__)
+#include <arch/aarch64/object.hpp>
+
 #endif
 
 /* Structure that is the parent of all objects
@@ -142,6 +145,11 @@ struct CapabilitySpace {
  */
 typedef uptr VirtualSpace;
 
+struct ThreadControlBlock;
+struct SchedulerContext;
+struct Scheduler;
+
+
 /*
  *
  */
@@ -155,14 +163,19 @@ enum EndpointStatus {
  *
  */
 struct Endpoint {
+	ThreadControlBlock *Thread;
 	EndpointStatus Status;
 
 	List ThreadQueue;
 };
 
-struct ThreadControlBlock;
-struct SchedulerContext;
-struct Scheduler;
+enum NotificationStatus {
+	NT_IDLE = 1,
+};
+
+struct Notification {
+	NotificationStatus Status;
+};
 
 enum ThreadStatus {
 	IDLING = 0xFF, /* Special, used for Idle task */
@@ -190,6 +203,8 @@ struct Scheduler {
 }__attribute__((aligned(PAGE_SIZE)));
 
 struct ThreadControlBlock : public ListHead {
+	Scheduler *Parent;
+
 	/* Used to queue up the thread in endpoints and such.
 	 * Also, because a TCB can only be waiting in one EP
 	 * (thanks to the blocking behavior) we only need one

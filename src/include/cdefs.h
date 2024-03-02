@@ -6,7 +6,7 @@
 #if defined(__x86_64__)
 #elif defined(__aarch64__)
 #else
-#error Unsupported architecture
+#error "Unknown architecture"
 #endif
 
 #define HALT for(;;)

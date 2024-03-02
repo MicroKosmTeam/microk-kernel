@@ -8,9 +8,12 @@
 #endif
 
 namespace PRINTK {
-static void PutChar(char ch) {
+static void PutChar(int ch) {
+	/*TODO*/
 #if defined(__x86_64__)
 	x86::OutB(0xE9, ch);
+#elif defined(__aarch64__)
+	(void)ch;
 #endif
 }
 

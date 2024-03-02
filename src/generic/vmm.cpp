@@ -235,6 +235,9 @@ uptr VirtualToPhysical(uptr value) {
 VirtualSpace NewVirtualSpace(uptr frame) {
 #if defined(__x86_64__)
 	return x86_64::NewVirtualSpace(frame);
+#else
+	/*TODO*/
+	(void)frame;
 #endif
 	return 0;
 }
@@ -243,12 +246,22 @@ VirtualSpace NewVirtualSpace(uptr frame) {
 void LoadVirtualSpace(VirtualSpace space) {
 #if defined(__x86_64__)
 	x86_64::LoadVirtualSpace(space);
+#else
+	/*TODO*/
+	(void)space;
 #endif
 }
 	
 int MapIntermediateLevel(VirtualSpace space, usize level, uptr frame, uptr virt, usize flags) {
 #if defined(__x86_64__)
 	return x86_64::MapIntermediateLevel(space, level, frame, virt, flags);
+#else
+	/*TODO*/
+	(void)space;
+	(void)level;
+	(void)frame;
+	(void)virt;
+	(void)flags;
 #endif
 	return 0;
 }
@@ -257,6 +270,12 @@ int MapIntermediateLevel(VirtualSpace space, usize level, uptr frame, uptr virt,
 int MapPage(VirtualSpace space, uptr phys, uptr virt, usize flags) {
 #if defined(__x86_64__)
 	return x86_64::MapPage(space, phys, virt, flags);
+#else
+	/*TODO*/
+	(void)space;
+	(void)phys;
+	(void)virt;
+	(void)flags;
 #endif
 	return 0;
 }
@@ -264,6 +283,10 @@ int MapPage(VirtualSpace space, uptr phys, uptr virt, usize flags) {
 uptr FindMappedPage(VirtualSpace space, uptr virt) {
 #if defined(__x86_64__)
 	return x86_64::FindMappedPage(space, virt);
+#else
+	/*TODO*/
+	(void)space;
+	(void)virt;
 #endif
 	return 0;
 

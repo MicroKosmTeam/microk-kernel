@@ -5,14 +5,16 @@
 
 #if defined(__x86_64__)
 #include <arch/x86/cpu.hpp>
-#else
+#elif defined(__aarch64__)
+#include <arch/aarch64/cpu.hpp>
 #endif
 
 namespace ARCH {
 void InitializeBootCPU() {
 #if defined(__x86_64__)
 	x86::InitializeBootCPU();
-#else
+#elif defined(__aarch64__)
+	AArch64::InitializeBootCPU();
 #endif
 }
 
@@ -24,7 +26,6 @@ void InitializeCPUFeatures() {
 
 #if defined(__x86_64__)
 	x86::InitializeCPUFeatures();
-#else
 #endif
 }
 
@@ -33,6 +34,9 @@ void LoadSchedulerContext(SchedulerContext *context) {
 #if defined(__x86_64__)
 	x86::LoadSchedulerContext(context);
 #else
+	/* TODO */
+	while(true) {}
+	(void)context;
 #endif
 
 }

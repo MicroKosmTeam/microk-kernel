@@ -5,6 +5,8 @@
 
 #if defined(__x86_64__)
 #include <arch/x86/vmm.hpp>
+#elif defined(__aarch64__)
+#include <arch/aarch64/vmm.hpp>
 #endif
 
 #define ROUND_DOWN_TO(x, y) \
