@@ -16,8 +16,8 @@
 
 namespace LOADER {
 static bool VerifyELF(Elf64_Ehdr *elfHeader);
-static int LoadProgramHeaders(u8 *data, usize size, Elf64_Ehdr *elfHeader, VirtualSpace space);
-static usize LoadProcess(Elf64_Ehdr *elfHeader, VirtualSpace space);
+static int LoadProgramHeaders(u8 *data, usize size, Elf64_Ehdr *elfHeader, VirtualSpace space, uptr *highestAddress);
+static usize LoadProcess(Elf64_Ehdr *elfHeader, VirtualSpace space, uptr highestAddress);
 
 usize LoadELF(u8 *data, usize size) {
 	KInfo *info = GetInfo();
@@ -37,8 +37,9 @@ usize LoadELF(u8 *data, usize size) {
 				      ObjectType::PAGING_STRUCTURE,
 				      CapabilityRights::ACCESS);
 
-		LoadProgramHeaders(data, size, elfHeader, space);
-		usize pid = LoadProcess(elfHeader, space);
+		uptr highestAddress = 0;
+		LoadProgramHeaders(data, size, elfHeader, space, &highestAddress);
+		usize pid = LoadProcess(elfHeader, space, highestAddress);
 		
 		return pid;
 	} else {
@@ -69,7 +70,7 @@ static bool VerifyELF(Elf64_Ehdr *elfHeader) {
 	return true;
 }
 
-static int LoadProgramHeaders(u8 *data, usize size, Elf64_Ehdr *elfHeader, VirtualSpace space) {
+static int LoadProgramHeaders(u8 *data, usize size, Elf64_Ehdr *elfHeader, VirtualSpace space, uptr *highestAddress) {
 	KInfo *info = GetInfo();
 
 	(void)info;
@@ -88,6 +89,11 @@ static int LoadProgramHeaders(u8 *data, usize size, Elf64_Ehdr *elfHeader, Virtu
 
 		uptr virtAddr = programHeader->p_vaddr;
 		usize memSize = programHeader->p_memsz;
+
+		if (*highestAddress < virtAddr + memSize) {
+			*highestAddress = virtAddr + memSize;
+			ROUND_UP_TO_PAGE(*highestAddress);
+		}
 
 		uptr fileOffset = (uptr)data + programHeader->p_offset;
 		usize fileSize = programHeader->p_filesz;
@@ -114,34 +120,46 @@ static int LoadProgramHeaders(u8 *data, usize size, Elf64_Ehdr *elfHeader, Virtu
 	return 0;
 }
 
-static usize LoadProcess(Elf64_Ehdr *elfHeader, VirtualSpace space) {
+static usize LoadProcess(Elf64_Ehdr *elfHeader, VirtualSpace space, uptr highestAddress) {
 	KInfo *info = GetInfo();
 	
 	SchedulerContext *context = (SchedulerContext*)VMM::PhysicalToVirtual((uptr)PMM::RequestPage());
-	
-	context->IP = elfHeader->e_entry;
 
-	/** TMP START **
-	uptr stackAddr = 0x10000000000;
-	usize stackSize = 0x100000;
+	/* Find the stack base after the highestAddress,
+	 * making sure to reserve enough space for eventual expansion
+	 */
+	highestAddress += INIT_MAXIMUM_STACK_GROWTH - INIT_INITIAL_STACK_SIZE;
 
-	context->SP = stackAddr;
-	context->BP = stackAddr;
-	context->RFLAGS = 0x202;
+	/* Create the capability for the stack frames
+	 * Yes, init can revoke its stack frames, if it wishes to.
+	 */
+	CAPABILITY::Originate(info->RootTCB->RootCNode,
+				      RootCNodeSlots::STACK_FRAME_SLOT,
+				      highestAddress,
+				      INIT_INITIAL_STACK_SIZE,
+				      ObjectType::FRAMES,
+				      CapabilityRights::ACCESS |
+				      CapabilityRights::READ |
+				      CapabilityRights::WRITE |
+				      CapabilityRights:: REVOKE);
 
-	//context->Registers.RDI = info->RSDP - info->HigherHalfMapping; // Parent info
+	/* Create the actual context */
+	TASK::InitializeContext((uptr)context, elfHeader->e_entry, highestAddress + INIT_INITIAL_STACK_SIZE);
 
-	VMM::VMAlloc(space, stackAddr - stackSize, stackSize, VMM_FLAGS_READ | VMM_FLAGS_WRITE | VMM_FLAGS_NOEXEC | VMM_FLAGS_USER);
+	/* Allocate the space for the stack and map it in
+	 * the virtual space for init
+	 */
+	VMM::VMAlloc(space, highestAddress, INIT_INITIAL_STACK_SIZE, VMM_FLAGS_READ | VMM_FLAGS_WRITE | VMM_FLAGS_NOEXEC | VMM_FLAGS_USER);
 
-	** TMP END **/
 
-	Scheduler *sched = info->BootDomain->DomainScheduler;
+	/* Add the memory space and the context to the TCB */
 	ThreadControlBlock *tcb = info->RootTCB;
-
 	tcb->MemorySpace = space;
 	tcb->Context = context;
 	tcb->Priority = SCHEDULER_MAX_PRIORITY;
 
+	/* Add the init thread to the boot domain scheduler */
+	Scheduler *sched = info->BootDomain->DomainScheduler;
 	SCHED::AddThread(sched, tcb);
 
 	return 0;

@@ -9,13 +9,27 @@ static u64 RequestID() {
 namespace TASK {
 ThreadControlBlock *InitializeTCB(uptr frame) {
 	ThreadControlBlock *tcb = (ThreadControlBlock*)frame;
-	Memclr(tcb, PAGE_SIZE);
+	Memclr(tcb, sizeof(ThreadControlBlock));
 
 	tcb->Status = ThreadStatus::RUNNING;
 	tcb->TaskID = RequestID();
 	tcb->Priority = SCHEDULER_MIN_PRIORITY;
 
 	return tcb;
+}
+
+SchedulerContext *InitializeContext(uptr frame, uptr ip, uptr sp) {
+	SchedulerContext *context = (SchedulerContext*)frame;
+	Memclr(context, sizeof(SchedulerContext));
+
+	context->IP = ip;
+	context->BP = context->SP = sp;
+
+
+#if defined(__x86_64__)
+	context->RFLAGS = 0x202;
+#endif
+	return context;
 }
 }
 

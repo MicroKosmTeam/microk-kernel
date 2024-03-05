@@ -33,6 +33,8 @@ typedef enum {
 
 /* Limiting maximum bootmem allocation space */
 #define MAXIMUM_BOOTMEM_MEMORY (64 * 1024)
+#define INIT_INITIAL_STACK_SIZE (64 * 1024)
+#define INIT_MAXIMUM_STACK_GROWTH (2 * 1024 * 1024)
 
 #define VIRTUAL_REGISTERS_SIZE 128
 

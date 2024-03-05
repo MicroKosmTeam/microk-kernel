@@ -31,8 +31,6 @@ namespace x86_64 {
 	uptr NewVirtualSpace(uptr frame);
 	void LoadVirtualSpace(uptr topLevel);
 
-	u64 GetTotalAddressableMemory();
-	
 	int MapIntermediateLevel(uptr rootPageTable, usize level, uptr frame, uptr virt, usize flags);
 	int MapPage(uptr rootPageTable, uptr phys, uptr virt, usize flags);
 	
