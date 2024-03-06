@@ -30,13 +30,15 @@ BootMemoryStruct *DeactivateBootMemory() {
 	KInfo *info = GetInfo();
 	
 	ROUND_UP_TO_PAGE(BootMemory.LastPosition);
-
+	(void)info;
+/*
+	TODO: FIX
 	usize usableBootMemory = BootMemory.MaximumPosition - BootMemory.LastPosition;
 
 	MEM::MEMBLOCK::AddRegion(info->PhysicalMemoryChunks,
 			VMM::VirtualToPhysical(BootMemory.MemoryStart) + BootMemory.LastPosition,
 			usableBootMemory, MEMMAP_USABLE);
-	
+*/
 	BootMemory.Active = false;
 
 	return &BootMemory;
@@ -48,6 +50,7 @@ bool IsBootMemoryActive() {
 
 __attribute__((malloc))
 void *Malloc(usize size) {
+	PRINTK::PrintK(PRINTK_DEBUG "Bootmem alloc for size %d\r\n", size);
 	if (BootMemory.LastPosition + size >= BootMemory.MaximumPosition) {
 		PANIC("No remaining bootmem memory");
 	}
