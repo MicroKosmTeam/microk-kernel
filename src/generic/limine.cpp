@@ -9,13 +9,10 @@
 #include <printk.hpp>
 #include <pmm.hpp>
 
-LIMINE_BASE_REVISION(1)
-
-/* Limine will not map memory over 4G */
-#define LIMINE_MEMORY_MAP_LIMIT (0xFFFFFFFF)
+static volatile LIMINE_BASE_REVISION(1)
 
 /* Function called by Limine at bootup through the entry point */
-extern "C" void LimineEntry(void);
+extern "C" void LimineEntry();
 
 /* Setting the correct entry point for Limine */
 static volatile limine_entry_point_request EntryPointRequest {
@@ -94,7 +91,8 @@ extern "C" __attribute__((noreturn))
 void LimineEntry() {
 	/* Checking if vital requests have been answered by Limine
 	 * If not, give up and shut down */
-	if(MemoryMapRequest.response == NULL ||
+	if(limine_base_revision[2] != 0 ||
+	   MemoryMapRequest.response == NULL ||
 	   HHDMRequest.response == NULL ||
 	   KAddrRequest.response == NULL) {
 		PANIC("Requests not answered by Limine");
@@ -117,9 +115,7 @@ void LimineEntry() {
 		u8 type = MemoryMapRequest.response->entries[i]->type;
 
 		/* Exclude invalid entries */
-		if (type != MEMMAP_USABLE ||
-		    base >= LIMINE_MEMORY_MAP_LIMIT ||
-		    base + length >= LIMINE_MEMORY_MAP_LIMIT) {
+		if (type != MEMMAP_USABLE) {
 			continue;
 		}
 
