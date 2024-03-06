@@ -9,9 +9,9 @@ static PhysicalMemoryManagerStruct PhysicalMemoryManager;
 static void FindNextFreeRegion() {
 	KInfo *info = GetInfo();
 
-	for (MEM::MEMBLOCK::MemblockRegion *current = (MEM::MEMBLOCK::MemblockRegion*)info->PhysicalMemoryChunks->Regions.Head;
+	for (MEM::MEMBLOCK::MemblockRegion *current = (MEM::MEMBLOCK::MemblockRegion*)info->PhysicalMemoryChunks->Regions.Tail;
 	     current != NULL;
-	     current = (MEM::MEMBLOCK::MemblockRegion*)current->Next) {
+	     current = (MEM::MEMBLOCK::MemblockRegion*)current->Previous) {
 		if (current->Type != MEMMAP_USABLE) {
 			continue;
 		}
@@ -66,7 +66,8 @@ void *RequestPage() {
 
 void *RequestPages(usize length) {
 	OOPS("RequestPages is broken");
-	/* It doesn't work, TODO: fix */
+	/* TODO: fix */
+
 	KInfo *info = GetInfo();
 	ROUND_UP_TO_PAGE(length);
 
