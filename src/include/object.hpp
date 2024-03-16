@@ -122,7 +122,7 @@ enum RootCNodeSlots {
 	TASK_CONTROL_BLOCK_SLOT,
 	VIRTUAL_SPACE_ROOT_SLOT,
 	MEMORY_MAP_CNODE_SLOT,
-	STACK_FRAME_SLOT,
+	INIT_INFO_FRAME_SLOT,
 	SLOT_COUNT,
 };
 
@@ -239,4 +239,6 @@ struct SchedulerContext {
 	usize Budget;
 }__attribute__((packed));
 
+struct IInfo {
+}__attribute__((packed));
 

@@ -61,6 +61,8 @@ struct KInfo {
 	CapabilitySpace *RootCSpace;
 
 	Domain *BootDomain;
+
+	IInfo *InitInfo;
 };
 
 /*

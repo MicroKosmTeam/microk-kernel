@@ -123,34 +123,57 @@ static int LoadProgramHeaders(u8 *data, usize size, Elf64_Ehdr *elfHeader, Virtu
 static usize LoadProcess(Elf64_Ehdr *elfHeader, VirtualSpace space, uptr highestAddress) {
 	KInfo *info = GetInfo();
 	
-	SchedulerContext *context = (SchedulerContext*)VMM::PhysicalToVirtual((uptr)PMM::RequestPage());
+	/* Find the real physical frame for InitInfo */
+	uptr initInfoFrame = VMM::VirtualToPhysical((uptr)info->InitInfo);
+
+	/* Map the InitInfo frame just above the init executable */
+	VMM::MMap(space, initInfoFrame, highestAddress, PAGE_SIZE, VMM_FLAGS_READ | VMM_FLAGS_USER | VMM_FLAGS_NOEXEC);
+
+	/* Create the capability for InitInfo frame.
+	 * Init can revoke this frame, if it wishes to.
+	 */
+	CAPABILITY::Originate(info->RootTCB->RootCNode,
+				      RootCNodeSlots::INIT_INFO_FRAME_SLOT,
+				      initInfoFrame,
+				      PAGE_SIZE,
+				      ObjectType::FRAMES,
+				      CapabilityRights::ACCESS |
+				      CapabilityRights::READ |
+				      CapabilityRights::REVOKE);
+
+	/* Replace the physical frame data with the mapping */
+	initInfoFrame = highestAddress;
+
+	/* Bump the highest address up one page */
+	highestAddress += PAGE_SIZE;
 
 	/* Find the stack base after the highestAddress,
 	 * making sure to reserve enough space for eventual expansion
 	 */
 	highestAddress += INIT_MAXIMUM_STACK_GROWTH - INIT_INITIAL_STACK_SIZE;
 
-	/* Create the capability for the stack frames
-	 * Yes, init can revoke its stack frames, if it wishes to.
-	 */
-	CAPABILITY::Originate(info->RootTCB->RootCNode,
-				      RootCNodeSlots::STACK_FRAME_SLOT,
-				      highestAddress,
-				      INIT_INITIAL_STACK_SIZE,
-				      ObjectType::FRAMES,
-				      CapabilityRights::ACCESS |
-				      CapabilityRights::READ |
-				      CapabilityRights::WRITE |
-				      CapabilityRights:: REVOKE);
-
-	/* Create the actual context */
-	TASK::InitializeContext((uptr)context, elfHeader->e_entry, highestAddress + INIT_INITIAL_STACK_SIZE);
+// TODO: this isn't usable, unless we provide the physical frames
+//	/* Create the capability for the stack frames
+//	 * Init can revoke its stack frames, if it wishes to.
+//	 */
+//	CAPABILITY::Originate(info->RootTCB->RootCNode,
+//				      RootCNodeSlots::STACK_FRAME_SLOT,
+//				      highestAddress,
+//				      INIT_INITIAL_STACK_SIZE,
+//				      ObjectType::FRAMES,
+//				      CapabilityRights::ACCESS |
+//				      CapabilityRights::READ |
+//				      CapabilityRights::WRITE |
+//				      CapabilityRights::REVOKE);
 
 	/* Allocate the space for the stack and map it in
 	 * the virtual space for init
 	 */
 	VMM::VMAlloc(space, highestAddress, INIT_INITIAL_STACK_SIZE, VMM_FLAGS_READ | VMM_FLAGS_WRITE | VMM_FLAGS_NOEXEC | VMM_FLAGS_USER);
 
+	/* Create the actual context */
+	SchedulerContext *context = (SchedulerContext*)VMM::PhysicalToVirtual((uptr)PMM::RequestPage());
+	TASK::InitializeContext((uptr)context, elfHeader->e_entry, highestAddress + INIT_INITIAL_STACK_SIZE, 1, initInfoFrame);
 
 	/* Add the memory space and the context to the TCB */
 	ThreadControlBlock *tcb = info->RootTCB;

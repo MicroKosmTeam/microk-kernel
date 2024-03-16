@@ -11,6 +11,8 @@
 
 #define HALT for(;;)
 
+#define USER_MANAGER_NAME "manager.kmd"
+
 #define PAGE_PROTECTION_READ    ((usize)(1 << 0))
 #define PAGE_PROTECTION_WRITE   ((usize)(1 << 1))
 #define PAGE_PROTECTION_EXEC    ((usize)(1 << 2))

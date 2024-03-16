@@ -68,7 +68,7 @@ static volatile limine_dtb_request DTBRequest {
 
 /* Forcing the bootloader to provide the user manager */
 static volatile limine_internal_module UserManagerModule {
-	.path = "./manager.kmd",
+	.path = "./" USER_MANAGER_NAME,
 	.cmdline = NULL,
 	.flags = LIMINE_INTERNAL_MODULE_REQUIRED,
 };

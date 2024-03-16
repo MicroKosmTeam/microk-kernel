@@ -11,6 +11,11 @@ namespace CAPABILITY {
 void InitializeRootSpace() {
 	KInfo *info = GetInfo();
 
+	/* Initialize the InitInfo frame, to be passed to the root TCB */
+	uptr initInfoFrame = VMM::PhysicalToVirtual((uptr)PMM::RequestPage());
+	info->InitInfo = (IInfo*)initInfoFrame;
+	Memclr(info->InitInfo, sizeof(IInfo));
+
 	/* Getting the page for the TCB and the cspace */
 	uptr tcbFrame = VMM::PhysicalToVirtual((uptr)PMM::RequestPage());
 	uptr cspaceFrame = VMM::PhysicalToVirtual((uptr)PMM::RequestPage());
