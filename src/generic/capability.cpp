@@ -44,7 +44,7 @@ int CreateRootCNode(ThreadControlBlock *tcb, CapabilitySpace *cspace) {
 	/* Calculate the size bits of the root cnode by seeing how many
 	 * slots we need and rounding it up to the closes power of two
 	 */
-	usize neededSlots = RootCNodeSlots::SLOT_COUNT;
+	usize neededSlots = ROOT_CNODE_SLOTS::SLOT_COUNT;
 	usize cnodeSize = neededSlots * sizeof(Capability) + sizeof(CapabilityNode);
 	cnodeSize = MATH::UpperPowerOfTwoUSIZE(cnodeSize);
 	usize cnodeSizeBits = MATH::GetPowerOfTwo(cnodeSize);
@@ -61,27 +61,24 @@ int CreateRootCNode(ThreadControlBlock *tcb, CapabilitySpace *cspace) {
 	/* Filling the fixed slots */
 	/* Creating the CSpace capability */
 	Originate(tcb->RootCNode,
-		  RootCNodeSlots::CSPACE_SLOT,
+		  ROOT_CNODE_SLOTS::CSPACE_SLOT,
 		  (uptr)cspace,
-		  sizeof(CapabilitySpace),
-		  ObjectType::CSPACE,
-		  CapabilityRights::ACCESS);
+		  OBJECT_TYPE::CSPACE,
+		  CAPABILITY_RIGHTS::ACCESS);
 
 	/* Creating the recursive Root CNode capability */
 	Originate(tcb->RootCNode,
-		  RootCNodeSlots::ROOT_CNODE_SLOT,
+		  ROOT_CNODE_SLOTS::ROOT_CNODE_SLOT,
 		  (uptr)tcb->RootCNode,
-		  cnodeSize,
-		  ObjectType::CNODE,
-		  CapabilityRights::ACCESS);
+		  OBJECT_TYPE::CNODE,
+		  CAPABILITY_RIGHTS::ACCESS);
 
 	/* Creating the TCB capability */
 	Originate(tcb->RootCNode,
-		  RootCNodeSlots::TASK_CONTROL_BLOCK_SLOT,
+		  ROOT_CNODE_SLOTS::TASK_CONTROL_BLOCK_SLOT,
 		  tcbFrame,
-		  sizeof(ThreadControlBlock),
-		  ObjectType::TASK_CONTROL_BLOCK,
-		  CapabilityRights::ACCESS);
+		  OBJECT_TYPE::TASK_CONTROL_BLOCK,
+		  CAPABILITY_RIGHTS::ACCESS);
 
 	/* Adding the CNode to the CSpace */	
 	AddElementToList(tcb->RootCNode, &cspace->CapabilityNodeList);
@@ -103,9 +100,8 @@ CapabilityNode *CreateCNode(CapabilitySpace *cspace, uptr addr, usize sizeBits) 
 	/* Creating the recursive CNode capability */
 	Originate(cnode,
 		  addr,
-		  cnodeSize,
-		  ObjectType::CNODE,
-		  CapabilityRights::ACCESS);
+		  OBJECT_TYPE::CNODE,
+		  CAPABILITY_RIGHTS::ACCESS);
 
 	/* adding the CNode to the CSpace */
 	AddElementToList(cnode, &cspace->CapabilityNodeList);
@@ -113,22 +109,21 @@ CapabilityNode *CreateCNode(CapabilitySpace *cspace, uptr addr, usize sizeBits) 
 	return cnode;
 }
 
-Capability *Originate(CapabilityNode *node, uptr object, usize size, ObjectType type, u32 accessRights) {
+Capability *Originate(CapabilityNode *node, uptr object, OBJECT_TYPE type, u32 accessRights) {
 	/* Cycle through the slots of the CNode to find the first free slot */
 	for (Capability *capability = &node->Slots[0];
 	     /* This checks whether the capability is within the CNode */
 	     (uptr)capability < (uptr)node + MATH::ElevatePowerOfTwo(node->SizeBits);
 	     ++capability) {
 		/* If the slot is a null capability, it's free real estate */
-		if (capability->Type == ObjectType::NULL_CAPABILITY) {
+		if (capability->Type == OBJECT_TYPE::NULL_CAPABILITY) {
 			/* Assign the various paramenters to the capability */
 			capability->Type = type;
 			capability->Object = object;
-			capability->Size = size;
 			capability->AccessRights = accessRights;
 
 			/* Print a debug message */
-			PRINTK::PrintK(PRINTK_DEBUG "Originated capability 0x%x of object 0x%x (0x%x bytes) of type 0x%x and with the following access rights: 0x%x\r\n", capability, capability->Object, capability->Size, capability->Type, capability->AccessRights);
+			PRINTK::PrintK(PRINTK_DEBUG "Originated capability 0x%x of object 0x%x of type 0x%x and with the following access rights: 0x%x\r\n", capability, capability->Object, capability->Type, capability->AccessRights);
 
 			/* Return the capability */
 			return capability;
@@ -139,7 +134,7 @@ Capability *Originate(CapabilityNode *node, uptr object, usize size, ObjectType 
 	return NULL;
 }
 	
-Capability *Originate(CapabilityNode *node, usize slot, uptr object, usize size, ObjectType type, u32 accessRights) {
+Capability *Originate(CapabilityNode *node, usize slot, uptr object, OBJECT_TYPE type, u32 accessRights) {
 	/* Check whether the slot is actually valid */
 	usize cnodeSlotsSize = MATH::ElevatePowerOfTwo(node->SizeBits) - sizeof(CapabilityNode);
 	if (cnodeSlotsSize / sizeof(Capability) <= slot) {
@@ -152,11 +147,10 @@ Capability *Originate(CapabilityNode *node, usize slot, uptr object, usize size,
 	/* Assign the various paramenters to the capability */
 	capability->Type = type;
 	capability->Object = object;
-	capability->Size = size;
 	capability->AccessRights = accessRights;
 
 	/* Print a debug message */
-	PRINTK::PrintK(PRINTK_DEBUG "Originated capability 0x%x of object 0x%x (0x%x bytes) of type 0x%x and with the following access rights: 0x%x\r\n", capability, capability->Object, capability->Size, capability->Type, capability->AccessRights);
+	PRINTK::PrintK(PRINTK_DEBUG "Originated capability 0x%x of object 0x%x of type 0x%x and with the following access rights: 0x%x\r\n", capability, capability->Object, capability->Type, capability->AccessRights);
 
 	/* Return the capability */
 	return capability;
@@ -180,6 +174,21 @@ int IsNodeInSpace(CapabilitySpace *cspace, CapabilityNode *node) {
 	}
 
 	/* The node hasn't been found anywhere in the cspace */
+	return -ENOCAP;
+}
+	
+int IsCapabilityInNode(CapabilityNode *node, usize nodeSlot) {
+	if (node == NULL) {
+		return -ENOTPRESENT;
+	}
+
+	usize nodeSize = MATH::ElevatePowerOfTwo(node->SizeBits);
+	usize nodeSlots = nodeSize / sizeof(Capability);
+
+	if (nodeSlots > nodeSlot) {
+		return 0;
+	}
+
 	return -ENOCAP;
 }
 }

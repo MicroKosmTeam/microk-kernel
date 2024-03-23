@@ -5,13 +5,12 @@
 #include <panic.hpp>
 #include <cdefs.h>
 
-#ifdef UNDEF
 inline __attribute__((always_inline))
 void SyscallCapCtl(usize firstArgument, usize secondArgument, usize thirdArgument, usize fourthArgument, usize fithArgument, usize sixthArgument) {
 	KInfo *info = GetInfo();
 	PRINTK::PrintK(PRINTK_DEBUG " -> CapCtl\r\n");
 
-	CapabilitySpace *cspace = info->RootCapabilitySpace;
+	CapabilitySpace *cspace = info->RootCSpace;
 
 	usize operation = firstArgument;
 	Capability *nodeCap = (Capability*)secondArgument;
@@ -20,7 +19,7 @@ void SyscallCapCtl(usize firstArgument, usize secondArgument, usize thirdArgumen
 
 	if (nodeCap == NULL) {
 		PRINTK::PrintK(PRINTK_DEBUG "Using root node\r\n");
-		nodePtr = CAPABILITY::GetRootNode(cspace);
+		nodePtr = info->RootTCB->RootCNode;
 	} else {
 		/* If the address of nodeCap is invalid, a page fault will occur, killing the running process */
 		nodePtr = (CapabilityNode*)nodeCap->Object;
@@ -31,7 +30,7 @@ void SyscallCapCtl(usize firstArgument, usize secondArgument, usize thirdArgumen
 		}
 	}
 
-	if (nodeSlot >= info->CapabilityNodeSize / sizeof(Capability)) {
+	if (CAPABILITY::IsCapabilityInNode(nodePtr, nodeSlot)) {
 		OOPS("Invalid CAP addressing");
 		return;
 	}
@@ -41,13 +40,13 @@ void SyscallCapCtl(usize firstArgument, usize secondArgument, usize thirdArgumen
 			uptr *newPtr = (uptr*)fourthArgument;
 			Capability *capability = &nodePtr->Slots[nodeSlot];
 
-			if (capability->Type == ObjectType::RESERVED_SLOT) {
+			if (capability->Type == OBJECT_TYPE::RESERVED_SLOT) {
 				OOPS("Addressing reserved CAP slot");
 				*newPtr = 0;
 				return;
 			}
 
-			if ((capability->AccessRights & CapabilityRights::ACCESS) == 0) {
+			if ((capability->AccessRights & CAPABILITY_RIGHTS::ACCESS) == 0) {
 				OOPS("Addressing non-accessible CAP slot");
 				*newPtr = 0;
 				return;
@@ -56,26 +55,24 @@ void SyscallCapCtl(usize firstArgument, usize secondArgument, usize thirdArgumen
 			*newPtr = (uptr)capability;
 			}
 			break;
-		case SYSCALL_CAPCTL_GET_CAP: {
-			Capability *newPtr = (Capability*)fourthArgument;
+		case SYSCALL_CAPCTL_GET_UT: {
+			uptr *newPtr = (uptr*)fourthArgument;
 			Capability *capability = &nodePtr->Slots[nodeSlot];
 		
-			if (capability->Type == ObjectType::RESERVED_SLOT) {
+			if (capability->Type == OBJECT_TYPE::RESERVED_SLOT) {
 				OOPS("Addressing reserved CAP slot");
 				*(usize*)newPtr = 0;
 				return;
 			}
 
-			if ((capability->AccessRights & CapabilityRights::SEE) == 0) {
+			if ((capability->AccessRights & CAPABILITY_RIGHTS::SEE) == 0) {
 				OOPS("Addressing non-seeable CAP slot");
 				*(usize*)newPtr = 0;
 				return;
 			}
 
-			newPtr->Type = capability->Type;
-			newPtr->Object = capability->Object;
-			newPtr->Size = capability->Size;
-			newPtr->AccessRights = capability->AccessRights;
+			UntypedHeader *header = (UntypedHeader*)VMM::PhysicalToVirtual(capability->Object);
+			*newPtr = header->Address;
 			}
 			break;
 		case SYSCALL_CAPCTL_RETYPE: {
@@ -89,6 +86,7 @@ void SyscallCapCtl(usize firstArgument, usize secondArgument, usize thirdArgumen
 	(void)sixthArgument;
 }
 
+#ifdef UNDEF
 inline __attribute__((always_inline))
 void SyscallArchCtl(usize firstArgument, usize secondArgument, usize thirdArgument, usize fourthArgument, usize fithArgument, usize sixthArgument) {
 	KInfo *info = GetInfo();
@@ -147,10 +145,11 @@ extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize seco
 			}
 			}
 			break;
-/*
+
 		case SYSCALL_VECTOR_CAPCTL:
 			SyscallCapCtl(firstArgument, secondArgument, thirdArgument, fourthArgument, fithArgument, sixthArgument);
 			break;
+/*
 		case SYSCALL_VECTOR_ARCHCTL:
 			SyscallArchCtl(firstArgument, secondArgument, thirdArgument, fourthArgument, fithArgument, sixthArgument);
 			break;

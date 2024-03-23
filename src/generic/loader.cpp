@@ -31,11 +31,10 @@ usize LoadELF(u8 *data, usize size) {
 		VMM::PrepareUserVirtualSpace(space);
 
 		CAPABILITY::Originate(info->RootTCB->RootCNode,
-				      RootCNodeSlots::VIRTUAL_SPACE_ROOT_SLOT,
+				      ROOT_CNODE_SLOTS::VIRTUAL_SPACE_ROOT_SLOT,
 				      space,
-				      PAGE_SIZE,
-				      ObjectType::PAGING_STRUCTURE,
-				      CapabilityRights::ACCESS);
+				      OBJECT_TYPE::PAGING_STRUCTURE,
+				      CAPABILITY_RIGHTS::ACCESS);
 
 		uptr highestAddress = 0;
 		LoadProgramHeaders(data, size, elfHeader, space, &highestAddress);
@@ -133,13 +132,12 @@ static usize LoadProcess(Elf64_Ehdr *elfHeader, VirtualSpace space, uptr highest
 	 * Init can revoke this frame, if it wishes to.
 	 */
 	CAPABILITY::Originate(info->RootTCB->RootCNode,
-				      RootCNodeSlots::INIT_INFO_FRAME_SLOT,
+				      ROOT_CNODE_SLOTS::INIT_INFO_FRAME_SLOT,
 				      initInfoFrame,
-				      PAGE_SIZE,
-				      ObjectType::FRAMES,
-				      CapabilityRights::ACCESS |
-				      CapabilityRights::READ |
-				      CapabilityRights::REVOKE);
+				      OBJECT_TYPE::FRAMES,
+				      CAPABILITY_RIGHTS::ACCESS |
+				      CAPABILITY_RIGHTS::READ |
+				      CAPABILITY_RIGHTS::REVOKE);
 
 	/* Replace the physical frame data with the mapping */
 	initInfoFrame = highestAddress;
@@ -157,14 +155,14 @@ static usize LoadProcess(Elf64_Ehdr *elfHeader, VirtualSpace space, uptr highest
 //	 * Init can revoke its stack frames, if it wishes to.
 //	 */
 //	CAPABILITY::Originate(info->RootTCB->RootCNode,
-//				      RootCNodeSlots::STACK_FRAME_SLOT,
+//				      ROOT_CNODE_SLOTS::STACK_FRAME_SLOT,
 //				      highestAddress,
 //				      INIT_INITIAL_STACK_SIZE,
-//				      ObjectType::FRAMES,
-//				      CapabilityRights::ACCESS |
-//				      CapabilityRights::READ |
-//				      CapabilityRights::WRITE |
-//				      CapabilityRights::REVOKE);
+//				      OBJECT_TYPE::FRAMES,
+//				      CAPABILITY_RIGHTS::ACCESS |
+//				      CAPABILITY_RIGHTS::READ |
+//				      CAPABILITY_RIGHTS::WRITE |
+//				      CAPABILITY_RIGHTS::REVOKE);
 
 	/* Allocate the space for the stack and map it in
 	 * the virtual space for init

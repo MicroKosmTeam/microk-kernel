@@ -133,11 +133,10 @@ void Deinit() {
 
 	/* Creating the capability in the fixed slot */
 	CAPABILITY::Originate(rootNode,
-			      RootCNodeSlots::MEMORY_MAP_CNODE_SLOT,
+			      ROOT_CNODE_SLOTS::MEMORY_MAP_CNODE_SLOT,
 			      (uptr)memoryNode,
-			      cnodeSize,
-			      ObjectType::CNODE,
-			      CapabilityRights::ACCESS);
+			      OBJECT_TYPE::CNODE,
+			      CAPABILITY_RIGHTS::ACCESS);
 
 	/* Printing the final memory map by passing through all memblock regions */
 	PRINTK::PrintK(PRINTK_DEBUG "Final Memory Map:\r\n");
@@ -159,17 +158,20 @@ void Deinit() {
 			info->PhysicalMemoryChunks->Regions.Head;
 	     current != NULL;
 	     current = (MEM::MEMBLOCK::MemblockRegion*)current->Next) {
+		UntypedHeader *header = (UntypedHeader*)VMM::PhysicalToVirtual(current->Base);
 		switch (current->Type) {
 			case MEMMAP_USABLE:
 				/* Usable is untyped, and userspace is free to do anything they please
 				 * with it */
+				header->Address = current->Base;
+				header->Length = current->Length;
+				header->Flags = 0;
 				CAPABILITY::Originate(memoryNode,
-						      current->Base,
-						      current->Length,
-						      ObjectType::UNTYPED,
-						      CapabilityRights::ACCESS |
-						      CapabilityRights::SEE |
-						      CapabilityRights::RETYPE);
+						      (uptr)header,
+						      OBJECT_TYPE::UNTYPED,
+						      CAPABILITY_RIGHTS::ACCESS |
+						      CAPABILITY_RIGHTS::SEE |
+						      CAPABILITY_RIGHTS::RETYPE);
 				break;
 			case MEMMAP_KERNEL_DEVICE:
 			case MEMMAP_FRAMEBUFFER:
