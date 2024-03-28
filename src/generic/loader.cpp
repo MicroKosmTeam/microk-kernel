@@ -121,29 +121,29 @@ static int LoadProgramHeaders(u8 *data, usize size, Elf64_Ehdr *elfHeader, Virtu
 
 static usize LoadProcess(Elf64_Ehdr *elfHeader, VirtualSpace space, uptr highestAddress) {
 	KInfo *info = GetInfo();
-	
-	/* Find the real physical frame for InitInfo */
-	uptr initInfoFrame = VMM::VirtualToPhysical((uptr)info->InitInfo);
 
-	/* Map the InitInfo frame just above the init executable */
-	VMM::MMap(space, initInfoFrame, highestAddress, PAGE_SIZE, VMM_FLAGS_READ | VMM_FLAGS_USER | VMM_FLAGS_NOEXEC);
+//	/* Find the real physical frame for InitInfo */
+//	uptr initInfoFrame = VMM::VirtualToPhysical((uptr)bootInfo);
 
-	/* Create the capability for InitInfo frame.
-	 * Init can revoke this frame, if it wishes to.
-	 */
-	CAPABILITY::Originate(info->RootTCB->RootCNode,
-				      ROOT_CNODE_SLOTS::INIT_INFO_FRAME_SLOT,
-				      initInfoFrame,
-				      OBJECT_TYPE::FRAMES,
-				      CAPABILITY_RIGHTS::ACCESS |
-				      CAPABILITY_RIGHTS::READ |
-				      CAPABILITY_RIGHTS::REVOKE);
+//	/* Map the InitInfo frame just above the init executable */
+//	VMM::MMap(space, initInfoFrame, highestAddress, PAGE_SIZE, VMM_FLAGS_READ | VMM_FLAGS_USER | VMM_FLAGS_NOEXEC);
 
-	/* Replace the physical frame data with the mapping */
-	initInfoFrame = highestAddress;
-
-	/* Bump the highest address up one page */
-	highestAddress += PAGE_SIZE;
+//	/* Create the capability for InitInfo frame.
+//	 * Init can revoke this frame, if it wishes to.
+//	 */
+//	CAPABILITY::Originate(info->RootTCB->RootCNode,
+//				      ROOT_CNODE_SLOTS::INIT_INFO_FRAME_SLOT,
+//				      initInfoFrame,
+//				      OBJECT_TYPE::FRAMES,
+//				      CAPABILITY_RIGHTS::ACCESS |
+//				      CAPABILITY_RIGHTS::READ |
+//				      CAPABILITY_RIGHTS::REVOKE);
+//
+//	/* Replace the physical frame data with the mapping */
+//	initInfoFrame = highestAddress;
+//
+//	/* Bump the highest address up one page */
+//	highestAddress += PAGE_SIZE;
 
 	/* Find the stack base after the highestAddress,
 	 * making sure to reserve enough space for eventual expansion

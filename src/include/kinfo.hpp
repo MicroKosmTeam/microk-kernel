@@ -51,9 +51,6 @@ struct KInfo {
 	VirtualSpace KernelVirtualSpace; /* Kernel virtual memory space */
 	uptr KernelStack; /* Start of kernel stack */
 
-	uptr RSDP;
-	uptr DeviceTree;
-
 	uptr ManagerExecutableAddress;
 	usize ManagerExecutableSize;
 
@@ -61,8 +58,6 @@ struct KInfo {
 	CapabilitySpace *RootCSpace;
 
 	Domain *BootDomain;
-
-	IInfo *InitInfo;
 };
 
 /*

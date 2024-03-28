@@ -159,7 +159,3 @@ struct SchedulerContext {
 
 	usize Budget;
 }__attribute__((packed));
-
-struct IInfo {
-}__attribute__((packed));
-
