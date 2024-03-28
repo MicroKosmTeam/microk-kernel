@@ -47,7 +47,7 @@ struct UntypedHeader {
 	uptr Address;
 	usize Length;
 	u32 Flags;
-};
+}__attribute__((packed));
 
 /*
  *

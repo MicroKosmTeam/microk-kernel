@@ -6,20 +6,24 @@
 #include <cdefs.h>
 
 inline __attribute__((always_inline))
-void SyscallCapCtl(usize firstArgument, usize secondArgument, usize thirdArgument, usize fourthArgument, usize fithArgument, usize sixthArgument) {
-	KInfo *info = GetInfo();
-	PRINTK::PrintK(PRINTK_DEBUG " -> CapCtl\r\n");
+void SyscallCapCtl(ThreadControlBlock *task, usize firstArgument, usize secondArgument, usize thirdArgument, usize fourthArgument, usize fithArgument, usize sixthArgument) {
+	CapabilityNode *nodePtr = task->RootCNode;
 
-	CapabilitySpace *cspace = info->RootCSpace;
+	if (nodePtr == NULL) {
+		/* Task isn't allowed to use capabilities */
+		OOPS("Not allowed");
+		return;
+	}
+
+	Capability *cspaceCap = &nodePtr->Slots[CSPACE_SLOT];
+	CapabilitySpace *cspace = (CapabilitySpace*)cspaceCap->Object;
 
 	usize operation = firstArgument;
 	Capability *nodeCap = (Capability*)secondArgument;
-	CapabilityNode *nodePtr;
 	usize nodeSlot = thirdArgument;
 
 	if (nodeCap == NULL) {
 		PRINTK::PrintK(PRINTK_DEBUG "Using root node\r\n");
-		nodePtr = info->RootTCB->RootCNode;
 	} else {
 		/* If the address of nodeCap is invalid, a page fault will occur, killing the running process */
 		nodePtr = (CapabilityNode*)nodeCap->Object;
@@ -56,28 +60,47 @@ void SyscallCapCtl(usize firstArgument, usize secondArgument, usize thirdArgumen
 			}
 			break;
 		case SYSCALL_CAPCTL_GET_UT: {
-			uptr *newPtr = (uptr*)fourthArgument;
+			UntypedHeader *newPtr = (UntypedHeader*)fourthArgument;
 			Capability *capability = &nodePtr->Slots[nodeSlot];
 		
 			if (capability->Type == OBJECT_TYPE::RESERVED_SLOT) {
 				OOPS("Addressing reserved CAP slot");
-				*(usize*)newPtr = 0;
+				*(usize*)newPtr = -1;
 				return;
 			}
 
-			if ((capability->AccessRights & CAPABILITY_RIGHTS::SEE) == 0) {
+			if ((capability->AccessRights & CAPABILITY_RIGHTS::ACCESS) == 0 ||
+			    (capability->AccessRights & CAPABILITY_RIGHTS::SEE) == 0) {
 				OOPS("Addressing non-seeable CAP slot");
-				*(usize*)newPtr = 0;
+				*(usize*)newPtr = -1;
 				return;
 			}
 
 			UntypedHeader *header = (UntypedHeader*)VMM::PhysicalToVirtual(capability->Object);
-			*newPtr = header->Address;
+			*newPtr = *header;
 			}
-			break;
+			break;/*
 		case SYSCALL_CAPCTL_RETYPE: {
+			CapabilityNode *newNode = (CapabilityNode*)fourthArgument;
+			usize *newSlot = (usize*)fithArgument;
+
+			Capability *capability = &nodePtr->Slots[nodeSlot];
+
+			if (capability->Type != OBJECT_TYPE::UNTYPED) {
+				OOPS("Retyping non-ut cap");
+				*newSlot = 0;
+				return;
 			}
-			break;
+
+			if ((capability->AccessRights & CAPABILITY_RIGHTS::ACCESS) == 0 ||
+			    (capability->AccessRights & CAPABILITY_RIGHTS::SEE) == 0) {
+				OOPS("Addressing non-seeable CAP slot");
+				*newSlot = 0;
+				return;
+			}
+
+			}
+			break;*/
 		default:
 			break;
 	}
@@ -86,12 +109,8 @@ void SyscallCapCtl(usize firstArgument, usize secondArgument, usize thirdArgumen
 	(void)sixthArgument;
 }
 
-#ifdef UNDEF
 inline __attribute__((always_inline))
-void SyscallArchCtl(usize firstArgument, usize secondArgument, usize thirdArgument, usize fourthArgument, usize fithArgument, usize sixthArgument) {
-	KInfo *info = GetInfo();
-	PRINTK::PrintK(PRINTK_DEBUG " -> ArchCtl\r\n");
-
+void SyscallArchCtl(ThreadControlBlock *task, usize firstArgument, usize secondArgument, usize thirdArgument, usize fourthArgument, usize fithArgument, usize sixthArgument) {
 	usize operation = firstArgument;
 	int *result = (int*)secondArgument;
 	
@@ -102,14 +121,14 @@ void SyscallArchCtl(usize firstArgument, usize secondArgument, usize thirdArgume
 			uptr frame = fourthArgument;
 			uptr virt = fithArgument;
 			usize flags = VMM::ConvertUserFlags(sixthArgument);
-			*result = VMM::MapIntermediateLevel(info->RootTCB->MemorySpace, level, frame, virt, flags);
+			*result = VMM::MapIntermediateLevel(task->MemorySpace, level, frame, virt, flags);
 			}
 			break;
 		case SYSCALL_ARCHCTL_MAP_PAGE: {
 			uptr phys = thirdArgument;
 			uptr virt = fourthArgument;
 			usize flags = VMM::ConvertUserFlags(fithArgument);
-			*result = VMM::MapPage(info->RootTCB->MemorySpace, phys, virt, flags);
+			*result = VMM::MapPage(task->MemorySpace, phys, virt, flags);
 			}
 			break;
 		default:
@@ -117,15 +136,11 @@ void SyscallArchCtl(usize firstArgument, usize secondArgument, usize thirdArgume
 	}
 
 }
-#endif
 
 extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize secondArgument, usize thirdArgument, usize fourthArgument, usize fithArgument, usize sixthArgument) {
-	(void)firstArgument;
-	(void)secondArgument;
-	(void)thirdArgument;
-	(void)fourthArgument;
-	(void)fithArgument;
-	(void)sixthArgument;
+	KInfo *info = GetInfo();
+	ThreadControlBlock *task = info->RootTCB;
+
 	switch (syscallNumber) {
 		case SYSCALL_VECTOR_DEBUG: {
 			usize value = firstArgument;
@@ -147,26 +162,17 @@ extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize seco
 			break;
 
 		case SYSCALL_VECTOR_CAPCTL:
-			SyscallCapCtl(firstArgument, secondArgument, thirdArgument, fourthArgument, fithArgument, sixthArgument);
+			SyscallCapCtl(task, firstArgument, secondArgument, thirdArgument, fourthArgument, fithArgument, sixthArgument);
 			break;
-/*
 		case SYSCALL_VECTOR_ARCHCTL:
-			SyscallArchCtl(firstArgument, secondArgument, thirdArgument, fourthArgument, fithArgument, sixthArgument);
+			SyscallArchCtl(task, firstArgument, secondArgument, thirdArgument, fourthArgument, fithArgument, sixthArgument);
 			break;
-		case SYSCALL_VECTOR_TASKCTL:
-			SyscallArchCtl(firstArgument, secondArgument, thirdArgument, fourthArgument, fithArgument, sixthArgument);
-			break;
-
 		case SYSCALL_VECTOR_YEILD:
-			PRINTK::PrintK(PRINTK_DEBUG " -> Yeild\r\n");
 			break;
 		case SYSCALL_VECTOR_CALL:
-			PRINTK::PrintK(PRINTK_DEBUG " -> Call\r\n");
 			break;
 		case SYSCALL_VECTOR_REPLYRECV:
-			PRINTK::PrintK(PRINTK_DEBUG " -> ReplyRecv\r\n");
 			break;
-*/
 		default:
 			break;
 	}
