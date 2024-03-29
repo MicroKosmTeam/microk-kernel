@@ -17,6 +17,8 @@ void Panic(const char *message, const char *file, const char *function, unsigned
 	__builtin_unreachable();
 }
 
+
+#define DEBUG
 void Oops(const char *message, const char *file, const char *function, unsigned int line) {
         // Printing the panic message
 	

@@ -81,7 +81,7 @@ int CreateRootCNode(ThreadControlBlock *tcb, CapabilitySpace *cspace) {
 	return 0;
 }
 
-CapabilityNode *CreateCNode(CapabilitySpace *cspace, uptr addr, usize sizeBits) {
+CapabilityNode *CreateCNode(uptr addr, usize sizeBits) {
 	/* By the way, the size has to be:
 	 * (# of capabilities) x sizeof(Capability) + sizeof(CapabilityNode)
 	 */
@@ -98,10 +98,22 @@ CapabilityNode *CreateCNode(CapabilitySpace *cspace, uptr addr, usize sizeBits) 
 		  OBJECT_TYPE::CNODE,
 		  CAPABILITY_RIGHTS::ACCESS);
 
-	/* adding the CNode to the CSpace */
-	AddElementToList(cnode, &cspace->CapabilityNodeList);
+	return cnode;
+}
+
+
+CapabilityNode *CreateCNode(CapabilitySpace *cspace, uptr addr, usize sizeBits) {
+	CapabilityNode *cnode = CreateCNode(addr, sizeBits);
+	AddCNode(cspace, cnode);
 
 	return cnode;
+}
+	
+int AddCNode(CapabilitySpace *cspace, CapabilityNode *node) {
+	/* Adding the CNode to the CSpace */
+	AddElementToList(node, &cspace->CapabilityNodeList);
+
+	return 0;
 }
 
 int IsNodeInSpace(CapabilitySpace *cspace, CapabilityNode *node) {
@@ -182,7 +194,6 @@ Capability *Originate(CapabilityNode *node, uptr object, OBJECT_TYPE type, u32 a
 			capability->Children = 0;
 			capability->Parent = NULL;
 
-
 			/* Print a debug message */
 			PRINTK::PrintK(PRINTK_DEBUG "Originated capability 0x%x of object 0x%x of type 0x%x and with the following access rights: 0x%x\r\n", capability, capability->Object, capability->Type, capability->AccessRights);
 
@@ -255,6 +266,8 @@ Capability *Split(CapabilityNode *node, Capability *ut, usize splitSize) {
 		}
 
 		first->Parent = second->Parent = ut;
+
+		return first;
 	} else if (header->Length == splitSize) {
 		/* It doesn't make sense in splitting it, returning the object */
 		return ut;
@@ -267,7 +280,7 @@ Capability *Split(CapabilityNode *node, Capability *ut, usize splitSize) {
 	return NULL;
 }
 	
-Capability *Retype(CapabilityNode *node, Capability *ut, OBJECT_TYPE type, usize objectSize, u32 accessRights) {
+Capability *Retype(CapabilityNode *node, Capability *ut, OBJECT_TYPE type, u32 accessRights) {
 	if (node == NULL ||
 	    ut == NULL) {
 		return NULL;
@@ -282,20 +295,33 @@ Capability *Retype(CapabilityNode *node, Capability *ut, OBJECT_TYPE type, usize
 		return NULL;
 	}
 
-	ROUND_UP_TO_PAGE(objectSize);
-
-	UntypedHeader *header = (UntypedHeader*)ut->Object;
+	if (type <= OBJECT_TYPE::UNTYPED ||
+	    type >= OBJECT_TYPE::OBJECT_TYPE_COUNT ) {
+		/* The type must exist */
+		return NULL;
+	}
 	
-	if (header->Length != objectSize) {
-		/* The region must be the same size as the object being retyped */
+	UntypedHeader *header = (UntypedHeader*)ut->Object;
+
+	usize length = header->Length;
+	if (!MATH::IsPowerOfTwo(length)) {
+		/* Must be a power of two */
 		return NULL;
 	}
 
 	Capability *retyped = Originate(node, header->Address, type, accessRights);
 	ut->Children += 1;
 	retyped->Parent = ut;
-
+	
 	/* From now on, the UntypedHeader is not to be read anymore, as it's considered overwritten */
+	Memclr(header, sizeof(UntypedHeader));
+
+	if (type == OBJECT_TYPE::CNODE) {
+		/* Special, needs to be assigned the size */
+		usize sizeBits = MATH::GetPowerOfTwo(length);
+
+		CAPABILITY::CreateCNode(ut->Object, sizeBits);
+	}
 
 	return retyped;
 }

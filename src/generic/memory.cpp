@@ -106,8 +106,10 @@ void Deinit() {
 	KInfo *info = GetInfo();
 	BOOTMEM::DeactivateBootMemory();
 
-	/* Make sure we have enough preallocated space in the root capability space */
-	usize memoryRegionsCount = MEMBLOCK::GetTotalElements(info->PhysicalMemoryChunks);
+	/* Make sure we have enough preallocated space in the root capability space
+	 * (+3 because if we want to split a region to create a new cnode we have the space
+	 *  -> 2 for the split region, 1 for the node itself) */
+	usize memoryRegionsCount = MEMBLOCK::GetTotalElements(info->PhysicalMemoryChunks) + 3;
 	usize cnodeSize = memoryRegionsCount * sizeof(Capability) + sizeof(CapabilityNode);
 	ROUND_UP_TO_PAGE(cnodeSize);
 	cnodeSize = MATH::UpperPowerOfTwoUSIZE(cnodeSize);
@@ -170,7 +172,6 @@ void Deinit() {
 						      (uptr)header,
 						      OBJECT_TYPE::UNTYPED,
 						      CAPABILITY_RIGHTS::ACCESS |
-						      CAPABILITY_RIGHTS::SEE |
 						      CAPABILITY_RIGHTS::RETYPE);
 				break;
 			case MEMMAP_KERNEL_DEVICE:

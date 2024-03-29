@@ -10,7 +10,11 @@ namespace CAPABILITY {
 	int CreateRootCNode(ThreadControlBlock *tcb, CapabilitySpace *cspace);
 
 	/* Function used to create normal cnodes */
+	CapabilityNode *CreateCNode(uptr addr, usize sizeBits);
+	/**/
 	CapabilityNode *CreateCNode(CapabilitySpace *cspace, uptr addr, usize sizeBits);
+	/**/
+	int AddCNode(CapabilitySpace *cspace, CapabilityNode *node);
 
 	/* Function that checks whether a node is present in a CSpace */
 	int IsNodeInSpace(CapabilitySpace *cspace, CapabilityNode *node);
@@ -36,6 +40,6 @@ namespace CAPABILITY {
 	Capability *Split(CapabilityNode *node, Capability *ut, usize splitSize);
 
 	/**/
-	Capability *Retype(CapabilityNode *node, Capability *ut, OBJECT_TYPE type, usize objectSize, u32 accessRights);
+	Capability *Retype(CapabilityNode *node, Capability *ut, OBJECT_TYPE type, u32 accessRights);
 
 }

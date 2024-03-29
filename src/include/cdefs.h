@@ -57,6 +57,8 @@ typedef enum {
 typedef enum {
 	SYSCALL_CAPCTL_GET_PTR = 1,
 	SYSCALL_CAPCTL_GET_UT,
+	SYSCALL_CAPCTL_ADD_CNODE,
+	SYSCALL_CAPCTL_SPLIT,
 	SYSCALL_CAPCTL_RETYPE,
 } SYSCALL_CAPCTL_OPS;
 
@@ -122,9 +124,6 @@ typedef enum {
  * 1 << 0 - ACCESS:
  *       The capability can used by getting its pointer.
  *
- * 1 << 1 - SEE:
- *       The capability struct can be visualized by userspace.
- *
  * 1 << 2 - RETYPE:
  *       The object can be retyped to another kind of object.
  *
@@ -153,7 +152,7 @@ typedef enum {
 typedef enum {
 	NONE = 0,
 	ACCESS = 1 << 0,
-	SEE = 1 << 1,
+	SPLIT = 1 << 1,
 	RETYPE = 1 << 2,
 	GRANT = 1 << 3,
 	MINT = 1 << 4,

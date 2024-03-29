@@ -69,8 +69,7 @@ void SyscallCapCtl(ThreadControlBlock *task, usize firstArgument, usize secondAr
 				return;
 			}
 
-			if ((capability->AccessRights & CAPABILITY_RIGHTS::ACCESS) == 0 ||
-			    (capability->AccessRights & CAPABILITY_RIGHTS::SEE) == 0) {
+			if ((capability->AccessRights & CAPABILITY_RIGHTS::ACCESS) == 0) {
 				OOPS("Addressing non-seeable CAP slot");
 				*(usize*)newPtr = -1;
 				return;
@@ -79,34 +78,97 @@ void SyscallCapCtl(ThreadControlBlock *task, usize firstArgument, usize secondAr
 			UntypedHeader *header = (UntypedHeader*)VMM::PhysicalToVirtual(capability->Object);
 			*newPtr = *header;
 			}
-			break;/*
-		case SYSCALL_CAPCTL_RETYPE: {
-			CapabilityNode *newNode = (CapabilityNode*)fourthArgument;
-			usize *newSlot = (usize*)fithArgument;
-
+			break;
+		case SYSCALL_CAPCTL_ADD_CNODE: {
 			Capability *capability = &nodePtr->Slots[nodeSlot];
-
-			if (capability->Type != OBJECT_TYPE::UNTYPED) {
-				OOPS("Retyping non-ut cap");
-				*newSlot = 0;
+		
+			if (capability->Type != OBJECT_TYPE::CNODE) {
 				return;
 			}
-
-			if ((capability->AccessRights & CAPABILITY_RIGHTS::ACCESS) == 0 ||
-			    (capability->AccessRights & CAPABILITY_RIGHTS::SEE) == 0) {
+/*                      TODO: Omitted, to fix
+			if ((capability->AccessRights & CAPABILITY_RIGHTS::ACCESS) == 0) {
 				OOPS("Addressing non-seeable CAP slot");
-				*newSlot = 0;
+				return;
+			}
+*/
+
+			CAPABILITY::AddCNode(cspace, (CapabilityNode*)capability->Object);
+
+			}
+			break;
+		case SYSCALL_CAPCTL_SPLIT: {
+			usize splitSize = fourthArgument;
+			Capability *newNodeCap = (Capability*)fithArgument;
+			usize *newSlot = (usize*)sixthArgument;
+
+			CapabilityNode *newNodePtr;
+
+			if (newNodeCap == NULL) {
 				return;
 			}
 
+			newNodePtr = (CapabilityNode*)newNodeCap->Object;
+
+			if (CAPABILITY::IsNodeInSpace(cspace, nodePtr) != 0) {
+				OOPS("Node isn't is space");
+				return;
 			}
-			break;*/
+
+			Capability *ut = &nodePtr->Slots[nodeSlot];
+	
+			if (ut->Type != OBJECT_TYPE::UNTYPED) {
+				OOPS("Splitting non-ut cap");
+				*newSlot = -1;
+				return;
+			}
+	
+			if ((ut->AccessRights & CAPABILITY_RIGHTS::ACCESS) == 0) {
+				OOPS("Addressing non-seeable CAP slot");
+				return;
+			}
+
+			Capability *capability = CAPABILITY::Split(newNodePtr, ut, splitSize);
+			*newSlot = CAPABILITY::GetCapabilitySlot(newNodePtr, capability);
+			}
+			break;
+		case SYSCALL_CAPCTL_RETYPE: {
+			OBJECT_TYPE type = (OBJECT_TYPE)fourthArgument;
+			Capability *newNodeCap = (Capability*)fithArgument;
+			usize *newSlot = (usize*)sixthArgument;
+			u32 accessRights = CAPABILITY_RIGHTS::ACCESS; //TODO: GUESS WHO'S LACKING ARGUMENTS
+
+			CapabilityNode *newNodePtr;
+
+			if (newNodeCap == NULL) {
+				return;
+			}
+
+			newNodePtr = (CapabilityNode*)newNodeCap->Object;
+
+			if (CAPABILITY::IsNodeInSpace(cspace, nodePtr) != 0) {
+				OOPS("Node isn't is space");
+				return;
+			}
+
+			Capability *ut = &nodePtr->Slots[nodeSlot];
+
+			if (ut->Type != OBJECT_TYPE::UNTYPED) {
+				OOPS("Retyping non-ut cap");
+				return;
+			}
+
+			if ((ut->AccessRights & CAPABILITY_RIGHTS::ACCESS) == 0) {
+				OOPS("Addressing non-seeable CAP slot");
+				return;
+			}
+
+			Capability *capability = CAPABILITY::Retype(newNodePtr, ut, type, accessRights);
+			*newSlot = CAPABILITY::GetCapabilitySlot(newNodePtr, capability);
+			}
+			break;
 		default:
 			break;
 	}
-
-	(void)fithArgument;
-	(void)sixthArgument;
 }
 
 inline __attribute__((always_inline))
