@@ -104,53 +104,6 @@ CapabilityNode *CreateCNode(CapabilitySpace *cspace, uptr addr, usize sizeBits) 
 	return cnode;
 }
 
-Capability *Originate(CapabilityNode *node, uptr object, OBJECT_TYPE type, u32 accessRights) {
-	/* Cycle through the slots of the CNode to find the first free slot */
-	for (Capability *capability = &node->Slots[0];
-	     /* This checks whether the capability is within the CNode */
-	     (uptr)capability < (uptr)node + MATH::ElevatePowerOfTwo(node->SizeBits);
-	     ++capability) {
-		/* If the slot is a null capability, it's free real estate */
-		if (capability->Type == OBJECT_TYPE::NULL_CAPABILITY) {
-			/* Assign the various paramenters to the capability */
-			capability->Type = type;
-			capability->Object = object;
-			capability->AccessRights = accessRights;
-
-			/* Print a debug message */
-			PRINTK::PrintK(PRINTK_DEBUG "Originated capability 0x%x of object 0x%x of type 0x%x and with the following access rights: 0x%x\r\n", capability, capability->Object, capability->Type, capability->AccessRights);
-
-			/* Return the capability */
-			return capability;
-		}
-	}
-
-	/* No free slot found, return NULL */
-	return NULL;
-}
-	
-Capability *Originate(CapabilityNode *node, usize slot, uptr object, OBJECT_TYPE type, u32 accessRights) {
-	/* Check whether the slot is actually valid */
-	usize cnodeSlotsSize = MATH::ElevatePowerOfTwo(node->SizeBits) - sizeof(CapabilityNode);
-	if (cnodeSlotsSize / sizeof(Capability) <= slot) {
-		return NULL;
-	}
-
-	/* Get the capability slot in the cnode */
-	Capability *capability = (Capability*)&node->Slots[slot];
-
-	/* Assign the various paramenters to the capability */
-	capability->Type = type;
-	capability->Object = object;
-	capability->AccessRights = accessRights;
-
-	/* Print a debug message */
-	PRINTK::PrintK(PRINTK_DEBUG "Originated capability 0x%x of object 0x%x of type 0x%x and with the following access rights: 0x%x\r\n", capability, capability->Object, capability->Type, capability->AccessRights);
-
-	/* Return the capability */
-	return capability;
-}
-
 int IsNodeInSpace(CapabilitySpace *cspace, CapabilityNode *node) {
 	/* Check whether the cpsace exists */
 	if (cspace == NULL) {
@@ -186,4 +139,71 @@ int IsCapabilityInNode(CapabilityNode *node, usize nodeSlot) {
 
 	return -ENOCAP;
 }
+
+Capability *Originate(CapabilityNode *node, uptr object, OBJECT_TYPE type, u32 accessRights) {
+	/* Cycle through the slots of the CNode to find the first free slot */
+	for (Capability *capability = &node->Slots[0];
+	     /* This checks whether the capability is within the CNode */
+	     (uptr)capability < (uptr)node + MATH::ElevatePowerOfTwo(node->SizeBits);
+	     ++capability) {
+		/* If the slot is a null capability, it's free real estate */
+		if (capability->Type == OBJECT_TYPE::NULL_CAPABILITY) {
+			/* Assign the various paramenters to the capability */
+			capability->Type = type;
+			capability->Object = object;
+			capability->AccessRights = accessRights;
+			capability->Children = 0;
+			capability->Parent = NULL;
+
+
+			/* Print a debug message */
+			PRINTK::PrintK(PRINTK_DEBUG "Originated capability 0x%x of object 0x%x of type 0x%x and with the following access rights: 0x%x\r\n", capability, capability->Object, capability->Type, capability->AccessRights);
+
+			/* Return the capability */
+			return capability;
+		}
+	}
+
+	/* No free slot found, return NULL */
+	return NULL;
+}
+	
+Capability *Originate(CapabilityNode *node, usize slot, uptr object, OBJECT_TYPE type, u32 accessRights) {
+	/* Check whether the slot is actually valid */
+	usize cnodeSlotsSize = MATH::ElevatePowerOfTwo(node->SizeBits) - sizeof(CapabilityNode);
+	if (cnodeSlotsSize / sizeof(Capability) <= slot) {
+		return NULL;
+	}
+
+	/* Get the capability slot in the cnode */
+	Capability *capability = (Capability*)&node->Slots[slot];
+
+	/* Assign the various paramenters to the capability */
+	capability->Type = type;
+	capability->Object = object;
+	capability->AccessRights = accessRights;
+	capability->Children = 0;
+	capability->Parent = NULL;
+
+	/* Print a debug message */
+	PRINTK::PrintK(PRINTK_DEBUG "Originated capability 0x%x of object 0x%x of type 0x%x and with the following access rights: 0x%x\r\n", capability, capability->Object, capability->Type, capability->AccessRights);
+
+	/* Return the capability */
+	return capability;
+}
+	
+
+Capability *Retype(CapabilityNode *node, Capability *ut, OBJECT_TYPE type, usize quantity, u32 accessRights) {
+	if (node == NULL ||
+	    ut == NULL) {
+		return NULL;
+	}
+
+	if ((ut->AccessRights & CAPABILITY_RIGHTS::RETYPE) == 0) {
+		return NULL;
+	}
+
+	Capability *retyped = Originate(node, ut->Object, )
+}
+
 }

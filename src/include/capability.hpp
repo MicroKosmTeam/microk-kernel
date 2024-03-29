@@ -1,4 +1,5 @@
 #pragma once
+#include "cdefs.h"
 #include <object.hpp>
 
 namespace CAPABILITY {
@@ -18,6 +19,8 @@ namespace CAPABILITY {
 	/* Function used to generate a capability and store it in a specific
 	 * slot in a cnode */
 	Capability *Originate(CapabilityNode *node, usize slot, uptr object, OBJECT_TYPE type, u32 accessRights);
+
+	Capability *Retype(CapabilityNode *node, Capability *ut, OBJECT_TYPE type, usize quantity, u32 accessRights);
 
 	/* Function that checks whether a node is present in a CSpace */
 	int IsNodeInSpace(CapabilitySpace *cspace, CapabilityNode *node);

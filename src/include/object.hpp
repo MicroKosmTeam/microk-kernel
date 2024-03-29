@@ -37,7 +37,7 @@ struct Capability {
 	uptr Object;
 	u16 AccessRights;
 	u16 Children;
-	uptr Parent;
+	Capability *Parent;
 }__attribute__((packed, aligned(0x8)));
 
 /*
