@@ -92,7 +92,7 @@ void SyscallCapCtl(ThreadControlBlock *task, usize firstArgument, usize secondAr
 			}
 */
 
-			CAPABILITY::AddCNode(cspace, (CapabilityNode*)capability->Object);
+			CAPABILITY::AddCNode(cspace, (CapabilityNode*)VMM::PhysicalToVirtual(capability->Object));
 
 			}
 			break;
