@@ -140,6 +140,33 @@ int IsCapabilityInNode(CapabilityNode *node, usize nodeSlot) {
 	return -ENOCAP;
 }
 
+int IsCapabilityInNode(CapabilityNode *node, Capability *capability) {
+	if (node == NULL || capability == NULL) {
+		return -ENOTPRESENT;
+	}
+
+	usize nodeSize = MATH::ElevatePowerOfTwo(node->SizeBits);
+	usize nodeSlots = nodeSize / sizeof(Capability);
+
+	usize capabilitySlot = ((uptr)capability - (uptr)node - sizeof(CapabilityNode))  / sizeof(Capability);
+
+	if (nodeSlots > capabilitySlot) {
+		return 0;
+	}
+
+	return -ENOCAP;
+}
+
+usize GetCapabilitySlot(CapabilityNode *node, Capability *capability) {
+	if (node == NULL || capability == NULL) {
+		return -1;
+	}
+	
+	usize capabilitySlot = ((uptr)capability - (uptr)node - sizeof(CapabilityNode))  / sizeof(Capability);
+
+	return capabilitySlot;
+}
+
 Capability *Originate(CapabilityNode *node, uptr object, OBJECT_TYPE type, u32 accessRights) {
 	/* Cycle through the slots of the CNode to find the first free slot */
 	for (Capability *capability = &node->Slots[0];
@@ -192,10 +219,14 @@ Capability *Originate(CapabilityNode *node, usize slot, uptr object, OBJECT_TYPE
 	return capability;
 }
 	
-
-Capability *Retype(CapabilityNode *node, Capability *ut, OBJECT_TYPE type, usize quantity, u32 accessRights) {
+Capability *Split(CapabilityNode *node, Capability *ut, usize splitSize) {
 	if (node == NULL ||
 	    ut == NULL) {
+		return NULL;
+	}
+
+	if (ut->Children != 0) {
+		/* The ut capability must not have children */
 		return NULL;
 	}
 
@@ -203,7 +234,69 @@ Capability *Retype(CapabilityNode *node, Capability *ut, OBJECT_TYPE type, usize
 		return NULL;
 	}
 
-	Capability *retyped = Originate(node, ut->Object, )
-}
+	ROUND_UP_TO_PAGE(splitSize);
 
+	UntypedHeader *header = (UntypedHeader*)ut->Object;
+
+	if (header->Length > splitSize) {
+		ut->Children += 2;
+
+		UntypedHeader *secondHeader = (UntypedHeader*)(ut->Object + splitSize);
+		Memcpy(secondHeader, header, sizeof(UntypedHeader));
+		secondHeader->Address += splitSize;
+		secondHeader->Length -= splitSize;
+		header->Length = splitSize;
+
+		Capability *first = Originate(node, (uptr)header, OBJECT_TYPE::UNTYPED, ut->AccessRights);
+		Capability *second = Originate(node, (uptr)secondHeader, OBJECT_TYPE::UNTYPED, ut->AccessRights);
+
+		if (first == NULL || second == NULL) {
+			return NULL;
+		}
+
+		first->Parent = second->Parent = ut;
+	} else if (header->Length == splitSize) {
+		/* It doesn't make sense in splitting it, returning the object */
+		return ut;
+	} else {
+		/* We can't split it, it's too small */
+		return NULL;
+	}
+
+
+	return NULL;
+}
+	
+Capability *Retype(CapabilityNode *node, Capability *ut, OBJECT_TYPE type, usize objectSize, u32 accessRights) {
+	if (node == NULL ||
+	    ut == NULL) {
+		return NULL;
+	}
+
+	if (ut->Children != 0) {
+		/* The ut capability must not have children */
+		return NULL;
+	}
+
+	if ((ut->AccessRights & CAPABILITY_RIGHTS::RETYPE) == 0) {
+		return NULL;
+	}
+
+	ROUND_UP_TO_PAGE(objectSize);
+
+	UntypedHeader *header = (UntypedHeader*)ut->Object;
+	
+	if (header->Length != objectSize) {
+		/* The region must be the same size as the object being retyped */
+		return NULL;
+	}
+
+	Capability *retyped = Originate(node, header->Address, type, accessRights);
+	ut->Children += 1;
+	retyped->Parent = ut;
+
+	/* From now on, the UntypedHeader is not to be read anymore, as it's considered overwritten */
+
+	return retyped;
+}
 }

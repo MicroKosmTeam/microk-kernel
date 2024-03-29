@@ -58,6 +58,9 @@ struct KInfo {
 	CapabilitySpace *RootCSpace;
 
 	Domain *BootDomain;
+
+	uptr RSDP;
+	uptr DeviceTree;
 };
 
 /*

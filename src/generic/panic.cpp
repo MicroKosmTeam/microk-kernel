@@ -19,6 +19,8 @@ void Panic(const char *message, const char *file, const char *function, unsigned
 
 void Oops(const char *message, const char *file, const char *function, unsigned int line) {
         // Printing the panic message
+	
+#ifdef DEBUG
 	PRINTK::PrintK(PRINTK_DEBUG "\r\n\r\n"
 		       " [OOPS] KERNEL OOPS\r\n"
 		       " [OOPS] Error in the kernel.\r\n"
@@ -27,4 +29,7 @@ void Oops(const char *message, const char *file, const char *function, unsigned 
 		       file, function, line, message);
 
 	PRINTK::PrintK(PRINTK_DEBUG "\r\n [Continuing execution...]\r\n\r\n");
+#else
+	(void)message, (void)file, (void)function, (void)line;
+#endif
 }

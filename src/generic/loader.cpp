@@ -171,7 +171,7 @@ static usize LoadProcess(Elf64_Ehdr *elfHeader, VirtualSpace space, uptr highest
 
 	/* Create the actual context */
 	SchedulerContext *context = (SchedulerContext*)VMM::PhysicalToVirtual((uptr)PMM::RequestPage());
-	TASK::InitializeContext((uptr)context, elfHeader->e_entry, highestAddress + INIT_INITIAL_STACK_SIZE, 1, initInfoFrame);
+	TASK::InitializeContext((uptr)context, elfHeader->e_entry, highestAddress + INIT_INITIAL_STACK_SIZE, 0, 0);
 
 	/* Add the memory space and the context to the TCB */
 	ThreadControlBlock *tcb = info->RootTCB;
