@@ -26,7 +26,13 @@ void SyscallCapCtl(ThreadControlBlock *task, usize firstArgument, usize secondAr
 		PRINTK::PrintK(PRINTK_DEBUG "Using root node\r\n");
 	} else {
 		/* If the address of nodeCap is invalid, a page fault will occur, killing the running process */
-		nodePtr = (CapabilityNode*)nodeCap->Object;
+		
+		if (nodeCap->Type != CNODE) {
+			return;
+		}
+
+		uptr object = VMM::PhysicalToVirtual(nodeCap->Object);
+		nodePtr = (CapabilityNode*)object;
 
 		if (CAPABILITY::IsNodeInSpace(cspace, nodePtr) != 0) {
 			OOPS("Node isn't is space");
@@ -105,7 +111,7 @@ void SyscallCapCtl(ThreadControlBlock *task, usize firstArgument, usize secondAr
 				return;
 			}
 
-			newNodePtr = (CapabilityNode*)newNodeCap->Object;
+			newNodePtr = (CapabilityNode*)VMM::PhysicalToVirtual(newNodeCap->Object);
 
 			if (CAPABILITY::IsNodeInSpace(cspace, nodePtr) != 0) {
 				OOPS("Node isn't is space");
@@ -141,7 +147,7 @@ void SyscallCapCtl(ThreadControlBlock *task, usize firstArgument, usize secondAr
 				return;
 			}
 
-			newNodePtr = (CapabilityNode*)newNodeCap->Object;
+			newNodePtr = (CapabilityNode*)VMM::PhysicalToVirtual(newNodeCap->Object);
 
 			if (CAPABILITY::IsNodeInSpace(cspace, nodePtr) != 0) {
 				OOPS("Node isn't is space");
@@ -162,6 +168,10 @@ void SyscallCapCtl(ThreadControlBlock *task, usize firstArgument, usize secondAr
 
 			Capability *capability = CAPABILITY::Retype(newNodePtr, ut, type, accessRights);
 			*newSlot = CAPABILITY::GetCapabilitySlot(newNodePtr, capability);
+			}
+			break;
+		case SYSCALL_CAPCTL_DEBUG: {
+			CAPABILITY::DumpCNode(nodePtr);
 			}
 			break;
 		default:

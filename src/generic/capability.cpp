@@ -173,8 +173,11 @@ usize GetCapabilitySlot(CapabilityNode *node, Capability *capability) {
 	if (node == NULL || capability == NULL) {
 		return -1;
 	}
-	
-	usize capabilitySlot = ((uptr)capability - (uptr)node - sizeof(CapabilityNode))  / sizeof(Capability);
+
+	uptr nodePtr = (uptr)node + sizeof(CapabilityNode);
+	uptr capabilityPtr = (uptr)capability;
+
+	usize capabilitySlot = (capabilityPtr - nodePtr)  / sizeof(Capability);
 
 	return capabilitySlot;
 }
@@ -324,5 +327,26 @@ Capability *Retype(CapabilityNode *node, Capability *ut, OBJECT_TYPE type, u32 a
 	}
 
 	return retyped;
+}
+
+void DumpCNode(CapabilityNode *node) {
+	if (node == NULL) {
+		return;
+	}
+
+	usize size = MATH::ElevatePowerOfTwo(node->SizeBits);
+		
+	PRINTK::PrintK(PRINTK_DEBUG "CNode -> Size: 2^%d = %d bytes\r\n", node->SizeBits, size);
+	PRINTK::PrintK(PRINTK_DEBUG "Slots:\r\n");
+
+	usize slots = (size - sizeof(CapabilityNode)) / sizeof(Capability);
+
+	for (usize i = 0; i < slots; ++i) {
+		Capability *capability = &node->Slots[i];
+		PRINTK::PrintK(PRINTK_DEBUG "Slot #%d\r\n"
+				            " Capability 0x%x\r\n"
+					    "  Type: %d\r\n"
+					    "  Object: 0x%x\r\n", i, capability, capability->Type, capability->Object);
+	}
 }
 }

@@ -42,4 +42,6 @@ namespace CAPABILITY {
 	/**/
 	Capability *Retype(CapabilityNode *node, Capability *ut, OBJECT_TYPE type, u32 accessRights);
 
+	void DumpCNode(CapabilityNode *node);
+
 }
