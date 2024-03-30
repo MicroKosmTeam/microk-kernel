@@ -63,14 +63,13 @@ void SyscallCapCtl(ThreadControlBlock *task, usize firstArgument, usize secondAr
 			UntypedHeader *newPtr = (UntypedHeader*)fourthArgument;
 			Capability *capability = &nodePtr->Slots[nodeSlot];
 		
-			if (capability->Type == OBJECT_TYPE::RESERVED_SLOT) {
-				OOPS("Addressing reserved CAP slot");
+			if (capability->Type != OBJECT_TYPE::UNTYPED) {
 				*(usize*)newPtr = -1;
 				return;
 			}
 
 			if ((capability->AccessRights & CAPABILITY_RIGHTS::ACCESS) == 0) {
-				OOPS("Addressing non-seeable CAP slot");
+				OOPS("Addressing non-addressable CAP slot");
 				*(usize*)newPtr = -1;
 				return;
 			}
@@ -85,12 +84,11 @@ void SyscallCapCtl(ThreadControlBlock *task, usize firstArgument, usize secondAr
 			if (capability->Type != OBJECT_TYPE::CNODE) {
 				return;
 			}
-/*                      TODO: Omitted, to fix
+
 			if ((capability->AccessRights & CAPABILITY_RIGHTS::ACCESS) == 0) {
 				OOPS("Addressing non-seeable CAP slot");
 				return;
 			}
-*/
 
 			CAPABILITY::AddCNode(cspace, (CapabilityNode*)VMM::PhysicalToVirtual(capability->Object));
 
