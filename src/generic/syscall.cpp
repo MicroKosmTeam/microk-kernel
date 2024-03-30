@@ -26,16 +26,8 @@ void SyscallCapCtl(ThreadControlBlock *task, usize firstArgument, usize secondAr
 		PRINTK::PrintK(PRINTK_DEBUG "Using root node\r\n");
 	} else {
 		/* If the address of nodeCap is invalid, a page fault will occur, killing the running process */
-		
-		if (nodeCap->Type != CNODE) {
-			return;
-		}
-
-		uptr object = VMM::PhysicalToVirtual(nodeCap->Object);
-		nodePtr = (CapabilityNode*)object;
-
+		nodePtr = CAPABILITY::ResolveCNode(nodeCap);
 		if (CAPABILITY::IsNodeInSpace(cspace, nodePtr) != 0) {
-			OOPS("Node isn't is space");
 			return;
 		}
 	}
@@ -87,16 +79,18 @@ void SyscallCapCtl(ThreadControlBlock *task, usize firstArgument, usize secondAr
 		case SYSCALL_CAPCTL_ADD_CNODE: {
 			Capability *capability = &nodePtr->Slots[nodeSlot];
 		
-			if (capability->Type != OBJECT_TYPE::CNODE) {
+			CapabilityNode *newNodePtr = CAPABILITY::ResolveCNode(capability);
+			if (CAPABILITY::IsNodeInSpace(cspace, newNodePtr) != 0) {
 				return;
 			}
+
 
 			if ((capability->AccessRights & CAPABILITY_RIGHTS::ACCESS) == 0) {
 				OOPS("Addressing non-seeable CAP slot");
 				return;
 			}
 
-			CAPABILITY::AddCNode(cspace, (CapabilityNode*)VMM::PhysicalToVirtual(capability->Object));
+			CAPABILITY::AddCNode(cspace, newNodePtr); 
 
 			}
 			break;
@@ -105,16 +99,8 @@ void SyscallCapCtl(ThreadControlBlock *task, usize firstArgument, usize secondAr
 			Capability *newNodeCap = (Capability*)fithArgument;
 			usize *newSlot = (usize*)sixthArgument;
 
-			CapabilityNode *newNodePtr;
-
-			if (newNodeCap == NULL) {
-				return;
-			}
-
-			newNodePtr = (CapabilityNode*)VMM::PhysicalToVirtual(newNodeCap->Object);
-
-			if (CAPABILITY::IsNodeInSpace(cspace, nodePtr) != 0) {
-				OOPS("Node isn't is space");
+			CapabilityNode *newNodePtr = CAPABILITY::ResolveCNode(newNodeCap);
+			if (CAPABILITY::IsNodeInSpace(cspace, newNodePtr) != 0) {
 				return;
 			}
 
@@ -140,17 +126,8 @@ void SyscallCapCtl(ThreadControlBlock *task, usize firstArgument, usize secondAr
 			Capability *newNodeCap = (Capability*)fithArgument;
 			usize *newSlot = (usize*)sixthArgument;
 			u32 accessRights = CAPABILITY_RIGHTS::ACCESS; //TODO: GUESS WHO'S LACKING ARGUMENTS
-
-			CapabilityNode *newNodePtr;
-
-			if (newNodeCap == NULL) {
-				return;
-			}
-
-			newNodePtr = (CapabilityNode*)VMM::PhysicalToVirtual(newNodeCap->Object);
-
-			if (CAPABILITY::IsNodeInSpace(cspace, nodePtr) != 0) {
-				OOPS("Node isn't is space");
+			CapabilityNode *newNodePtr = CAPABILITY::ResolveCNode(newNodeCap);
+			if (CAPABILITY::IsNodeInSpace(cspace, newNodePtr) != 0) {
 				return;
 			}
 

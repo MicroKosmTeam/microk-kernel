@@ -27,6 +27,9 @@ namespace CAPABILITY {
 	usize GetCapabilitySlot(CapabilityNode *node, Capability *capability);
 
 	/**/
+	CapabilityNode *ResolveCNode(Capability *nodeCap);
+
+	/**/
 	usize GetCapabilitySlot(CapabilityNode *node, Capability *capability);
 
 	/* Function used to generate a capability and store it in a random

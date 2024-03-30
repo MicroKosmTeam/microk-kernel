@@ -181,6 +181,19 @@ usize GetCapabilitySlot(CapabilityNode *node, Capability *capability) {
 
 	return capabilitySlot;
 }
+	
+CapabilityNode *ResolveCNode(Capability *nodeCap) {
+	if (nodeCap == NULL) {
+		return NULL;
+	}
+
+	if (nodeCap->Type != CNODE) {
+		return NULL;
+	}
+
+	CapabilityNode *node = (CapabilityNode*)VMM::PhysicalToVirtual(nodeCap->Object);
+	return node;
+}
 
 Capability *Originate(CapabilityNode *node, uptr object, OBJECT_TYPE type, u32 accessRights) {
 	/* Cycle through the slots of the CNode to find the first free slot */
