@@ -127,13 +127,10 @@ static usize LoadProcess(Elf64_Ehdr *elfHeader, VirtualSpace space, uptr highest
 	tcb->MemorySpace = space;
 	tcb->Priority = SCHEDULER_MAX_PRIORITY;
 
-	/* Find the real physical frame for InitInfo */
 	uptr virtualRegistersFrame = (uptr)PMM::RequestPage();
 	Memclr((void*)VMM::PhysicalToVirtual(virtualRegistersFrame), PAGE_SIZE);
 
-
-	/* Map the InitInfo frame just above the init executable */
-	VMM::MMap(space, virtualRegistersFrame, highestAddress, PAGE_SIZE, VMM_FLAGS_READ | VMM_FLAGS_USER | VMM_FLAGS_NOEXEC);
+	VMM::MMap(space, virtualRegistersFrame, highestAddress, PAGE_SIZE, VMM_FLAGS_READ | VMM_FLAGS_WRITE | VMM_FLAGS_USER | VMM_FLAGS_NOEXEC);
 
 //	CAPABILITY::Originate(tcb->RootCNode,
 //				      ROOT_CNODE_SLOTS::VIRTUAL_REGISTERS_FRAME_SLOT,
