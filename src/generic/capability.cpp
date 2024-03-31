@@ -195,7 +195,7 @@ CapabilityNode *ResolveCNode(Capability *nodeCap) {
 	return node;
 }
 
-Capability *Originate(CapabilityNode *node, uptr object, OBJECT_TYPE type, u32 accessRights) {
+Capability *Originate(CapabilityNode *node, uptr object, OBJECT_TYPE type, u16 accessRights) {
 	/* Cycle through the slots of the CNode to find the first free slot */
 	for (Capability *capability = &node->Slots[0];
 	     /* This checks whether the capability is within the CNode */
@@ -222,7 +222,7 @@ Capability *Originate(CapabilityNode *node, uptr object, OBJECT_TYPE type, u32 a
 	return NULL;
 }
 	
-Capability *Originate(CapabilityNode *node, usize slot, uptr object, OBJECT_TYPE type, u32 accessRights) {
+Capability *Originate(CapabilityNode *node, usize slot, uptr object, OBJECT_TYPE type, u16 accessRights) {
 	/* Check whether the slot is actually valid */
 	usize cnodeSlotsSize = MATH::ElevatePowerOfTwo(node->SizeBits) - sizeof(CapabilityNode);
 	if (cnodeSlotsSize / sizeof(Capability) <= slot) {
@@ -246,7 +246,7 @@ Capability *Originate(CapabilityNode *node, usize slot, uptr object, OBJECT_TYPE
 	return capability;
 }
 	
-Capability *Split(CapabilityNode *node, Capability *ut, usize splitSize) {
+Capability *Split(CapabilityNode *node, Capability *ut, usize splitSize, usize count) {
 	if (node == NULL ||
 	    ut == NULL) {
 		return NULL;
@@ -261,42 +261,55 @@ Capability *Split(CapabilityNode *node, Capability *ut, usize splitSize) {
 		return NULL;
 	}
 
+	if (count == 0) {
+		return NULL;
+	} else if (count == 1) {
+		return ut;
+	}
+
+	/* Can't be split to less than a page */
 	ROUND_UP_TO_PAGE(splitSize);
 
 	UntypedHeader *header = (UntypedHeader*)ut->Object;
 
-	if (header->Length > splitSize) {
-		ut->Children += 2;
-
-		UntypedHeader *secondHeader = (UntypedHeader*)(ut->Object + splitSize);
-		Memcpy(secondHeader, header, sizeof(UntypedHeader));
-		secondHeader->Address += splitSize;
-		secondHeader->Length -= splitSize;
-		header->Length = splitSize;
-
-		Capability *first = Originate(node, (uptr)header, OBJECT_TYPE::UNTYPED, ut->AccessRights);
-		Capability *second = Originate(node, (uptr)secondHeader, OBJECT_TYPE::UNTYPED, ut->AccessRights);
-
-		if (first == NULL || second == NULL) {
-			return NULL;
-		}
-
-		first->Parent = second->Parent = ut;
-
-		return first;
-	} else if (header->Length == splitSize) {
-		/* It doesn't make sense in splitting it, returning the object */
-		return ut;
-	} else {
+	usize totalSplitSize = splitSize * count;
+	if (header->Length < totalSplitSize) {
 		/* We can't split it, it's too small */
 		return NULL;
 	}
 
+	ut->Children += count;
 
-	return NULL;
+	Capability *first = Originate(node, (uptr)header, OBJECT_TYPE::UNTYPED, ut->AccessRights);
+	first->Parent = ut;
+
+
+	for (usize i = 0; i < count; ++i) {
+		UntypedHeader *nextHeader = (UntypedHeader*)(ut->Object + splitSize * i);
+		Memcpy(nextHeader, header, sizeof(UntypedHeader));
+		nextHeader->Address += splitSize * i;
+		nextHeader->Length = splitSize;
+	
+		Capability *next = Originate(node, (uptr)nextHeader, OBJECT_TYPE::UNTYPED, ut->AccessRights);
+		next->Parent = ut;
+	}
+
+	if (header->Length > totalSplitSize) {
+		UntypedHeader *lastHeader = (UntypedHeader*)(ut->Object + totalSplitSize);
+		Memcpy(lastHeader, header, sizeof(UntypedHeader));
+		lastHeader->Address += totalSplitSize;
+		lastHeader->Length = header->Length - totalSplitSize;
+	
+		Capability *last= Originate(node, (uptr)lastHeader, OBJECT_TYPE::UNTYPED, ut->AccessRights);
+		last->Parent = ut;
+	}
+		
+	header->Length = splitSize;
+
+	return first;
 }
 	
-Capability *Retype(CapabilityNode *node, Capability *ut, OBJECT_TYPE type, u32 accessRights) {
+Capability *Retype(CapabilityNode *node, Capability *ut, OBJECT_TYPE type, u16 accessRights) {
 	if (node == NULL ||
 	    ut == NULL) {
 		return NULL;

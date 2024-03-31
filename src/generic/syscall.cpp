@@ -98,6 +98,7 @@ void SyscallCapCtl(ThreadControlBlock *task, usize firstArgument, usize secondAr
 			usize splitSize = fourthArgument;
 			Capability *newNodeCap = (Capability*)fithArgument;
 			usize *newSlot = (usize*)sixthArgument;
+			usize count = 2; //TODO: GUESS WHO'S LACKING ARGUMENTS
 
 			CapabilityNode *newNodePtr = CAPABILITY::ResolveCNode(newNodeCap);
 			if (CAPABILITY::IsNodeInSpace(cspace, newNodePtr) != 0) {
@@ -117,7 +118,7 @@ void SyscallCapCtl(ThreadControlBlock *task, usize firstArgument, usize secondAr
 				return;
 			}
 
-			Capability *capability = CAPABILITY::Split(newNodePtr, ut, splitSize);
+			Capability *capability = CAPABILITY::Split(newNodePtr, ut, splitSize, count);
 			*newSlot = CAPABILITY::GetCapabilitySlot(newNodePtr, capability);
 			}
 			break;
@@ -125,7 +126,7 @@ void SyscallCapCtl(ThreadControlBlock *task, usize firstArgument, usize secondAr
 			OBJECT_TYPE type = (OBJECT_TYPE)fourthArgument;
 			Capability *newNodeCap = (Capability*)fithArgument;
 			usize *newSlot = (usize*)sixthArgument;
-			u32 accessRights = CAPABILITY_RIGHTS::ACCESS; //TODO: GUESS WHO'S LACKING ARGUMENTS
+			u16 accessRights = CAPABILITY_RIGHTS::ACCESS; //TODO: GUESS WHO'S LACKING ARGUMENTS
 			CapabilityNode *newNodePtr = CAPABILITY::ResolveCNode(newNodeCap);
 			if (CAPABILITY::IsNodeInSpace(cspace, newNodePtr) != 0) {
 				return;

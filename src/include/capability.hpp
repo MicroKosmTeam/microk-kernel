@@ -34,16 +34,16 @@ namespace CAPABILITY {
 
 	/* Function used to generate a capability and store it in a random
 	 * slot in a cnode */
-	Capability *Originate(CapabilityNode *node, uptr object, OBJECT_TYPE type, u32 accessRights);
+	Capability *Originate(CapabilityNode *node, uptr object, OBJECT_TYPE type, u16 accessRights);
 	/* Function used to generate a capability and store it in a specific
 	 * slot in a cnode */
-	Capability *Originate(CapabilityNode *node, usize slot, uptr object, OBJECT_TYPE type, u32 accessRights);
+	Capability *Originate(CapabilityNode *node, usize slot, uptr object, OBJECT_TYPE type, u16 accessRights);
 
 	/**/
-	Capability *Split(CapabilityNode *node, Capability *ut, usize splitSize);
+	Capability *Split(CapabilityNode *node, Capability *ut, usize splitSize, usize count);
 
 	/**/
-	Capability *Retype(CapabilityNode *node, Capability *ut, OBJECT_TYPE type, u32 accessRights);
+	Capability *Retype(CapabilityNode *node, Capability *ut, OBJECT_TYPE type, u16 accessRights);
 
 	void DumpCNode(CapabilityNode *node);
 
