@@ -197,11 +197,18 @@ extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize seco
 				case 's':
 					PRINTK::PrintK(PRINTK_DEBUG "%s", (const char*)value);
 					break;
+				case 'c': {
+					char str[2];
+					str[0] = value;
+					str[1] = '\0';
+					PRINTK::PrintK(PRINTK_DEBUG "%s", (const char*)str);
+					}
+					break;
 				case 'd':
 					PRINTK::PrintK(PRINTK_DEBUG "%d", (long)value);
 					break;
 				case 'x':
-					PRINTK::PrintK(PRINTK_DEBUG "0x%x", value);
+					PRINTK::PrintK(PRINTK_DEBUG "%x", value);
 					break;
 				default:
 					break;
