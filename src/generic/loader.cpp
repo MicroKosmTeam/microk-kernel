@@ -122,28 +122,32 @@ static int LoadProgramHeaders(u8 *data, usize size, Elf64_Ehdr *elfHeader, Virtu
 static usize LoadProcess(Elf64_Ehdr *elfHeader, VirtualSpace space, uptr highestAddress) {
 	KInfo *info = GetInfo();
 
-//	/* Find the real physical frame for InitInfo */
-//	uptr initInfoFrame = VMM::VirtualToPhysical((uptr)bootInfo);
+	/* Get the TCB */
+	ThreadControlBlock *tcb = info->RootTCB;
+	tcb->MemorySpace = space;
+	tcb->Priority = SCHEDULER_MAX_PRIORITY;
 
-//	/* Map the InitInfo frame just above the init executable */
-//	VMM::MMap(space, initInfoFrame, highestAddress, PAGE_SIZE, VMM_FLAGS_READ | VMM_FLAGS_USER | VMM_FLAGS_NOEXEC);
+	/* Find the real physical frame for InitInfo */
+	uptr virtualRegistersFrame = (uptr)PMM::RequestPage();
+	Memclr((void*)VMM::PhysicalToVirtual(virtualRegistersFrame), PAGE_SIZE);
 
-//	/* Create the capability for InitInfo frame.
-//	 * Init can revoke this frame, if it wishes to.
-//	 */
-//	CAPABILITY::Originate(info->RootTCB->RootCNode,
-//				      ROOT_CNODE_SLOTS::INIT_INFO_FRAME_SLOT,
-//				      initInfoFrame,
+
+	/* Map the InitInfo frame just above the init executable */
+	VMM::MMap(space, virtualRegistersFrame, highestAddress, PAGE_SIZE, VMM_FLAGS_READ | VMM_FLAGS_USER | VMM_FLAGS_NOEXEC);
+
+//	CAPABILITY::Originate(tcb->RootCNode,
+//				      ROOT_CNODE_SLOTS::VIRTUAL_REGISTERS_FRAME_SLOT,
+//				      virtualRegistersFrame,
 //				      OBJECT_TYPE::FRAMES,
 //				      CAPABILITY_RIGHTS::ACCESS |
 //				      CAPABILITY_RIGHTS::READ |
-//				      CAPABILITY_RIGHTS::REVOKE);
-//
-//	/* Replace the physical frame data with the mapping */
-//	initInfoFrame = highestAddress;
-//
-//	/* Bump the highest address up one page */
-//	highestAddress += PAGE_SIZE;
+//				      CAPABILITY_RIGHTS::WRITE);
+
+	/* Save the mapping */
+	tcb->VirtualRegisters = (u8*)highestAddress;
+
+	/* Bump the highest address up one page */
+	highestAddress += PAGE_SIZE;
 
 	/* Find the stack base after the highestAddress,
 	 * making sure to reserve enough space for eventual expansion
@@ -171,13 +175,9 @@ static usize LoadProcess(Elf64_Ehdr *elfHeader, VirtualSpace space, uptr highest
 
 	/* Create the actual context */
 	SchedulerContext *context = (SchedulerContext*)VMM::PhysicalToVirtual((uptr)PMM::RequestPage());
-	TASK::InitializeContext((uptr)context, elfHeader->e_entry, highestAddress + INIT_INITIAL_STACK_SIZE, 0, 0);
+	TASK::InitializeContext((uptr)context, elfHeader->e_entry, highestAddress + INIT_INITIAL_STACK_SIZE, VIRTUAL_REGISTERS_SIZE, (uptr)tcb->VirtualRegisters);
 
-	/* Add the memory space and the context to the TCB */
-	ThreadControlBlock *tcb = info->RootTCB;
-	tcb->MemorySpace = space;
 	tcb->Context = context;
-	tcb->Priority = SCHEDULER_MAX_PRIORITY;
 
 	/* Add the init thread to the boot domain scheduler */
 	Scheduler *sched = info->BootDomain->DomainScheduler;

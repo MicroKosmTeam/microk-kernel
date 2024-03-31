@@ -14,7 +14,6 @@
 typedef uptr CPtr;
 typedef uptr VirtualSpace;
 
-
 /* Structure that is the parent of all objects
  * that will belong in a linked list
  */
@@ -138,7 +137,7 @@ struct ThreadControlBlock : public ListHead {
 	usize TaskID;
 	u8 Priority;
 
-	u32 VirtualRegisters[VIRTUAL_REGISTERS_SIZE];
+	u8 *VirtualRegisters;
 
 	VirtualSpace MemorySpace;
 	CapabilityNode *RootCNode;
