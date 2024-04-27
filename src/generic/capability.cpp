@@ -280,32 +280,36 @@ Capability *Split(CapabilityNode *node, Capability *ut, usize splitSize, usize c
 
 	ut->Children += count;
 
-	Capability *first = Originate(node, (uptr)header, OBJECT_TYPE::UNTYPED, ut->AccessRights);
-	first->Parent = ut;
+	Capability *first = NULL;
 
+	uptr initialAddress = header->Address;
+	usize initialLength = header->Length;
 
 	for (usize i = 0; i < count; ++i) {
 		UntypedHeader *nextHeader = (UntypedHeader*)(ut->Object + splitSize * i);
 		Memcpy(nextHeader, header, sizeof(UntypedHeader));
-		nextHeader->Address += splitSize * i;
+		nextHeader->Address = initialAddress + splitSize * i;
 		nextHeader->Length = splitSize;
 	
 		Capability *next = Originate(node, (uptr)nextHeader, OBJECT_TYPE::UNTYPED, ut->AccessRights);
+
+		if (first == NULL) {
+			first = next;
+		}
+
 		next->Parent = ut;
 	}
 
-	if (header->Length > totalSplitSize) {
+	if (initialLength > totalSplitSize) {
 		UntypedHeader *lastHeader = (UntypedHeader*)(ut->Object + totalSplitSize);
 		Memcpy(lastHeader, header, sizeof(UntypedHeader));
-		lastHeader->Address += totalSplitSize;
-		lastHeader->Length = header->Length - totalSplitSize;
+		lastHeader->Address = initialAddress + totalSplitSize;
+		lastHeader->Length = initialLength - totalSplitSize;
 	
 		Capability *last= Originate(node, (uptr)lastHeader, OBJECT_TYPE::UNTYPED, ut->AccessRights);
 		last->Parent = ut;
 	}
 		
-	header->Length = splitSize;
-
 	return first;
 }
 	
@@ -337,7 +341,6 @@ Capability *Retype(CapabilityNode *node, Capability *ut, OBJECT_TYPE type, u16 a
 		/* Must be a power of two */
 		return NULL;
 	}
-
 
 	Capability *retyped = Originate(node, header->Address, type, accessRights);
 	ut->Children += 1;
