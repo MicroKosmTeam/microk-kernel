@@ -35,3 +35,7 @@ void Oops(const char *message, const char *file, const char *function, unsigned 
 	(void)message, (void)file, (void)function, (void)line;
 #endif
 }
+
+void Todo(const char *file, const char *function, unsigned int line) {
+	Panic("Unimplemented routine invoked", file, function, line);
+}
