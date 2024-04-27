@@ -44,6 +44,9 @@ namespace CAPABILITY {
 
 	/**/
 	Capability *Retype(CapabilityNode *node, Capability *ut, OBJECT_TYPE type, u16 accessRights);
+	
+	/**/
+	int Revoke(CapabilityNode *node, Capability *cap);
 
 	void DumpCNode(CapabilityNode *node);
 

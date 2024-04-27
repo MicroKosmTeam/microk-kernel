@@ -338,6 +338,7 @@ Capability *Retype(CapabilityNode *node, Capability *ut, OBJECT_TYPE type, u16 a
 		return NULL;
 	}
 
+
 	Capability *retyped = Originate(node, header->Address, type, accessRights);
 	ut->Children += 1;
 	retyped->Parent = ut;
@@ -353,6 +354,47 @@ Capability *Retype(CapabilityNode *node, Capability *ut, OBJECT_TYPE type, u16 a
 	}
 
 	return retyped;
+}
+	
+int Revoke(CapabilityNode *node, Capability *cap) {
+	TODO;
+
+	if (node == NULL ||
+	    cap == NULL) {
+		return -ENOCAP;
+	}
+
+	if (cap->Children != 0) {
+		/* The ut capability must not have children */
+		return -EBUSY;
+	}
+
+	if ((cap->AccessRights & CAPABILITY_RIGHTS::REVOKE) == 0) {
+		return -EPERMISSION;
+	}
+
+	if (cap->Parent == NULL) {
+		return -ENOCAP;
+	}
+
+	Capability *parent = cap->Parent;
+	UntypedHeader *header = (UntypedHeader*)cap->Object;
+
+	(void)parent, (void)header;
+
+/*
+	switch(cap->Type) {
+		case OBJECT_TYPE::CNODE: {
+			CapabilityNode *node = (CapabilityNode*)cap->Address;
+			usize size = 
+			Mw
+			header->Address = cap->Address;
+
+			if (parent->
+
+	}
+*/
+	return ENOERR;
 }
 
 void DumpCNode(CapabilityNode *node) {
