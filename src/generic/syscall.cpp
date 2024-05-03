@@ -6,8 +6,17 @@
 #include <cdefs.h>
 
 inline __attribute__((always_inline))
-void SyscallCapCtl(ThreadControlBlock *task, usize firstArgument, usize secondArgument, usize thirdArgument, usize fourthArgument, usize fithArgument, usize sixthArgument) {
-	CapabilityNode *nodePtr = task->RootCNode;
+usize GetVirtualArgs(ThreadControlBlock *tcb, usize index) {
+	if (index * sizeof(usize) >= VIRTUAL_REGISTERS_SIZE) {
+		return 0;
+	}
+
+	return ((usize*)tcb->VirtualRegisters)[index];
+}
+
+inline __attribute__((always_inline))
+void SyscallCapCtl(ThreadControlBlock *tcb, usize firstArgument, usize secondArgument, usize thirdArgument, usize fourthArgument, usize fithArgument, usize sixthArgument) {
+	CapabilityNode *nodePtr = tcb->RootCNode;
 
 	if (nodePtr == NULL) {
 		/* Task isn't allowed to use capabilities */
@@ -98,7 +107,7 @@ void SyscallCapCtl(ThreadControlBlock *task, usize firstArgument, usize secondAr
 			usize splitSize = fourthArgument;
 			Capability *newNodeCap = (Capability*)fithArgument;
 			usize *newSlot = (usize*)sixthArgument;
-			usize count = 2; //TODO: GUESS WHO'S LACKING ARGUMENTS
+			usize count = GetVirtualArgs(tcb, 7);
 
 			CapabilityNode *newNodePtr = CAPABILITY::ResolveCNode(newNodeCap);
 			if (CAPABILITY::IsNodeInSpace(cspace, newNodePtr) != 0) {
@@ -126,7 +135,8 @@ void SyscallCapCtl(ThreadControlBlock *task, usize firstArgument, usize secondAr
 			OBJECT_TYPE type = (OBJECT_TYPE)fourthArgument;
 			Capability *newNodeCap = (Capability*)fithArgument;
 			usize *newSlot = (usize*)sixthArgument;
-			u16 accessRights = CAPABILITY_RIGHTS::ACCESS; //TODO: GUESS WHO'S LACKING ARGUMENTS
+			u16 accessRights = GetVirtualArgs(tcb, 7);
+
 			CapabilityNode *newNodePtr = CAPABILITY::ResolveCNode(newNodeCap);
 			if (CAPABILITY::IsNodeInSpace(cspace, newNodePtr) != 0) {
 				return;
@@ -158,7 +168,7 @@ void SyscallCapCtl(ThreadControlBlock *task, usize firstArgument, usize secondAr
 }
 
 inline __attribute__((always_inline))
-void SyscallArchCtl(ThreadControlBlock *task, usize firstArgument, usize secondArgument, usize thirdArgument, usize fourthArgument, usize fithArgument, usize sixthArgument) {
+void SyscallArchCtl(ThreadControlBlock *tcb, usize firstArgument, usize secondArgument, usize thirdArgument, usize fourthArgument, usize fithArgument, usize sixthArgument) {
 	usize operation = firstArgument;
 	int *result = (int*)secondArgument;
 	
@@ -169,14 +179,14 @@ void SyscallArchCtl(ThreadControlBlock *task, usize firstArgument, usize secondA
 			uptr frame = fourthArgument;
 			uptr virt = fithArgument;
 			usize flags = VMM::ConvertUserFlags(sixthArgument);
-			*result = VMM::MapIntermediateLevel(task->MemorySpace, level, frame, virt, flags);
+			*result = VMM::MapIntermediateLevel(tcb->MemorySpace, level, frame, virt, flags);
 			}
 			break;
 		case SYSCALL_ARCHCTL_MAP_PAGE: {
 			uptr phys = thirdArgument;
 			uptr virt = fourthArgument;
 			usize flags = VMM::ConvertUserFlags(fithArgument);
-			*result = VMM::MapPage(task->MemorySpace, phys, virt, flags);
+			*result = VMM::MapPage(tcb->MemorySpace, phys, virt, flags);
 			}
 			break;
 		default:
@@ -187,7 +197,7 @@ void SyscallArchCtl(ThreadControlBlock *task, usize firstArgument, usize secondA
 
 extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize secondArgument, usize thirdArgument, usize fourthArgument, usize fithArgument, usize sixthArgument) {
 	KInfo *info = GetInfo();
-	ThreadControlBlock *task = info->RootTCB;
+	ThreadControlBlock *tcb = info->RootTCB;
 
 	switch (syscallNumber) {
 		case SYSCALL_VECTOR_DEBUG: {
@@ -217,10 +227,10 @@ extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize seco
 			break;
 
 		case SYSCALL_VECTOR_CAPCTL:
-			SyscallCapCtl(task, firstArgument, secondArgument, thirdArgument, fourthArgument, fithArgument, sixthArgument);
+			SyscallCapCtl(tcb, firstArgument, secondArgument, thirdArgument, fourthArgument, fithArgument, sixthArgument);
 			break;
 		case SYSCALL_VECTOR_ARCHCTL:
-			SyscallArchCtl(task, firstArgument, secondArgument, thirdArgument, fourthArgument, fithArgument, sixthArgument);
+			SyscallArchCtl(tcb, firstArgument, secondArgument, thirdArgument, fourthArgument, fithArgument, sixthArgument);
 			break;
 		case SYSCALL_VECTOR_YEILD:
 			break;
