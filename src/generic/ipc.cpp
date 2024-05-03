@@ -29,7 +29,7 @@ int SendMessage(ThreadControlBlock *sendTCB, Capability *epCap) {
 		case ThreadStatus::WAITING: {
 			ep->Status = EndpointStatus::EP_IDLE;
 
-			Memcpy(recvTCB->VirtualRegisters, sendTCB->VirtualRegisters, sizeof(u32) * VIRTUAL_REGISTERS_SIZE);
+			Memcpy(recvTCB->VirtualRegisters, sendTCB->VirtualRegisters, VIRTUAL_REGISTERS_SIZE);
 
 			SCHED::RemoveThread(sendTCB->Parent, sendTCB);
 			sendTCB->Status = ThreadStatus::BLOCKED;

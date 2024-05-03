@@ -108,7 +108,7 @@ void Deinit() {
 
 	/* Make sure we have enough preallocated space in the root capability space
 	 * (+3 because if we want to split a region to create a new cnode we have the space
-	 *  -> 2 for the split region, 1 for the node itself) */
+	 *  -> 2 for the split region UT, 1 for the node itself) */
 	usize memoryRegionsCount = MEMBLOCK::GetTotalElements(info->PhysicalMemoryChunks) + 3;
 	usize cnodeSize = memoryRegionsCount * sizeof(Capability) + sizeof(CapabilityNode);
 	ROUND_UP_TO_PAGE(cnodeSize);
