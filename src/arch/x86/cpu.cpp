@@ -82,7 +82,7 @@ inline static int EnableSyscalls() {
 
 void LoadEssentialCPUStructures() {
 	LoadGDT(&gdt, &pointer);
-	TSSInit(&gdt, &tss, VMM::PhysicalToVirtual((uptr)PMM::RequestPages(64 * 1024) + 64 * 1024));
+	TSSInit(&gdt, &tss, VMM::PhysicalToVirtual((uptr)PMM::RequestPage(PMM::ARCH_PAGE_REQUEST) + 64 * 1024));
 	IDTInit();
 }
 
