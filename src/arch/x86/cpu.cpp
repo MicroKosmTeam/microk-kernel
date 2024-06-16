@@ -13,11 +13,7 @@ extern "C" void HandleSyscall64();
 extern "C" void HandleSyscall32();
 
 namespace x86 {
-GDT gdt;
-GDTPointer pointer;
-TSS tss;
 APIC apic;
-
 
 inline static u32 GetFamily(u32 sig) {
 	u32 x86;
@@ -81,8 +77,14 @@ inline static int EnableSyscalls() {
 }
 
 void LoadEssentialCPUStructures() {
-	LoadGDT(&gdt, &pointer);
-	TSSInit(&gdt, &tss, VMM::PhysicalToVirtual((uptr)PMM::RequestPage(PMM::ARCH_PAGE_REQUEST) + 64 * 1024));
+	KInfo *info = GetInfo();
+
+	LoadGDT(&info->BootDomain->Gdt,
+		&info->BootDomain->GdtPointer);
+
+	TSSInit(&info->BootDomain->Gdt,
+		&info->BootDomain->Tss,
+		VMM::PhysicalToVirtual((uptr)PMM::RequestPage(PMM::TSS_STACK_REQUEST) + DEFAULT_STACK_SIZE));
 	IDTInit();
 }
 

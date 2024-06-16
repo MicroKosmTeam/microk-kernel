@@ -12,8 +12,8 @@ void InitializeRootSpace() {
 	KInfo *info = GetInfo();
 
 	/* Getting the page for the TCB and the cspace */
-	uptr tcbFrame = VMM::PhysicalToVirtual((uptr)PMM::RequestPage());
-	uptr cspaceFrame = VMM::PhysicalToVirtual((uptr)PMM::RequestPage());
+	uptr tcbFrame = VMM::PhysicalToVirtual((uptr)PMM::RequestPage(PMM::ROOT_TCB_REQUEST));
+	uptr cspaceFrame = VMM::PhysicalToVirtual((uptr)PMM::RequestPage(PMM::ROOT_CSPACE_REQUEST));
 
 	/* Initializing the TCB and creating the root CSpace */
 	info->RootTCB = TASK::InitializeTCB(tcbFrame);

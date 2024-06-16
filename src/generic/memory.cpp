@@ -10,10 +10,13 @@
 
 namespace MEM {
 void Init() {
+	/*
 	KInfo *info = GetInfo();
+	*/
 
 	/* Calculate all needed capability slots */
 	/* For now, set a large fixed value */
+	/*
 	usize neededSlots = 1024 * 1024;
 	usize cnodeSize = MATH::UpperPowerOfTwoUSIZE(neededSlots * sizeof(Capability));
 	usize cnodeSizeBits = MATH::GetPowerOfTwo(cnodeSize);
@@ -25,16 +28,17 @@ void Init() {
 						(uptr)PMM::RequestPages(cnodeSize)
 					),
 					cnodeSizeBits);
+	*/
 
 	/* Creating the capability in the fixed slot */
+	/*
 	CAPABILITY::Originate(rootNode,
 			      ROOT_CNODE_SLOTS::MEMORY_MAP_CNODE_SLOT,
 			      (uptr)memoryNode,
 			      OBJECT_TYPE::CNODE,
-			      CAPABILITY_RIGHTS::ACCESS);
+			      CAPABILITY_RIGHTS::ACCESS);*/
 	
-	while(true) {}
-
+	/*
 	PRINTK::PrintK(PRINTK_DEBUG "Physical Memory Map:\r\n");
 
 	for (MEM::MEMBLOCK::MemblockRegion *current = (MEM::MEMBLOCK::MemblockRegion*)info->PhysicalMemoryChunks->Regions.Head;
@@ -44,7 +48,7 @@ void Init() {
 				current->Base,
 				current->Base + current->Length,
 				MemoryTypeToString(current->Type));
-	}
+	}*/
 
 
 	/* Initializing virtual memory */
@@ -68,6 +72,7 @@ void Init() {
 			&__KernelBinaryBSSStart, &__KernelBinaryBSSEnd, (&__KernelBinaryBSSEnd - &__KernelBinaryBSSStart)
 			);
 
+	/*
 	uptr essentialStartAddr = (uptr)&__KernelBinaryEssentialStart - info->KernelVirtualBase + info->KernelPhysicalBase;
 	uptr essentialEndAddr = (uptr)&__KernelBinaryEssentialEnd - info->KernelVirtualBase + info->KernelPhysicalBase;
 
@@ -106,6 +111,7 @@ void Init() {
 	MEM::MEMBLOCK::AddRegion(info->PhysicalMemoryChunks, dataStartAddr, dataEndAddr - dataStartAddr, MEMMAP_KERNEL_DATA);
 	MEM::MEMBLOCK::AddRegion(info->PhysicalMemoryChunks, dynamicStartAddr, dynamicEndAddr - dynamicStartAddr, MEMMAP_KERNEL_DYNAMIC);
 	MEM::MEMBLOCK::AddRegion(info->PhysicalMemoryChunks, bssStartAddr, bssEndAddr - bssStartAddr, MEMMAP_KERNEL_BSS);
+	*/
 
 	/* Free bootloader-used memory that is no longer needed */
 	/*
@@ -182,6 +188,7 @@ void Deinit() {
 
 
 	/* Cataloguing the memory all memblock regions and creating capabilities accordingly */
+	/*
 	for (MEM::MEMBLOCK::MemblockRegion *current =
 			(MEM::MEMBLOCK::MemblockRegion*)
 			info->PhysicalMemoryChunks->Regions.Head;
@@ -189,9 +196,10 @@ void Deinit() {
 	     current = (MEM::MEMBLOCK::MemblockRegion*)current->Next) {
 		UntypedHeader *header = (UntypedHeader*)VMM::PhysicalToVirtual(current->Base);
 		switch (current->Type) {
-			case MEMMAP_USABLE:
+			case MEMMAP_USABLE:*/
 				/* Usable is untyped, and userspace is free to do anything they please
 				 * with it */
+	/*
 				header->Address = current->Base;
 				header->Length = current->Length;
 				header->Flags = 0;
@@ -207,7 +215,7 @@ void Deinit() {
 			default:
 				break;
 		}
-	}
+	}*/
 }
 
 const char *MemoryTypeToString(u8 type) {

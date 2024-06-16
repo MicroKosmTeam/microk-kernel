@@ -59,7 +59,7 @@ void KernelStart() {
 	CAPABILITY::InitializeRootSpace();
 	MEM::Init();
 	ARCH::InitializeCPUFeatures();
-	SCHED::InitializeCPUScheduler(info->BootDomain, VMM::PhysicalToVirtual((uptr)PMM::RequestPage()));
+	SCHED::InitializeCPUScheduler(info->BootDomain, VMM::PhysicalToVirtual((uptr)PMM::RequestPage(PMM::BOOT_SCHEDULER_REQUEST)));
 	LOADER::LoadELF((u8*)info->ManagerExecutableAddress, info->ManagerExecutableSize);
 	MEM::Deinit();
 	SCHED::Recalculate(info->BootDomain->DomainScheduler);
