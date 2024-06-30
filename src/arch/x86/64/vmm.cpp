@@ -92,6 +92,7 @@ int MapPage(uptr rootPageTable, uptr phys, uptr virt, usize flags) {
 }
 /* Returns 1 if the frame wasn't used */
 int MapIntermediateLevel(uptr rootPageTable, usize level, uptr frame, uptr virt, usize flags) {
+
 	usize pml4Entry = (virt & (0x1ffull << 39)) >> 39;
 	usize pml3Entry = (virt & (0x1ffull << 30)) >> 30;
 	usize pml2Entry = (virt & (0x1ffull << 21)) >> 21;

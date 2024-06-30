@@ -70,11 +70,7 @@ static bool VerifyELF(Elf64_Ehdr *elfHeader) {
 }
 
 static int LoadProgramHeaders(u8 *data, usize size, Elf64_Ehdr *elfHeader, VirtualSpace space, uptr *highestAddress) {
-	KInfo *info = GetInfo();
-
-	(void)info;
 	(void)size;
-
 	usize programHeaderSize = elfHeader->e_phentsize;
 	usize programHeaderOffset = elfHeader->e_phoff;
 	usize programHeaderNumber = elfHeader->e_phnum;
@@ -151,20 +147,20 @@ static usize LoadProcess(Elf64_Ehdr *elfHeader, VirtualSpace space, uptr highest
 	 */
 	highestAddress += INIT_MAXIMUM_STACK_GROWTH - INIT_INITIAL_STACK_SIZE;
 
-// TODO: this isn't usable, unless we provide the physical frames
-//	/* Create the capability for the stack frames
-//	 * Init can revoke its stack frames, if it wishes to.
-//	 */
-//	CAPABILITY::Originate(info->RootTCB->RootCNode,
-//				      ROOT_CNODE_SLOTS::STACK_FRAME_SLOT,
-//				      highestAddress,
-//				      INIT_INITIAL_STACK_SIZE,
-//				      OBJECT_TYPE::FRAMES,
-//				      CAPABILITY_RIGHTS::ACCESS |
-//				      CAPABILITY_RIGHTS::READ |
-//				      CAPABILITY_RIGHTS::WRITE |
-//				      CAPABILITY_RIGHTS::REVOKE);
-
+	/* Create the capability for the stack frames
+	 * Init can revoke its stack frames, if it wishes to.
+	 */
+	/*
+	CAPABILITY::Originate(info->RootTCB->RootCNode,
+				      ROOT_CNODE_SLOTS::STACK_FRAME_SLOT,
+				      highestAddress,
+				      INIT_INITIAL_STACK_SIZE,
+				      OBJECT_TYPE::FRAMES,
+				      CAPABILITY_RIGHTS::ACCESS |
+				      CAPABILITY_RIGHTS::READ |
+				      CAPABILITY_RIGHTS::WRITE |
+				      CAPABILITY_RIGHTS::REVOKE);
+	*/
 	/* Allocate the space for the stack and map it in
 	 * the virtual space for init
 	 */

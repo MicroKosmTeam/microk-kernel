@@ -191,6 +191,7 @@ CapabilityNode *ResolveCNode(Capability *nodeCap) {
 		return NULL;
 	}
 
+	/* Hella dangerous */
 	CapabilityNode *node = (CapabilityNode*)VMM::PhysicalToVirtual(nodeCap->Object);
 	return node;
 }

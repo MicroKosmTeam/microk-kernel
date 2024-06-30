@@ -158,6 +158,79 @@ void SyscallCapCtl(ThreadControlBlock *tcb, usize firstArgument, usize secondArg
 			*newSlot = CAPABILITY::GetCapabilitySlot(newNodePtr, capability);
 			}
 			break;
+		case SYSCALL_CAPCTL_MAP_INTERMEDIATE: {
+			usize level = fourthArgument;
+			uptr virt = fithArgument;
+			usize flags = VMM::ConvertUserFlags(sixthArgument);
+
+			//usize upperSlot = GetVirtualArgs(tcb, 7);
+
+			Capability *pageStructure = &nodePtr->Slots[nodeSlot];
+			if (pageStructure->Type != OBJECT_TYPE::PAGING_STRUCTURE) {
+				OOPS("Mapping non PAGE cap");
+				return;
+			}
+
+			if ((pageStructure->AccessRights & CAPABILITY_RIGHTS::ACCESS) == 0) {
+				OOPS("Addressing non-seeable CAP slot");
+				return;
+			}
+/*
+			Capability *upperCapability = &nodePtr->Slots[upperSlot];
+			if (upperCapability->Type != OBJECT_TYPE::PAGING_STRUCTURE) {
+				return;
+			}
+
+			if ((upperCapability->AccessRights & CAPABILITY_RIGHTS::ACCESS) == 0) {
+				OOPS("Addressing non-seeable CAP slot");
+				return;
+			}*/
+			
+			PRINTK::PrintK(PRINTK_DEBUG "Mapping intermediate from 0x%x to 0x%x with flags 0x%x\r\n", pageStructure->Object, virt, flags);
+			usize result = VMM::MapIntermediateLevel(tcb->MemorySpace, level, pageStructure->Object, virt, flags);
+			if (result == 0 || result == 1) {
+/*				pageStructure->Parent = upperCapability;
+				++upperCapability->Children;*/
+			} else {
+				OOPS("Mapping intermediate slot failed");
+			}
+			}
+			break;
+		case SYSCALL_CAPCTL_MAP_PAGE: {
+			uptr virt = fourthArgument;
+			usize flags = VMM::ConvertUserFlags(fithArgument);
+			//usize upperSlot = (usize)sixthArgument;
+
+			Capability *frame = &nodePtr->Slots[nodeSlot];
+			if (frame->Type != OBJECT_TYPE::FRAMES) {
+				OOPS("Mapping non PAGE cap");
+				return;
+			}
+
+			if ((frame->AccessRights & CAPABILITY_RIGHTS::ACCESS) == 0) {
+				OOPS("Addressing non-seeable CAP slot");
+				return;
+			}
+
+			/*
+			Capability *upperCapability = &nodePtr->Slots[upperSlot];
+			if (upperCapability->Type != OBJECT_TYPE::PAGING_STRUCTURE) {
+				return;
+			}
+
+			if ((upperCapability->AccessRights & CAPABILITY_RIGHTS::ACCESS) == 0) {
+				OOPS("Addressing non-seeable CAP slot");
+				return;
+			}*/
+			PRINTK::PrintK(PRINTK_DEBUG "Mapping from 0x%x to 0x%x with flags 0x%x\r\n", frame->Object, virt, flags);
+			usize result = VMM::MapPage(tcb->MemorySpace, frame->Object, virt, flags);
+			if (result == 0) {
+				/* Perfect */
+			} else {
+				OOPS("Mapping page slot failed");
+			}
+			}
+			break;
 		case SYSCALL_CAPCTL_DEBUG: {
 			CAPABILITY::DumpCNode(nodePtr);
 			}
@@ -165,34 +238,6 @@ void SyscallCapCtl(ThreadControlBlock *tcb, usize firstArgument, usize secondArg
 		default:
 			break;
 	}
-}
-
-inline __attribute__((always_inline))
-void SyscallArchCtl(ThreadControlBlock *tcb, usize firstArgument, usize secondArgument, usize thirdArgument, usize fourthArgument, usize fithArgument, usize sixthArgument) {
-	usize operation = firstArgument;
-	int *result = (int*)secondArgument;
-	
-	/* MAPPING SIMPLIFIED FOR TESTING PURPOSES */
-	switch (operation) {
-		case SYSCALL_ARCHCTL_MAP_INTERMEDIATE: {
-			usize level = thirdArgument;
-			uptr frame = fourthArgument;
-			uptr virt = fithArgument;
-			usize flags = VMM::ConvertUserFlags(sixthArgument);
-			*result = VMM::MapIntermediateLevel(tcb->MemorySpace, level, frame, virt, flags);
-			}
-			break;
-		case SYSCALL_ARCHCTL_MAP_PAGE: {
-			uptr phys = thirdArgument;
-			uptr virt = fourthArgument;
-			usize flags = VMM::ConvertUserFlags(fithArgument);
-			*result = VMM::MapPage(tcb->MemorySpace, phys, virt, flags);
-			}
-			break;
-		default:
-			break;
-	}
-
 }
 
 extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize secondArgument, usize thirdArgument, usize fourthArgument, usize fithArgument, usize sixthArgument) {
@@ -230,7 +275,6 @@ extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize seco
 			SyscallCapCtl(tcb, firstArgument, secondArgument, thirdArgument, fourthArgument, fithArgument, sixthArgument);
 			break;
 		case SYSCALL_VECTOR_ARCHCTL:
-			SyscallArchCtl(tcb, firstArgument, secondArgument, thirdArgument, fourthArgument, fithArgument, sixthArgument);
 			break;
 		case SYSCALL_VECTOR_YEILD:
 			break;
