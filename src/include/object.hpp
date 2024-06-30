@@ -33,7 +33,6 @@ struct List {
  */
 struct Capability {
 	u8 Type;
-	u8 ExtraAttributes;
 	uptr Object;
 	u16 AccessRights;
 	u16 Children;

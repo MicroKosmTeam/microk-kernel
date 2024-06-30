@@ -106,8 +106,8 @@ void LimineEntry() {
 	info->KernelPhysicalBase = KAddrRequest.response->physical_base;
 	info->KernelVirtualBase = KAddrRequest.response->virtual_base;
 
-	uptr largestRegionBase = 0;
-	usize largestRegionLength = 0;
+	uptr bootmemRegionBase = 0;
+	usize bootmemRegionLength = 0;
 
 	for (usize i = 0; i < MemoryMapRequest.response->entry_count; i++) {
 		uptr base = MemoryMapRequest.response->entries[i]->base;
@@ -123,18 +123,13 @@ void LimineEntry() {
 		 * a higher memory region (that are abundant) compared to
 		 * low memory regions (i.e. below 64MB)
 		 */
-		if (length >= largestRegionLength) {
-			largestRegionBase = base;
-			largestRegionLength = length;
+		if (length >= bootmemRegionLength) {
+			bootmemRegionBase = base;
+			bootmemRegionLength = length;
 		}
 	}
 
-	info->DesignedAllocationRegionBase = largestRegionBase;
-	info->DesignedAllocationRegionLength = largestRegionLength;
-
-	PMM::ValidateMemory();
-
-	largestRegionLength = BOOTMEM::ActivateBootMemory(largestRegionBase + info->HigherHalfMapping, largestRegionLength);
+	bootmemRegionLength = BOOTMEM::ActivateBootMemory(bootmemRegionBase + info->HigherHalfMapping, bootmemRegionLength);
 	
 	/* Transporting the MMAP */
 	PRINTK::PrintK(PRINTK_DEBUG "Get the memory map from Limine.\r\n");
@@ -155,8 +150,11 @@ void LimineEntry() {
 
 	/* Setting all the memory used by BOOTMEM as used */
 	MEM::MEMBLOCK::AddRegion(info->PhysicalMemoryChunks,
-			largestRegionBase, largestRegionLength, MEMMAP_KERNEL_BOOTMEM);
+			bootmemRegionBase, bootmemRegionLength, MEMMAP_KERNEL_BOOTMEM);
 
+
+	/* Enabling the page frame allocator */
+	PMM::Init();
 
 	info->ManagerExecutableAddress = (uptr)ModuleRequest.response->modules[0]->address;
 	info->ManagerExecutableSize = ModuleRequest.response->modules[0]->size;

@@ -12,29 +12,6 @@ namespace MEM {
 void Init() {
 	KInfo *info = GetInfo();
 
-	/* Calculate all needed capability slots */
-	/* For now, set a large fixed value */
-	usize neededSlots = 1024 * 1024;
-	usize cnodeSize = MATH::UpperPowerOfTwoUSIZE(neededSlots * sizeof(Capability));
-	usize cnodeSizeBits = MATH::GetPowerOfTwo(cnodeSize);
-	
-	CapabilityNode *rootNode = info->RootTCB->RootCNode;
-	CapabilityNode *memoryNode = CAPABILITY::CreateCNode(
-					info->RootCSpace,
-				        VMM::PhysicalToVirtual(
-						(uptr)PMM::RequestPages(cnodeSize)
-					),
-					cnodeSizeBits);
-
-	/* Creating the capability in the fixed slot */
-	CAPABILITY::Originate(rootNode,
-			      ROOT_CNODE_SLOTS::MEMORY_MAP_CNODE_SLOT,
-			      (uptr)memoryNode,
-			      OBJECT_TYPE::CNODE,
-			      CAPABILITY_RIGHTS::ACCESS);
-	
-	while(true) {}
-
 	PRINTK::PrintK(PRINTK_DEBUG "Physical Memory Map:\r\n");
 
 	for (MEM::MEMBLOCK::MemblockRegion *current = (MEM::MEMBLOCK::MemblockRegion*)info->PhysicalMemoryChunks->Regions.Head;
@@ -125,10 +102,6 @@ void Init() {
 	}*/
 }
 	
-void GenerateMemoryCapabilityNodes() {
-
-}
-
 void Deinit() {
 	KInfo *info = GetInfo();
 	BOOTMEM::DeactivateBootMemory();

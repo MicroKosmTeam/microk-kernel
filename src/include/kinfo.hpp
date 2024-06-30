@@ -43,9 +43,6 @@ struct KInfo {
 
 	/* Memory information */
 	MEM::MEMBLOCK::MemblockAllocator *PhysicalMemoryChunks; /* Physical memory map */
-	
-	uptr DesignedAllocationRegionBase;
-	usize DesignedAllocationRegionLength;
 
 	uptr HigherHalfMapping; /* Start of higher half mapping */
 	uptr KernelPhysicalBase; /* Start of the kernel in physical memory */
