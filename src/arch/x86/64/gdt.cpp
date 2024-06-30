@@ -5,8 +5,6 @@
 #include <memory.hpp>
 #include <arch/x86/gdt.hpp>
 
-namespace x86 {
-
 void FlushGDT(GDTPointer *gdt) {
 	asm volatile ("lgdt [%0]\n\t"
 		      "push 0x28\n\t"
@@ -28,6 +26,8 @@ void FlushTSS() {
 		      "ltr ax\n\t");
 }
 
+
+namespace x86 {
 /*
    Function that initializes the TSS given the current kernel stack
 */

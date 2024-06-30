@@ -108,14 +108,6 @@ enum ThreadStatus {
 
 struct Domain {
 	Scheduler *DomainScheduler;
-
-	/* From here on out, architecture specific stuff goes here */
-#if defined(__x86_64__)
-	__attribute__((aligned(0x100))) x86::GDT Gdt;
-	__attribute__((aligned(0x100))) x86::GDTPointer GdtPointer;
-	__attribute__((aligned(0x100))) x86::TSS Tss;
-//	__attribute__((aligned(0x100))) x86::APIC Apic;
-#endif
 };
 
 /* The scheduler itself, one exists for each domain

@@ -27,8 +27,15 @@ usize LoadELF(u8 *data, usize size) {
 	if(VerifyELF(elfHeader)) {
 		PRINTK::PrintK(PRINTK_DEBUG "Valid ELF header.\r\n");
 
-		VirtualSpace space = info->KernelVirtualSpace;
-		
+		VirtualSpace space = VMM::NewVirtualSpace((uptr)PMM::RequestPage());
+		VMM::PrepareUserVirtualSpace(space);
+
+		CAPABILITY::Originate(info->RootTCB->RootCNode,
+				      ROOT_CNODE_SLOTS::VIRTUAL_SPACE_ROOT_SLOT,
+				      space,
+				      OBJECT_TYPE::PAGING_STRUCTURE,
+				      CAPABILITY_RIGHTS::ACCESS);
+
 		uptr highestAddress = 0;
 		LoadProgramHeaders(data, size, elfHeader, space, &highestAddress);
 		usize pid = LoadProcess(elfHeader, space, highestAddress);
@@ -120,7 +127,7 @@ static usize LoadProcess(Elf64_Ehdr *elfHeader, VirtualSpace space, uptr highest
 	tcb->MemorySpace = space;
 	tcb->Priority = SCHEDULER_MAX_PRIORITY;
 
-	uptr virtualRegistersFrame = (uptr)PMM::RequestPage(PMM::ROOT_VIRTUAL_REGISTERS_REQUEST);
+	uptr virtualRegistersFrame = (uptr)PMM::RequestPage();
 	Memclr((void*)VMM::PhysicalToVirtual(virtualRegistersFrame), PAGE_SIZE);
 
 	VMM::MMap(space, virtualRegistersFrame, highestAddress, PAGE_SIZE, VMM_FLAGS_READ | VMM_FLAGS_WRITE | VMM_FLAGS_USER | VMM_FLAGS_NOEXEC);

@@ -11,12 +11,6 @@
 
 namespace ARCH {
 void InitializeBootCPU() {
-	KInfo *info = GetInfo();
-
-	info->BootDomain = (Domain*)VMM::PhysicalToVirtual((uptr)PMM::RequestPage(PMM::BOOT_DOMAIN_REQUEST));
-	Memclr(info->BootDomain, sizeof(Domain));
-
-
 #if defined(__x86_64__)
 	x86::InitializeBootCPU();
 #elif defined(__aarch64__)
@@ -25,6 +19,11 @@ void InitializeBootCPU() {
 }
 
 void InitializeCPUFeatures() {
+	KInfo *info = GetInfo();
+
+	info->BootDomain = (Domain*)VMM::PhysicalToVirtual((uptr)PMM::RequestPage());
+	Memclr(info->BootDomain, sizeof(Domain));
+
 #if defined(__x86_64__)
 	x86::InitializeCPUFeatures();
 #endif
