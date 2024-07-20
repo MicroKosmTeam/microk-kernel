@@ -286,7 +286,7 @@ Capability *Split(CapabilityNode *node, Capability *ut, usize splitSize, usize c
 	uptr initialAddress = header->Address;
 	usize initialLength = header->Length;
 
-	for (usize i = 0; i < count; ++i) {
+	for (usize i = 1; i < count; ++i) {
 		UntypedHeader *nextHeader = (UntypedHeader*)(ut->Object + splitSize * i);
 		Memcpy(nextHeader, header, sizeof(UntypedHeader));
 		nextHeader->Address = initialAddress + splitSize * i;
