@@ -119,25 +119,73 @@ extern "C" InterruptStatus *InterruptHandler(InterruptStatus *context) {
 			break;
 			}
 		case 14: {
+			Scheduler *scheduler = info->BootDomain->DomainScheduler;
+			ThreadControlBlock *activeThread = scheduler->Running;
+
 			uptr page = 0;
 			bool protectionViolation = context->Base.ErrorCode & 0b1;
 			bool writeAccess = (context->Base.ErrorCode & 0b10) >> 1;
 			bool byUser = (context->Base.ErrorCode & 0b100) >> 2;
 			bool wasInstructionFetch = (context->Base.ErrorCode & 0b1000) >> 4;
-			asm("mov %%cr2, %0" : "=r"(page));
+			asm volatile("mov %%cr2, %0" : "=r"(page));
 
 			PrintRegs(context);
 			PRINTK::PrintK(PRINTK_DEBUG
+				       "Address space: 0x%x\r\n"
 				       "Page fault in page 0x%x because of a %s.\r\n"
 				       "It was caused by a %s from %s.\r\n"
 				       "It %s because of an instruction fetch.\r\n",
-				       page,
+				       activeThread->MemorySpace, page,
 				       protectionViolation ? "page protection violation" : "non-present page",
 				       writeAccess ? "write" : "read",
 				       byUser ? "userspace" : "Kernelspace",
 				       wasInstructionFetch ? "was" : "wasn't");
 
-			PANIC("Page fault");
+
+			if (byUser) {
+				volatile u64 *pte = x86_64::FindMappedPTE(activeThread->MemorySpace, page, false);
+				if (*pte & VMM_FLAGS_USER) {
+					if (writeAccess) {
+						if (*pte & VMM_FLAGS_WRITE) {
+							if (*pte & VMM_FLAGS_READ) {
+								PRINTK::PrintK(PRINTK_DEBUG "Write -> RW\r\n");
+							} else {
+								PRINTK::PrintK(PRINTK_DEBUG "Write -> Write\r\n");
+							}
+						} else if (*pte & VMM_FLAGS_READ) {
+							PRINTK::PrintK(PRINTK_DEBUG "Write -> Read\r\n");
+						} else {
+							PRINTK::PrintK(PRINTK_DEBUG "Write -> Nil\r\n");
+						}
+					} else {
+						if (*pte & VMM_FLAGS_WRITE) {
+							if (*pte & VMM_FLAGS_READ) {
+								PRINTK::PrintK(PRINTK_DEBUG "Read -> RW\r\n");
+							} else {
+								PRINTK::PrintK(PRINTK_DEBUG "Read -> Write\r\n");
+							}
+						} else if (*pte & VMM_FLAGS_READ) {
+							PRINTK::PrintK(PRINTK_DEBUG "Read -> Read\r\n");
+						} else {
+							PRINTK::PrintK(PRINTK_DEBUG "Read -> Nil\r\n");
+						}
+
+					}
+				} else {
+					if (writeAccess) {
+						PRINTK::PrintK(PRINTK_DEBUG "Write -> Krnl\r\n");
+					} else {
+						PRINTK::PrintK(PRINTK_DEBUG "Read -> Krnl\r\n");
+					}
+
+					// KILL PROCESS
+				}
+
+				PANIC("Page fault");
+			} else {
+				PANIC("Page fault");
+			}
+
 			}
 			break;
 		case 32: {

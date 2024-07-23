@@ -73,8 +73,16 @@ static volatile limine_internal_module UserManagerModule {
 	.flags = LIMINE_INTERNAL_MODULE_REQUIRED,
 };
 
+/* Forcing the bootloader to provide the user manager */
+static volatile limine_internal_module InitrdModule {
+	.path = "./initrd.tar",
+	.cmdline = NULL,
+	.flags = LIMINE_INTERNAL_MODULE_REQUIRED,
+};
+
 static volatile limine_internal_module *InternalModules[] {
 	&UserManagerModule,
+	&InitrdModule,
 };
 
 /* Module request */
@@ -82,7 +90,7 @@ static volatile limine_module_request ModuleRequest {
 	.id = LIMINE_MODULE_REQUEST,
 	.revision = 1,
 	.response = NULL,
-	.internal_module_count = 1,
+	.internal_module_count = 2,
 	.internal_modules = (limine_internal_module**)InternalModules,
 };
 
@@ -158,6 +166,8 @@ void LimineEntry() {
 
 	info->ManagerExecutableAddress = (uptr)ModuleRequest.response->modules[0]->address;
 	info->ManagerExecutableSize = ModuleRequest.response->modules[0]->size;
+	info->InitrdAddress = (uptr)ModuleRequest.response->modules[1]->address;
+	info->InitrdSize = ModuleRequest.response->modules[1]->size;
 
 	PRINTK::PrintK(PRINTK_DEBUG "Manager executable at 0x%x is %d bytes\r\n", info->ManagerExecutableAddress, info->ManagerExecutableSize);
 

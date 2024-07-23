@@ -139,6 +139,9 @@ static usize LoadProcess(Elf64_Ehdr *elfHeader, VirtualSpace space, uptr highest
 	/* Save the mapping */
 	tcb->VirtualRegisters = (u8*)highestAddress;
 
+	((uptr*)(VMM::PhysicalToVirtual(virtualRegistersFrame)))[0] = VMM::VirtualToPhysical(info->InitrdAddress);
+	((uptr*)(VMM::PhysicalToVirtual(virtualRegistersFrame)))[1] = VMM::VirtualToPhysical(info->InitrdSize);
+
 	/* Bump the highest address up one page */
 	highestAddress += PAGE_SIZE;
 
