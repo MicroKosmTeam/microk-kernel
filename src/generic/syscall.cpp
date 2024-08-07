@@ -34,9 +34,9 @@ void SyscallCapCtl(ThreadControlBlock *tcb, usize firstArgument, usize secondArg
 	if (nodeCap == NULL) {
 		PRINTK::PrintK(PRINTK_DEBUG "Using root node\r\n");
 	} else {
-		/* If the address of nodeCap is invalid, a page fault will occur, killing the running process */
 		nodePtr = CAPABILITY::ResolveCNode(nodeCap);
 		if (CAPABILITY::IsNodeInSpace(cspace, nodePtr) != 0) {
+			OOPS("Node isn't in space");
 			return;
 		}
 	}
@@ -66,6 +66,71 @@ void SyscallCapCtl(ThreadControlBlock *tcb, usize firstArgument, usize secondArg
 			*newPtr = (uptr)capability;
 			}
 			break;
+		case SYSCALL_CAPCTL_GET_NEXT_PTR: {
+			uptr *newPtr = (uptr*)fourthArgument;
+			Capability *capability = &nodePtr->Slots[nodeSlot];
+
+			if (capability->Type == OBJECT_TYPE::RESERVED_SLOT) {
+				OOPS("Addressing reserved CAP slot");
+				*newPtr = 0;
+				return;
+			}
+
+			if ((capability->AccessRights & CAPABILITY_RIGHTS::ACCESS) == 0) {
+				OOPS("Addressing non-accessible CAP slot");
+				*newPtr = 0;
+				return;
+			}
+
+			*newPtr = (uptr)capability->Next;
+			}
+			break;
+		case SYSCALL_CAPCTL_GET_NEXT_SLOT: {
+			usize *newSlot = (uptr*)fourthArgument;
+			Capability *capability = &nodePtr->Slots[nodeSlot];
+
+			if (capability->Type == OBJECT_TYPE::RESERVED_SLOT) {
+				OOPS("Addressing reserved CAP slot");
+				*newSlot = 0;
+				return;
+			}
+
+			if ((capability->AccessRights & CAPABILITY_RIGHTS::ACCESS) == 0) {
+				OOPS("Addressing non-accessible CAP slot");
+				*newSlot = 0;
+				return;
+			}
+
+			if (capability->Next == NULL) {
+				*newSlot = -1;
+			} else {
+				*newSlot = CAPABILITY::GetCapabilitySlot(nodePtr, capability->Next);
+			}
+			}
+			break;
+		case SYSCALL_CAPCTL_GET_OBJ: {
+			usize *newObjPtr = (usize*)fourthArgument;
+			u8 *newKindPtr = (u8*)fithArgument;
+			Capability *capability = &nodePtr->Slots[nodeSlot];
+		
+			if ((capability->AccessRights & CAPABILITY_RIGHTS::ACCESS) == 0) {
+				OOPS("Addressing non-addressable CAP slot");
+				*newObjPtr = -1;
+				*newKindPtr = -1;
+				return;
+			}
+
+			if (capability->IsMasked) {
+				*newObjPtr = -1;
+				*newKindPtr = capability->Type;
+
+				return;
+			}
+
+			*newObjPtr = capability->Object;
+			*newKindPtr = capability->Type;
+			}
+			break;
 		case SYSCALL_CAPCTL_GET_UT: {
 			UntypedHeader *newPtr = (UntypedHeader*)fourthArgument;
 			Capability *capability = &nodePtr->Slots[nodeSlot];
@@ -75,7 +140,8 @@ void SyscallCapCtl(ThreadControlBlock *tcb, usize firstArgument, usize secondArg
 				return;
 			}
 
-			if ((capability->AccessRights & CAPABILITY_RIGHTS::ACCESS) == 0) {
+
+			initrdSlotStart = if ((capability->AccessRights & CAPABILITY_RIGHTS::ACCESS) == 0) {
 				OOPS("Addressing non-addressable CAP slot");
 				*(usize*)newPtr = -1;
 				return;
@@ -89,10 +155,6 @@ void SyscallCapCtl(ThreadControlBlock *tcb, usize firstArgument, usize secondArg
 			Capability *capability = &nodePtr->Slots[nodeSlot];
 		
 			CapabilityNode *newNodePtr = CAPABILITY::ResolveCNode(capability);
-			if (CAPABILITY::IsNodeInSpace(cspace, newNodePtr) != 0) {
-				return;
-			}
-
 
 			if ((capability->AccessRights & CAPABILITY_RIGHTS::ACCESS) == 0) {
 				OOPS("Addressing non-seeable CAP slot");
@@ -111,6 +173,7 @@ void SyscallCapCtl(ThreadControlBlock *tcb, usize firstArgument, usize secondArg
 
 			CapabilityNode *newNodePtr = CAPABILITY::ResolveCNode(newNodeCap);
 			if (CAPABILITY::IsNodeInSpace(cspace, newNodePtr) != 0) {
+				OOPS("Node isn't in space");
 				return;
 			}
 
@@ -126,6 +189,18 @@ void SyscallCapCtl(ThreadControlBlock *tcb, usize firstArgument, usize secondArg
 				OOPS("Addressing non-seeable CAP slot");
 				return;
 			}
+			
+			PRINTK::PrintK(PRINTK_DEBUG "Respective node ptrs: 0x%x vs 0x%x\r\n", nodePtr, newNodePtr);
+
+			if (newNodePtr != nodePtr) {
+				/* We must do a derive before */
+				ut = CAPABILITY::Derive(nodePtr, ut, newNodePtr);
+
+				if (ut == NULL) {
+					OOPS("Failed to derive in split");
+					return;
+				}
+			}
 
 			Capability *capability = CAPABILITY::Split(newNodePtr, ut, splitSize, count);
 			*newSlot = CAPABILITY::GetCapabilitySlot(newNodePtr, capability);
@@ -136,9 +211,12 @@ void SyscallCapCtl(ThreadControlBlock *tcb, usize firstArgument, usize secondArg
 			Capability *newNodeCap = (Capability*)fithArgument;
 			usize *newSlot = (usize*)sixthArgument;
 			u16 accessRights = GetVirtualArgs(tcb, 7);
+			// TODO;
+			/* FIX THIS ENORMOUS SECURITY VULNERABILITY */
 
 			CapabilityNode *newNodePtr = CAPABILITY::ResolveCNode(newNodeCap);
 			if (CAPABILITY::IsNodeInSpace(cspace, newNodePtr) != 0) {
+				OOPS("Node isn't in space");
 				return;
 			}
 
@@ -152,6 +230,17 @@ void SyscallCapCtl(ThreadControlBlock *tcb, usize firstArgument, usize secondArg
 			if ((ut->AccessRights & CAPABILITY_RIGHTS::ACCESS) == 0) {
 				OOPS("Addressing non-seeable CAP slot");
 				return;
+			}
+
+			PRINTK::PrintK(PRINTK_DEBUG "Respective node ptrs: 0x%x vs 0x%x\r\n", nodePtr, newNodePtr);
+			if (newNodePtr != nodePtr) {
+				/* We must do a derive before */
+				ut = CAPABILITY::Derive(nodePtr, ut, newNodePtr);
+
+				if (ut == NULL) {
+					OOPS("Failed to derive in retype");
+					return;
+				}
 			}
 
 			Capability *capability = CAPABILITY::Retype(newNodePtr, ut, type, accessRights);

@@ -2,6 +2,18 @@
 #include "cdefs.h"
 #include <object.hpp>
 
+/*
+inline static void SetCap(Capability *capability, u8 type, uptr object, u16 accessRightsMask, Capability *next, Capability *prev, Capability *parent) {
+	capability->IsMasked = 0;
+	capability->Type = type;
+	capability->Object = object;
+	capability->AccessRightsMask = accessRightsMask;
+	capability->Next = next;
+	capability->Prev = prev;
+	capability->Parent = parent;
+
+}*/
+
 namespace CAPABILITY {
 	/* Function used to initialze the capability infrastructure */
 	void InitializeRootSpace();
@@ -43,8 +55,9 @@ namespace CAPABILITY {
 	Capability *Split(CapabilityNode *node, Capability *ut, usize splitSize, usize count);
 
 	/**/
-	Capability *Retype(CapabilityNode *node, Capability *ut, OBJECT_TYPE type, u16 accessRights);
-	
+	Capability *Retype(CapabilityNode *node, Capability *ut, OBJECT_TYPE type, u16 accessRightsMask);
+	Capability *Derive(CapabilityNode *node, Capability *base, CapabilityNode *newNode);
+
 	/**/
 	int Revoke(CapabilityNode *node, Capability *cap);
 

@@ -109,7 +109,8 @@ void Deinit() {
 	/* Make sure we have enough preallocated space in the root capability space
 	 * (+3 because if we want to split a region to create a new cnode we have the space
 	 *  -> 2 for the split region UT, 1 for the node itself) */
-	usize memoryRegionsCount = MEMBLOCK::GetTotalElements(info->PhysicalMemoryChunks) + 3;
+	ROUND_UP_TO_PAGE(info->InitrdSize);
+	usize memoryRegionsCount = MEMBLOCK::GetTotalElements(info->PhysicalMemoryChunks) + info->InitrdSize / PAGE_SIZE;
 	usize cnodeSize = memoryRegionsCount * sizeof(Capability) + sizeof(CapabilityNode);
 	ROUND_UP_TO_PAGE(cnodeSize);
 	cnodeSize = MATH::UpperPowerOfTwoUSIZE(cnodeSize);
@@ -153,6 +154,7 @@ void Deinit() {
 				MemoryTypeToString(current->Type));
 	}
 
+	info->MemmapCapabilityEntries = 0;
 
 	/* Cataloguing the memory all memblock regions and creating capabilities accordingly */
 	for (MEM::MEMBLOCK::MemblockRegion *current =
@@ -173,14 +175,37 @@ void Deinit() {
 						      OBJECT_TYPE::UNTYPED,
 						      CAPABILITY_RIGHTS::ACCESS |
 						      CAPABILITY_RIGHTS::RETYPE);
+
+				info->MemmapCapabilityEntries++;
 				break;
 			case MEMMAP_KERNEL_DEVICE:
 			case MEMMAP_FRAMEBUFFER:
 			case MEMMAP_KERNEL_VMALLOC:
+			case MEMMAP_KERNEL_AND_MODULES: {
+				uptr initrdAddr = VMM::VirtualToPhysical(info->InitrdAddress);
+				if (current->Base == initrdAddr) {
+					initrdSlotStart = 
+					for (usize i = 0; i < info->InitrdSize; i+=PAGE_SIZE) {
+						CAPABILITY::Originate(memoryNode,
+								      initrdAddr + i,
+								      OBJECT_TYPE::FRAMES,
+								      CAPABILITY_RIGHTS::ACCESS |
+								      CAPABILITY_RIGHTS::READ);
+
+						info->MemmapCapabilityEntries++;
+					}
+
+				}
+				}
+				break;
 			default:
 				break;
 		}
 	}
+
+	((usize*)(VMM::PhysicalToVirtual(info->RootVirtualRegistersFrame)))[0] = info->MemmapCapabilityEntries;
+	((usize*)(VMM::PhysicalToVirtual(info->RootVirtualRegistersFrame)))[1] = info->InitrdAddress;
+	((usize*)(VMM::PhysicalToVirtual(info->RootVirtualRegistersFrame)))[2] = info->InitrdAddress + info->InitrdSize;
 }
 
 const char *MemoryTypeToString(u8 type) {

@@ -123,14 +123,16 @@ int IsNodeInSpace(CapabilitySpace *cspace, CapabilityNode *node) {
 	}
 
 	/* Run through the list of nodes and check if the addresses are the same */
-	for (CapabilityNode *checkNode = (CapabilityNode*)cspace->CapabilityNodeList.Head;
-	     checkNode != NULL;
-	     node = (CapabilityNode*)node->Next) {
+	CapabilityNode *checkNode = (CapabilityNode*)cspace->CapabilityNodeList.Head;
+	while(checkNode) {
 		if (checkNode == node) {
 			/* If they're equal, then we've found it */
 			return 0;
 		}
 
+		if (checkNode) {
+			checkNode = (CapabilityNode*)checkNode->Next;
+		}
 	}
 
 	/* The node hasn't been found anywhere in the cspace */
@@ -205,10 +207,13 @@ Capability *Originate(CapabilityNode *node, uptr object, OBJECT_TYPE type, u16 a
 		/* If the slot is a null capability, it's free real estate */
 		if (capability->Type == OBJECT_TYPE::NULL_CAPABILITY) {
 			/* Assign the various paramenters to the capability */
+			capability->IsMasked = 0;
 			capability->Type = type;
 			capability->Object = object;
 			capability->AccessRights = accessRights;
-			capability->Children = 0;
+			capability->AccessRightsMask = 0xFFFF;
+			capability->Next =
+			capability->Prev =
 			capability->Parent = NULL;
 
 			/* Print a debug message */
@@ -234,10 +239,13 @@ Capability *Originate(CapabilityNode *node, usize slot, uptr object, OBJECT_TYPE
 	Capability *capability = (Capability*)&node->Slots[slot];
 
 	/* Assign the various paramenters to the capability */
+	capability->IsMasked = 0;
 	capability->Type = type;
 	capability->Object = object;
 	capability->AccessRights = accessRights;
-	capability->Children = 0;
+	capability->AccessRightsMask = 0xFFFF;
+	capability->Next =
+	capability->Prev =
 	capability->Parent = NULL;
 
 	/* Print a debug message */
@@ -253,12 +261,14 @@ Capability *Split(CapabilityNode *node, Capability *ut, usize splitSize, usize c
 		return NULL;
 	}
 
-	if (ut->Children != 0) {
+	if (ut->IsMasked != 0) {
 		/* The ut capability must not have children */
 		return NULL;
 	}
 
-	if ((ut->AccessRights & CAPABILITY_RIGHTS::RETYPE) == 0) {
+
+	u16 maskedRights = ut->AccessRights & ut->AccessRightsMask;
+	if ((maskedRights & CAPABILITY_RIGHTS::RETYPE) == 0) {
 		return NULL;
 	}
 
@@ -274,31 +284,52 @@ Capability *Split(CapabilityNode *node, Capability *ut, usize splitSize, usize c
 	UntypedHeader *header = (UntypedHeader*)ut->Object;
 
 	usize totalSplitSize = splitSize * count;
+	if (splitSize < sizeof(UntypedHeader)) {
+		/* We can't split it, it's too small */
+		return NULL;
+	}
+
 	if (header->Length < totalSplitSize) {
 		/* We can't split it, it's too small */
 		return NULL;
 	}
 
-	ut->Children += count;
-
-	Capability *first = NULL;
+	Capability *utNext = ut->Next;
+	Capability *utPrev= ut->Prev;
 
 	uptr initialAddress = header->Address;
 	usize initialLength = header->Length;
+	u16 rights = ut->AccessRights;
+	u16 mask = ut->AccessRightsMask;
+	uptr baseAddr = ut->Object;
 
+	Capability *next = NULL;
+	Capability *prev = NULL;
 	for (usize i = 1; i < count; ++i) {
-		UntypedHeader *nextHeader = (UntypedHeader*)(ut->Object + splitSize * i);
+		UntypedHeader *nextHeader = (UntypedHeader*)(baseAddr + splitSize * i);
 		Memcpy(nextHeader, header, sizeof(UntypedHeader));
 		nextHeader->Address = initialAddress + splitSize * i;
 		nextHeader->Length = splitSize;
 	
-		Capability *next = Originate(node, (uptr)nextHeader, OBJECT_TYPE::UNTYPED, ut->AccessRights);
-
-		if (first == NULL) {
-			first = next;
+		if (next) {
+			next = Originate(node, (uptr)nextHeader, OBJECT_TYPE::UNTYPED, rights);
+		} else {
+			next = ut;
+			next->Object = (uptr)nextHeader;
 		}
 
-		next->Parent = ut;
+		next->AccessRightsMask = mask; 
+
+		next->Next = NULL;
+
+		if (prev) {
+			next->Prev = prev;
+			prev->Next = next;
+		} else {
+			next->Prev = utPrev;
+		}
+
+		prev = next;
 	}
 
 	if (initialLength > totalSplitSize) {
@@ -307,25 +338,39 @@ Capability *Split(CapabilityNode *node, Capability *ut, usize splitSize, usize c
 		lastHeader->Address = initialAddress + totalSplitSize;
 		lastHeader->Length = initialLength - totalSplitSize;
 	
-		Capability *last= Originate(node, (uptr)lastHeader, OBJECT_TYPE::UNTYPED, ut->AccessRights);
-		last->Parent = ut;
+		Capability *last = Originate(node, (uptr)lastHeader, OBJECT_TYPE::UNTYPED, rights);
+		last->AccessRightsMask = mask;
+
+		last->Next = utNext;
+
+		if (utNext) {
+			utNext->Prev = last;
+		}
+
+		last->Prev = prev;
+		prev->Next = last;
+	} else if (utNext) {
+		prev->Next = utNext;
+		utNext->Prev = prev;
 	}
-		
-	return first;
+	
+
+	return ut;
 }
 	
-Capability *Retype(CapabilityNode *node, Capability *ut, OBJECT_TYPE type, u16 accessRights) {
+Capability *Retype(CapabilityNode *node, Capability *ut, OBJECT_TYPE type, u16 accessRightsMask) {
 	if (node == NULL ||
 	    ut == NULL) {
 		return NULL;
 	}
 
-	if (ut->Children != 0) {
+	if (ut->IsMasked != 0) {
 		/* The ut capability must not have children */
 		return NULL;
 	}
 
-	if ((ut->AccessRights & CAPABILITY_RIGHTS::RETYPE) == 0) {
+	u16 maskedRights = ut->AccessRights & ut->AccessRightsMask;
+	if ((maskedRights & CAPABILITY_RIGHTS::RETYPE) == 0) {
 		return NULL;
 	}
 
@@ -343,9 +388,9 @@ Capability *Retype(CapabilityNode *node, Capability *ut, OBJECT_TYPE type, u16 a
 		return NULL;
 	}
 
-	Capability *retyped = Originate(node, header->Address, type, accessRights);
-	ut->Children += 1;
-	retyped->Parent = ut;
+	ut->Object = header->Address;
+	ut->AccessRightsMask = accessRightsMask;
+	ut->Type = type;
 	
 	/* From now on, the UntypedHeader is not to be read anymore, as it's considered overwritten */
 	Memclr(header, sizeof(UntypedHeader));
@@ -354,10 +399,35 @@ Capability *Retype(CapabilityNode *node, Capability *ut, OBJECT_TYPE type, u16 a
 		/* Special, needs to be assigned the size */
 		usize sizeBits = MATH::GetPowerOfTwo(length);
 
-		CAPABILITY::CreateCNode(ut->Object, sizeBits);
+		CAPABILITY::CreateCNode(VMM::PhysicalToVirtual(ut->Object), sizeBits);
 	}
 
-	return retyped;
+	return ut;
+}
+
+Capability *Derive(CapabilityNode *node, Capability *base, CapabilityNode *newNode) {
+	if (node == NULL ||
+	    base == NULL ||
+	    newNode == NULL) {
+		return NULL;
+	}
+
+	if (base->IsMasked != 0) {
+		/* The ut capability must not have children */
+		return NULL;
+	}
+
+	u16 maskedRights = base->AccessRights & base->AccessRightsMask;
+//	if ((maskedRights & CAPABILITY_RIGHTS::RETYPE) == 0) {
+//		return NULL;
+//	}
+
+
+	Capability *newCap = Originate(newNode, base->Object, (OBJECT_TYPE)base->Type, maskedRights);
+	newCap->Parent = base;
+	base->IsMasked = 1;
+
+	return newCap;
 }
 	
 int Revoke(CapabilityNode *node, Capability *cap) {
@@ -368,7 +438,7 @@ int Revoke(CapabilityNode *node, Capability *cap) {
 		return -ENOCAP;
 	}
 
-	if (cap->Children != 0) {
+	if (cap->IsMasked != 0) {
 		/* The ut capability must not have children */
 		return -EBUSY;
 	}
@@ -417,8 +487,10 @@ void DumpCNode(CapabilityNode *node) {
 		Capability *capability = &node->Slots[i];
 		PRINTK::PrintK(PRINTK_DEBUG "Slot #%d\r\n"
 				            " Capability 0x%x\r\n"
-					    "  Type: %d\r\n"
-					    "  Object: 0x%x\r\n", i, capability, capability->Type, capability->Object);
+					    "  Type:     %d\r\n"
+					    "  Object:   0x%x\r\n"
+					    "  Next:     0x%x\r\n"
+					    "  Previous: 0x%x\r\n", i, capability, capability->Type, capability->Object, capability->Next, capability->Prev);
 	}
 }
 }

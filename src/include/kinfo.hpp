@@ -64,6 +64,9 @@ struct KInfo {
 
 	uptr RSDP;
 	uptr DeviceTree;
+
+	usize MemmapCapabilityEntries;
+	uptr RootVirtualRegistersFrame;
 };
 
 /*

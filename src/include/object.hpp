@@ -32,11 +32,17 @@ struct List {
  *
  */
 struct Capability {
-	u8 Type;
+	u8 IsMasked : 1;
+	u8 Type : 7;
+
 	uptr Object;
+
 	u16 AccessRights;
-	u16 Children;
+	u16 AccessRightsMask;
+
 	Capability *Parent;
+	Capability *Next;
+	Capability *Prev;
 }__attribute__((packed, aligned(0x8)));
 
 /*
