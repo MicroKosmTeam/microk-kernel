@@ -184,10 +184,9 @@ void Deinit() {
 			case MEMMAP_KERNEL_AND_MODULES: {
 				uptr initrdAddr = VMM::VirtualToPhysical(info->InitrdAddress);
 				if (current->Base == initrdAddr) {
-					initrdSlotStart = 
 					for (usize i = 0; i < info->InitrdSize; i+=PAGE_SIZE) {
 						CAPABILITY::Originate(memoryNode,
-								      initrdAddr + i,
+								      (uptr)(initrdAddr + i),
 								      OBJECT_TYPE::FRAMES,
 								      CAPABILITY_RIGHTS::ACCESS |
 								      CAPABILITY_RIGHTS::READ);
@@ -204,8 +203,8 @@ void Deinit() {
 	}
 
 	((usize*)(VMM::PhysicalToVirtual(info->RootVirtualRegistersFrame)))[0] = info->MemmapCapabilityEntries;
-	((usize*)(VMM::PhysicalToVirtual(info->RootVirtualRegistersFrame)))[1] = info->InitrdAddress;
-	((usize*)(VMM::PhysicalToVirtual(info->RootVirtualRegistersFrame)))[2] = info->InitrdAddress + info->InitrdSize;
+	((usize*)(VMM::PhysicalToVirtual(info->RootVirtualRegistersFrame)))[1] = VMM::VirtualToPhysical(info->InitrdAddress);
+	((usize*)(VMM::PhysicalToVirtual(info->RootVirtualRegistersFrame)))[2] = VMM::VirtualToPhysical(info->InitrdAddress) + info->InitrdSize;
 }
 
 const char *MemoryTypeToString(u8 type) {

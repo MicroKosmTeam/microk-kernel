@@ -38,6 +38,7 @@ usize LoadELF(u8 *data, usize size) {
 
 		uptr highestAddress = 0;
 		LoadProgramHeaders(data, size, elfHeader, space, &highestAddress);
+
 		usize pid = LoadProcess(elfHeader, space, highestAddress);
 		
 		return pid;
@@ -140,6 +141,7 @@ static usize LoadProcess(Elf64_Ehdr *elfHeader, VirtualSpace space, uptr highest
 	tcb->VirtualRegisters = (u8*)highestAddress;
 
 	info->RootVirtualRegistersFrame = virtualRegistersFrame;
+
 	/*
 	((uptr*)(VMM::PhysicalToVirtual(virtualRegistersFrame)))[0] = VMM::VirtualToPhysical(info->InitrdAddress);
 	((uptr*)(VMM::PhysicalToVirtual(virtualRegistersFrame)))[1] = (info->InitrdSize);
@@ -166,10 +168,13 @@ static usize LoadProcess(Elf64_Ehdr *elfHeader, VirtualSpace space, uptr highest
 				      CAPABILITY_RIGHTS::WRITE |
 				      CAPABILITY_RIGHTS::REVOKE);
 	*/
+
+
 	/* Allocate the space for the stack and map it in
 	 * the virtual space for init
 	 */
 	VMM::VMAlloc(space, highestAddress, INIT_INITIAL_STACK_SIZE, VMM_FLAGS_READ | VMM_FLAGS_WRITE | VMM_FLAGS_NOEXEC | VMM_FLAGS_USER);
+
 
 	/* Create the actual context */
 	SchedulerContext *context = (SchedulerContext*)VMM::PhysicalToVirtual((uptr)PMM::RequestPage());

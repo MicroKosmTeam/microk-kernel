@@ -141,7 +141,7 @@ void SyscallCapCtl(ThreadControlBlock *tcb, usize firstArgument, usize secondArg
 			}
 
 
-			initrdSlotStart = if ((capability->AccessRights & CAPABILITY_RIGHTS::ACCESS) == 0) {
+			if ((capability->AccessRights & CAPABILITY_RIGHTS::ACCESS) == 0) {
 				OOPS("Addressing non-addressable CAP slot");
 				*(usize*)newPtr = -1;
 				return;

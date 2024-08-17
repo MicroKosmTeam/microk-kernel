@@ -175,9 +175,11 @@ void MMap(VirtualSpace space, uptr src, uptr dest, usize length, usize flags) {
 void VMAlloc(VirtualSpace space, uptr virt, usize length, usize flags) {
 	ROUND_DOWN_TO_PAGE(virt);
 	ROUND_UP_TO_PAGE(length);
-	
+
 	uptr end = virt + length;
 	uptr phys;
+
+	PRINTK::PrintK(PRINTK_DEBUG "VMalloc in space 0x%x, [0x%x - 0x%x], 0x%x\r\n", space, virt, end, flags);
 
 	for (; virt < end; virt += PAGE_SIZE) {
 		phys = (uptr)PMM::RequestPage();

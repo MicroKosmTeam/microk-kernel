@@ -135,7 +135,7 @@ extern "C" InterruptStatus *InterruptHandler(InterruptStatus *context) {
 				       "Page fault in page 0x%x because of a %s.\r\n"
 				       "It was caused by a %s from %s.\r\n"
 				       "It %s because of an instruction fetch.\r\n",
-				       activeThread->MemorySpace, page,
+				       activeThread ? activeThread->MemorySpace : 0, page,
 				       protectionViolation ? "page protection violation" : "non-present page",
 				       writeAccess ? "write" : "read",
 				       byUser ? "userspace" : "Kernelspace",
