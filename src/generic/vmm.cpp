@@ -1,12 +1,10 @@
 #include <vmm.hpp>
-#include <pmm.hpp>
 #include <printk.hpp>
 #include <panic.hpp>
 #include <kinfo.hpp>
-#include <memblock.hpp>
-#include <bootmem.hpp>
 
 namespace VMM {
+#ifdef UNDEF
 void InitVMM() {
 	KInfo *info = GetInfo();
 
@@ -216,7 +214,7 @@ void VMCopyAlloc(VirtualSpace space, uptr virt, usize length, usize flags, uptr 
 		MMap(space, phys, virt, PAGE_SIZE, flags);
 	}
 }
-
+#endif
 uptr PhysicalToVirtual(uptr value) {
 	KInfo *info = GetInfo();
 
@@ -232,7 +230,7 @@ uptr VirtualToPhysical(uptr value) {
 
 	return value;
 }
-
+#ifdef UNDEF
 
 VirtualSpace NewVirtualSpace(uptr frame) {
 #if defined(__x86_64__)
@@ -293,4 +291,5 @@ uptr FindMappedPage(VirtualSpace space, uptr virt) {
 	return 0;
 
 }
+#endif
 }

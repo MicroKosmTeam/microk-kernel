@@ -1,5 +1,4 @@
 #include <cpuid.h>
-#include <pmm.hpp>
 #include <printk.hpp>
 #include <memory.hpp>
 #include <kinfo.hpp>
@@ -82,7 +81,8 @@ inline static int EnableSyscalls() {
 
 void LoadEssentialCPUStructures() {
 	LoadGDT(&gdt, &pointer);
-	TSSInit(&gdt, &tss, VMM::PhysicalToVirtual((uptr)PMM::RequestPages(64 * 1024) + 64 * 1024));
+	//TODO
+	//TSSInit(&gdt, &tss, VMM::PhysicalToVirtual((uptr)PMM::RequestPages(64 * 1024) + 64 * 1024));
 	IDTInit();
 }
 

@@ -28,7 +28,6 @@
 #include <object.hpp>
 #include <memory.hpp>
 #include <vmm.hpp>
-#include <memblock.hpp>
 
 /*
  * struct: KInfo
@@ -42,8 +41,6 @@ struct KInfo {
 	const char *KernelArgs;
 
 	/* Memory information */
-	MEM::MEMBLOCK::MemblockAllocator *PhysicalMemoryChunks; /* Physical memory map */
-
 	uptr HigherHalfMapping; /* Start of higher half mapping */
 	uptr KernelPhysicalBase; /* Start of the kernel in physical memory */
 	uptr KernelVirtualBase; /* Start of the kernel in virtual memory */
@@ -57,7 +54,7 @@ struct KInfo {
 	uptr InitrdAddress;
 	usize InitrdSize;
 
-	ThreadControlBlock *RootTCB;
+	TaskControlBlock *RootTCB;
 	CapabilitySpace *RootCSpace;
 
 	Domain *BootDomain;

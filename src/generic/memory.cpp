@@ -1,14 +1,13 @@
 #include <memory.hpp>
 #include <printk.hpp>
 #include <panic.hpp>
-#include <pmm.hpp>
 #include <vmm.hpp>
-#include <bootmem.hpp>
 #include <kinfo.hpp>
 #include <capability.hpp>
 #include <math.hpp>
 
 namespace MEM {
+#ifdef UNDEF
 void Init() {
 	KInfo *info = GetInfo();
 
@@ -243,6 +242,7 @@ const char *MemoryTypeToString(u8 type) {
 	}
 
 
+#endif
 }
 
 extern "C" int memcmp(const void* buf1, const void* buf2, usize count) {

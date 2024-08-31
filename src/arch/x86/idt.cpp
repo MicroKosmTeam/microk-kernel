@@ -1,9 +1,7 @@
-#include <sched.hpp>
 #include <panic.hpp>
 #include <printk.hpp>
 #include <kinfo.hpp>
 #include <vmm.hpp>
-#include <pmm.hpp>
 #include <arch/x86/idt.hpp>
 
 /* ISR stub table, declared in assembly code */
@@ -119,9 +117,11 @@ extern "C" InterruptStatus *InterruptHandler(InterruptStatus *context) {
 			break;
 			}
 		case 14: {
+			// TODO
+/*
 			Scheduler *scheduler = info->BootDomain->DomainScheduler;
-			ThreadControlBlock *activeThread = scheduler->Running;
-
+			TaskControlBlock *activeThread = scheduler->Running;
+*/
 			uptr page = 0;
 			bool protectionViolation = context->Base.ErrorCode & 0b1;
 			bool writeAccess = (context->Base.ErrorCode & 0b10) >> 1;
@@ -135,12 +135,14 @@ extern "C" InterruptStatus *InterruptHandler(InterruptStatus *context) {
 				       "Page fault in page 0x%x because of a %s.\r\n"
 				       "It was caused by a %s from %s.\r\n"
 				       "It %s because of an instruction fetch.\r\n",
-				       activeThread ? activeThread->MemorySpace : 0, page,
+				       //activeThread ? activeThread->MemorySpace : 0,
+				       0,
+				       page,
 				       protectionViolation ? "page protection violation" : "non-present page",
 				       writeAccess ? "write" : "read",
 				       byUser ? "userspace" : "Kernelspace",
 				       wasInstructionFetch ? "was" : "wasn't");
-
+/*
 
 			if (byUser) {
 				volatile u64 *pte = x86_64::FindMappedPTE(activeThread->MemorySpace, page, false);
@@ -182,15 +184,17 @@ extern "C" InterruptStatus *InterruptHandler(InterruptStatus *context) {
 				}
 
 				PANIC("Page fault");
-			} else {
+			} else {*/
 				PANIC("Page fault");
-			}
+			//}
 
 			}
 			break;
 		case 32: {
+			// TODO
+			/*
 			Scheduler *scheduler = info->BootDomain->DomainScheduler;
-			ThreadControlBlock *activeThread = scheduler->Running;
+			TaskControlBlock *activeThread = scheduler->Running;
 			SchedulerContext *taskContext = activeThread->Context;
 
 			taskContext->SP = context->Base.IretRSP;
@@ -211,7 +215,7 @@ extern "C" InterruptStatus *InterruptHandler(InterruptStatus *context) {
 			context->Base.IretRFLAGS = taskContext->RFLAGS;
 
 			Memcpy(&context->Registers, &taskContext->Registers, sizeof(GeneralRegisters));
-
+			*/
 			}
 			break;
 		default:
@@ -220,6 +224,7 @@ extern "C" InterruptStatus *InterruptHandler(InterruptStatus *context) {
 			break;
 	}
 	
+	(void)info;
 	return context;
 }
 }

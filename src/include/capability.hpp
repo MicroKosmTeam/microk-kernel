@@ -15,7 +15,7 @@ inline static void SetCap(Capability *capability, u8 type, uptr object, u16 acce
 }*/
 
 namespace CAPABILITY {
-	void InitializeRootSpace(uptr framesBase);
+	void InitializeRootSpace(uptr framesBase, UntypedHeader *memoryMap);
 	usize GetObjectSize(OBJECT_TYPE kind);
 	Capability *RequestObject(CapabilitySpace *space, OBJECT_TYPE kind);
 	void ReturnObject(CapabilitySpace *space, Capability *capability);

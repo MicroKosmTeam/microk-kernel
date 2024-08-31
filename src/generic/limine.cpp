@@ -4,10 +4,9 @@
 #include <main.hpp>
 #include <boot.hpp>
 #include <kinfo.hpp>
-#include <bootmem.hpp>
 #include <string.hpp>
 #include <printk.hpp>
-#include <pmm.hpp>
+#include <capability.hpp>
 
 static volatile LIMINE_BASE_REVISION(1)
 
@@ -117,12 +116,12 @@ void LimineEntry() {
 	usize memoryRegions = MemoryMapRequest.response->entry_count;
 	PRINTK::PrintK(PRINTK_DEBUG "Memory regions from bootloader: %d\r\n", memoryRegions);
 
-	UntypedHeader memoryMap[memoryRegions];
+	UntypedHeader memoryMap[memoryRegions + 1];
 
-	usize longestRegionSize = 0;
-	uptr longestRegionSize = 0;
+	usize longestRegionLength = 0;
+	uptr longestRegionBase = 0;
 
-	for (usize i = 0; i < ; i++) {
+	for (usize i = 0; i < memoryRegions; i++) {
 		uptr base = MemoryMapRequest.response->entries[i]->base;
 		usize length = MemoryMapRequest.response->entries[i]->length;
 		u8 type = MemoryMapRequest.response->entries[i]->type;
@@ -146,7 +145,9 @@ void LimineEntry() {
 		}
 	}
 
-	CAPABILITY::InitializeRootSpace(longestRegionBase);
+	memoryMap[memoryRegions].Address = -1;
+
+	CAPABILITY::InitializeRootSpace(longestRegionBase, memoryMap);
 
 	info->ManagerExecutableAddress = (uptr)ModuleRequest.response->modules[0]->address;
 	info->ManagerExecutableSize = ModuleRequest.response->modules[0]->size;

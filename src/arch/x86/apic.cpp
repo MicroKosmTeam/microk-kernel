@@ -142,8 +142,9 @@ int InitializeAPIC(APIC *apic) {
 
 	apic->Base = GetAPICBase();
 	apic->MappedAddress = VMM::PhysicalToVirtual(apic->Base);
-	VMM::MMap(info->KernelVirtualSpace, apic->Base, apic->MappedAddress, PAGE_SIZE, VMM_FLAGS_READ | VMM_FLAGS_WRITE | VMM_FLAGS_NOEXEC);
-	MEM::MEMBLOCK::AddRegion(info->PhysicalMemoryChunks, apic->Base, PAGE_SIZE, MEMMAP_KERNEL_DEVICE);
+	// TODO
+	//VMM::MMap(info->KernelVirtualSpace, apic->Base, apic->MappedAddress, PAGE_SIZE, VMM_FLAGS_READ | VMM_FLAGS_WRITE | VMM_FLAGS_NOEXEC);
+	//MEM::MEMBLOCK::AddRegion(info->PhysicalMemoryChunks, apic->Base, PAGE_SIZE, MEMMAP_KERNEL_DEVICE);
 	
 	apic->ProcessorIsBSP = IsAPICBSP();
 
@@ -189,6 +190,8 @@ int InitializeAPIC(APIC *apic) {
 
 	WriteXAPIC(apic, xAPIC_REGISTER_EOI, 0);
 	*/
+
+	(void)info;
 
 	return 0;
 }

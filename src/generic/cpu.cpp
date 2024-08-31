@@ -1,6 +1,5 @@
 #include <cpu.hpp>
 #include <kinfo.hpp>
-#include <pmm.hpp>
 #include <capability.hpp>
 
 #if defined(__x86_64__)
@@ -21,7 +20,8 @@ void InitializeBootCPU() {
 void InitializeCPUFeatures() {
 	KInfo *info = GetInfo();
 
-	info->BootDomain = (Domain*)VMM::PhysicalToVirtual((uptr)PMM::RequestPage());
+	// TODO 
+	info->BootDomain = NULL;// (Domain*)VMM::PhysicalToVirtual((uptr)PMM::RequestPage());
 	Memclr(info->BootDomain, sizeof(Domain));
 
 #if defined(__x86_64__)

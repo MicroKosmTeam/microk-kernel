@@ -7,9 +7,9 @@ static u64 RequestID() {
 }
 
 namespace TASK {
-ThreadControlBlock *InitializeTCB(uptr frame) {
-	ThreadControlBlock *tcb = (ThreadControlBlock*)frame;
-	Memclr(tcb, sizeof(ThreadControlBlock));
+TaskControlBlock *InitializeTCB(uptr frame) {
+	TaskControlBlock *tcb = (TaskControlBlock*)frame;
+	Memclr(tcb, sizeof(TaskControlBlock));
 
 	tcb->Status = ThreadStatus::RUNNING;
 	tcb->TaskID = RequestID();

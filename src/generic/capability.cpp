@@ -1,6 +1,5 @@
 #include <capability.hpp>
 #include <memory.hpp>
-#include <pmm.hpp>
 #include <kinfo.hpp>
 #include <printk.hpp>
 #include <panic.hpp>
@@ -8,7 +7,7 @@
 #include <math.hpp>
 
 namespace CAPABILITY {
-void InitializeRootSpace(uptr framesBase) {
+void InitializeRootSpace(uptr framesBase, UntypedHeader *memoryMap) {
 	KInfo *info = GetInfo();
 
 	/* Getting the page for the TCB and the cspace */
@@ -21,8 +20,8 @@ void InitializeRootSpace(uptr framesBase) {
 	info->RootCSpace = (CapabilitySpace*)cspaceFrame;
 	Memclr((void*)cspaceFrame, PAGE_SIZE);
 
-	CapabiltySpace *space = info->RootCSpace;
-	for (OBJECT_TYPE t = UNTYPED; t < OBJECT_TYPE_COUNT; ++t) {
+	CapabilitySpace *space = info->RootCSpace;
+	for (OBJECT_TYPE t = UNTYPED; t < OBJECT_TYPE_COUNT; *(int*)&t += 1) {
 		space->Slabs[t].NodesAvailable = true;
 
 		CapabilityNode *node = (CapabilityNode*)slabNodeFrame;
@@ -36,7 +35,17 @@ void InitializeRootSpace(uptr framesBase) {
 	}
 
 	/* Now put all the capabilites in the respective slabs, - obviously the frames we used */
-	// TODO
+
+	for (UntypedHeader *entry = memoryMap; entry->Address != -1; ++entry) {
+		switch(entry->Flags) {
+			case MEMMAP_USABLE:
+				/* Untyped */
+			default:
+				continue;
+
+		}
+
+	}
 	
 	PRINTK::PrintK(PRINTK_DEBUG "Root space initialized.\r\n");
 }
@@ -46,7 +55,7 @@ usize GetObjectSize(OBJECT_TYPE kind) {
 		case UNTYPED:
 			return 0;
 		case FRAMES:
-			return sizeof(CapabilityFrames);
+			return sizeof(PAGE_SIZE);
 		case CSPACE:
 			return sizeof(CapabilitySpace);
 		case CNODE:
@@ -91,22 +100,20 @@ Capability *RequestObject(CapabilitySpace *space, OBJECT_TYPE kind) {
 	 * If there is no object present, return NULL and tell the user to retype
 	 */
 
+	(void)slab;
+
+	return NULL;
 }
 
 void ReturnObject(CapabilitySpace *space, Capability *capability) {
-	if (kind <= NULL_CAPABILITY || kind >= OBJECT_TYPE_COUNT) {
-		return NULL;
-	}
-
-	CapabilitySlab *slab = &space->Slabs[kind];
-
 	/* Object is unused now */
 
+	(void)space, (void)capability;
 }
 
 void RetypeUntyped(CapabilitySpace *space, Capability *untyped, OBJECT_TYPE kind) {
 	if (kind <= NULL_CAPABILITY || kind >= OBJECT_TYPE_COUNT || kind == UNTYPED) {
-		return NULL;
+		return;
 	}
 
 	CapabilitySlab *untypedSlab = &space->Slabs[UNTYPED];
@@ -114,12 +121,12 @@ void RetypeUntyped(CapabilitySpace *space, Capability *untyped, OBJECT_TYPE kind
 	
 	if (untyped->IsMasked != 0) {
 		/* The ut capability must not have children */
-		return NULL;
+		return;
 	}
 
 	u16 maskedRights = untyped->AccessRights & untyped->AccessRightsMask;
 	if ((maskedRights & CAPABILITY_RIGHTS::RETYPE) == 0) {
-		return NULL;
+		return;
 	}
 	
 	UntypedHeader *header = (UntypedHeader*)untyped->Object;
@@ -134,21 +141,23 @@ void RetypeUntyped(CapabilitySpace *space, Capability *untyped, OBJECT_TYPE kind
 	/* Here check if there are enough slots in the slab, then allocate those slots and
 	 * make the capabilities */
 	// TODO
+	(void)slab;
+	(void)count;
+	(void)startAddress;
+	(void)untypedSlab;
 
 	/* From now on, the UntypedHeader is not to be read anymore, as it's considered overwritten */
 	Memclr(header, sizeof(UntypedHeader));
 }
 
 void UntypeObject(CapabilitySpace *space, Capability *capability) {
-	if (kind <= NULL_CAPABILITY || kind >= OBJECT_TYPE_COUNT) {
-		return NULL;
-	}
-
-	CapabilitySlab *slab = &space->Slabs[kind];
+	CapabilitySlab *slab = &space->Slabs[UNTYPED];
 
 	/* Transforms back into untyped */
+	(void)slab;
+	(void)capability;
 }
-	
+#ifdef UNDEF	
 Capability *SplitUntyped(Capability *untyped, usize splitSize, usize count) {
 	if (untyped->IsMasked != 0) {
 		/* The ut capability must not have children */
@@ -246,15 +255,11 @@ Capability *SplitUntyped(Capability *untyped, usize splitSize, usize count) {
 
 	return ut;
 }
-
+#endif
 void MergeUntyped(CapabilitySpace *space, Capability *capability) {
-	if (kind <= NULL_CAPABILITY || kind >= OBJECT_TYPE_COUNT) {
-		return NULL;
-	}
-
-	CapabilitySlab *slab = &space->Slabs[kind];
-
 	/* Merges adiacent untyped memory regions */
+	(void)space;
+	(void)capability;
 }
 /*
 void DumpCNode(CapabilityNode *node) {

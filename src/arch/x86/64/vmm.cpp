@@ -1,6 +1,5 @@
 #include <arch/x86/vmm.hpp>
 #include <kinfo.hpp>
-#include <pmm.hpp>
 #include <printk.hpp>
 #include <math.hpp>
 
