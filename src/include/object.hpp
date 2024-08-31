@@ -33,7 +33,7 @@ struct List {
  */
 struct Capability {
 	u8 IsMasked : 1;
-	u8 Type : 7;
+	u8 Type : 7;     
 
 	uptr Object;
 
@@ -81,7 +81,8 @@ struct Scheduler;
  *
  */
 enum EndpointStatus {
-	EP_IDLE = 1,
+	EP_EMPTY = 1,
+	EP_WAITING,
 	EP_SEND,
 	EP_RECV,
 };

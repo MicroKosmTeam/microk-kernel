@@ -320,6 +320,19 @@ void SyscallCapCtl(ThreadControlBlock *tcb, usize firstArgument, usize secondArg
 			}
 			}
 			break;
+		case SYSCALL_CAPCTL_REPLYRECV:{
+			Capability *tcbNodeCap = (Capability*)fourthArgument;
+			Capability *tcbCap = (Capability*)fithArgument;
+			
+			Capability *ep = &nodePtr->Slots[nodeSlot];
+
+			(void)tcbNodeCap, (void)tcbCap, (void) ep;
+
+			}
+			break;
+		case SYSCALL_CAPCTL_CALL:{
+			}
+			break;
 		case SYSCALL_CAPCTL_DEBUG: {
 			CAPABILITY::DumpCNode(nodePtr);
 			}
@@ -366,10 +379,6 @@ extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize seco
 		case SYSCALL_VECTOR_ARCHCTL:
 			break;
 		case SYSCALL_VECTOR_YEILD:
-			break;
-		case SYSCALL_VECTOR_CALL:
-			break;
-		case SYSCALL_VECTOR_REPLYRECV:
 			break;
 		default:
 			break;
