@@ -114,13 +114,22 @@ void LimineEntry() {
 	info->KernelPhysicalBase = KAddrRequest.response->physical_base;
 	info->KernelVirtualBase = KAddrRequest.response->virtual_base;
 
-	uptr bootmemRegionBase = 0;
-	usize bootmemRegionLength = 0;
+	usize memoryRegions = MemoryMapRequest.response->entry_count;
+	PRINTK::PrintK(PRINTK_DEBUG "Memory regions from bootloader: %d\r\n", memoryRegions);
 
-	for (usize i = 0; i < MemoryMapRequest.response->entry_count; i++) {
+	UntypedHeader memoryMap[memoryRegions];
+
+	usize longestRegionSize = 0;
+	uptr longestRegionSize = 0;
+
+	for (usize i = 0; i < ; i++) {
 		uptr base = MemoryMapRequest.response->entries[i]->base;
 		usize length = MemoryMapRequest.response->entries[i]->length;
 		u8 type = MemoryMapRequest.response->entries[i]->type;
+		
+		memoryMap[i].Address = base;
+		memoryMap[i].Length = length;
+		memoryMap[i].Flags = type;
 
 		/* Exclude invalid entries */
 		if (type != MEMMAP_USABLE) {
@@ -131,38 +140,13 @@ void LimineEntry() {
 		 * a higher memory region (that are abundant) compared to
 		 * low memory regions (i.e. below 64MB)
 		 */
-		if (length >= bootmemRegionLength) {
-			bootmemRegionBase = base;
-			bootmemRegionLength = length;
+		if (length >= longestRegionLength) {
+			longestRegionBase = base;
+			longestRegionLength = length;
 		}
 	}
 
-	bootmemRegionLength = BOOTMEM::ActivateBootMemory(bootmemRegionBase + info->HigherHalfMapping, bootmemRegionLength);
-	
-	/* Transporting the MMAP */
-	PRINTK::PrintK(PRINTK_DEBUG "Get the memory map from Limine.\r\n");
-
-	MEM::MEMBLOCK::MemblockAllocator *alloc = MEM::MEMBLOCK::InitializeAllocator();
-
-	for (usize i = 0; i < MemoryMapRequest.response->entry_count; i++) {
-		uptr base = MemoryMapRequest.response->entries[i]->base;
-		usize length = MemoryMapRequest.response->entries[i]->length;
-		u8 type = MemoryMapRequest.response->entries[i]->type;
-
-		if (type == MEMMAP_RESERVED) continue;
-
-		MEM::MEMBLOCK::AddRegion(alloc, base, length, type);
-	}
-
-	info->PhysicalMemoryChunks = alloc;
-
-	/* Setting all the memory used by BOOTMEM as used */
-	MEM::MEMBLOCK::AddRegion(info->PhysicalMemoryChunks,
-			bootmemRegionBase, bootmemRegionLength, MEMMAP_KERNEL_BOOTMEM);
-
-
-	/* Enabling the page frame allocator */
-	PMM::Init();
+	CAPABILITY::InitializeRootSpace(longestRegionBase);
 
 	info->ManagerExecutableAddress = (uptr)ModuleRequest.response->modules[0]->address;
 	info->ManagerExecutableSize = ModuleRequest.response->modules[0]->size;

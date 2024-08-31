@@ -33,8 +33,6 @@ struct List {
  */
 struct Capability {
 	u8 IsMasked : 1;
-	u8 Type : 7;     
-
 	uptr Object;
 
 	u16 AccessRights;
@@ -55,18 +53,38 @@ struct UntypedHeader {
 }__attribute__((packed));
 
 /*
+ *  CAPABILITY MEMORY STRUCTURE:
+ *   Space contains slabs for each kind of capability
+ *   Slabs contain various nodes where the capabilities are stored.
+ *   Whenever a program requests a capability, the kernel grants it from the
+ *   appropriate slab. If there are no available specific kinds of objects,
+ *   the program must retype an untyped object. If the the nodes are all full, 
+ *   the program must expand them by retyping an untyped object.
+ *   Untyped objects are not shared between programs, while others may be,
+ *   for examples TCBs.
+ */
+
+/*
  *
  */
 struct CapabilityNode : public ListHead {
-	u16 SizeBits;
-	Capability Slots[];
+	Capability Slots[PAGE_SIZE / sizeof(Capability)];
+};
+
+/*
+ *
+ */
+
+struct CapabilitySlab {
+	bool NodesAvailable;
+	List CapabilityNodes;
 };
 
 /*
  *
  */
 struct CapabilitySpace {
-	List CapabilityNodeList;
+	CapabilitySlab Slabs[OBJECT_TYPE_COUNT];
 };
 
 /*
