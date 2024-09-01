@@ -33,14 +33,14 @@ struct List {
  */
 struct Capability {
 	u8 IsMasked : 1;
+	u8 Type : 7;
 	uptr Object;
 
 	u16 AccessRights;
 	u16 AccessRightsMask;
 
-	Capability *Parent;
-	Capability *Next;
-	Capability *Prev;
+	// TODO: overhaul parent/child relationship
+	//Capability *Parent;
 }__attribute__((packed, aligned(0x8)));
 
 /*
@@ -64,11 +64,13 @@ struct UntypedHeader {
  *   for examples TCBs.
  */
 
+#define CAPABILITIES_PER_NODE ((PAGE_SIZE - sizeof(ListHead)) / sizeof(Capability))
+
 /*
  *
  */
 struct CapabilityNode : public ListHead {
-	Capability Slots[PAGE_SIZE / sizeof(Capability)];
+	Capability Slots[CAPABILITIES_PER_NODE];
 };
 
 /*
@@ -77,7 +79,7 @@ struct CapabilityNode : public ListHead {
 
 struct CapabilitySlab {
 	bool NodesAvailable;
-	List CapabilityNodes;
+	List Nodes;
 };
 
 /*

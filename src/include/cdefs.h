@@ -107,8 +107,7 @@ typedef enum {
  *  Statically assigned slots that haven't yet been filled.
  */
 typedef enum {
-	NULL_CAPABILITY = 0,
-	UNTYPED,
+	UNTYPED = 0,
 	FRAMES,
 	CSPACE,
 	CNODE,
@@ -118,7 +117,8 @@ typedef enum {
 	SCHEDULER_CONTEXT,
 	PAGING_STRUCTURE,
 	OBJECT_TYPE_COUNT,
-	RESERVED_SLOT = 0xFF
+	NULL_CAPABILITY,
+	RESERVED_SLOT
 } OBJECT_TYPE;
 
 /* The rights that can be given to a capability

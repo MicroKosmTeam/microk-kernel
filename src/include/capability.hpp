@@ -17,10 +17,14 @@ inline static void SetCap(Capability *capability, u8 type, uptr object, u16 acce
 namespace CAPABILITY {
 	void InitializeRootSpace(uptr framesBase, UntypedHeader *memoryMap);
 	usize GetObjectSize(OBJECT_TYPE kind);
+
+	Capability *GenerateCapability(CapabilitySpace *space, OBJECT_TYPE kind, uptr object, u32 accessRights);
 	Capability *RequestObject(CapabilitySpace *space, OBJECT_TYPE kind);
 	void ReturnObject(CapabilitySpace *space, Capability *capability);
 	void RetypeUntyped(CapabilitySpace *space, Capability *untyped, OBJECT_TYPE kind);
 	void UntypeObject(CapabilitySpace *space, Capability *capability);
 	Capability *SplitUntyped(Capability *untyped, usize splitSize, usize count);
 	void MergeUntyped(CapabilitySpace *space, Capability *capability);
+
+	void DumpCapabilitySlab(CapabilitySpace *space, OBJECT_TYPE kind);
 }

@@ -4,6 +4,7 @@
 #include <printk.hpp>
 #include <panic.hpp>
 #include <task.hpp>
+#include <slab.hpp>
 #include <math.hpp>
 
 namespace CAPABILITY {
@@ -21,33 +22,59 @@ void InitializeRootSpace(uptr framesBase, UntypedHeader *memoryMap) {
 	Memclr((void*)cspaceFrame, PAGE_SIZE);
 
 	CapabilitySpace *space = info->RootCSpace;
-	for (OBJECT_TYPE t = UNTYPED; t < OBJECT_TYPE_COUNT; *(int*)&t += 1) {
+	uptr nextSlabNodeFrame = slabNodeFrame;
+	for (int t = UNTYPED; t < OBJECT_TYPE_COUNT; ++t) {
 		space->Slabs[t].NodesAvailable = true;
 
-		CapabilityNode *node = (CapabilityNode*)slabNodeFrame;
+		CapabilityNode *node = (CapabilityNode*)nextSlabNodeFrame;
 
-		space->Slabs[t].CapabilityNodes.Head =
-		space->Slabs[t].CapabilityNodes.Tail = node;
+		space->Slabs[t].Nodes.Head =
+		space->Slabs[t].Nodes.Tail = node;
 
 		node->Next = node->Previous = NULL;
 
+		for (usize i = 0; i < CAPABILITIES_PER_NODE; ++i) {
+			node->Slots[i].Type = NULL_CAPABILITY;
+		}
+
+		nextSlabNodeFrame += PAGE_SIZE;
+	}
+
+	for (int t = UNTYPED; t < OBJECT_TYPE_COUNT; ++t) {
+		GenerateCapability(space, CNODE, slabNodeFrame, ACCESS);
 		slabNodeFrame += PAGE_SIZE;
 	}
 
 	/* Now put all the capabilites in the respective slabs, - obviously the frames we used */
 
-	for (UntypedHeader *entry = memoryMap; entry->Address != -1; ++entry) {
-		switch(entry->Flags) {
-			case MEMMAP_USABLE:
-				/* Untyped */
-			default:
-				continue;
+	for (UntypedHeader *entry = memoryMap; entry->Address != (uptr)-1; ++entry) {
+		if(entry->Flags == MEMMAP_USABLE) {
+			UntypedHeader *accessibleHeader = (UntypedHeader*)VMM::PhysicalToVirtual(entry->Address);
 
+			if(framesBase == entry->Address) {
+				uptr oldAddress = entry->Address;
+				entry->Address = slabNodeFrame;
+				entry->Length -= (slabNodeFrame - oldAddress);
+			} else {
+				entry->Address = (uptr)accessibleHeader;
+			}
+
+			Memcpy(accessibleHeader, entry, sizeof(UntypedHeader));
+
+			GenerateCapability(space, UNTYPED, (uptr)accessibleHeader->Address, ACCESS | RETYPE | GRANT);
 		}
 
 	}
 	
+	GenerateCapability(space, TASK_CONTROL_BLOCK, (uptr)info->RootTCB, ACCESS);
+	GenerateCapability(space, CSPACE, (uptr)info->RootCSpace, ACCESS);
+	
 	PRINTK::PrintK(PRINTK_DEBUG "Root space initialized.\r\n");
+	
+	DumpCapabilitySlab(space, UNTYPED);
+	DumpCapabilitySlab(space, TASK_CONTROL_BLOCK);
+	DumpCapabilitySlab(space, CNODE);
+	DumpCapabilitySlab(space, CSPACE);
 }
 
 usize GetObjectSize(OBJECT_TYPE kind) {
@@ -75,22 +102,30 @@ usize GetObjectSize(OBJECT_TYPE kind) {
 	}
 }
 
-/**
- * CAPABILITY GENERATE:
- *	capability->IsMasked = 0;
-			capability->Type = type;
-			capability->Object = object;
-			capability->AccessRights = accessRights;
-			capability->AccessRightsMask = 0xFFFF;
-			capability->Next =
-			capability->Prev =
-			capability->Parent = NULL;
+Capability *GenerateCapability(CapabilitySpace *space, OBJECT_TYPE kind, uptr object, u32 accessRights) {
+	if (kind < UNTYPED || kind >= OBJECT_TYPE_COUNT) {
+		return NULL;
+	}
 
- *
- */
+	CapabilitySlab *slab = &space->Slabs[kind];
+	Capability *capability = SLAB::AllocateFreeSlotInSlab(slab);
+	if (capability == NULL) {
+		return NULL;
+	}
+
+	capability->IsMasked = 0;
+	capability->Type = kind;
+	capability->Object = object;
+	capability->AccessRights = accessRights;
+	capability->AccessRightsMask = 0xFFFF;
+
+	PRINTK::PrintK(PRINTK_DEBUG "Generated capability of kind: %d\r\n", kind);
+
+	return capability;
+}
 
 Capability *RequestObject(CapabilitySpace *space, OBJECT_TYPE kind) {
-	if (kind <= NULL_CAPABILITY || kind >= OBJECT_TYPE_COUNT) {
+	if (kind < UNTYPED || kind >= OBJECT_TYPE_COUNT) {
 		return NULL;
 	}
 
@@ -112,7 +147,7 @@ void ReturnObject(CapabilitySpace *space, Capability *capability) {
 }
 
 void RetypeUntyped(CapabilitySpace *space, Capability *untyped, OBJECT_TYPE kind) {
-	if (kind <= NULL_CAPABILITY || kind >= OBJECT_TYPE_COUNT || kind == UNTYPED) {
+	if (kind < UNTYPED || kind >= OBJECT_TYPE_COUNT || kind == UNTYPED) {
 		return;
 	}
 
@@ -261,29 +296,36 @@ void MergeUntyped(CapabilitySpace *space, Capability *capability) {
 	(void)space;
 	(void)capability;
 }
-/*
-void DumpCNode(CapabilityNode *node) {
-	if (node == NULL) {
+
+void DumpCapabilitySlab(CapabilitySpace *space, OBJECT_TYPE kind) {
+	if (kind < UNTYPED || kind >= OBJECT_TYPE_COUNT) {
 		return;
 	}
 
-	usize size = MATH::ElevatePowerOfTwo(node->SizeBits);
-		
-	PRINTK::PrintK(PRINTK_DEBUG "CNode -> Size: 2^%d = %d bytes\r\n", node->SizeBits, size);
+	CapabilitySlab *slab = &space->Slabs[kind];
+	CapabilityNode *node = (CapabilityNode*)slab->Nodes.Head;
+
+	if(node == NULL) {
+		return;
+	}
+
+	PRINTK::PrintK(PRINTK_DEBUG "CSlab\r\n");
 	PRINTK::PrintK(PRINTK_DEBUG "Slots:\r\n");
 
-	usize slots = (size - sizeof(CapabilityNode)) / sizeof(Capability);
+	while(node) {
+		for (usize i = 0; i < CAPABILITIES_PER_NODE; ++i) {
+			Capability *capability = &node->Slots[i];
+			if (capability->Type == NULL_CAPABILITY) continue;
+			PRINTK::PrintK(PRINTK_DEBUG "Slot #%d\r\n"
+					            " Capability 0x%x\r\n"
+						    "  Type:     %d\r\n"
+						    "  Object:   0x%x\r\n", i, capability, capability->Type, capability->Object);
+		}
 
-	for (usize i = 0; i < slots; ++i) {
-		Capability *capability = &node->Slots[i];
-		PRINTK::PrintK(PRINTK_DEBUG "Slot #%d\r\n"
-				            " Capability 0x%x\r\n"
-					    "  Type:     %d\r\n"
-					    "  Object:   0x%x\r\n"
-					    "  Next:     0x%x\r\n"
-					    "  Previous: 0x%x\r\n", i, capability, capability->Type, capability->Object, capability->Next, capability->Prev);
+		node = (CapabilityNode*)node->Next;
 	}
+
 }
-*/
+
 
 }
