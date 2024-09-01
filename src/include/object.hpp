@@ -64,12 +64,21 @@ struct UntypedHeader {
  *   for examples TCBs.
  */
 
-#define CAPABILITIES_PER_NODE ((PAGE_SIZE - sizeof(ListHead)) / sizeof(Capability))
 
 /*
  *
  */
-struct CapabilityNode : public ListHead {
+
+struct SlabHead : public ListHead {
+	u16 FreeElements;
+};
+
+#define CAPABILITIES_PER_NODE ((PAGE_SIZE - sizeof(SlabHead)) / sizeof(Capability))
+
+/*
+ *
+ */
+struct CapabilityNode : public SlabHead {
 	Capability Slots[CAPABILITIES_PER_NODE];
 };
 
@@ -78,8 +87,9 @@ struct CapabilityNode : public ListHead {
  */
 
 struct CapabilitySlab {
-	bool NodesAvailable;
-	List Nodes;
+	List FreeSlabs;
+	List UsedSlabs;
+	List FullSlabs;
 };
 
 /*

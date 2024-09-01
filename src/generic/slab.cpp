@@ -1,17 +1,11 @@
 #include <slab.hpp>
 #include <vmm.hpp>
+#include <list.hpp>
 
 namespace SLAB {
 
 CapabilityNode *AddSlabNode(CapabilitySlab *slab, CapabilityNode *node) {
-	CapabilityNode *tailNode = (CapabilityNode*)slab->Nodes.Tail;
-
-	tailNode->Next = node;
-	node->Next = NULL;
-	node->Previous = tailNode;
-	slab->Nodes.Tail = node;
-
-	slab->NodesAvailable = true;
+	AddElementToList(node, &slab->FreeSlabs);
 
 	for (usize i = 0; i < CAPABILITIES_PER_NODE; ++i) {
 		node->Slots[i].Type = NULL_CAPABILITY;
@@ -21,9 +15,19 @@ CapabilityNode *AddSlabNode(CapabilitySlab *slab, CapabilityNode *node) {
 }
 
 CapabilityNode *FindSlabNode(CapabilitySlab *slab, uptr address) {
-	CapabilityNode *node = (CapabilityNode*)slab->Nodes.Head;
+	CapabilityNode *node = (CapabilityNode*)slab->UsedSlabs.Head;
 
 	ROUND_DOWN_TO_PAGE(address);
+
+	while(node) {
+		if (address == (uptr)node) {
+			return node;
+		} else {
+			node = (CapabilityNode*)node->Next;
+		}
+	}
+
+	node = (CapabilityNode*)slab->FullSlabs.Head;
 
 	while(node) {
 		if (address == (uptr)node) {
@@ -63,10 +67,13 @@ Capability *FindElementInSlab(CapabilitySlab *slab, uptr address) {
 }
 	
 Capability *AllocateFreeSlotInSlab(CapabilitySlab *slab) {
-	CapabilityNode *node = (CapabilityNode*)slab->Nodes.Head;
+	CapabilityNode *node = (CapabilityNode*)slab->UsedSlabs.Head;
 
-	if(!slab->NodesAvailable) {
-		return NULL;
+	if(node == NULL) {
+		node = (CapabilityNode*)slab->FreeSlabs.Head;
+		if (node == NULL) {
+			return NULL;
+		}
 	}
 
 	while(node) {
@@ -74,13 +81,23 @@ Capability *AllocateFreeSlotInSlab(CapabilitySlab *slab) {
 			Capability *cap = &node->Slots[i];
 			if(cap->Type == NULL_CAPABILITY) {
 				cap->Type = RESERVED_SLOT;
+
+				if (node->FreeElements == CAPABILITIES_PER_NODE) {
+					RemoveElementFromList(node, &slab->FreeSlabs);
+					AddElementToList(node, &slab->UsedSlabs);
+					--node->FreeElements;
+				} else if (node->FreeElements == 1) {
+					RemoveElementFromList(node, &slab->UsedSlabs);
+					AddElementToList(node, &slab->FullSlabs);
+					node->FreeElements = 0;
+				}
+				
 				return cap;
 			}
 			
 		}
 	}
 
-	slab->NodesAvailable = false;
 	return NULL;
 }
 

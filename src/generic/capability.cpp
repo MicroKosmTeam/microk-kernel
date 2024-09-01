@@ -24,14 +24,20 @@ void InitializeRootSpace(uptr framesBase, UntypedHeader *memoryMap) {
 	CapabilitySpace *space = info->RootCSpace;
 	uptr nextSlabNodeFrame = slabNodeFrame;
 	for (int t = UNTYPED; t < OBJECT_TYPE_COUNT; ++t) {
-		space->Slabs[t].NodesAvailable = true;
-
 		CapabilityNode *node = (CapabilityNode*)nextSlabNodeFrame;
 
-		space->Slabs[t].Nodes.Head =
-		space->Slabs[t].Nodes.Tail = node;
+		space->Slabs[t].FreeSlabs.Head =
+		space->Slabs[t].FreeSlabs.Tail = node;
+
+		space->Slabs[t].UsedSlabs.Head =
+		space->Slabs[t].UsedSlabs.Tail = NULL;
+
+		space->Slabs[t].FullSlabs.Head =
+		space->Slabs[t].FullSlabs.Tail = NULL;
 
 		node->Next = node->Previous = NULL;
+			
+		node->FreeElements = CAPABILITIES_PER_NODE;
 
 		for (usize i = 0; i < CAPABILITIES_PER_NODE; ++i) {
 			node->Slots[i].Type = NULL_CAPABILITY;
@@ -303,7 +309,7 @@ void DumpCapabilitySlab(CapabilitySpace *space, OBJECT_TYPE kind) {
 	}
 
 	CapabilitySlab *slab = &space->Slabs[kind];
-	CapabilityNode *node = (CapabilityNode*)slab->Nodes.Head;
+	CapabilityNode *node = (CapabilityNode*)slab->UsedSlabs.Head;
 
 	if(node == NULL) {
 		return;
