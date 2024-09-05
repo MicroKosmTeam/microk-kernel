@@ -126,15 +126,15 @@ void LimineEntry() {
 
 	uECC_Curve curve = uECC_secp256k1();
 
-	CapabilityContext context;
-	uECC_make_key(context.PublicKey, context.PrivateKey, curve);
+	u8 privateKey[SECP256k1_PRIVATE_KEY_SIZE];
+	u8 publicKey[SECP256k1_PUBLIC_KEY_SIZE];
 
-	if(uECC_valid_public_key(context.PublicKey, curve)) {
-		PRINTK::PrintK(PRINTK_DEBUG "Public key is valid!\r\n");
-	}
+	uECC_make_key(publicKey, privateKey, curve);
+
+	CapabilityContext context;
 	
-	uECC_shared_secret(context.PublicKey, context.PrivateKey, context.SharedSecret, curve);
-	
+	uECC_shared_secret(publicKey, privateKey, context.Secret, curve);
+
 	EncryptedCapability encryptedCap;
 	Capability *capability = (Capability*)encryptedCap.CapabilityData;
 	capability->Object = 0xDEADBEEF69420;
@@ -152,7 +152,7 @@ void LimineEntry() {
 
 	{
 		AES_ctx encryptContext;
-		AES_init_ctx_iv(&encryptContext, context.SharedSecret, encryptedCap.IV);
+		AES_init_ctx_iv(&encryptContext, context.Secret, encryptedCap.IV);
 		AES_CBC_encrypt_buffer(&encryptContext, encryptedCap.SHA256Hash, SHA256_BLOCK_SIZE);
 	}
 	
@@ -160,7 +160,7 @@ void LimineEntry() {
 
 	{
 		AES_ctx decryptContext;
-		AES_init_ctx_iv(&decryptContext, context.SharedSecret, encryptedCap.IV);
+		AES_init_ctx_iv(&decryptContext, context.Secret, encryptedCap.IV);
 		AES_CBC_decrypt_buffer(&decryptContext, encryptedCap.SHA256Hash, SHA256_BLOCK_SIZE);
 	}
 
@@ -181,6 +181,9 @@ void LimineEntry() {
 	}
 	
 	PRINTK::PrintK(PRINTK_DEBUG "Encrypted capability is %d bytes\r\n", sizeof(EncryptedCapability));
+	PRINTK::PrintK(PRINTK_DEBUG "Capability is %d bytes\r\n", sizeof(Capability));
+	PRINTK::PrintK(PRINTK_DEBUG "CapabilityContext is %d bytes\r\n", sizeof(CapabilityContext));
+	PRINTK::PrintK(PRINTK_DEBUG "Capabilities per page: %d\r\n", PAGE_SIZE / sizeof(EncryptedCapability));
 
 	while(true) {}
 

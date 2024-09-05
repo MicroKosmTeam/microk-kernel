@@ -47,6 +47,7 @@ struct Capability {
 }__attribute__((packed, aligned(0x10)));
 
 struct EncryptedCapability {
+	uptr 
 	u8 CapabilityData[sizeof(Capability)];
 	u8 SHA256Hash[SHA256_BLOCK_SIZE]; /* Encrypted hash */
 	u8 IV[AES_BLOCKLEN];
@@ -59,9 +60,7 @@ struct EncryptedCapability {
 #define SECP256k1_PUBLIC_KEY_SIZE 64
 #define SECP256k1_SHARED_SECRET_SIZE 32
 struct CapabilityContext {
-	u8 PrivateKey[SECP256k1_PRIVATE_KEY_SIZE];
-	u8 PublicKey[SECP256k1_PUBLIC_KEY_SIZE];
-	u8 SharedSecret[SECP256k1_SHARED_SECRET_SIZE];
+	u8 Secret[SECP256k1_SHARED_SECRET_SIZE];
 }__attribute__((packed, aligned(0x10)));
 
 struct CapabilityPtr {
