@@ -8,6 +8,7 @@ CapabilityNode *AddSlabNode(CapabilitySlab *slab, CapabilityNode *node) {
 	AddElementToList(node, &slab->FreeSlabs);
 
 	for (usize i = 0; i < CAPABILITIES_PER_NODE; ++i) {
+		node->Slots[i].IsClaimed = 0;
 		node->Slots[i].Type = NULL_CAPABILITY;
 	}
 
@@ -101,4 +102,27 @@ Capability *AllocateFreeSlotInSlab(CapabilitySlab *slab) {
 	return NULL;
 }
 
+Capability *ClaimSlotInSlab(CapabilitySlab *slab) {
+	CapabilityNode *node = (CapabilityNode*)slab->UsedSlabs.Head;
+
+	bool done = false;
+	do {
+		while(node) {
+			for (usize i = 0; i < CAPABILITIES_PER_NODE; ++i) {
+				Capability *cap = &node->Slots[i];
+				if(cap->Type != NULL_CAPABILITY && !cap->IsClaimed) {
+					cap->IsClaimed = true;
+
+					return cap;
+				}			
+			}
+		}
+		
+		node = (CapabilityNode*)slab->FullSlabs.Head;
+		done = true;
+	} while(!done);
+
+	return NULL;
+
+}
 }

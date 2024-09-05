@@ -9,4 +9,5 @@ namespace SLAB {
 	Capability *FindElementInSlab(CapabilitySlab *slab, uptr address);
 	
 	Capability *AllocateFreeSlotInSlab(CapabilitySlab *slab);
+	Capability *ClaimSlotInSlab(CapabilitySlab *slab);
 }

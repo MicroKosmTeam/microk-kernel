@@ -1,4 +1,6 @@
-#include <string.hpp>
+#include <string.h>
+
+extern "C" {
 
 usize Strnlen(const char *str, usize maxLength) {
         const char *strEnd = str;
@@ -198,4 +200,74 @@ long long int Atoi(char *str) {
 
         // return result.
         return res;
+}
+
+int memcmp(const void* buf1, const void* buf2, usize count) {
+	return Memcmp(buf1, buf2, count);
+}
+
+void *memcpy(void *dest, const void *src, usize n) {
+	return Memcpy(dest, src, n);
+}
+
+void *memmove(void *dest, const void *src, usize n) {
+	return Memmove(dest, src, n);
+}
+
+void *memset(void *start, u8 value, usize num) {
+	return Memset(start, value, num);
+}
+
+void *Memclr(void *start, usize num) {
+	return Memset(start, 0, num);
+}
+
+int Memcmp(const void* buf1, const void* buf2, usize count) {
+	if(!count)
+		return(0);
+
+	while(--count && *(char*)buf1 == *(char*)buf2 ) {
+		buf1 = (char*)buf1 + 1;
+		buf2 = (char*)buf2 + 1;
+	}
+
+	return(*((unsigned char*)buf1) - *((unsigned char*)buf2));
+}
+
+void *Memcpy(void *dest, const void *src, usize n) {
+	char *csrc = (char *)src;
+	char *cdest = (char *)dest;
+
+	for (usize i=0; i<n; i++) cdest[i] = csrc[i];
+
+	return dest;
+}
+
+void *Memmove(void *dest, const void *src, usize n) {
+	u8 *pdest = (u8 *)dest;
+	const u8 *psrc = (const u8 *)src;
+
+	if (src > dest) {
+		for (usize i = 0; i < n; i++) {
+			pdest[i] = psrc[i];
+		}
+	} else if (src < dest) {
+		for (usize i = n; i > 0; i--) {
+			pdest[i-1] = psrc[i-1];
+		}
+	}
+
+	return dest;
+}
+
+void *Memset(void *start, u8 value, usize num) {
+	num /= sizeof(u8);
+
+	for (usize i = 0; i < num; i++) {
+		*(u8*)((uptr)start + i) = value;
+	}
+
+
+	return start;
+}
 }

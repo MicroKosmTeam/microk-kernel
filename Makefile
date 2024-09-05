@@ -14,21 +14,25 @@ COMMON_CFLAGS = -ffreestanding             \
 	 -Wall                      \
 	 -Wextra                    \
 	 -Werror                    \
-	 -Wno-write-strings         \
+	 -Wno-error=write-strings         \
+	 -Wno-error=unused-parameter \
 	 -O0                        \
-	 -fno-rtti                  \
-	 -fno-exceptions            \
 	 -fno-lto                   \
 	 -fno-pie                   \
 	 -fno-pic                   \
 	 -ggdb
 
+CXXFLAGS += -fno-rtti                  \
+	 -fno-exceptions
+
 LDFLAGS = -nostdlib                 \
 	  -static                   \
 	  -z max-page-size=0x1000
 
+COMMON_CSRC = $(call rwildcard,$(COMMON_SOURCES),*.c)
 COMMON_CPPSRC = $(call rwildcard,$(COMMON_SOURCES),*.cpp)
-COMMON_OBJS = $(patsubst $(COMMON_SOURCES)/%.cpp, $(COMMON_SOURCES)/%.o, $(COMMON_CPPSRC))
+COMMON_OBJS += $(patsubst $(COMMON_SOURCES)/%.c, $(COMMON_SOURCES)/%.o, $(COMMON_CSRC))
+COMMON_OBJS += $(patsubst $(COMMON_SOURCES)/%.cpp, $(COMMON_SOURCES)/%.o, $(COMMON_CPPSRC))
 
 ARCH_CPPSRC = $(call rwildcard,$(ARCH_SOURCES),*.cpp)
 ARCH_ASMSRC = $(call rwildcard,$(ARCH_SOURCES),*.asm)
@@ -65,10 +69,15 @@ endif
 
 .PHONY: kernel link clean
 
+$(COMMON_SOURCES)/%.o: $(COMMON_SOURCES)/%.c
+	@ mkdir -p $(@D)
+	@ echo !==== COMPILING $^ && \
+	$(CC) $(CFLAGS) -c $^ -o $@
+
 $(COMMON_SOURCES)/%.o: $(COMMON_SOURCES)/%.cpp
 	@ mkdir -p $(@D)
 	@ echo !==== COMPILING $^ && \
-	$(CPP) $(CFLAGS) -c $^ -o $@
+	$(CPP) $(CFLAGS) $(CXXFLAGS) -c $^ -o $@
 
 $(ARCH_SOURCES)/%.o: $(ARCH_SOURCES)/%.cpp
 	@ mkdir -p $(@D)

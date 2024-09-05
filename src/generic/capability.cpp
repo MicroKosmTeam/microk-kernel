@@ -40,6 +40,7 @@ void InitializeRootSpace(uptr framesBase, UntypedHeader *memoryMap) {
 		node->FreeElements = CAPABILITIES_PER_NODE;
 
 		for (usize i = 0; i < CAPABILITIES_PER_NODE; ++i) {
+			node->Slots[i].IsClaimed = 0;
 			node->Slots[i].Type = NULL_CAPABILITY;
 		}
 
@@ -89,24 +90,41 @@ usize GetObjectSize(OBJECT_TYPE kind) {
 			return 0;
 		case FRAMES:
 			return sizeof(PAGE_SIZE);
+		case VIRTUAL_MEMORY_MAPPING:
+			return 0;
+		case VIRTUAL_MEMORY_PAGING_STRUCTURE:
+			return PAGE_SIZE;
 		case CSPACE:
 			return sizeof(CapabilitySpace);
 		case CNODE:
 			return sizeof(CapabilityNode);
-		case DOMAIN:
+		case CPU_DOMAIN:
 			return sizeof(Domain);
-		case SCHEDULER:
+		case PROCESS_SCHEDULER:
 			return sizeof(Scheduler);
 		case TASK_CONTROL_BLOCK:
 			return sizeof(TaskControlBlock);
-		case SCHEDULER_CONTEXT:
+		case TASK_SCHEDULER_CONTEXT:
 			return sizeof(SchedulerContext);
-		case PAGING_STRUCTURE:
-			return PAGE_SIZE;
 		default:
 			return -1;
 	}
 }
+
+Capability *AddressCapability(CapabilitySpace *space, CapabilityPtr *ptr) {
+	OBJECT_TYPE kind = (OBJECT_TYPE)ptr->SlabIndex;
+	if (kind < UNTYPED || kind >= OBJECT_TYPE_COUNT) {
+		return NULL;
+	}
+
+	CapabilitySlab *slab = &space->Slabs[kind];
+
+	(void)slab;
+	(void)ptr;
+
+	return NULL;
+}
+
 
 Capability *GenerateCapability(CapabilitySpace *space, OBJECT_TYPE kind, uptr object, u32 accessRights) {
 	if (kind < UNTYPED || kind >= OBJECT_TYPE_COUNT) {
@@ -140,16 +158,16 @@ Capability *RequestObject(CapabilitySpace *space, OBJECT_TYPE kind) {
 	/* Here check in the relative slab if there is such an object, then return it
 	 * If there is no object present, return NULL and tell the user to retype
 	 */
+	Capability *capability = SLAB::ClaimSlotInSlab(slab);
 
-	(void)slab;
-
-	return NULL;
+	return capability;
 }
 
 void ReturnObject(CapabilitySpace *space, Capability *capability) {
 	/* Object is unused now */
 
-	(void)space, (void)capability;
+	(void)space;
+	capability->IsClaimed = false;
 }
 
 void RetypeUntyped(CapabilitySpace *space, Capability *untyped, OBJECT_TYPE kind) {
@@ -332,6 +350,4 @@ void DumpCapabilitySlab(CapabilitySpace *space, OBJECT_TYPE kind) {
 	}
 
 }
-
-
 }

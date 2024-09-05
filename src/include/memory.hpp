@@ -1,5 +1,6 @@
 #pragma once
 #include <cdefs.h>
+#include <string.h>
 
 #define MEMMAP_USABLE                 0x00
 #define MEMMAP_RESERVED               0x01
@@ -26,12 +27,6 @@
 
 #define MEMMAP_KERNEL_SPECIFIC_COUNT  11
 #define MEMMAP_KERNEL_SPECIFIC_START  0x80
-
-void *Memset(void *start, u8 value, u64 num);
-void *Memclr(void *start, usize num);
-void *Memcpy(void *dest, void *src, usize n);
-int Memcmp(const void* buf1, const void* buf2, usize count);
-void *Memmove(void *dest, const void *src, usize n);
 
 extern const u8 __KernelBinaryEssentialStart;
 extern const u8 __KernelBinaryEssentialEnd;

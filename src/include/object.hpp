@@ -1,5 +1,7 @@
 #pragma once
 #include <cdefs.h>
+#include <sha256.hpp>
+#include <tiny-aes/aes.hpp>
 
 #if defined(__x86_64__)
 #include <arch/x86/object.hpp>
@@ -32,8 +34,9 @@ struct List {
  *
  */
 struct Capability {
+	u8 IsClaimed : 1;
 	u8 IsMasked : 1;
-	u8 Type : 7;
+	u8 Type : 6;
 	uptr Object;
 
 	u16 AccessRights;
@@ -41,7 +44,31 @@ struct Capability {
 
 	// TODO: overhaul parent/child relationship
 	//Capability *Parent;
-}__attribute__((packed, aligned(0x8)));
+}__attribute__((packed, aligned(0x10)));
+
+struct EncryptedCapability {
+	u8 CapabilityData[sizeof(Capability)];
+	u8 SHA256Hash[SHA256_BLOCK_SIZE]; /* Encrypted hash */
+	u8 IV[AES_BLOCKLEN];
+	/* IV, will be regenerated each time the
+	   hash reencrypted */
+}__attribute__((packed, aligned(0x10)));
+
+
+#define SECP256k1_PRIVATE_KEY_SIZE 32
+#define SECP256k1_PUBLIC_KEY_SIZE 64
+#define SECP256k1_SHARED_SECRET_SIZE 32
+struct CapabilityContext {
+	u8 PrivateKey[SECP256k1_PRIVATE_KEY_SIZE];
+	u8 PublicKey[SECP256k1_PUBLIC_KEY_SIZE];
+	u8 SharedSecret[SECP256k1_SHARED_SECRET_SIZE];
+}__attribute__((packed, aligned(0x10)));
+
+struct CapabilityPtr {
+	u8 SlabIndex;
+	u32 NodeIndex;
+	u16 CapabilityIndex;
+};
 
 /*
  *
@@ -70,6 +97,7 @@ struct UntypedHeader {
  */
 
 struct SlabHead : public ListHead {
+	u32 Id;
 	u16 FreeElements;
 };
 
@@ -87,6 +115,8 @@ struct CapabilityNode : public SlabHead {
  */
 
 struct CapabilitySlab {
+	
+
 	List FreeSlabs;
 	List UsedSlabs;
 	List FullSlabs;

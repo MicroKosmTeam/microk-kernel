@@ -7,6 +7,10 @@
 #include <string.hpp>
 #include <printk.hpp>
 #include <capability.hpp>
+#include <random.hpp>
+#include <sha256.hpp>
+#include <micro-ecc/uECC.h>
+#include <tiny-aes/aes.hpp>
 
 static volatile LIMINE_BASE_REVISION(1)
 
@@ -93,6 +97,13 @@ static volatile limine_module_request ModuleRequest {
 	.internal_modules = (limine_internal_module**)InternalModules,
 };
 
+
+static volatile limine_boot_time_request BootTimeRequest {
+	.id = LIMINE_BOOT_TIME_REQUEST,
+	.revision = 0,
+	.response = NULL,
+};
+
 /* Main Limine initialization function */
 extern "C" __attribute__((noreturn))
 void LimineEntry() {
@@ -101,13 +112,78 @@ void LimineEntry() {
 	if(limine_base_revision[2] != 0 ||
 	   MemoryMapRequest.response == NULL ||
 	   HHDMRequest.response == NULL ||
-	   KAddrRequest.response == NULL) {
+	   KAddrRequest.response == NULL ||
+	   BootTimeRequest.response == NULL) {
 		PANIC("Requests not answered by Limine");
 	}
 
 	InitInfo();
 	
 	KInfo *info = GetInfo();
+
+	RANDOM::SRand(BootTimeRequest.response->boot_time);
+	uECC_set_rng(reinterpret_cast<uECC_RNG_Function>((void*)&RANDOM::Rng));
+
+	uECC_Curve curve = uECC_secp256k1();
+
+	CapabilityContext context;
+	uECC_make_key(context.PublicKey, context.PrivateKey, curve);
+
+	if(uECC_valid_public_key(context.PublicKey, curve)) {
+		PRINTK::PrintK(PRINTK_DEBUG "Public key is valid!\r\n");
+	}
+	
+	uECC_shared_secret(context.PublicKey, context.PrivateKey, context.SharedSecret, curve);
+	
+	EncryptedCapability encryptedCap;
+	Capability *capability = (Capability*)encryptedCap.CapabilityData;
+	capability->Object = 0xDEADBEEF69420;
+
+	{
+		SHA256_CTX ctx;
+		sha256_init(&ctx);
+		sha256_update(&ctx, encryptedCap.CapabilityData, sizeof(Capability));
+		sha256_final(&ctx, encryptedCap.SHA256Hash);
+	}
+		
+	PRINTK::PrintK(PRINTK_DEBUG "Hash generated!\r\n");
+
+	RANDOM::Rng(encryptedCap.IV, 16);
+
+	{
+		AES_ctx encryptContext;
+		AES_init_ctx_iv(&encryptContext, context.SharedSecret, encryptedCap.IV);
+		AES_CBC_encrypt_buffer(&encryptContext, encryptedCap.SHA256Hash, SHA256_BLOCK_SIZE);
+	}
+	
+	PRINTK::PrintK(PRINTK_DEBUG "Encrypted!\r\n");
+
+	{
+		AES_ctx decryptContext;
+		AES_init_ctx_iv(&decryptContext, context.SharedSecret, encryptedCap.IV);
+		AES_CBC_decrypt_buffer(&decryptContext, encryptedCap.SHA256Hash, SHA256_BLOCK_SIZE);
+	}
+
+	PRINTK::PrintK(PRINTK_DEBUG "Decrypted!\r\n");
+	
+	u8 checkHash[SHA256_BLOCK_SIZE];
+	{
+		SHA256_CTX ctx;
+		sha256_init(&ctx);
+		sha256_update(&ctx, encryptedCap.CapabilityData, sizeof(Capability));
+		sha256_final(&ctx, checkHash);
+	}
+	
+	if (Memcmp(checkHash, encryptedCap.SHA256Hash, SHA256_BLOCK_SIZE) == 0) {
+		PRINTK::PrintK(PRINTK_DEBUG "Hashes match!\r\n");
+	} else {
+		PRINTK::PrintK(PRINTK_DEBUG "Hashes dont match!\r\n");
+	}
+	
+	PRINTK::PrintK(PRINTK_DEBUG "Encrypted capability is %d bytes\r\n", sizeof(EncryptedCapability));
+
+	while(true) {}
+
 
 	info->HigherHalfMapping = HHDMRequest.response->offset;
 	info->KernelPhysicalBase = KAddrRequest.response->physical_base;
