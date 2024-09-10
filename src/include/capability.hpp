@@ -18,11 +18,9 @@ namespace CAPABILITY {
 	void InitializeRootSpace(uptr framesBase, UntypedHeader *memoryMap);
 	usize GetObjectSize(OBJECT_TYPE kind);
 
-	Capability *GenerateCapability(CapabilitySpace *space, OBJECT_TYPE kind, uptr object, u32 accessRights);
-	Capability *RequestObject(CapabilitySpace *space, OBJECT_TYPE kind);
-	void ReturnObject(CapabilitySpace *space, Capability *capability);
-	void RetypeUntyped(CapabilitySpace *space, Capability *untyped, OBJECT_TYPE kind);
-	void UntypeObject(CapabilitySpace *space, Capability *capability);
+	Capability *GenerateCapability(CapabilitySpace *space, OBJECT_TYPE kind, uptr object, u16 accessRights);
+	Capability *RetypeUntyped(CapabilitySpace *space, Capability *untyped, OBJECT_TYPE kind);
+	Capability *UntypeObject(CapabilitySpace *space, Capability *capability);
 	Capability *SplitUntyped(Capability *untyped, usize splitSize, usize count);
 	void MergeUntyped(CapabilitySpace *space, Capability *capability);
 

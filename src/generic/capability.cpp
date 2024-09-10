@@ -39,7 +39,7 @@ void InitializeRootSpace(uptr framesBase, UntypedHeader *memoryMap) {
 		node->FreeElements = CAPABILITIES_PER_NODE;
 
 		for (usize i = 0; i < CAPABILITIES_PER_NODE; ++i) {
-			node->Slots[i].IsClaimed = 0;
+			node->Slots[i].IsMasked = 0;
 			node->Slots[i].Type = NULL_CAPABILITY;
 		}
 
@@ -127,13 +127,13 @@ Capability *AddressCapability(CapabilitySpace *space, uptr ptr) {
 }
 
 
-Capability *GenerateCapability(CapabilitySpace *space, OBJECT_TYPE kind, uptr object, u32 accessRights) {
+Capability *GenerateCapability(CapabilitySpace *space, OBJECT_TYPE kind, uptr object, u16 accessRights) {
 	if (kind < UNTYPED || kind >= OBJECT_TYPE_COUNT) {
 		return NULL;
 	}
 
 	CapabilitySlab *slab = &space->Slabs[kind];
-	CapabilityTreeNode *capability = SLAB::AllocateFreeSlotInSlab(slab);
+	CapabilityTreeNode *capability = SLAB::AllocateSlabSlot(slab);
 	if (capability == NULL) {
 		return NULL;
 	}
@@ -151,44 +151,19 @@ Capability *GenerateCapability(CapabilitySpace *space, OBJECT_TYPE kind, uptr ob
 	return capability;
 }
 
-Capability *RequestObject(CapabilitySpace *space, OBJECT_TYPE kind) {
-	if (kind < UNTYPED || kind >= OBJECT_TYPE_COUNT) {
+Capability *RetypeUntyped(CapabilitySpace *space, Capability *untyped, OBJECT_TYPE kind) {
+	if (kind < UNTYPED || kind >= OBJECT_TYPE_COUNT || kind == UNTYPED) {
 		return NULL;
 	}
 
-	CapabilitySlab *slab = &space->Slabs[kind];
-
-	/* Here check in the relative slab if there is such an object, then return it
-	 * If there is no object present, return NULL and tell the user to retype
-	 */
-	Capability *capability = SLAB::ClaimSlotInSlab(slab);
-
-	return capability;
-}
-
-void ReturnObject(CapabilitySpace *space, Capability *capability) {
-	/* Object is unused now */
-
-	(void)space;
-	capability->IsClaimed = false;
-}
-
-void RetypeUntyped(CapabilitySpace *space, Capability *untyped, OBJECT_TYPE kind) {
-	if (kind < UNTYPED || kind >= OBJECT_TYPE_COUNT || kind == UNTYPED) {
-		return;
-	}
-
-	CapabilitySlab *untypedSlab = &space->Slabs[UNTYPED];
-	CapabilitySlab *slab = &space->Slabs[kind];
-	
 	if (untyped->IsMasked != 0) {
 		/* The ut capability must not have children */
-		return;
+		return NULL;
 	}
 
 	u16 maskedRights = untyped->AccessRights & untyped->AccessRightsMask;
 	if ((maskedRights & CAPABILITY_RIGHTS::RETYPE) == 0) {
-		return;
+		return NULL;
 	}
 	
 	UntypedHeader *header = (UntypedHeader*)untyped->Object;
@@ -197,27 +172,33 @@ void RetypeUntyped(CapabilitySpace *space, Capability *untyped, OBJECT_TYPE kind
 	/* Don't worry about this, all structures will be aligned to be powers of two 
 	 * to result in a null quotient always
 	 */
-	usize count = header->Length / GetObjectSize(kind);
-
+	// usize count = header->Length / GetObjectSize(kind);
 
 	/* Here check if there are enough slots in the slab, then allocate those slots and
 	 * make the capabilities */
+	Capability *capability = GenerateCapability(space, kind, startAddress, maskedRights);
+	if (capability == NULL) {
+		return NULL;
+	}
+
+	capability->Parent = untyped;
+	untyped->IsMasked = 1;
+	untyped->Children = 1;
 	// TODO
-	(void)slab;
-	(void)count;
-	(void)startAddress;
-	(void)untypedSlab;
 
 	/* From now on, the UntypedHeader is not to be read anymore, as it's considered overwritten */
 	Memclr(header, sizeof(UntypedHeader));
+
+	return capability;
 }
 
-void UntypeObject(CapabilitySpace *space, Capability *capability) {
+Capability *UntypeObject(CapabilitySpace *space, Capability *capability) {
 	CapabilitySlab *slab = &space->Slabs[UNTYPED];
 
 	/* Transforms back into untyped */
 	(void)slab;
 	(void)capability;
+	return NULL;
 }
 #ifdef UNDEF	
 Capability *SplitUntyped(Capability *untyped, usize splitSize, usize count) {

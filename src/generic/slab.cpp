@@ -10,66 +10,14 @@ CapabilityNode *AddSlabNode(CapabilitySlab *slab, CapabilityNode *node) {
 	AddElementToList(node, &slab->FreeSlabs);
 
 	for (usize i = 0; i < CAPABILITIES_PER_NODE; ++i) {
-		node->Slots[i].IsClaimed = 0;
+		node->Slots[i].IsMasked = 0;
 		node->Slots[i].Type = NULL_CAPABILITY;
 	}
 
 	return node;
 }
 
-CapabilityNode *FindSlabNode(CapabilitySlab *slab, uptr address) {
-	CapabilityNode *node = (CapabilityNode*)slab->UsedSlabs.Head;
-
-	ROUND_DOWN_TO_PAGE(address);
-
-	while(node) {
-		if (address == (uptr)node) {
-			return node;
-		} else {
-			node = (CapabilityNode*)node->Next;
-		}
-	}
-
-	node = (CapabilityNode*)slab->FullSlabs.Head;
-
-	while(node) {
-		if (address == (uptr)node) {
-			return node;
-		} else {
-			node = (CapabilityNode*)node->Next;
-		}
-	}
-
-	return NULL;
-}
-
-CapabilityTreeNode *FindElementInNode(CapabilityNode *node, uptr address) {
-	if (address >= (uptr)node + PAGE_SIZE) {
-		return NULL;
-	}
-
-	uptr elementStart = (uptr)node - sizeof(ListHead);
-	uptr offset = address - elementStart;
-
-	if (offset % sizeof(Capability) == 0) {
-		return (CapabilityTreeNode*)address;
-	}
-
-	return NULL;
-}
-
-
-CapabilityTreeNode *FindElementInSlab(CapabilitySlab *slab, uptr address) {
-	CapabilityNode *node = FindSlabNode(slab, address);
-	if (node == NULL) {
-		return NULL;
-	}
-
-	CapabilityTreeNode *cap = FindElementInNode(node, address);
-	return cap;
-}
-	
-CapabilityTreeNode *AllocateFreeSlotInSlab(CapabilitySlab *slab) {
+CapabilityTreeNode *AllocateSlabSlot(CapabilitySlab *slab) {
 	CapabilityNode *node = (CapabilityNode*)slab->UsedSlabs.Head;
 
 	if(node == NULL) {
@@ -104,28 +52,25 @@ CapabilityTreeNode *AllocateFreeSlotInSlab(CapabilitySlab *slab) {
 	return NULL;
 }
 
-CapabilityTreeNode *ClaimSlotInSlab(CapabilitySlab *slab) {
-	CapabilityNode *node = (CapabilityNode*)slab->UsedSlabs.Head;
+void FreeSlabSlot(CapabilitySlab *slab, CapabilityTreeNode *capability) {
+	capability->Type = NULL_CAPABILITY;
 
-	bool done = false;
-	do {
-		while(node) {
-			for (usize i = 0; i < CAPABILITIES_PER_NODE; ++i) {
-				CapabilityTreeNode *cap = &node->Slots[i];
-				if(cap->Type != NULL_CAPABILITY && !cap->IsClaimed) {
-					cap->IsClaimed = true;
+	uptr nodeAddress = (uptr)capability;
+	ROUND_DOWN_TO_PAGE(nodeAddress);
 
-					return cap;
-				}			
-			}
-		}
-		
-		node = (CapabilityNode*)slab->FullSlabs.Head;
-		done = true;
-	} while(!done);
+	CapabilityNode *node = (CapabilityNode*)nodeAddress;
 
-	return NULL;
+	++node->FreeElements;
 
+	if (node->FreeElements == CAPABILITIES_PER_NODE) {
+		RemoveElementFromList(node, &slab->UsedSlabs);
+		AddElementToList(node, &slab->FreeSlabs);
+	} else if (node->FreeElements == 1) {
+		RemoveElementFromList(node, &slab->FullSlabs);
+		AddElementToList(node, &slab->UsedSlabs);
+	}
+
+	return;
 }
 
 CapabilityTreeNode *Skew(CapabilityTreeNode *tree) {

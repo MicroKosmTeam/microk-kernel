@@ -34,16 +34,16 @@ struct List {
  *
  */
 struct Capability {
-	u8 IsClaimed : 1;
 	u8 IsMasked : 1;
-	u8 Type : 6;
+	u8 Type : 7;
 	uptr Object;
 
 	u16 AccessRights;
 	u16 AccessRightsMask;
 
 	// TODO: overhaul parent/child relationship
-	//Capability *Parent;
+	Capability *Parent;
+	u32 Children;
 }__attribute__((packed, aligned(0x10)));
 
 struct CapabilityTreeNode : public Capability {
@@ -51,7 +51,7 @@ struct CapabilityTreeNode : public Capability {
 
 	u32 Level;
 	uptr Key;
-}__attribute__((packed, aligned(0x10)));
+};
 
 /*
  * WARNING: Experimental, for future use
