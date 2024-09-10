@@ -46,8 +46,17 @@ struct Capability {
 	//Capability *Parent;
 }__attribute__((packed, aligned(0x10)));
 
+struct CapabilityTreeNode : public Capability {
+	CapabilityTreeNode *Left, *Right;
+
+	u32 Level;
+	uptr Key;
+}__attribute__((packed, aligned(0x10)));
+
+/*
+ * WARNING: Experimental, for future use
+ */
 struct EncryptedCapability {
-	uptr 
 	u8 CapabilityData[sizeof(Capability)];
 	u8 SHA256Hash[SHA256_BLOCK_SIZE]; /* Encrypted hash */
 	u8 IV[AES_BLOCKLEN];
@@ -55,19 +64,12 @@ struct EncryptedCapability {
 	   hash reencrypted */
 }__attribute__((packed, aligned(0x10)));
 
-
 #define SECP256k1_PRIVATE_KEY_SIZE 32
 #define SECP256k1_PUBLIC_KEY_SIZE 64
 #define SECP256k1_SHARED_SECRET_SIZE 32
-struct CapabilityContext {
+struct EncryptedCapabilityContext {
 	u8 Secret[SECP256k1_SHARED_SECRET_SIZE];
 }__attribute__((packed, aligned(0x10)));
-
-struct CapabilityPtr {
-	u8 SlabIndex;
-	u32 NodeIndex;
-	u16 CapabilityIndex;
-};
 
 /*
  *
@@ -106,7 +108,7 @@ struct SlabHead : public ListHead {
  *
  */
 struct CapabilityNode : public SlabHead {
-	Capability Slots[CAPABILITIES_PER_NODE];
+	CapabilityTreeNode Slots[CAPABILITIES_PER_NODE];
 };
 
 /*
@@ -114,8 +116,6 @@ struct CapabilityNode : public SlabHead {
  */
 
 struct CapabilitySlab {
-	
-
 	List FreeSlabs;
 	List UsedSlabs;
 	List FullSlabs;
@@ -125,6 +125,7 @@ struct CapabilitySlab {
  *
  */
 struct CapabilitySpace {
+	CapabilityTreeNode *CapabilityTree;
 	CapabilitySlab Slabs[OBJECT_TYPE_COUNT];
 };
 

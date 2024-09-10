@@ -19,7 +19,6 @@ void InitializeRootSpace(uptr framesBase, UntypedHeader *memoryMap) {
 	/* Initializing the TCB and creating the root CSpace */
 	info->RootTCB = TASK::InitializeTCB(tcbFrame);
 	info->RootCSpace = (CapabilitySpace*)cspaceFrame;
-	Memclr((void*)cspaceFrame, PAGE_SIZE);
 
 	CapabilitySpace *space = info->RootCSpace;
 	uptr nextSlabNodeFrame = slabNodeFrame;
@@ -82,6 +81,8 @@ void InitializeRootSpace(uptr framesBase, UntypedHeader *memoryMap) {
 	DumpCapabilitySlab(space, TASK_CONTROL_BLOCK);
 	DumpCapabilitySlab(space, CNODE);
 	DumpCapabilitySlab(space, CSPACE);
+
+	SLAB::Dump(space->CapabilityTree);
 }
 
 usize GetObjectSize(OBJECT_TYPE kind) {
@@ -111,8 +112,8 @@ usize GetObjectSize(OBJECT_TYPE kind) {
 	}
 }
 
-Capability *AddressCapability(CapabilitySpace *space, CapabilityPtr *ptr) {
-	OBJECT_TYPE kind = (OBJECT_TYPE)ptr->SlabIndex;
+Capability *AddressCapability(CapabilitySpace *space, uptr ptr) {
+	OBJECT_TYPE kind = UNTYPED/*TODO*/;
 	if (kind < UNTYPED || kind >= OBJECT_TYPE_COUNT) {
 		return NULL;
 	}
@@ -132,7 +133,7 @@ Capability *GenerateCapability(CapabilitySpace *space, OBJECT_TYPE kind, uptr ob
 	}
 
 	CapabilitySlab *slab = &space->Slabs[kind];
-	Capability *capability = SLAB::AllocateFreeSlotInSlab(slab);
+	CapabilityTreeNode *capability = SLAB::AllocateFreeSlotInSlab(slab);
 	if (capability == NULL) {
 		return NULL;
 	}
@@ -142,6 +143,8 @@ Capability *GenerateCapability(CapabilitySpace *space, OBJECT_TYPE kind, uptr ob
 	capability->Object = object;
 	capability->AccessRights = accessRights;
 	capability->AccessRightsMask = 0xFFFF;
+	
+	space->CapabilityTree = SLAB::Insert(space->CapabilityTree, capability);
 
 	PRINTK::PrintK(PRINTK_DEBUG "Generated capability of kind: %d\r\n", kind);
 

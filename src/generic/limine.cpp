@@ -122,6 +122,7 @@ void LimineEntry() {
 	KInfo *info = GetInfo();
 
 	RANDOM::SRand(BootTimeRequest.response->boot_time);
+	/*
 	uECC_set_rng(reinterpret_cast<uECC_RNG_Function>((void*)&RANDOM::Rng));
 
 	uECC_Curve curve = uECC_secp256k1();
@@ -131,7 +132,7 @@ void LimineEntry() {
 
 	uECC_make_key(publicKey, privateKey, curve);
 
-	CapabilityContext context;
+	EncryptedCapabilityContext context;
 	
 	uECC_shared_secret(publicKey, privateKey, context.Secret, curve);
 
@@ -182,11 +183,11 @@ void LimineEntry() {
 	
 	PRINTK::PrintK(PRINTK_DEBUG "Encrypted capability is %d bytes\r\n", sizeof(EncryptedCapability));
 	PRINTK::PrintK(PRINTK_DEBUG "Capability is %d bytes\r\n", sizeof(Capability));
-	PRINTK::PrintK(PRINTK_DEBUG "CapabilityContext is %d bytes\r\n", sizeof(CapabilityContext));
+	PRINTK::PrintK(PRINTK_DEBUG "CapabilityContext is %d bytes\r\n", sizeof(EncryptedCapabilityContext));
 	PRINTK::PrintK(PRINTK_DEBUG "Capabilities per page: %d\r\n", PAGE_SIZE / sizeof(EncryptedCapability));
 
 	while(true) {}
-
+	*/
 
 	info->HigherHalfMapping = HHDMRequest.response->offset;
 	info->KernelPhysicalBase = KAddrRequest.response->physical_base;

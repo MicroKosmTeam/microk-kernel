@@ -1,9 +1,11 @@
 #include <slab.hpp>
 #include <vmm.hpp>
 #include <list.hpp>
+#include <math.hpp>
+#include <panic.hpp>
+#include <printk.hpp>
 
 namespace SLAB {
-
 CapabilityNode *AddSlabNode(CapabilitySlab *slab, CapabilityNode *node) {
 	AddElementToList(node, &slab->FreeSlabs);
 
@@ -41,7 +43,7 @@ CapabilityNode *FindSlabNode(CapabilitySlab *slab, uptr address) {
 	return NULL;
 }
 
-Capability *FindElementInNode(CapabilityNode *node, uptr address) {
+CapabilityTreeNode *FindElementInNode(CapabilityNode *node, uptr address) {
 	if (address >= (uptr)node + PAGE_SIZE) {
 		return NULL;
 	}
@@ -50,24 +52,24 @@ Capability *FindElementInNode(CapabilityNode *node, uptr address) {
 	uptr offset = address - elementStart;
 
 	if (offset % sizeof(Capability) == 0) {
-		return (Capability*)address;
+		return (CapabilityTreeNode*)address;
 	}
 
 	return NULL;
 }
 
 
-Capability *FindElementInSlab(CapabilitySlab *slab, uptr address) {
+CapabilityTreeNode *FindElementInSlab(CapabilitySlab *slab, uptr address) {
 	CapabilityNode *node = FindSlabNode(slab, address);
 	if (node == NULL) {
 		return NULL;
 	}
 
-	Capability *cap = FindElementInNode(node, address);
+	CapabilityTreeNode *cap = FindElementInNode(node, address);
 	return cap;
 }
 	
-Capability *AllocateFreeSlotInSlab(CapabilitySlab *slab) {
+CapabilityTreeNode *AllocateFreeSlotInSlab(CapabilitySlab *slab) {
 	CapabilityNode *node = (CapabilityNode*)slab->UsedSlabs.Head;
 
 	if(node == NULL) {
@@ -79,7 +81,7 @@ Capability *AllocateFreeSlotInSlab(CapabilitySlab *slab) {
 
 	while(node) {
 		for (usize i = 0; i < CAPABILITIES_PER_NODE; ++i) {
-			Capability *cap = &node->Slots[i];
+			CapabilityTreeNode *cap = &node->Slots[i];
 			if(cap->Type == NULL_CAPABILITY) {
 				cap->Type = RESERVED_SLOT;
 
@@ -102,14 +104,14 @@ Capability *AllocateFreeSlotInSlab(CapabilitySlab *slab) {
 	return NULL;
 }
 
-Capability *ClaimSlotInSlab(CapabilitySlab *slab) {
+CapabilityTreeNode *ClaimSlotInSlab(CapabilitySlab *slab) {
 	CapabilityNode *node = (CapabilityNode*)slab->UsedSlabs.Head;
 
 	bool done = false;
 	do {
 		while(node) {
 			for (usize i = 0; i < CAPABILITIES_PER_NODE; ++i) {
-				Capability *cap = &node->Slots[i];
+				CapabilityTreeNode *cap = &node->Slots[i];
 				if(cap->Type != NULL_CAPABILITY && !cap->IsClaimed) {
 					cap->IsClaimed = true;
 
@@ -124,5 +126,142 @@ Capability *ClaimSlotInSlab(CapabilitySlab *slab) {
 
 	return NULL;
 
+}
+
+CapabilityTreeNode *Skew(CapabilityTreeNode *tree) {
+	if (tree == NULL) {
+		return NULL;
+	} else if (tree->Left == NULL) {
+		return tree;
+	} else if (tree->Left->Level == tree->Level) {
+		CapabilityTreeNode *left = tree->Left;
+		tree->Left = left->Right;
+		left->Right = tree;
+		return left;
+	} else {
+		return tree;
+	}
+}
+
+CapabilityTreeNode *Split(CapabilityTreeNode *tree) {
+	if (tree == NULL) {
+		return NULL;
+	} else if (tree->Right == NULL || tree->Right->Right == NULL) {
+		return tree;
+	} else if (tree->Level == tree->Right->Right->Level) {
+		CapabilityTreeNode *right = tree->Right;
+		tree->Right = right->Left;
+		right->Left = tree;
+		++right->Level;
+		return right;
+	} else {
+		return tree;
+	}
+}
+
+CapabilityTreeNode *Insert(CapabilityTreeNode *tree, CapabilityTreeNode *node) {
+	if (tree == NULL) {
+		node->Level = 1;
+		node->Key = node->Object;
+		node->Left = node->Right = NULL;
+		return node;
+	} else if (node->Key < tree->Key) {
+		tree->Left = Insert(tree->Left, node);
+	} else if (node->Key > tree->Key) {
+		tree->Right = Insert(tree->Right, node);
+	} else /* (node->Key == tree->Key) */ {
+		PANIC("SAME KEY DOUBLE INSERTED");
+	}
+	
+	tree = Skew(tree);
+	tree = Split(tree);
+
+	return tree;
+}
+
+CapabilityTreeNode *DecreaseLevel(CapabilityTreeNode *tree) {
+	u32 shouldBe = MATH::Min(tree->Left->Level, tree->Right->Level) + 1;
+
+	if (tree->Left && tree->Right) {
+		if (shouldBe < tree->Level) {
+			tree->Level = shouldBe;
+			if (shouldBe < tree->Right->Level) {
+				tree->Right->Level = shouldBe;
+			}
+		}
+	}
+
+	return tree;
+}
+
+CapabilityTreeNode *Predecessor(CapabilityTreeNode *curNode) {
+	curNode = curNode->Left;
+
+	while (curNode->Right != NULL) {
+        	curNode = curNode->Right;
+	}
+
+	return curNode;
+}
+
+CapabilityTreeNode *Successor(CapabilityTreeNode *curNode) {
+	curNode = curNode->Right;
+
+	while (curNode->Left != NULL) {
+		curNode = curNode->Left;
+	}
+
+	return curNode;
+}
+
+CapabilityTreeNode *Delete(CapabilityTreeNode *tree, CapabilityTreeNode *node) {
+	if (tree == NULL) {
+		return tree;
+	} else if (node->Key < tree->Key) {
+		tree->Left = Delete(tree->Left, node);
+	} else if (node->Key > tree->Key) {
+		tree->Right = Delete(tree->Right, node);
+	} else {
+		if (tree->Left == NULL && tree->Right == NULL) {
+			return NULL;
+		} else if (tree->Left == NULL) {
+			CapabilityTreeNode *successor = Successor(tree);
+			tree->Right = Delete(tree->Right, successor);
+			tree->Key = successor->Key;
+			/* TODO:COPY CAPABILITY */
+		} else {
+			CapabilityTreeNode *predecessor = Successor(tree);
+			tree->Left = Delete(tree->Left, predecessor);
+			tree->Key = predecessor->Key;
+			/* TODO:COPY CAPABILITY */
+
+		}
+	}
+
+	tree = DecreaseLevel(tree);
+	tree = Skew(tree);
+	tree->Right = Skew(tree->Right);
+
+	if (tree->Right != NULL && tree->Right->Right != NULL) {
+		tree->Right->Right = Skew(tree->Right->Right);
+	}
+
+	tree = Split(tree);
+	tree->Right = Split(tree);
+
+	return tree;
+}
+
+void Dump(CapabilityTreeNode *tree) {
+	if (tree == NULL) {
+		return;
+	}
+
+	PRINTK::PrintK(PRINTK_DEBUG "#%d 0x%x\r\n"
+		       "     -> L 0x%x\r\n"
+		       "     -> R 0x%x\r\n", tree->Level, tree, tree->Left, tree->Right);
+
+	Dump(tree->Left);
+	Dump(tree->Right);
 }
 }
