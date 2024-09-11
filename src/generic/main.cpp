@@ -56,7 +56,7 @@ void KernelStart() {
 		       sizeof(TaskControlBlock),
 		       sizeof(SchedulerContext));
 
-	ARCH::InitializeBootCPU();/*
+	/*
 	MEM::Init();
 	CAPABILITY::InitializeRootSpace();
 	ARCH::InitializeCPUFeatures();

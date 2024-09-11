@@ -55,19 +55,24 @@ void InitializeRootSpace(uptr framesBase, UntypedHeader *memoryMap) {
 
 	for (UntypedHeader *entry = memoryMap; entry->Address != (uptr)-1; ++entry) {
 		if(entry->Flags == MEMMAP_USABLE) {
-			UntypedHeader *accessibleHeader = (UntypedHeader*)VMM::PhysicalToVirtual(entry->Address);
-
 			if(framesBase == entry->Address) {
 				uptr oldAddress = entry->Address;
-				entry->Address = slabNodeFrame;
-				entry->Length -= (slabNodeFrame - oldAddress);
-			} else {
-				entry->Address = (uptr)accessibleHeader;
-			}
+				entry->Address = VMM::VirtualToPhysical(slabNodeFrame);
+				entry->Length -= (entry->Address - oldAddress);
+				PRINTK::PrintK(PRINTK_DEBUG "0x%x vs 0x%x\r\n", framesBase, entry->Address);
+			} 
+
+			UntypedHeader *accessibleHeader = (UntypedHeader*)VMM::PhysicalToVirtual(entry->Address);
+			entry->Address = (uptr)accessibleHeader;
 
 			Memcpy(accessibleHeader, entry, sizeof(UntypedHeader));
 
-			GenerateCapability(space, UNTYPED, (uptr)accessibleHeader->Address, ACCESS | RETYPE | GRANT);
+			GenerateCapability(space, UNTYPED, (uptr)accessibleHeader, ACCESS | RETYPE | GRANT);
+			PRINTK::PrintK(PRINTK_DEBUG "Capability:\r\n"
+					            "A: 0x%x\r\n"
+						    "E: 0x%x\r\n"
+						    "A->A: 0x%x\r\n"
+						    "E->A: 0x%x\r\n", accessibleHeader, entry, accessibleHeader->Address, entry->Address);
 		}
 
 	}
@@ -78,11 +83,16 @@ void InitializeRootSpace(uptr framesBase, UntypedHeader *memoryMap) {
 	PRINTK::PrintK(PRINTK_DEBUG "Root space initialized.\r\n");
 	
 	DumpCapabilitySlab(space, UNTYPED);
-	DumpCapabilitySlab(space, TASK_CONTROL_BLOCK);
-	DumpCapabilitySlab(space, CNODE);
-	DumpCapabilitySlab(space, CSPACE);
+	SLAB::Dump(space->Slabs[UNTYPED].CapabilityTree);
 
-	SLAB::Dump(space->CapabilityTree);
+	DumpCapabilitySlab(space, TASK_CONTROL_BLOCK);
+	SLAB::Dump(space->Slabs[TASK_CONTROL_BLOCK].CapabilityTree);
+	
+	DumpCapabilitySlab(space, CNODE);
+	SLAB::Dump(space->Slabs[CNODE].CapabilityTree);
+
+	DumpCapabilitySlab(space, CSPACE);
+	SLAB::Dump(space->Slabs[CSPACE].CapabilityTree);
 }
 
 usize GetObjectSize(OBJECT_TYPE kind) {
@@ -112,18 +122,14 @@ usize GetObjectSize(OBJECT_TYPE kind) {
 	}
 }
 
-Capability *AddressCapability(CapabilitySpace *space, uptr ptr) {
-	OBJECT_TYPE kind = UNTYPED/*TODO*/;
+Capability *AddressCapability(CapabilitySpace *space, uptr ptr, OBJECT_TYPE kind) {
 	if (kind < UNTYPED || kind >= OBJECT_TYPE_COUNT) {
 		return NULL;
 	}
-
+	
 	CapabilitySlab *slab = &space->Slabs[kind];
 
-	(void)slab;
-	(void)ptr;
-
-	return NULL;
+	return (Capability*)SLAB::Search(slab->CapabilityTree, ptr);
 }
 
 
@@ -144,19 +150,21 @@ Capability *GenerateCapability(CapabilitySpace *space, OBJECT_TYPE kind, uptr ob
 	capability->AccessRights = accessRights;
 	capability->AccessRightsMask = 0xFFFF;
 	
-	space->CapabilityTree = SLAB::Insert(space->CapabilityTree, capability);
+	//capability->Key = object;
+	slab->CapabilityTree = SLAB::Insert(slab->CapabilityTree, capability);
 
-	PRINTK::PrintK(PRINTK_DEBUG "Generated capability of kind: %d\r\n", kind);
+	PRINTK::PrintK(PRINTK_DEBUG "Generated capability of 0x%x with kind: %d\r\n", object, kind);
 
 	return capability;
 }
 
-Capability *RetypeUntyped(CapabilitySpace *space, Capability *untyped, OBJECT_TYPE kind) {
+
+Capability *RetypeUntyped(CapabilitySpace *space, Capability *untyped, OBJECT_TYPE kind, usize count, Capability **array) {
 	if (kind < UNTYPED || kind >= OBJECT_TYPE_COUNT || kind == UNTYPED) {
 		return NULL;
 	}
 
-	if (untyped->IsMasked != 0) {
+	if (untyped->IsMasked != 0 || untyped->Children != 0) {
 		/* The ut capability must not have children */
 		return NULL;
 	}
@@ -172,24 +180,29 @@ Capability *RetypeUntyped(CapabilitySpace *space, Capability *untyped, OBJECT_TY
 	/* Don't worry about this, all structures will be aligned to be powers of two 
 	 * to result in a null quotient always
 	 */
-	// usize count = header->Length / GetObjectSize(kind);
+	usize realCount = header->Length / GetObjectSize(kind);
+	if (count > realCount) {
+		count = realCount;
+	}
 
 	/* Here check if there are enough slots in the slab, then allocate those slots and
 	 * make the capabilities */
-	Capability *capability = GenerateCapability(space, kind, startAddress, maskedRights);
-	if (capability == NULL) {
-		return NULL;
-	}
+	for (usize i = 0; i < count; ++i) {
+		array[i] = GenerateCapability(space, kind, startAddress, maskedRights);
+		if (array[i] == NULL) {
+			return NULL;
+		}
 
-	capability->Parent = untyped;
+		array[i]->Parent = untyped;
+		++untyped->Children;
+	}
+		
 	untyped->IsMasked = 1;
-	untyped->Children = 1;
-	// TODO
 
 	/* From now on, the UntypedHeader is not to be read anymore, as it's considered overwritten */
 	Memclr(header, sizeof(UntypedHeader));
 
-	return capability;
+	return array[0];
 }
 
 Capability *UntypeObject(CapabilitySpace *space, Capability *capability) {
@@ -200,13 +213,12 @@ Capability *UntypeObject(CapabilitySpace *space, Capability *capability) {
 	(void)capability;
 	return NULL;
 }
-#ifdef UNDEF	
-Capability *SplitUntyped(Capability *untyped, usize splitSize, usize count) {
-	if (untyped->IsMasked != 0) {
+
+Capability *SplitUntyped(CapabilitySpace *space, Capability *untyped, usize splitSize, usize count, Capability **array) {
+	if (untyped->IsMasked != 0 || untyped->Children != 0) {
 		/* The ut capability must not have children */
 		return NULL;
 	}
-
 
 	u16 maskedRights = untyped->AccessRights & untyped->AccessRightsMask;
 	if ((maskedRights & CAPABILITY_RIGHTS::RETYPE) == 0) {
@@ -215,8 +227,6 @@ Capability *SplitUntyped(Capability *untyped, usize splitSize, usize count) {
 
 	if (count == 0) {
 		return NULL;
-	} else if (count == 1) {
-		return untyped;
 	}
 
 	/* Can't be split to less than a page */
@@ -235,43 +245,26 @@ Capability *SplitUntyped(Capability *untyped, usize splitSize, usize count) {
 		return NULL;
 	}
 
-	Capability *untypedNext = untyped->Next;
-	Capability *untypedPrev= untyped->Prev;
-
 	uptr initialAddress = header->Address;
 	usize initialLength = header->Length;
 	u16 rights = untyped->AccessRights;
 	u16 mask = untyped->AccessRightsMask;
 	uptr baseAddr = untyped->Object;
 
-	Capability *next = NULL;
-	Capability *prev = NULL;
 	for (usize i = 1; i < count; ++i) {
-		UntypedHeader *nextHeader = (UntypedHeader*)(baseAddr + splitSize * i);
-		Memcpy(nextHeader, header, sizeof(UntypedHeader));
-		nextHeader->Address = initialAddress + splitSize * i;
-		nextHeader->Length = splitSize;
+		Capability *cap = NULL;
+		UntypedHeader *capHeader = (UntypedHeader*)(baseAddr + splitSize * i);
+		Memcpy(capHeader, header, sizeof(UntypedHeader));
+		capHeader->Address = initialAddress + splitSize * i;
+		capHeader->Length = splitSize;
 	
-		if (next) {
-			next = Originate(node, (uptr)nextHeader, OBJECT_TYPE::UNTYPED, rights);
-		} else {
-			next = untyped;
-			next->Object = (uptr)nextHeader;
-		}
-
-		next->AccessRightsMask = mask; 
-
-		next->Next = NULL;
-
-		if (prev) {
-			next->Prev = prev;
-			prev->Next = next;
-		} else {
-			next->Prev = untypedPrev;
-		}
-
-		prev = next;
+		cap = GenerateCapability(space, UNTYPED, (uptr)capHeader, rights);
+		cap->AccessRightsMask = mask; 
+		array[i] = cap;
 	}
+
+	header->Length = splitSize;
+	array[0] = untyped;
 
 	if (initialLength > totalSplitSize) {
 		UntypedHeader *lastHeader = (UntypedHeader*)(untyped->Object + totalSplitSize);
@@ -279,30 +272,21 @@ Capability *SplitUntyped(Capability *untyped, usize splitSize, usize count) {
 		lastHeader->Address = initialAddress + totalSplitSize;
 		lastHeader->Length = initialLength - totalSplitSize;
 	
-		Capability *last = Originate(node, (uptr)lastHeader, OBJECT_TYPE::UNTYPED, rights);
+		Capability *last = GenerateCapability(space, UNTYPED, (uptr)lastHeader, rights);
 		last->AccessRightsMask = mask;
 
-		last->Next = untypedNext;
-
-		if (untypedNext) {
-			untypedNext->Prev = last;
-		}
-
-		last->Prev = prev;
-		prev->Next = last;
-	} else if (untypedNext) {
-		prev->Next = untypedNext;
-		untypedNext->Prev = prev;
+		return last;
 	}
-	
 
-	return ut;
+	return array[count - 1];
 }
-#endif
-void MergeUntyped(CapabilitySpace *space, Capability *capability) {
+
+Capability *MergeUntyped(CapabilitySpace *space, Capability *capability) {
 	/* Merges adiacent untyped memory regions */
 	(void)space;
 	(void)capability;
+
+	return NULL;
 }
 
 void DumpCapabilitySlab(CapabilitySpace *space, OBJECT_TYPE kind) {

@@ -107,14 +107,13 @@ CapabilityTreeNode *Split(CapabilityTreeNode *tree) {
 CapabilityTreeNode *Insert(CapabilityTreeNode *tree, CapabilityTreeNode *node) {
 	if (tree == NULL) {
 		node->Level = 1;
-		node->Key = node->Object;
 		node->Left = node->Right = NULL;
 		return node;
-	} else if (node->Key < tree->Key) {
+	} else if (node->Object < tree->Object) {
 		tree->Left = Insert(tree->Left, node);
-	} else if (node->Key > tree->Key) {
+	} else if (node->Object > tree->Object) {
 		tree->Right = Insert(tree->Right, node);
-	} else /* (node->Key == tree->Key) */ {
+	} else /* (node->Object == tree->Object) */ {
 		PANIC("SAME KEY DOUBLE INSERTED");
 	}
 	
@@ -162,24 +161,32 @@ CapabilityTreeNode *Successor(CapabilityTreeNode *curNode) {
 CapabilityTreeNode *Delete(CapabilityTreeNode *tree, CapabilityTreeNode *node) {
 	if (tree == NULL) {
 		return tree;
-	} else if (node->Key < tree->Key) {
+	} else if (node->Object < tree->Object) {
 		tree->Left = Delete(tree->Left, node);
-	} else if (node->Key > tree->Key) {
+	} else if (node->Object > tree->Object) {
 		tree->Right = Delete(tree->Right, node);
 	} else {
 		if (tree->Left == NULL && tree->Right == NULL) {
+			// TODO: Free slot */
 			return NULL;
 		} else if (tree->Left == NULL) {
 			CapabilityTreeNode *successor = Successor(tree);
+
+			/* TODO:ZEROCOPY CAPABILITY */
+			Capability *treeCapability = (Capability*)tree;
+			Capability *successorCapability = (Capability*)successor;
+			*treeCapability = *successorCapability;
+			
 			tree->Right = Delete(tree->Right, successor);
-			tree->Key = successor->Key;
-			/* TODO:COPY CAPABILITY */
 		} else {
 			CapabilityTreeNode *predecessor = Successor(tree);
-			tree->Left = Delete(tree->Left, predecessor);
-			tree->Key = predecessor->Key;
-			/* TODO:COPY CAPABILITY */
 
+			/* TODO:ZEROCOPY CAPABILITY */
+			Capability *treeCapability = (Capability*)tree;
+			Capability *predecessorCapability = (Capability*)predecessor;
+			*treeCapability = *predecessorCapability;
+			
+			tree->Left = Delete(tree->Left, predecessor);
 		}
 	}
 
@@ -196,15 +203,35 @@ CapabilityTreeNode *Delete(CapabilityTreeNode *tree, CapabilityTreeNode *node) {
 
 	return tree;
 }
+	
+CapabilityTreeNode *Search(CapabilityTreeNode *tree, uptr key) {
+	CapabilityTreeNode *node = tree;
+
+	while (node != NULL) {
+		if (key == node->Object) {
+			return node;
+		} else if (key > node->Object) {
+			node = node->Right;
+		} else {
+			node = node->Left;
+		}
+	}
+
+	return NULL;
+}
 
 void Dump(CapabilityTreeNode *tree) {
 	if (tree == NULL) {
 		return;
 	}
 
-	PRINTK::PrintK(PRINTK_DEBUG "#%d 0x%x\r\n"
-		       "     -> L 0x%x\r\n"
-		       "     -> R 0x%x\r\n", tree->Level, tree, tree->Left, tree->Right);
+	PRINTK::PrintK(PRINTK_DEBUG "#%d 0x%x: 0x%x\r\n"
+		       "     -> L 0x%x: 0x%x\r\n"
+		       "     -> R 0x%x: 0x%x\r\n",
+		       tree->Level,
+		       tree, tree->Object,
+		       tree->Left, tree->Left ? tree->Left->Object : 0,
+		       tree->Right, tree->Right ? tree->Right->Object : 0);
 
 	Dump(tree->Left);
 	Dump(tree->Right);

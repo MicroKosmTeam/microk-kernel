@@ -50,7 +50,6 @@ struct CapabilityTreeNode : public Capability {
 	CapabilityTreeNode *Left, *Right;
 
 	u32 Level;
-	uptr Key;
 };
 
 /*
@@ -98,11 +97,10 @@ struct UntypedHeader {
  */
 
 struct SlabHead : public ListHead {
-	u32 Id;
 	u16 FreeElements;
 };
 
-#define CAPABILITIES_PER_NODE ((PAGE_SIZE - sizeof(SlabHead)) / sizeof(Capability))
+#define CAPABILITIES_PER_NODE ((PAGE_SIZE - sizeof(SlabHead)) / sizeof(CapabilityTreeNode))
 
 /*
  *
@@ -119,13 +117,13 @@ struct CapabilitySlab {
 	List FreeSlabs;
 	List UsedSlabs;
 	List FullSlabs;
+	CapabilityTreeNode *CapabilityTree;
 };
 
 /*
  *
  */
 struct CapabilitySpace {
-	CapabilityTreeNode *CapabilityTree;
 	CapabilitySlab Slabs[OBJECT_TYPE_COUNT];
 };
 

@@ -11,6 +11,7 @@
 #include <sha256.hpp>
 #include <micro-ecc/uECC.h>
 #include <tiny-aes/aes.hpp>
+#include <cpu.hpp>
 
 static volatile LIMINE_BASE_REVISION(1)
 
@@ -121,6 +122,7 @@ void LimineEntry() {
 	
 	KInfo *info = GetInfo();
 
+	ARCH::InitializeBootCPU();
 	RANDOM::SRand(BootTimeRequest.response->boot_time);
 	/*
 	uECC_set_rng(reinterpret_cast<uECC_RNG_Function>((void*)&RANDOM::Rng));
@@ -193,41 +195,61 @@ void LimineEntry() {
 	info->KernelPhysicalBase = KAddrRequest.response->physical_base;
 	info->KernelVirtualBase = KAddrRequest.response->virtual_base;
 
-	usize memoryRegions = MemoryMapRequest.response->entry_count;
-	PRINTK::PrintK(PRINTK_DEBUG "Memory regions from bootloader: %d\r\n", memoryRegions);
+	{
+		usize memoryRegions = MemoryMapRequest.response->entry_count;
+		PRINTK::PrintK(PRINTK_DEBUG "Memory regions from bootloader: %d\r\n", memoryRegions);
 
-	UntypedHeader memoryMap[memoryRegions + 1];
+		UntypedHeader memoryMap[memoryRegions + 1];
+		UntypedHeader *longestRegion;
 
-	usize longestRegionLength = 0;
-	uptr longestRegionBase = 0;
-
-	for (usize i = 0; i < memoryRegions; i++) {
-		uptr base = MemoryMapRequest.response->entries[i]->base;
-		usize length = MemoryMapRequest.response->entries[i]->length;
-		u8 type = MemoryMapRequest.response->entries[i]->type;
+		usize longestRegionLength = 0;
 		
-		memoryMap[i].Address = base;
-		memoryMap[i].Length = length;
-		memoryMap[i].Flags = type;
+		for (usize i = 0; i < memoryRegions; i++) {
+			uptr base = MemoryMapRequest.response->entries[i]->base;
+			usize length = MemoryMapRequest.response->entries[i]->length;
+			u8 type = MemoryMapRequest.response->entries[i]->type;
+		
+			memoryMap[i].Address = base;
+			memoryMap[i].Length = length;
+			memoryMap[i].Flags = type;
 
-		/* Exclude invalid entries */
-		if (type != MEMMAP_USABLE) {
-			continue;
-		}
+			/* Exclude invalid entries */
+			if (type != MEMMAP_USABLE) {
+				continue;
+			}
 
-		/* We also do the equals because it's preferable to have
-		 * a higher memory region (that are abundant) compared to
-		 * low memory regions (i.e. below 64MB)
-		 */
-		if (length >= longestRegionLength) {
-			longestRegionBase = base;
-			longestRegionLength = length;
+			/* We also do the equals because it's preferable to have
+			 * a higher memory region (that are abundant) compared to
+			 * low memory regions (i.e. below 64MB)
+			 */
+			if (length >= longestRegionLength) {
+				longestRegionLength = length;
+				longestRegion = &memoryMap[i];
+			}
 		}
+		
+		memoryMap[memoryRegions].Address = -1;
+
+		CAPABILITY::InitializeRootSpace(longestRegion->Address, memoryMap);
+
+		uptr address = VMM::PhysicalToVirtual(longestRegion->Address);
+		Capability *cap = CAPABILITY::AddressCapability(info->RootCSpace, address, UNTYPED);
+		PRINTK::PrintK(PRINTK_DEBUG "Capability with address 0x%x: 0x%x\r\n", address, cap);
+		UntypedHeader *header = (UntypedHeader*)cap->Object;
+		PRINTK::PrintK(PRINTK_DEBUG "Header with address 0x%x: %d bytes\r\n", header->Address, header->Length);
+
+		usize splitCount = 1;
+		Capability *splitArray[splitCount];
+		cap = CAPABILITY::SplitUntyped(info->RootCSpace, cap, PAGE_SIZE, splitCount, splitArray);
+
+		PRINTK::PrintK(PRINTK_DEBUG "Capability with address 0x%x: 0x%x\r\n", splitArray[0]->Object, splitArray[0]);
+		header = (UntypedHeader*)splitArray[0]->Object;
+		PRINTK::PrintK(PRINTK_DEBUG "Header with address 0x%x: %d bytes\r\n", header->Address, header->Length);
+
+		PRINTK::PrintK(PRINTK_DEBUG "Capability with address 0x%x: 0x%x\r\n", cap->Object, cap);
+		header = (UntypedHeader*)cap->Object;
+		PRINTK::PrintK(PRINTK_DEBUG "Header with address 0x%x: %d bytes\r\n", header->Address, header->Length);
 	}
-
-	memoryMap[memoryRegions].Address = -1;
-
-	CAPABILITY::InitializeRootSpace(longestRegionBase, memoryMap);
 
 	info->ManagerExecutableAddress = (uptr)ModuleRequest.response->modules[0]->address;
 	info->ManagerExecutableSize = ModuleRequest.response->modules[0]->size;

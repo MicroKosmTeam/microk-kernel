@@ -1,6 +1,7 @@
 #pragma once
 #include <cdefs.h>
 #include <string.h>
+#include <object.hpp>
 
 #define MEMMAP_USABLE                 0x00
 #define MEMMAP_RESERVED               0x01
@@ -42,12 +43,6 @@ extern const u8 __KernelBinaryBSSStart;
 extern const u8 __KernelBinaryBSSEnd;
 
 namespace MEM {
-	struct MMapEntry {
-		uptr AddressBase;
-		uptr Length;
-		u8 Type;
-	};
-
 	void Init();
 	void Deinit();
 	const char *MemoryTypeToString(u8 type);
