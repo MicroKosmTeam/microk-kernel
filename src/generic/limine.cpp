@@ -194,12 +194,16 @@ void LimineEntry() {
 	info->HigherHalfMapping = HHDMRequest.response->offset;
 	info->KernelPhysicalBase = KAddrRequest.response->physical_base;
 	info->KernelVirtualBase = KAddrRequest.response->virtual_base;
+		
+
+	usize memoryRegions = MemoryMapRequest.response->entry_count;
+	UntypedHeader memoryMap[memoryRegions + 1];
+
+	PRINTK::PrintK(PRINTK_DEBUG "Memory regions from bootloader: %d\r\n", memoryRegions);
+
+	info->MemoryMap = memoryMap;
 
 	{
-		usize memoryRegions = MemoryMapRequest.response->entry_count;
-		PRINTK::PrintK(PRINTK_DEBUG "Memory regions from bootloader: %d\r\n", memoryRegions);
-
-		UntypedHeader memoryMap[memoryRegions + 1];
 		UntypedHeader *longestRegion;
 
 		usize longestRegionLength = 0;
@@ -230,25 +234,53 @@ void LimineEntry() {
 		
 		memoryMap[memoryRegions].Address = -1;
 
-		CAPABILITY::InitializeRootSpace(longestRegion->Address, memoryMap);
+		uptr addr = CAPABILITY::InitializeRootSpace(longestRegion->Address, memoryMap);
 
-		uptr address = VMM::PhysicalToVirtual(longestRegion->Address);
+		PRINTK::PrintK(PRINTK_DEBUG "Memory map now:\r\n");
+		for (usize i = 0; i < memoryRegions; i++) {	
+			PRINTK::PrintK(PRINTK_DEBUG "0x%x %dbytes of %d type\r\n", memoryMap[i].Address, memoryMap[i].Length, memoryMap[i].Flags);
+		}
+
+		// Testing
+		// /*
+		uptr address = VMM::PhysicalToVirtual(addr);
+		
+		usize slots = CAPABILITY::GetFreeSlots(info->RootCSpace, UNTYPED);
+		PRINTK::PrintK(PRINTK_DEBUG "Slots: %d\r\n", slots);
+
 		Capability *cap = CAPABILITY::AddressCapability(info->RootCSpace, address, UNTYPED);
 		PRINTK::PrintK(PRINTK_DEBUG "Capability with address 0x%x: 0x%x\r\n", address, cap);
 		UntypedHeader *header = (UntypedHeader*)cap->Object;
 		PRINTK::PrintK(PRINTK_DEBUG "Header with address 0x%x: %d bytes\r\n", header->Address, header->Length);
 
 		usize splitCount = 1;
+		usize splitSize = PAGE_SIZE * 16;
 		Capability *splitArray[splitCount];
-		cap = CAPABILITY::SplitUntyped(info->RootCSpace, cap, PAGE_SIZE, splitCount, splitArray);
+		cap = CAPABILITY::SplitUntyped(info->RootCSpace, cap, splitSize, splitCount, splitArray);
 
-		PRINTK::PrintK(PRINTK_DEBUG "Capability with address 0x%x: 0x%x\r\n", splitArray[0]->Object, splitArray[0]);
-		header = (UntypedHeader*)splitArray[0]->Object;
-		PRINTK::PrintK(PRINTK_DEBUG "Header with address 0x%x: %d bytes\r\n", header->Address, header->Length);
+		for (usize i = 0; i < splitCount; ++i) {
+			PRINTK::PrintK(PRINTK_DEBUG "Capability with address 0x%x: 0x%x\r\n", splitArray[i]->Object, splitArray[i]);
+			header = (UntypedHeader*)splitArray[i]->Object;
+			PRINTK::PrintK(PRINTK_DEBUG "Header with address 0x%x: %d bytes\r\n", header->Address, header->Length);
+		}
+		
 
 		PRINTK::PrintK(PRINTK_DEBUG "Capability with address 0x%x: 0x%x\r\n", cap->Object, cap);
 		header = (UntypedHeader*)cap->Object;
 		PRINTK::PrintK(PRINTK_DEBUG "Header with address 0x%x: %d bytes\r\n", header->Address, header->Length);
+
+		slots = CAPABILITY::GetFreeSlots(info->RootCSpace, UNTYPED);
+		PRINTK::PrintK(PRINTK_DEBUG "Slots: %d\r\n", slots);
+
+		usize retypeCount = 16;
+		Capability *retypeArray[retypeCount];
+		cap = CAPABILITY::RetypeUntyped(info->RootCSpace, splitArray[0], FRAMES, retypeCount, retypeArray);
+
+		for (usize i = 0; i < retypeCount; ++i) {
+			PRINTK::PrintK(PRINTK_DEBUG "Capability with address 0x%x: 0x%x\r\n", retypeArray[i]->Object, retypeArray[i]);
+		}
+
+		// */
 	}
 
 	info->ManagerExecutableAddress = (uptr)ModuleRequest.response->modules[0]->address;

@@ -41,6 +41,7 @@ struct KInfo {
 	const char *KernelArgs;
 
 	/* Memory information */
+	UntypedHeader *MemoryMap; /* Boot memory map */
 	uptr HigherHalfMapping; /* Start of higher half mapping */
 	uptr KernelPhysicalBase; /* Start of the kernel in physical memory */
 	uptr KernelVirtualBase; /* Start of the kernel in virtual memory */

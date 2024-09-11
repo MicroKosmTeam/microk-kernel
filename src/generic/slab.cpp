@@ -36,12 +36,12 @@ CapabilityTreeNode *AllocateSlabSlot(CapabilitySlab *slab) {
 				if (node->FreeElements == CAPABILITIES_PER_NODE) {
 					RemoveElementFromList(node, &slab->FreeSlabs);
 					AddElementToList(node, &slab->UsedSlabs);
-					--node->FreeElements;
 				} else if (node->FreeElements == 1) {
 					RemoveElementFromList(node, &slab->UsedSlabs);
 					AddElementToList(node, &slab->FullSlabs);
-					node->FreeElements = 0;
 				}
+					
+				--node->FreeElements;
 				
 				return cap;
 			}
@@ -71,6 +71,26 @@ void FreeSlabSlot(CapabilitySlab *slab, CapabilityTreeNode *capability) {
 	}
 
 	return;
+}
+
+usize GetFreeSlabSlots(CapabilitySlab *slab) {
+	CapabilityNode *node = (CapabilityNode*)slab->UsedSlabs.Head;
+
+	usize slots = 0;
+
+	while(node) {
+		slots += node->FreeElements;
+		node = (CapabilityNode*)node->Next;
+	}
+
+	node = (CapabilityNode*)slab->FreeSlabs.Head;
+	
+	while(node) {
+		slots += node->FreeElements;
+		node = (CapabilityNode*)node->Next;
+	}
+
+	return slots;
 }
 
 CapabilityTreeNode *Skew(CapabilityTreeNode *tree) {

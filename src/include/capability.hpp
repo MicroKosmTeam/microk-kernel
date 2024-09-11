@@ -15,7 +15,7 @@ inline static void SetCap(Capability *capability, u8 type, uptr object, u16 acce
 }*/
 
 namespace CAPABILITY {
-	void InitializeRootSpace(uptr framesBase, UntypedHeader *memoryMap);
+	uptr InitializeRootSpace(uptr framesBase, UntypedHeader *memoryMap);
 	usize GetObjectSize(OBJECT_TYPE kind);
 
 	Capability *AddressCapability(CapabilitySpace *space, uptr ptr, OBJECT_TYPE kind);
@@ -24,6 +24,8 @@ namespace CAPABILITY {
 	Capability *UntypeObject(CapabilitySpace *space, Capability *capability);
 	Capability *SplitUntyped(CapabilitySpace *space, Capability *untyped, usize splitSize, usize count, Capability **array);
 	Capability *MergeUntyped(CapabilitySpace *space, Capability *capability);
+
+	usize GetFreeSlots(CapabilitySpace *space, OBJECT_TYPE kind);
 
 	void DumpCapabilitySlab(CapabilitySpace *space, OBJECT_TYPE kind);
 }

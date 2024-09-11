@@ -56,6 +56,9 @@ void KernelStart() {
 		       sizeof(TaskControlBlock),
 		       sizeof(SchedulerContext));
 
+	/* Initializing virtual memory */
+	//VMM::InitVMM();
+
 	/*
 	MEM::Init();
 	CAPABILITY::InitializeRootSpace();

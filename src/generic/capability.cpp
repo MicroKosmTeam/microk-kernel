@@ -8,7 +8,7 @@
 #include <math.hpp>
 
 namespace CAPABILITY {
-void InitializeRootSpace(uptr framesBase, UntypedHeader *memoryMap) {
+uptr InitializeRootSpace(uptr framesBase, UntypedHeader *memoryMap) {
 	KInfo *info = GetInfo();
 
 	/* Getting the page for the TCB and the cspace */
@@ -55,24 +55,22 @@ void InitializeRootSpace(uptr framesBase, UntypedHeader *memoryMap) {
 
 	for (UntypedHeader *entry = memoryMap; entry->Address != (uptr)-1; ++entry) {
 		if(entry->Flags == MEMMAP_USABLE) {
+			UntypedHeader *accessibleHeader;
 			if(framesBase == entry->Address) {
 				uptr oldAddress = entry->Address;
-				entry->Address = VMM::VirtualToPhysical(slabNodeFrame);
-				entry->Length -= (entry->Address - oldAddress);
-				PRINTK::PrintK(PRINTK_DEBUG "0x%x vs 0x%x\r\n", framesBase, entry->Address);
-			} 
+				
+				accessibleHeader = (UntypedHeader*)slabNodeFrame;
+				Memcpy(accessibleHeader, entry, sizeof(UntypedHeader));
 
-			UntypedHeader *accessibleHeader = (UntypedHeader*)VMM::PhysicalToVirtual(entry->Address);
-			entry->Address = (uptr)accessibleHeader;
-
-			Memcpy(accessibleHeader, entry, sizeof(UntypedHeader));
+				accessibleHeader->Address = slabNodeFrame;
+				accessibleHeader->Length -= (accessibleHeader->Address - oldAddress);
+			} else {
+				accessibleHeader = (UntypedHeader*)VMM::PhysicalToVirtual(entry->Address);
+			
+				Memcpy(accessibleHeader, entry, sizeof(UntypedHeader));
+			}
 
 			GenerateCapability(space, UNTYPED, (uptr)accessibleHeader, ACCESS | RETYPE | GRANT);
-			PRINTK::PrintK(PRINTK_DEBUG "Capability:\r\n"
-					            "A: 0x%x\r\n"
-						    "E: 0x%x\r\n"
-						    "A->A: 0x%x\r\n"
-						    "E->A: 0x%x\r\n", accessibleHeader, entry, accessibleHeader->Address, entry->Address);
 		}
 
 	}
@@ -81,7 +79,7 @@ void InitializeRootSpace(uptr framesBase, UntypedHeader *memoryMap) {
 	GenerateCapability(space, CSPACE, (uptr)info->RootCSpace, ACCESS);
 	
 	PRINTK::PrintK(PRINTK_DEBUG "Root space initialized.\r\n");
-	
+	/*
 	DumpCapabilitySlab(space, UNTYPED);
 	SLAB::Dump(space->Slabs[UNTYPED].CapabilityTree);
 
@@ -93,6 +91,8 @@ void InitializeRootSpace(uptr framesBase, UntypedHeader *memoryMap) {
 
 	DumpCapabilitySlab(space, CSPACE);
 	SLAB::Dump(space->Slabs[CSPACE].CapabilityTree);
+*/
+	return slabNodeFrame;
 }
 
 usize GetObjectSize(OBJECT_TYPE kind) {
@@ -100,7 +100,7 @@ usize GetObjectSize(OBJECT_TYPE kind) {
 		case UNTYPED:
 			return 0;
 		case FRAMES:
-			return sizeof(PAGE_SIZE);
+			return PAGE_SIZE;
 		case VIRTUAL_MEMORY_MAPPING:
 			return 0;
 		case VIRTUAL_MEMORY_PAGING_STRUCTURE:
@@ -180,7 +180,8 @@ Capability *RetypeUntyped(CapabilitySpace *space, Capability *untyped, OBJECT_TY
 	/* Don't worry about this, all structures will be aligned to be powers of two 
 	 * to result in a null quotient always
 	 */
-	usize realCount = header->Length / GetObjectSize(kind);
+	usize objectSize = GetObjectSize(kind);
+	usize realCount = header->Length / objectSize;
 	if (count > realCount) {
 		count = realCount;
 	}
@@ -188,7 +189,7 @@ Capability *RetypeUntyped(CapabilitySpace *space, Capability *untyped, OBJECT_TY
 	/* Here check if there are enough slots in the slab, then allocate those slots and
 	 * make the capabilities */
 	for (usize i = 0; i < count; ++i) {
-		array[i] = GenerateCapability(space, kind, startAddress, maskedRights);
+		array[i] = GenerateCapability(space, kind, startAddress + i * objectSize, maskedRights);
 		if (array[i] == NULL) {
 			return NULL;
 		}
@@ -287,6 +288,16 @@ Capability *MergeUntyped(CapabilitySpace *space, Capability *capability) {
 	(void)capability;
 
 	return NULL;
+}
+
+usize GetFreeSlots(CapabilitySpace *space, OBJECT_TYPE kind) {
+	if (kind < UNTYPED || kind >= OBJECT_TYPE_COUNT) {
+		return -1;
+	}
+
+	CapabilitySlab *slab = &space->Slabs[kind];
+	
+	return SLAB::GetFreeSlabSlots(slab);
 }
 
 void DumpCapabilitySlab(CapabilitySpace *space, OBJECT_TYPE kind) {

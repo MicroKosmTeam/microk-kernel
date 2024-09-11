@@ -6,6 +6,7 @@ namespace SLAB {
 
 	CapabilityTreeNode *AllocateSlabSlot(CapabilitySlab *slab);
 	void FreeSlabSlot(CapabilitySlab *slab, CapabilityTreeNode *capability);
+	usize GetFreeSlabSlots(CapabilitySlab *slab);
 
 	CapabilityTreeNode *Insert(CapabilityTreeNode *tree, CapabilityTreeNode *node);
 	CapabilityTreeNode *Delete(CapabilityTreeNode *tree, CapabilityTreeNode *node);

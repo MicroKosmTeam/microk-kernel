@@ -22,10 +22,6 @@ void Init() {
 				MemoryTypeToString(current->Type));
 	}
 
-
-	/* Initializing virtual memory */
-	VMM::InitVMM();
-
 	/* Give correct type descriptors to the memory regions */
 	PRINTK::PrintK(PRINTK_DEBUG 
 			"Total kernel size: [0x%x - 0x%x] -> %d bytes\r\n"

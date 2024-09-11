@@ -43,7 +43,7 @@ struct Capability {
 
 	// TODO: overhaul parent/child relationship
 	Capability *Parent;
-	u32 Children;
+	u32 Children : 24;
 }__attribute__((packed, aligned(0x10)));
 
 struct CapabilityTreeNode : public Capability {
@@ -61,14 +61,14 @@ struct EncryptedCapability {
 	u8 IV[AES_BLOCKLEN];
 	/* IV, will be regenerated each time the
 	   hash reencrypted */
-}__attribute__((packed, aligned(0x10)));
+}__attribute__((aligned(0x10)));
 
 #define SECP256k1_PRIVATE_KEY_SIZE 32
 #define SECP256k1_PUBLIC_KEY_SIZE 64
 #define SECP256k1_SHARED_SECRET_SIZE 32
 struct EncryptedCapabilityContext {
 	u8 Secret[SECP256k1_SHARED_SECRET_SIZE];
-}__attribute__((packed, aligned(0x10)));
+}__attribute__((aligned(0x10)));
 
 /*
  *
@@ -78,18 +78,6 @@ struct UntypedHeader {
 	usize Length;
 	u32 Flags;
 }__attribute__((packed));
-
-/*
- *  CAPABILITY MEMORY STRUCTURE:
- *   Space contains slabs for each kind of capability
- *   Slabs contain various nodes where the capabilities are stored.
- *   Whenever a program requests a capability, the kernel grants it from the
- *   appropriate slab. If there are no available specific kinds of objects,
- *   the program must retype an untyped object. If the the nodes are all full, 
- *   the program must expand them by retyping an untyped object.
- *   Untyped objects are not shared between programs, while others may be,
- *   for examples TCBs.
- */
 
 
 /*
@@ -107,12 +95,11 @@ struct SlabHead : public ListHead {
  */
 struct CapabilityNode : public SlabHead {
 	CapabilityTreeNode Slots[CAPABILITIES_PER_NODE];
-};
+}__attribute__((aligned(PAGE_SIZE)));
 
 /*
  *
  */
-
 struct CapabilitySlab {
 	List FreeSlabs;
 	List UsedSlabs;
@@ -133,7 +120,6 @@ struct CapabilitySpace {
 struct TaskControlBlock;
 struct SchedulerContext;
 struct Scheduler;
-
 
 /*
  *
