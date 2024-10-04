@@ -26,6 +26,7 @@ namespace CAPABILITY {
 	Capability *MergeUntyped(CapabilitySpace *space, Capability *capability);
 
 	usize GetFreeSlots(CapabilitySpace *space, OBJECT_TYPE kind);
+	void AddSlabNode(CapabilitySpace *space, OBJECT_TYPE kind, Capability *capability);
 
 	void DumpCapabilitySlab(CapabilitySpace *space, OBJECT_TYPE kind);
 }

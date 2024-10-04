@@ -297,7 +297,23 @@ usize GetFreeSlots(CapabilitySpace *space, OBJECT_TYPE kind) {
 
 	CapabilitySlab *slab = &space->Slabs[kind];
 	
-	return SLAB::GetFreeSlabSlots(slab);
+	return SLAB::GetFreeSlabSlots(slab);	
+}
+	
+void AddSlabNode(CapabilitySpace *space, OBJECT_TYPE kind, Capability *capability) {
+	if (kind < UNTYPED || kind >= OBJECT_TYPE_COUNT || !capability || capability->Type != CNODE) {
+		return;
+	}
+	
+	CapabilitySlab *slab = &space->Slabs[kind];
+
+	capability->IsMasked = 1;
+
+	CapabilityNode *node = (CapabilityNode*)capability->Object;
+	SLAB::AddSlabNode(slab, node);
+
+	PRINTK::PrintK(PRINTK_DEBUG "Added slab node 0x%x from cap 0x%x\r\n",
+			capability->Object, capability);
 }
 
 void DumpCapabilitySlab(CapabilitySpace *space, OBJECT_TYPE kind) {

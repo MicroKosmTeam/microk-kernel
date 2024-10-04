@@ -253,7 +253,7 @@ void LimineEntry() {
 		UntypedHeader *header = (UntypedHeader*)cap->Object;
 		PRINTK::PrintK(PRINTK_DEBUG "Header with address 0x%x: %d bytes\r\n", header->Address, header->Length);
 
-		usize splitCount = 1;
+		usize splitCount = 2;
 		usize splitSize = PAGE_SIZE * 16;
 		Capability *splitArray[splitCount];
 		cap = CAPABILITY::SplitUntyped(info->RootCSpace, cap, splitSize, splitCount, splitArray);
@@ -273,12 +273,23 @@ void LimineEntry() {
 		PRINTK::PrintK(PRINTK_DEBUG "Slots: %d\r\n", slots);
 
 		usize retypeCount = 16;
-		Capability *retypeArray[retypeCount];
-		cap = CAPABILITY::RetypeUntyped(info->RootCSpace, splitArray[0], FRAMES, retypeCount, retypeArray);
+		Capability *frameRetypeArray[retypeCount];
+		cap = CAPABILITY::RetypeUntyped(info->RootCSpace, splitArray[0], FRAMES, retypeCount, frameRetypeArray);
 
 		for (usize i = 0; i < retypeCount; ++i) {
-			PRINTK::PrintK(PRINTK_DEBUG "Capability with address 0x%x: 0x%x\r\n", retypeArray[i]->Object, retypeArray[i]);
+			PRINTK::PrintK(PRINTK_DEBUG "Capability with address 0x%x: 0x%x\r\n", frameRetypeArray[i]->Object, frameRetypeArray[i]);
 		}
+
+		Capability *cnodeRetypeArray[retypeCount];
+		cap = CAPABILITY::RetypeUntyped(info->RootCSpace, splitArray[1], CNODE, retypeCount, cnodeRetypeArray);
+
+		for (usize i = 0; i < retypeCount; ++i) {
+			PRINTK::PrintK(PRINTK_DEBUG "Capability with address 0x%x: 0x%x\r\n", cnodeRetypeArray[i]->Object, cnodeRetypeArray[i]);
+			CAPABILITY::AddSlabNode(info->RootCSpace, UNTYPED, cnodeRetypeArray[i]);
+		}
+
+		slots = CAPABILITY::GetFreeSlots(info->RootCSpace, UNTYPED);
+		PRINTK::PrintK(PRINTK_DEBUG "Slots: %d\r\n", slots);
 
 		// */
 	}
