@@ -203,6 +203,35 @@ void LimineEntry() {
 
 	info->MemoryMap = memoryMap;
 
+	info->ManagerExecutableAddress = (uptr)ModuleRequest.response->modules[0]->address;
+	info->ManagerExecutableSize = ModuleRequest.response->modules[0]->size;
+	info->InitrdAddress = (uptr)ModuleRequest.response->modules[1]->address;
+	info->InitrdSize = ModuleRequest.response->modules[1]->size;
+
+	PRINTK::PrintK(PRINTK_DEBUG "Manager executable at 0x%x is %d bytes\r\n", info->ManagerExecutableAddress, info->ManagerExecutableSize);
+
+	if(RSDPRequest.response == NULL) {
+		PRINTK::PrintK(PRINTK_DEBUG "WARNING: no RSDP found.\r\n");
+	} else {
+		if(RSDPRequest.response->address != NULL) {
+			PRINTK::PrintK(PRINTK_DEBUG "RSDP found at 0x%x\r\n", RSDPRequest.response->address);
+			info->RSDP = (uptr)RSDPRequest.response->address;
+		} else {
+			PRINTK::PrintK(PRINTK_DEBUG "WARNING: no RSDP found.\r\n");
+		}
+	}
+
+	if(DTBRequest.response == NULL) {
+		PRINTK::PrintK(PRINTK_DEBUG "WARNING: No DTB found.\r\n");
+	} else {
+		if(DTBRequest.response->dtb_ptr != NULL) {
+			PRINTK::PrintK(PRINTK_DEBUG "DTB found at 0x%x\r\n", DTBRequest.response->dtb_ptr);
+			info->DeviceTree = (uptr)DTBRequest.response->dtb_ptr;
+		} else {
+			PRINTK::PrintK(PRINTK_DEBUG "WARNING: No DTB found.\r\n");
+		}
+	}
+
 	{
 		UntypedHeader *longestRegion;
 
@@ -292,35 +321,6 @@ void LimineEntry() {
 		PRINTK::PrintK(PRINTK_DEBUG "Slots: %d\r\n", slots);
 
 		// */
-	}
-
-	info->ManagerExecutableAddress = (uptr)ModuleRequest.response->modules[0]->address;
-	info->ManagerExecutableSize = ModuleRequest.response->modules[0]->size;
-	info->InitrdAddress = (uptr)ModuleRequest.response->modules[1]->address;
-	info->InitrdSize = ModuleRequest.response->modules[1]->size;
-
-	PRINTK::PrintK(PRINTK_DEBUG "Manager executable at 0x%x is %d bytes\r\n", info->ManagerExecutableAddress, info->ManagerExecutableSize);
-
-	if(RSDPRequest.response == NULL) {
-		PRINTK::PrintK(PRINTK_DEBUG "WARNING: no RSDP found.\r\n");
-	} else {
-		if(RSDPRequest.response->address != NULL) {
-			PRINTK::PrintK(PRINTK_DEBUG "RSDP found at 0x%x\r\n", RSDPRequest.response->address);
-			info->RSDP = (uptr)RSDPRequest.response->address;
-		} else {
-			PRINTK::PrintK(PRINTK_DEBUG "WARNING: no RSDP found.\r\n");
-		}
-	}
-
-	if(DTBRequest.response == NULL) {
-		PRINTK::PrintK(PRINTK_DEBUG "WARNING: No DTB found.\r\n");
-	} else {
-		if(DTBRequest.response->dtb_ptr != NULL) {
-			PRINTK::PrintK(PRINTK_DEBUG "DTB found at 0x%x\r\n", DTBRequest.response->dtb_ptr);
-			info->DeviceTree = (uptr)DTBRequest.response->dtb_ptr;
-		} else {
-			PRINTK::PrintK(PRINTK_DEBUG "WARNING: No DTB found.\r\n");
-		}
 	}
 
 	/* Launch the kernel proper */

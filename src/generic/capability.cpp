@@ -13,6 +13,7 @@ uptr InitializeRootSpace(uptr framesBase, UntypedHeader *memoryMap) {
 
 	/* Getting the page for the TCB and the cspace */
 	uptr tcbFrame = VMM::PhysicalToVirtual(framesBase);
+	Memclr((void*)tcbFrame, PAGE_SIZE);
 	uptr cspaceFrame = tcbFrame + sizeof(TaskControlBlock);
 	uptr slabNodeFrame = tcbFrame + PAGE_SIZE;
 
