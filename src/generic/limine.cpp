@@ -12,6 +12,7 @@
 #include <micro-ecc/uECC.h>
 #include <tiny-aes/aes.hpp>
 #include <cpu.hpp>
+#include <pmm.hpp>
 
 static volatile LIMINE_BASE_REVISION(1)
 
@@ -270,9 +271,39 @@ void LimineEntry() {
 			PRINTK::PrintK(PRINTK_DEBUG "0x%x %dbytes of %d type\r\n", memoryMap[i].Address, memoryMap[i].Length, memoryMap[i].Flags);
 		}
 
-		// Testing
-		// /*
 		uptr address = VMM::PhysicalToVirtual(addr);
+		/*
+		Capability *cap = CAPABILITY::AddressCapability(info->RootCSpace, address, UNTYPED);
+		PMM::Init(cap);
+
+		for (int i = 0; i < 100; ++i) {
+			PRINTK::PrintK(PRINTK_DEBUG "Requested page: 0x%x\r\n", PMM::RequestPage());
+		}*/
+
+
+		/*
+		struct fdt_header {
+			uint32_t magic;            // magic word FDT_MAGIC
+			uint32_t totalsize;        // total size of DTB
+			uint32_t off_dt_struct;    // offset to structure block
+			uint32_t off_dt_strings;   // offset to strings block
+			uint32_t off_mem_rsvmap;   // offset to memory reserve map
+			uint32_t version;          // version of the DTB format
+			uint32_t last_comp_version;// last compatible version
+			uint32_t boot_cpuid_phys;  // physical ID of boot CPU
+			uint32_t size_dt_strings;  // size of the strings block
+			uint32_t size_dt_struct;   // size of the structure block
+		};
+
+		volatile fdt_header *dtb = (volatile fdt_header*)VMM::PhysicalToVirtual(memoryMap[0].Address);
+		if(dtb->magic == 0xd00dfeed) {
+			PRINTK::PrintK(PRINTK_DEBUG "Good\r\n");
+		} else {
+			PRINTK::PrintK(PRINTK_DEBUG "Bad\r\n");
+		}*/
+
+		// Testing
+		///*
 		
 		usize slots = CAPABILITY::GetFreeSlots(info->RootCSpace, UNTYPED);
 		PRINTK::PrintK(PRINTK_DEBUG "Slots: %d\r\n", slots);
@@ -320,7 +351,7 @@ void LimineEntry() {
 		slots = CAPABILITY::GetFreeSlots(info->RootCSpace, UNTYPED);
 		PRINTK::PrintK(PRINTK_DEBUG "Slots: %d\r\n", slots);
 
-		// */
+		//*/
 	}
 
 	/* Launch the kernel proper */
