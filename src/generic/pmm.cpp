@@ -7,6 +7,7 @@ namespace PMM {
 PhysicalMemoryManagerStruct PhysicalMemoryManager;
 
 void Init(Capability *untypedArea) {
+	PRINTK::PrintK(PRINTK_DEBUG "Untyped area: 0x%x\r\n", untypedArea);
 	PhysicalMemoryManager.UntypedArea = untypedArea;
 
 	PhysicalMemoryManager.IsActive = true;
@@ -16,6 +17,49 @@ void Deinit() {
 	PhysicalMemoryManager.IsActive = false;
 }
 
+static void CheckSpace() {
+	KInfo *info = GetInfo();
+
+	usize slots = CAPABILITY::GetFreeSlots(info->RootCSpace, UNTYPED);
+	if (slots < 2) {
+		usize splitCount = 1;
+		usize splitSize = PAGE_SIZE;
+		Capability *splitArray[splitCount];
+		PhysicalMemoryManager.UntypedArea = CAPABILITY::SplitUntyped(info->RootCSpace, PhysicalMemoryManager.UntypedArea, splitSize, splitCount, splitArray);
+
+		usize retypeCount = 1;
+		Capability *nodeRetypeArray[retypeCount];
+		CAPABILITY::RetypeUntyped(info->RootCSpace, splitArray[0], CNODE, retypeCount, nodeRetypeArray);
+		CAPABILITY::AddSlabNode(info->RootCSpace, UNTYPED, nodeRetypeArray[0]);
+	}
+
+	slots = CAPABILITY::GetFreeSlots(info->RootCSpace, CNODE);
+	if (slots < 2) {
+		usize splitCount = 1;
+		usize splitSize = PAGE_SIZE;
+		Capability *splitArray[splitCount];
+		PhysicalMemoryManager.UntypedArea = CAPABILITY::SplitUntyped(info->RootCSpace, PhysicalMemoryManager.UntypedArea, splitSize, splitCount, splitArray);
+
+		usize retypeCount = 1;
+		Capability *nodeRetypeArray[retypeCount];
+		CAPABILITY::RetypeUntyped(info->RootCSpace, splitArray[0], CNODE, retypeCount, nodeRetypeArray);
+		CAPABILITY::AddSlabNode(info->RootCSpace, CNODE, nodeRetypeArray[0]);
+	}
+
+	slots = CAPABILITY::GetFreeSlots(info->RootCSpace, FRAMES);
+	if (slots < 2) {
+		usize splitCount = 1;
+		usize splitSize = PAGE_SIZE;
+		Capability *splitArray[splitCount];
+		PhysicalMemoryManager.UntypedArea = CAPABILITY::SplitUntyped(info->RootCSpace, PhysicalMemoryManager.UntypedArea, splitSize, splitCount, splitArray);
+
+		usize retypeCount = 1;
+		Capability *nodeRetypeArray[retypeCount];
+		CAPABILITY::RetypeUntyped(info->RootCSpace, splitArray[0], CNODE, retypeCount, nodeRetypeArray);
+		CAPABILITY::AddSlabNode(info->RootCSpace, FRAMES, nodeRetypeArray[0]);
+	}
+}
+
 void *RequestPage() {
 	if (!PhysicalMemoryManager.IsActive) {
 		return NULL;
@@ -23,22 +67,12 @@ void *RequestPage() {
 
 	KInfo *info = GetInfo();
 	
-	/*
-	usize slots = CAPABILITY::GetFreeSlots(info->RootCSpace, UNTYPED);
-	if (slots < 2) {
-	
-	}
+	CheckSpace();
 
-	slots = CAPABILITY::GetFreeSlots(info->RootCSpace, FRAMES);
-	if (slots < 2) {
-
-	}*/
-
-	usize splitCount = 2;
+	usize splitCount = 1;
 	usize splitSize = PAGE_SIZE;
 	Capability *splitArray[splitCount];
-	CAPABILITY::SplitUntyped(info->RootCSpace, PhysicalMemoryManager.UntypedArea, splitSize, splitCount, splitArray);
-	PhysicalMemoryManager.UntypedArea = splitArray[1];
+	PhysicalMemoryManager.UntypedArea = CAPABILITY::SplitUntyped(info->RootCSpace, PhysicalMemoryManager.UntypedArea, splitSize, splitCount, splitArray);
 
 	usize retypeCount = 1;
 	Capability *frameRetypeArray[retypeCount];
@@ -54,22 +88,12 @@ void *RequestPages(usize length) {
 
 	KInfo *info = GetInfo();
 	
-	/*
-	usize slots = CAPABILITY::GetFreeSlots(info->RootCSpace, UNTYPED);
-	if (slots < 2) {
-	
-	}
+	CheckSpace();
 
-	slots = CAPABILITY::GetFreeSlots(info->RootCSpace, FRAMES);
-	if (slots < 2) {
-
-	}*/
-
-	usize splitCount = 2;
+	usize splitCount = 1;
 	usize splitSize = PAGE_SIZE * length;
 	Capability *splitArray[splitCount];
-	CAPABILITY::SplitUntyped(info->RootCSpace, PhysicalMemoryManager.UntypedArea, splitSize, splitCount, splitArray);
-	PhysicalMemoryManager.UntypedArea = splitArray[1];
+	PhysicalMemoryManager.UntypedArea = CAPABILITY::SplitUntyped(info->RootCSpace, PhysicalMemoryManager.UntypedArea, splitSize, splitCount, splitArray);
 
 	usize retypeCount = length;
 	Capability *frameRetypeArray[retypeCount];

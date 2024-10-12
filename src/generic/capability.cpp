@@ -80,19 +80,7 @@ uptr InitializeRootSpace(uptr framesBase, UntypedHeader *memoryMap) {
 	GenerateCapability(space, CSPACE, (uptr)info->RootCSpace, ACCESS);
 	
 	PRINTK::PrintK(PRINTK_DEBUG "Root space initialized.\r\n");
-	/*
-	DumpCapabilitySlab(space, UNTYPED);
-	SLAB::Dump(space->Slabs[UNTYPED].CapabilityTree);
 
-	DumpCapabilitySlab(space, TASK_CONTROL_BLOCK);
-	SLAB::Dump(space->Slabs[TASK_CONTROL_BLOCK].CapabilityTree);
-	
-	DumpCapabilitySlab(space, CNODE);
-	SLAB::Dump(space->Slabs[CNODE].CapabilityTree);
-
-	DumpCapabilitySlab(space, CSPACE);
-	SLAB::Dump(space->Slabs[CSPACE].CapabilityTree);
-*/
 	return slabNodeFrame;
 }
 

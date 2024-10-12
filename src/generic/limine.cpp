@@ -11,6 +11,7 @@
 #include <sha256.hpp>
 #include <micro-ecc/uECC.h>
 #include <tiny-aes/aes.hpp>
+#include <slab.hpp>
 #include <cpu.hpp>
 #include <pmm.hpp>
 
@@ -272,14 +273,25 @@ void LimineEntry() {
 		}
 
 		uptr address = VMM::PhysicalToVirtual(addr);
-		/*
+		
 		Capability *cap = CAPABILITY::AddressCapability(info->RootCSpace, address, UNTYPED);
 		PMM::Init(cap);
 
 		for (int i = 0; i < 100; ++i) {
 			PRINTK::PrintK(PRINTK_DEBUG "Requested page: 0x%x\r\n", PMM::RequestPage());
-		}*/
+		}
 
+		CAPABILITY::DumpCapabilitySlab(info->RootCSpace, UNTYPED);
+		SLAB::Dump(info->RootCSpace->Slabs[UNTYPED].CapabilityTree);
+
+		CAPABILITY::DumpCapabilitySlab(info->RootCSpace, TASK_CONTROL_BLOCK);
+		SLAB::Dump(info->RootCSpace->Slabs[TASK_CONTROL_BLOCK].CapabilityTree);
+	
+		CAPABILITY::DumpCapabilitySlab(info->RootCSpace, CNODE);
+		SLAB::Dump(info->RootCSpace->Slabs[CNODE].CapabilityTree);
+
+		CAPABILITY::DumpCapabilitySlab(info->RootCSpace, CSPACE);
+		SLAB::Dump(info->RootCSpace->Slabs[CSPACE].CapabilityTree);
 
 		/*
 		struct fdt_header {
@@ -303,7 +315,7 @@ void LimineEntry() {
 		}*/
 
 		// Testing
-		///*
+		/*
 		
 		usize slots = CAPABILITY::GetFreeSlots(info->RootCSpace, UNTYPED);
 		PRINTK::PrintK(PRINTK_DEBUG "Slots: %d\r\n", slots);
@@ -351,7 +363,7 @@ void LimineEntry() {
 		slots = CAPABILITY::GetFreeSlots(info->RootCSpace, UNTYPED);
 		PRINTK::PrintK(PRINTK_DEBUG "Slots: %d\r\n", slots);
 
-		//*/
+		*/
 	}
 
 	/* Launch the kernel proper */
