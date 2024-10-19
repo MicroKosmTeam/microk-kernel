@@ -21,7 +21,7 @@ static void CheckSpace() {
 	KInfo *info = GetInfo();
 
 	usize slots = CAPABILITY::GetFreeSlots(info->RootCSpace, UNTYPED);
-	if (slots < 2) {
+	if (slots < 3) {
 		usize splitCount = 1;
 		usize splitSize = PAGE_SIZE;
 		Capability *splitArray[splitCount];
@@ -34,7 +34,7 @@ static void CheckSpace() {
 	}
 
 	slots = CAPABILITY::GetFreeSlots(info->RootCSpace, CNODE);
-	if (slots < 2) {
+	if (slots < 3) {
 		usize splitCount = 1;
 		usize splitSize = PAGE_SIZE;
 		Capability *splitArray[splitCount];
@@ -47,7 +47,7 @@ static void CheckSpace() {
 	}
 
 	slots = CAPABILITY::GetFreeSlots(info->RootCSpace, FRAMES);
-	if (slots < 2) {
+	if (slots < 3) {
 		usize splitCount = 1;
 		usize splitSize = PAGE_SIZE;
 		Capability *splitArray[splitCount];

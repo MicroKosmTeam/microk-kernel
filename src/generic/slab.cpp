@@ -7,7 +7,10 @@
 
 namespace SLAB {
 CapabilityNode *AddSlabNode(CapabilitySlab *slab, CapabilityNode *node) {
+	node->Next = node->Previous = NULL;
 	AddElementToList(node, &slab->FreeSlabs);
+		
+	node->FreeElements = CAPABILITIES_PER_NODE;
 
 	for (usize i = 0; i < CAPABILITIES_PER_NODE; ++i) {
 		node->Slots[i].IsMasked = 0;

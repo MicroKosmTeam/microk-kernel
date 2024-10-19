@@ -257,7 +257,7 @@ void LimineEntry() {
 			 * a higher memory region (that are abundant) compared to
 			 * low memory regions (i.e. below 64MB)
 			 */
-			if (length >= longestRegionLength) {
+			if (length >= longestRegionLength) { //&& base < ((uptr)4 * 1024 * 1024 * 1024)) {
 				longestRegionLength = length;
 				longestRegion = &memoryMap[i];
 			}
@@ -277,9 +277,10 @@ void LimineEntry() {
 		Capability *cap = CAPABILITY::AddressCapability(info->RootCSpace, address, UNTYPED);
 		PMM::Init(cap);
 
+		/*
 		for (int i = 0; i < 100; ++i) {
 			PRINTK::PrintK(PRINTK_DEBUG "Requested page: 0x%x\r\n", PMM::RequestPage());
-		}
+		}*/
 
 		CAPABILITY::DumpCapabilitySlab(info->RootCSpace, UNTYPED);
 		SLAB::Dump(info->RootCSpace->Slabs[UNTYPED].CapabilityTree);

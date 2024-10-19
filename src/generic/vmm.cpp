@@ -1,10 +1,10 @@
 #include <vmm.hpp>
 #include <printk.hpp>
+#include <pmm.hpp>
 #include <panic.hpp>
 #include <kinfo.hpp>
 
 namespace VMM {
-#ifdef UNDEF
 void InitVMM() {
 	KInfo *info = GetInfo();
 
@@ -60,17 +60,17 @@ void PrepareKernelVirtualSpace(VirtualSpace space) {
 	MMap(space, bssStartAddr, bssStartAddr - info->KernelPhysicalBase + info->KernelVirtualBase, bssEndAddr - bssStartAddr, VMM_FLAGS_READ | VMM_FLAGS_WRITE | VMM_FLAGS_NOEXEC);
 	
 	/* We go through every entry in the memory map and map it in virtual memory */
-	for (MEM::MEMBLOCK::MemblockRegion *current = (MEM::MEMBLOCK::MemblockRegion*)info->PhysicalMemoryChunks->Regions.Head;
-	     current != NULL;
-	     current = (MEM::MEMBLOCK::MemblockRegion*)current->Next) {
+	for (usize i = 0; info->MemoryMap[i].Address != (uptr)-1; i++) {	
+		UntypedHeader *current = &info->MemoryMap[i];
+
 		/* We will skip any memory that is not usable by our kernel */
-		if (current->Type == MEMMAP_BAD_MEMORY ||
-		    current->Type == MEMMAP_RESERVED ||
-		    current->Type == MEMMAP_ACPI_NVS ||
-		    current->Type == MEMMAP_ACPI_RECLAIMABLE) continue;
+		if (current->Flags == MEMMAP_BAD_MEMORY ||
+		    current->Flags == MEMMAP_RESERVED ||
+		    current->Flags == MEMMAP_ACPI_NVS ||
+		    current->Flags == MEMMAP_ACPI_RECLAIMABLE) continue;
 
 		/* We find the base and the top by rounding to the closest page boundary */
-		uptr base = current->Base;
+		uptr base = current->Address;
 		ROUND_DOWN_TO_PAGE(base);
 
 		uptr top = base + current->Length;
@@ -123,17 +123,16 @@ void PrepareUserVirtualSpace(VirtualSpace space) {
 	MMap(space, bssStartAddr, bssStartAddr - info->KernelPhysicalBase + info->KernelVirtualBase, bssEndAddr - bssStartAddr, VMM_FLAGS_READ | VMM_FLAGS_WRITE | VMM_FLAGS_NOEXEC);
 	
 	/* We go through every entry in the memory map and map it in virtual memory */
-	for (MEM::MEMBLOCK::MemblockRegion *current = (MEM::MEMBLOCK::MemblockRegion*)info->PhysicalMemoryChunks->Regions.Head;
-	     current != NULL;
-	     current = (MEM::MEMBLOCK::MemblockRegion*)current->Next) {
+	for (usize i = 0; info->MemoryMap[i].Address != (uptr)-1; i++) {	
+		UntypedHeader *current = &info->MemoryMap[i];
 		/* We will skip any memory that is not usable by our kernel */
-		if (current->Type == MEMMAP_BAD_MEMORY ||
-		    current->Type == MEMMAP_RESERVED ||
-		    current->Type == MEMMAP_ACPI_NVS ||
-		    current->Type == MEMMAP_ACPI_RECLAIMABLE) continue;
+		if (current->Flags == MEMMAP_BAD_MEMORY ||
+		    current->Flags == MEMMAP_RESERVED ||
+		    current->Flags == MEMMAP_ACPI_NVS ||
+		    current->Flags == MEMMAP_ACPI_RECLAIMABLE) continue;
 
 		/* We find the base and the top by rounding to the closest page boundary */
-		uptr base = current->Base;
+		uptr base = current->Address;
 		ROUND_DOWN_TO_PAGE(base);
 
 		uptr top = base + current->Length;
@@ -160,7 +159,7 @@ void MMap(VirtualSpace space, uptr src, uptr dest, usize length, usize flags) {
 			}
 
 			if (result != 0) {
-				MapIntermediateLevel(space, result, (uptr)PMM::RequestPage(), dest + diff, flags);
+				MapIntermediateLevel(space, result, VMM::VirtualToPhysical((uptr)PMM::RequestPage()), dest + diff, flags);
 			} else {
 				break;
 			}
@@ -180,7 +179,7 @@ void VMAlloc(VirtualSpace space, uptr virt, usize length, usize flags) {
 	PRINTK::PrintK(PRINTK_DEBUG "VMalloc in space 0x%x, [0x%x - 0x%x], 0x%x\r\n", space, virt, end, flags);
 
 	for (; virt < end; virt += PAGE_SIZE) {
-		phys = (uptr)PMM::RequestPage();
+		phys = VMM::VirtualToPhysical((uptr)PMM::RequestPage());
 
 		Memclr((void*)VMM::PhysicalToVirtual(phys), PAGE_SIZE);
 	
@@ -198,7 +197,7 @@ void VMCopyAlloc(VirtualSpace space, uptr virt, usize length, usize flags, uptr 
 	usize copyLen;
 
 	for (; virt < end; virt += PAGE_SIZE) {
-		phys = (uptr)PMM::RequestPage();
+		phys = VMM::VirtualToPhysical((uptr)PMM::RequestPage());
 
 		Memclr((void*)VMM::PhysicalToVirtual(phys), PAGE_SIZE);
 
@@ -214,7 +213,6 @@ void VMCopyAlloc(VirtualSpace space, uptr virt, usize length, usize flags, uptr 
 		MMap(space, phys, virt, PAGE_SIZE, flags);
 	}
 }
-#endif
 uptr PhysicalToVirtual(uptr value) {
 	KInfo *info = GetInfo();
 
@@ -230,7 +228,6 @@ uptr VirtualToPhysical(uptr value) {
 
 	return value;
 }
-#ifdef UNDEF
 
 VirtualSpace NewVirtualSpace(uptr frame) {
 #if defined(__x86_64__)
@@ -291,5 +288,4 @@ uptr FindMappedPage(VirtualSpace space, uptr virt) {
 	return 0;
 
 }
-#endif
 }

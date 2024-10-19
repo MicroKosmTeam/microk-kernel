@@ -57,7 +57,7 @@ void KernelStart() {
 		       sizeof(SchedulerContext));
 
 	/* Initializing virtual memory */
-	//VMM::InitVMM();
+	VMM::InitVMM();
 
 	/*
 	MEM::Init();

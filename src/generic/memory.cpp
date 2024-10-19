@@ -7,19 +7,17 @@
 #include <math.hpp>
 
 namespace MEM {
-#ifdef UNDEF
 void Init() {
 	KInfo *info = GetInfo();
 
 	PRINTK::PrintK(PRINTK_DEBUG "Physical Memory Map:\r\n");
 
-	for (MEM::MEMBLOCK::MemblockRegion *current = (MEM::MEMBLOCK::MemblockRegion*)info->PhysicalMemoryChunks->Regions.Head;
-	     current != NULL;
-	     current = (MEM::MEMBLOCK::MemblockRegion*)current->Next) {
+	for (usize i = 0; info->MemoryMap[i].Address != (uptr)-1; i++) {	
+		UntypedHeader *current = &info->MemoryMap[i];
 		PRINTK::PrintK(PRINTK_DEBUG " [0x%x - 0x%x] -> %s\r\n",
-				current->Base,
-				current->Base + current->Length,
-				MemoryTypeToString(current->Type));
+				current->Address,
+				current->Address + current->Length,
+				MemoryTypeToString(current->Flags));
 	}
 
 	/* Give correct type descriptors to the memory regions */
@@ -72,12 +70,14 @@ void Init() {
 	ROUND_UP_TO_PAGE(dynamicEndAddr);
 	ROUND_UP_TO_PAGE(bssEndAddr);
 
+	/*
 	MEM::MEMBLOCK::AddRegion(info->PhysicalMemoryChunks, essentialStartAddr, essentialEndAddr - essentialStartAddr, MEMMAP_KERNEL_ESSENTIALS);
 	MEM::MEMBLOCK::AddRegion(info->PhysicalMemoryChunks, textStartAddr, textEndAddr - textStartAddr, MEMMAP_KERNEL_TEXT);
 	MEM::MEMBLOCK::AddRegion(info->PhysicalMemoryChunks, rodataStartAddr, rodataEndAddr - rodataStartAddr, MEMMAP_KERNEL_RODATA);
 	MEM::MEMBLOCK::AddRegion(info->PhysicalMemoryChunks, dataStartAddr, dataEndAddr - dataStartAddr, MEMMAP_KERNEL_DATA);
 	MEM::MEMBLOCK::AddRegion(info->PhysicalMemoryChunks, dynamicStartAddr, dynamicEndAddr - dynamicStartAddr, MEMMAP_KERNEL_DYNAMIC);
 	MEM::MEMBLOCK::AddRegion(info->PhysicalMemoryChunks, bssStartAddr, bssEndAddr - bssStartAddr, MEMMAP_KERNEL_BSS);
+	*/
 
 	/* Free bootloader-used memory that is no longer needed */
 	/*
@@ -97,6 +97,7 @@ void Init() {
 	}*/
 }
 	
+#ifdef UNDEF
 void Deinit() {
 	KInfo *info = GetInfo();
 	BOOTMEM::DeactivateBootMemory();
@@ -201,6 +202,7 @@ void Deinit() {
 	((usize*)(VMM::PhysicalToVirtual(info->RootVirtualRegistersFrame)))[1] = VMM::VirtualToPhysical(info->InitrdAddress);
 	((usize*)(VMM::PhysicalToVirtual(info->RootVirtualRegistersFrame)))[2] = VMM::VirtualToPhysical(info->InitrdAddress) + info->InitrdSize;
 }
+#endif
 
 const char *MemoryTypeToString(u8 type) {
 		if (type >= 0x80) {
@@ -237,6 +239,4 @@ const char *MemoryTypeToString(u8 type) {
 		return GenericMemTypeStrings[type];
 	}
 
-
-#endif
 }
