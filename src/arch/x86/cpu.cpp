@@ -2,6 +2,7 @@
 #include <printk.hpp>
 #include <memory.hpp>
 #include <kinfo.hpp>
+#include <pmm.hpp>
 #include <capability.hpp>
 #include <arch/x86/cpu.hpp>
 #include <arch/x86/idt.hpp>
@@ -81,7 +82,7 @@ inline static int EnableSyscalls() {
 
 void LoadEssentialCPUStructures() {
 	LoadGDT(&gdt, &pointer);
-	TSSInit(&gdt, &tss, 0);
+	TSSInit(&gdt, &tss, (uptr)PMM::RequestPages(8));
 	IDTInit();
 }
 

@@ -117,7 +117,7 @@ struct CapabilitySpace {
 /*
  *
  */
-struct TaskControlBlock;
+struct ThreadControlBlock;
 struct SchedulerContext;
 struct Scheduler;
 
@@ -135,7 +135,7 @@ enum EndpointStatus {
  *
  */
 struct Endpoint {
-	TaskControlBlock *Thread;
+	ThreadControlBlock *Thread;
 	EndpointStatus Status;
 
 	List ThreadQueue;
@@ -168,24 +168,24 @@ struct Domain {
  */
 struct Scheduler {
 	Domain *Parent;
-	TaskControlBlock *Running;
+	ThreadControlBlock *Running;
 
 	List Waiting[SCHEDULER_PRIORITIES];
 	List Blocked[SCHEDULER_PRIORITIES];
 }__attribute__((aligned(PAGE_SIZE)));
 
-struct TaskControlBlock : public ListHead {
+struct ThreadControlBlock : public ListHead {
 	Scheduler *Parent;
 
 	/* Used to queue up the thread in endpoints and such.
 	 * Also, because a TCB can only be waiting in one EP
 	 * (thanks to the blocking behavior) we only need one
-	 * list head per TaskControlBlock.
+	 * list head per ThreadControlBlock.
 	 */
 	ListHead ActionQueue;
 
 	ThreadStatus Status;
-	usize TaskID;
+	usize ThreadID;
 	u8 Priority;
 
 	u8 *VirtualRegisters;

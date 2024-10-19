@@ -2,7 +2,7 @@
 #include <object.hpp>
 
 namespace TASK {
-	TaskControlBlock *InitializeTCB(uptr frame);
+	ThreadControlBlock *InitializeTCB(uptr frame);
 
 	SchedulerContext *InitializeContext(uptr frame, uptr ip, uptr sp, uptr argc, uptr argv);
 	__attribute__((always_inline)) inline

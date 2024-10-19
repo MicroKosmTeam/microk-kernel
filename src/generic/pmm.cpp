@@ -17,7 +17,7 @@ void Deinit() {
 	PhysicalMemoryManager.IsActive = false;
 }
 
-static void CheckSpace() {
+static void CheckSpace(OBJECT_TYPE type) {
 	KInfo *info = GetInfo();
 
 	usize slots = CAPABILITY::GetFreeSlots(info->RootCSpace, UNTYPED);
@@ -46,7 +46,7 @@ static void CheckSpace() {
 		CAPABILITY::AddSlabNode(info->RootCSpace, CNODE, nodeRetypeArray[0]);
 	}
 
-	slots = CAPABILITY::GetFreeSlots(info->RootCSpace, FRAMES);
+	slots = CAPABILITY::GetFreeSlots(info->RootCSpace, type);
 	if (slots < 3) {
 		usize splitCount = 1;
 		usize splitSize = PAGE_SIZE;
@@ -56,7 +56,7 @@ static void CheckSpace() {
 		usize retypeCount = 1;
 		Capability *nodeRetypeArray[retypeCount];
 		CAPABILITY::RetypeUntyped(info->RootCSpace, splitArray[0], CNODE, retypeCount, nodeRetypeArray);
-		CAPABILITY::AddSlabNode(info->RootCSpace, FRAMES, nodeRetypeArray[0]);
+		CAPABILITY::AddSlabNode(info->RootCSpace, type, nodeRetypeArray[0]);
 	}
 }
 
@@ -67,7 +67,7 @@ void *RequestPage() {
 
 	KInfo *info = GetInfo();
 	
-	CheckSpace();
+	CheckSpace(FRAMES);
 
 	usize splitCount = 1;
 	usize splitSize = PAGE_SIZE;
@@ -88,7 +88,7 @@ void *RequestPages(usize length) {
 
 	KInfo *info = GetInfo();
 	
-	CheckSpace();
+	CheckSpace(FRAMES);
 
 	usize splitCount = 1;
 	usize splitSize = PAGE_SIZE * length;

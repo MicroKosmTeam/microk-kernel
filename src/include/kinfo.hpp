@@ -55,7 +55,7 @@ struct KInfo {
 	uptr InitrdAddress;
 	usize InitrdSize;
 
-	TaskControlBlock *RootTCB;
+	ThreadControlBlock *RootTCB;
 	CapabilitySpace *RootCSpace;
 
 	Domain *BootDomain;

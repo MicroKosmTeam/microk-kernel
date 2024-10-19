@@ -3,7 +3,7 @@
 #include <kinfo.hpp>
 #include <printk.hpp>
 #include <panic.hpp>
-#include <task.hpp>
+#include <thread.hpp>
 #include <slab.hpp>
 #include <math.hpp>
 
@@ -14,7 +14,7 @@ uptr InitializeRootSpace(uptr framesBase, UntypedHeader *memoryMap) {
 	/* Getting the page for the TCB and the cspace */
 	uptr tcbFrame = VMM::PhysicalToVirtual(framesBase);
 	Memclr((void*)tcbFrame, PAGE_SIZE);
-	uptr cspaceFrame = tcbFrame + sizeof(TaskControlBlock);
+	uptr cspaceFrame = tcbFrame + sizeof(ThreadControlBlock);
 	uptr slabNodeFrame = tcbFrame + PAGE_SIZE;
 
 	/* Initializing the TCB and creating the root CSpace */
@@ -103,7 +103,7 @@ usize GetObjectSize(OBJECT_TYPE kind) {
 		case PROCESS_SCHEDULER:
 			return sizeof(Scheduler);
 		case TASK_CONTROL_BLOCK:
-			return sizeof(TaskControlBlock);
+			return sizeof(ThreadControlBlock);
 		case TASK_SCHEDULER_CONTEXT:
 			return sizeof(SchedulerContext);
 		default:
@@ -171,20 +171,21 @@ Capability *RetypeUntyped(CapabilitySpace *space, Capability *untyped, OBJECT_TY
 	 */
 	usize objectSize = GetObjectSize(kind);
 	usize realCount = header->Length / objectSize;
-	if (count > realCount) {
-		count = realCount;
-	}
 
 	/* Here check if there are enough slots in the slab, then allocate those slots and
 	 * make the capabilities */
-	for (usize i = 0; i < count; ++i) {
-		array[i] = GenerateCapability(space, kind, startAddress + i * objectSize, maskedRights);
-		if (array[i] == NULL) {
+	for (usize i = 0; i < realCount; ++i) {
+		Capability *cap = GenerateCapability(space, kind, startAddress + i * objectSize, maskedRights);
+		if (cap == NULL) {
 			return NULL;
 		}
 
-		array[i]->Parent = untyped;
+		cap->Parent = untyped;
 		++untyped->Children;
+
+		if (i < count) {
+			array[i] = cap;
+		}
 	}
 		
 	untyped->IsMasked = 1;

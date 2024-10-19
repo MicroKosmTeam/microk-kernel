@@ -120,7 +120,7 @@ extern "C" InterruptStatus *InterruptHandler(InterruptStatus *context) {
 			// TODO
 /*
 			Scheduler *scheduler = info->BootDomain->DomainScheduler;
-			TaskControlBlock *activeThread = scheduler->Running;
+			ThreadControlBlock *activeThread = scheduler->Running;
 */
 			uptr page = 0;
 			bool protectionViolation = context->Base.ErrorCode & 0b1;
@@ -194,7 +194,7 @@ extern "C" InterruptStatus *InterruptHandler(InterruptStatus *context) {
 			// TODO
 			/*
 			Scheduler *scheduler = info->BootDomain->DomainScheduler;
-			TaskControlBlock *activeThread = scheduler->Running;
+			ThreadControlBlock *activeThread = scheduler->Running;
 			SchedulerContext *taskContext = activeThread->Context;
 
 			taskContext->SP = context->Base.IretRSP;
