@@ -10,6 +10,7 @@
 #include <arch/x86/apic.hpp>
 #include <arch/x86/ioapic.hpp>
 #include <arch/x86/acpi.hpp>
+#include <arch/x86/vm/svm.hpp>
 
 extern "C" void HandleSyscall64();
 extern "C" void HandleSyscall32();
@@ -132,16 +133,49 @@ void InitializeCPUFeatures() {
 		PRINTK::PrintK(PRINTK_DEBUG 
 			"SVM!\r\n");
 
-		u32 msrLo = 0, msrHi = 0;
-
-		GetMSR(MSR_EFER, &msrLo, &msrHi);
-		msrLo |= (1 << 12);
-		SetMSR(MSR_EFER, msrLo, msrHi);
-	
 		__get_cpuid_count(0x8000000A, 0, &eax, &ebx, &ecx, &edx);
+		if ((edx & (1 <<0)) == 0) {
+			PRINTK::PrintK(PRINTK_DEBUG 
+				"Nested paging not supported!\r\n");
+		}
+		
+		u32 msrLo = 0, msrHi = 0;
+		GetMSR(MSR_VM_CR, &msrLo, &msrHi);
+		if ((msrLo & (1 << 4)) == 0) {
+			PRINTK::PrintK(PRINTK_DEBUG 
+				"Can enable SVM!\r\n");
+
+			GetMSR(MSR_EFER, &msrLo, &msrHi);
+			msrLo |= (1 << 12);
+			SetMSR(MSR_EFER, msrLo, msrHi);
+		} else {
+			if (edx != 0 && (edx & (1 << 2)) == 0) {
+				PRINTK::PrintK(PRINTK_DEBUG 
+					"Disabled at BIOS!\r\n");
+			} else {
+				PRINTK::PrintK(PRINTK_DEBUG 
+					"Disabled with KEY!\r\n");
+			}
+		}
+		
+		uptr hostSave = (uptr)PMM::RequestPage();
+		msrLo = hostSave & 0xFFFFFFFF;
+		msrHi = (hostSave << 32) & 0xFFFFFFFF;
+		SetMSR(MSR_VM_HSAVE_PA, msrLo, msrHi);
+
+		SVM::VMCB *vmcb = (SVM::VMCB*)PMM::RequestPage();
+		Memclr(vmcb, PAGE_SIZE);
+		SVM::InitializeVMCB(vmcb);
+
+		PRINTK::PrintK(PRINTK_DEBUG "VMCB size: %d\r\n", sizeof(SVM::VMCB));
+
+		//SVM::SaveVM(VMM::VirtualToPhysical((uptr)vmcb));
+		SVM::LoadVM(VMM::VirtualToPhysical((uptr)vmcb));
 
 		PRINTK::PrintK(PRINTK_DEBUG 
 			"Enabled SVM!\r\n");
+		
+		SVM::LaunchVM(VMM::VirtualToPhysical((uptr)vmcb));
 	} else {
 		PRINTK::PrintK(PRINTK_DEBUG 
 			"No svm!\r\n");

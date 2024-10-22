@@ -2,10 +2,17 @@
 #include <cdefs.h>
 
 namespace x86 {
+namespace SVM {
 	/*
 	 * 32-bit intercept words in the VMCB Control Area, starting
 	 * at Byte offset 000h.
 	 */
+
+	#define INTERCEPT_MSR_PROT (1UL << 28) // MSR_PROT—intercept RDMSR or WRMSR accesses to selected MSRs.
+#define INTERCEPT_CPUID    (1UL << 18) // Intercept CPUID Instruction.
+
+#define INTERCEPT_VMRUN    (1UL << 0)  // Intercept VMRUN instruction.
+#define INTERCEPT_VMMCALL  (1UL << 1)  // Intercept VMMCALL instruction.
 
 	enum intercept_words {
 		INTERCEPT_CR = 0,
@@ -127,4 +134,10 @@ namespace x86 {
 		struct VMCBControlArea Control;
 		struct VMCBSaveArea Save;
 	}__attribute__((packed));
+
+	int InitializeVMCB(VMCB *vmcb);
+	void LoadVM(uptr statePhysAddr);
+	void SaveVM(uptr statePhysAddr);
+	void LaunchVM(uptr vmcbPhysAddr);
+}
 }

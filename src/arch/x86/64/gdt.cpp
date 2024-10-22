@@ -4,6 +4,7 @@
 
 #include <memory.hpp>
 #include <arch/x86/gdt.hpp>
+#include <vmm.hpp>
 
 void FlushGDT(GDTPointer *gdt) {
 	asm volatile ("lgdt [%0]\n\t"
@@ -71,7 +72,7 @@ void TSSInit(GDT *gdt, TSS *tss, uptr stackPointer) {
 void LoadGDT(GDT *gdt, GDTPointer *gdtPointer) {
 	/* Setting GDT pointer size and offset */
 	gdtPointer->Size = sizeof(*gdt) - 1;
-	gdtPointer->Offset = (u64)gdt;
+	gdtPointer->Offset = (u64)(uptr)gdt;
 
 	gdt->Null = {0, 0, 0, 0, 0, 0}; /* Required null gdt segment */
 	gdt->KernelCode16Bit = {0xffff, 0, 0, 0x9a, 0x80, 0}; /* 16-bit code */
@@ -88,4 +89,23 @@ void LoadGDT(GDT *gdt, GDTPointer *gdtPointer) {
 	/* Call to asm functions that load the GDT and TSS */
 	FlushGDT(gdtPointer);
 }
+
+u16 GetLimit(GDT *gdt, u8 desc) {
+	return ((GDTEntry*)gdt)[desc/0x8].Limit;
+}
+
+uptr GetBase(GDT *gdt, u8 desc) {
+	return (((GDTEntry*)gdt)[desc/0x8].BaseLow16 |
+	       ((GDTEntry*)gdt)[desc/0x8].BaseMid8 << 16 |
+	       ((GDTEntry*)gdt)[desc/0x8].BaseHigh8 << 24);
+}
+
+u8 GetAccess(GDT *gdt, u8 desc) {
+	return ((GDTEntry*)gdt)[desc/0x8].Access;
+}
+
+u8 GetGranularity(GDT *gdt, u8 desc) {
+	return ((GDTEntry*)gdt)[desc/0x8].Granularity;
+}
+
 }

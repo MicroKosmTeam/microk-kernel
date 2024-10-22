@@ -104,6 +104,10 @@ struct GDT {
 
 namespace x86 {
 	void LoadGDT(GDT *gdt, GDTPointer *gdtPointer);
+	u16 GetLimit(GDT *gdt, u8 desc);
+	uptr GetBase(GDT *gdt, u8 desc);
+	u8 GetAccess(GDT *gdt, u8 desc);
+	u8 GetGranularity(GDT *gdt, u8 desc);
 
 	void LoadNewStackInTSS(TSS *tss, uptr stackPointer);
 	void TSSInit(GDT *gdt, TSS *tss, uptr stackPointer);
