@@ -22,6 +22,7 @@ static usize LoadProcess(Elf64_Ehdr *elfHeader, VirtualSpace space, uptr highest
 usize LoadELF(u8 *data, usize size) {
 	KInfo *info = GetInfo();
 
+	(void)info;
 	Elf64_Ehdr *elfHeader = (Elf64_Ehdr*)data;
 
 	if(VerifyELF(elfHeader)) {
@@ -30,11 +31,12 @@ usize LoadELF(u8 *data, usize size) {
 		VirtualSpace space = VMM::NewVirtualSpace((uptr)PMM::RequestPage());
 		VMM::PrepareUserVirtualSpace(space);
 
+		/*
 		CAPABILITY::Originate(info->RootTCB->RootCNode,
 				      ROOT_CNODE_SLOTS::VIRTUAL_SPACE_ROOT_SLOT,
 				      space,
 				      OBJECT_TYPE::PAGING_STRUCTURE,
-				      CAPABILITY_RIGHTS::ACCESS);
+				      CAPABILITY_RIGHTS::ACCESS);*/
 
 		uptr highestAddress = 0;
 		LoadProgramHeaders(data, size, elfHeader, space, &highestAddress);
@@ -178,7 +180,7 @@ static usize LoadProcess(Elf64_Ehdr *elfHeader, VirtualSpace space, uptr highest
 
 	/* Create the actual context */
 	SchedulerContext *context = (SchedulerContext*)VMM::PhysicalToVirtual((uptr)PMM::RequestPage());
-	TASK::InitializeContext((uptr)context, elfHeader->e_entry, highestAddress + INIT_INITIAL_STACK_SIZE, VIRTUAL_REGISTERS_SIZE, (uptr)tcb->VirtualRegisters);
+	THREAD::InitializeContext((uptr)context, elfHeader->e_entry, highestAddress + INIT_INITIAL_STACK_SIZE, VIRTUAL_REGISTERS_SIZE, (uptr)tcb->VirtualRegisters);
 
 	tcb->Context = context;
 

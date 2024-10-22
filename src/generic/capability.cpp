@@ -18,7 +18,7 @@ uptr InitializeRootSpace(uptr framesBase, UntypedHeader *memoryMap) {
 	uptr slabNodeFrame = tcbFrame + PAGE_SIZE;
 
 	/* Initializing the TCB and creating the root CSpace */
-	info->RootTCB = TASK::InitializeTCB(tcbFrame);
+	info->RootTCB = THREAD::InitializeTCB(tcbFrame);
 	info->RootCSpace = (CapabilitySpace*)cspaceFrame;
 
 	CapabilitySpace *space = info->RootCSpace;
@@ -76,7 +76,7 @@ uptr InitializeRootSpace(uptr framesBase, UntypedHeader *memoryMap) {
 
 	}
 	
-	GenerateCapability(space, TASK_CONTROL_BLOCK, (uptr)info->RootTCB, ACCESS);
+	GenerateCapability(space, THREAD_CONTROL_BLOCK, (uptr)info->RootTCB, ACCESS);
 	GenerateCapability(space, CSPACE, (uptr)info->RootCSpace, ACCESS);
 	
 	PRINTK::PrintK(PRINTK_DEBUG "Root space initialized.\r\n");
@@ -102,9 +102,9 @@ usize GetObjectSize(OBJECT_TYPE kind) {
 			return sizeof(Domain);
 		case PROCESS_SCHEDULER:
 			return sizeof(Scheduler);
-		case TASK_CONTROL_BLOCK:
+		case THREAD_CONTROL_BLOCK:
 			return sizeof(ThreadControlBlock);
-		case TASK_SCHEDULER_CONTEXT:
+		case THREAD_SCHEDULER_CONTEXT:
 			return sizeof(SchedulerContext);
 		default:
 			return -1;
@@ -142,7 +142,7 @@ Capability *GenerateCapability(CapabilitySpace *space, OBJECT_TYPE kind, uptr ob
 	//capability->Key = object;
 	slab->CapabilityTree = SLAB::Insert(slab->CapabilityTree, capability);
 
-	PRINTK::PrintK(PRINTK_DEBUG "Generated capability of 0x%x with kind: %d\r\n", object, kind);
+	//PRINTK::PrintK(PRINTK_DEBUG "Generated capability of 0x%x with kind: %d\r\n", object, kind);
 
 	return capability;
 }
@@ -302,8 +302,8 @@ void AddSlabNode(CapabilitySpace *space, OBJECT_TYPE kind, Capability *capabilit
 	CapabilityNode *node = (CapabilityNode*)capability->Object;
 	SLAB::AddSlabNode(slab, node);
 
-	PRINTK::PrintK(PRINTK_DEBUG "Added slab node 0x%x from cap 0x%x\r\n",
-			capability->Object, capability);
+	//PRINTK::PrintK(PRINTK_DEBUG "Added slab node 0x%x from cap 0x%x\r\n",
+	//		capability->Object, capability);
 }
 
 void DumpCapabilitySlab(CapabilitySpace *space, OBJECT_TYPE kind) {

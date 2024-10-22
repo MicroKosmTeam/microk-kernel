@@ -150,7 +150,7 @@ struct Notification {
 };
 
 enum ThreadStatus {
-	IDLING = 0xFF, /* Special, used for Idle task */
+	IDLING = 0xFF, /* Special, used for Idle thread */
 	RUNNING = 0,
 	WAITING,
 	BLOCKED,

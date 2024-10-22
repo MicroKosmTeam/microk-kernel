@@ -6,7 +6,7 @@
 
 #define APIC_REGISTER_LAPIC_ID                            0x02
 #define APIC_REGISTER_LAPIC_VERSION                       0x03
-#define APIC_REGISTER_TASK_PRIORITY                       0x08
+#define APIC_REGISTER_THREAD_PRIORITY                       0x08
 #define APIC_REGISTER_ARBITRATION_PRIORITY                0x09
 #define APIC_REGISTER_PROCESSOR_PRIORITY                  0x0A
 #define APIC_REGISTER_EOI                                 0x0B

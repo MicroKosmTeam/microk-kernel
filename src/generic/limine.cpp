@@ -285,8 +285,8 @@ void LimineEntry() {
 		CAPABILITY::DumpCapabilitySlab(info->RootCSpace, UNTYPED);
 		SLAB::Dump(info->RootCSpace->Slabs[UNTYPED].CapabilityTree);
 
-		CAPABILITY::DumpCapabilitySlab(info->RootCSpace, TASK_CONTROL_BLOCK);
-		SLAB::Dump(info->RootCSpace->Slabs[TASK_CONTROL_BLOCK].CapabilityTree);
+		CAPABILITY::DumpCapabilitySlab(info->RootCSpace, THREAD_CONTROL_BLOCK);
+		SLAB::Dump(info->RootCSpace->Slabs[THREAD_CONTROL_BLOCK].CapabilityTree);
 	
 		CAPABILITY::DumpCapabilitySlab(info->RootCSpace, CNODE);
 		SLAB::Dump(info->RootCSpace->Slabs[CNODE].CapabilityTree);

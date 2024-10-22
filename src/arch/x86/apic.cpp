@@ -143,7 +143,7 @@ int InitializeAPIC(APIC *apic) {
 	apic->Base = GetAPICBase();
 	apic->MappedAddress = VMM::PhysicalToVirtual(apic->Base);
 	// TODO
-	//VMM::MMap(info->KernelVirtualSpace, apic->Base, apic->MappedAddress, PAGE_SIZE, VMM_FLAGS_READ | VMM_FLAGS_WRITE | VMM_FLAGS_NOEXEC);
+	VMM::MMap(info->KernelVirtualSpace, apic->Base, apic->MappedAddress, PAGE_SIZE, VMM_FLAGS_READ | VMM_FLAGS_WRITE | VMM_FLAGS_NOEXEC);
 	//MEM::MEMBLOCK::AddRegion(info->PhysicalMemoryChunks, apic->Base, PAGE_SIZE, MEMMAP_KERNEL_DEVICE);
 	
 	apic->ProcessorIsBSP = IsAPICBSP();
@@ -166,7 +166,7 @@ int InitializeAPIC(APIC *apic) {
 	u32 timer = timerVector | APIC_LVT_TIMER_TSCDEADLINE | APIC_LVT_TIMER_MASK;
 	u32 spuriousVector = 33 | 0x100;
 
-	WriteAPIC(apic, APIC_REGISTER_TASK_PRIORITY, 0x1, 0);
+	WriteAPIC(apic, APIC_REGISTER_THREAD_PRIORITY, 0x1, 0);
 	WriteAPIC(apic, APIC_REGISTER_SPURIOUS_INTERRUPT_VECTOR, spuriousVector, 0);
 
 	WriteAPIC(apic, APIC_REGISTER_TIMER_INITIAL_COUNT, -1, 0);

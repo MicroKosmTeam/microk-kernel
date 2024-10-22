@@ -18,7 +18,7 @@ Scheduler *InitializeCPUScheduler(Domain *domain, uptr frame) {
 void AddThread(Scheduler *scheduler, ThreadControlBlock *tcb) {
 	switch (tcb->Status) {
 		case ThreadStatus::RUNNING:
-			/* Invalid, can't do that. Treat it as a WAITING task. */
+			/* Invalid, can't do that. Treat it as a WAITING thread. */
 		        __attribute__ ((fallthrough));
 		case ThreadStatus::WAITING:
 			AddElementToList(tcb, &scheduler->Waiting[tcb->Priority]);

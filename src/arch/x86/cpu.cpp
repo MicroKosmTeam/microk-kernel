@@ -8,16 +8,13 @@
 #include <arch/x86/idt.hpp>
 #include <arch/x86/gdt.hpp>
 #include <arch/x86/apic.hpp>
+#include <arch/x86/ioapic.hpp>
+#include <arch/x86/acpi.hpp>
 
 extern "C" void HandleSyscall64();
 extern "C" void HandleSyscall32();
 
 namespace x86 {
-GDT gdt;
-GDTPointer pointer;
-TSS tss;
-APIC apic;
-
 
 inline static u32 GetFamily(u32 sig) {
 	u32 x86;
@@ -80,6 +77,13 @@ inline static int EnableSyscalls() {
 	return 0;
 }
 
+GDT gdt;
+GDTPointer pointer;
+TSS tss;
+APIC apic;
+IOAPIC ioapic;
+ACPI acpi;
+
 void LoadEssentialCPUStructures() {
 	LoadGDT(&gdt, &pointer);
 	TSSInit(&gdt, &tss, (uptr)PMM::RequestPages(8));
@@ -87,6 +91,8 @@ void LoadEssentialCPUStructures() {
 }
 
 void InitializeCPUFeatures() {
+	InitializeACPI(&acpi);
+
 	EnableSyscalls();
 
 	u32 vendor[4];
@@ -100,6 +106,46 @@ void InitializeCPUFeatures() {
 			"CPUID max supported Intel level: 0x%x\r\n"
 			"CPUID max supported AMD level: 0x%x\r\n"
 			"CPUID vendor string: %s\r\n", maxIntelLevel, maxAmdLevel, vendor);
+	
+	u32 eax = 0, ebx = 0, ecx = 0, edx = 0;
+
+	u32 cpustring[4 * 4 + 1];
+	Memclr(cpustring, sizeof(u32) * (4 * 4 + 1));
+	__get_cpuid_count(0x80000002, 0, &cpustring[0], &cpustring[1], &cpustring[2], &cpustring[3]);
+	__get_cpuid_count(0x80000003, 0, &cpustring[4], &cpustring[5], &cpustring[6], &cpustring[7]);
+	__get_cpuid_count(0x80000004, 0, &cpustring[8], &cpustring[9], &cpustring[10], &cpustring[11]);
+	PRINTK::PrintK(PRINTK_DEBUG "CPUID Processor %s\r\n", cpustring);
+
+
+	if (__get_cpuid_count(0x1, 0, &eax, &ebx, &ecx, &edx) && (ecx & (1 << 5))) {
+		PRINTK::PrintK(PRINTK_DEBUG 
+			"VMX!\r\n");
+	asm volatile ("mov rax, cr4\n\t"
+		      "bts rax, 13\n\t"
+		      "mov cr4, rax\n\t":::"rax");
+	} else {
+		PRINTK::PrintK(PRINTK_DEBUG 
+			"No vmx!\r\n");
+	}
+
+	if (__get_cpuid_count(0x80000001, 0, &eax, &ebx, &ecx, &edx) && (ecx & (1 << 2))) {
+		PRINTK::PrintK(PRINTK_DEBUG 
+			"SVM!\r\n");
+
+		u32 msrLo = 0, msrHi = 0;
+
+		GetMSR(MSR_EFER, &msrLo, &msrHi);
+		msrLo |= (1 << 12);
+		SetMSR(MSR_EFER, msrLo, msrHi);
+	
+		__get_cpuid_count(0x8000000A, 0, &eax, &ebx, &ecx, &edx);
+
+		PRINTK::PrintK(PRINTK_DEBUG 
+			"Enabled SVM!\r\n");
+	} else {
+		PRINTK::PrintK(PRINTK_DEBUG 
+			"No svm!\r\n");
+	}
 
 	InitializeAPIC(&apic);
 }

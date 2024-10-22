@@ -30,6 +30,9 @@
 #include <kinfo.hpp>
 #include <cpu.hpp>
 #include <capability.hpp>
+#include <loader.hpp>
+#include <sched.hpp>
+#include <pmm.hpp>
 
 extern "C"
 void SyscallMain() {
@@ -59,15 +62,13 @@ void KernelStart() {
 	/* Initializing virtual memory */
 	VMM::InitVMM();
 
-	/*
-	MEM::Init();
-	CAPABILITY::InitializeRootSpace();
+	//MEM::Init();
 	ARCH::InitializeCPUFeatures();
-	SCHED::InitializeCPUScheduler(info->BootDomain, VMM::PhysicalToVirtual((uptr)PMM::RequestPage()));
+	SCHED::InitializeCPUScheduler(info->BootDomain, (uptr)PMM::RequestPage());
 	LOADER::LoadELF((u8*)info->ManagerExecutableAddress, info->ManagerExecutableSize);
-	MEM::Deinit();
-	SCHED::Recalculate(info->BootDomain->DomainScheduler);
-*/
+	//MEM::Deinit();
+	//SCHED::Recalculate(info->BootDomain->DomainScheduler);
+
 	PRINTK::PrintK(PRINTK_DEBUG "Kernel startup complete.\r\n");
 /*
 	VMM::LoadVirtualSpace(info->RootTCB->MemorySpace);

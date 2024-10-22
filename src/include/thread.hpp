@@ -1,7 +1,7 @@
 #pragma once
 #include <object.hpp>
 
-namespace TASK {
+namespace THREAD {
 	ThreadControlBlock *InitializeTCB(uptr frame);
 
 	SchedulerContext *InitializeContext(uptr frame, uptr ip, uptr sp, uptr argc, uptr argv);

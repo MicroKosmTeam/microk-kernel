@@ -1,4 +1,4 @@
-#include <task.hpp>
+#include <thread.hpp>
 #include <memory.hpp>
 
 static u64 LastID = 0;
@@ -6,13 +6,13 @@ static u64 RequestID() {
 	return ++LastID;
 }
 
-namespace TASK {
+namespace THREAD {
 ThreadControlBlock *InitializeTCB(uptr frame) {
 	ThreadControlBlock *tcb = (ThreadControlBlock*)frame;
 	Memclr(tcb, sizeof(ThreadControlBlock));
 
 	tcb->Status = ThreadStatus::RUNNING;
-	tcb->TaskID = RequestID();
+	tcb->ThreadID = RequestID();
 	tcb->Priority = SCHEDULER_MIN_PRIORITY;
 
 	return tcb;

@@ -195,26 +195,26 @@ extern "C" InterruptStatus *InterruptHandler(InterruptStatus *context) {
 			/*
 			Scheduler *scheduler = info->BootDomain->DomainScheduler;
 			ThreadControlBlock *activeThread = scheduler->Running;
-			SchedulerContext *taskContext = activeThread->Context;
+			SchedulerContext *threadContext = activeThread->Context;
 
-			taskContext->SP = context->Base.IretRSP;
-			taskContext->BP = context->Base.IretRSP;
-			taskContext->IP = context->Base.IretRIP;
-			taskContext->RFLAGS = context->Base.IretRFLAGS;
+			threadContext->SP = context->Base.IretRSP;
+			threadContext->BP = context->Base.IretRSP;
+			threadContext->IP = context->Base.IretRIP;
+			threadContext->RFLAGS = context->Base.IretRFLAGS;
 
-			Memcpy(&taskContext->Registers, &context->Registers, sizeof(GeneralRegisters));
+			Memcpy(&threadContext->Registers, &context->Registers, sizeof(GeneralRegisters));
 
 			activeThread = SCHED::Recalculate(scheduler);
-			taskContext = activeThread->Context;
+			threadContext = activeThread->Context;
 
 			VMM::LoadVirtualSpace(activeThread->MemorySpace);
 
-			context->Base.IretRSP = taskContext->SP;
-			context->Base.IretRSP = taskContext->BP;
-			context->Base.IretRIP = taskContext->IP;
-			context->Base.IretRFLAGS = taskContext->RFLAGS;
+			context->Base.IretRSP = threadContext->SP;
+			context->Base.IretRSP = threadContext->BP;
+			context->Base.IretRIP = threadContext->IP;
+			context->Base.IretRFLAGS = threadContext->RFLAGS;
 
-			Memcpy(&context->Registers, &taskContext->Registers, sizeof(GeneralRegisters));
+			Memcpy(&context->Registers, &threadContext->Registers, sizeof(GeneralRegisters));
 			*/
 			}
 			break;
