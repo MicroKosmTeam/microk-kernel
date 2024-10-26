@@ -4,12 +4,14 @@
 #include <kinfo.hpp>
 #include <pmm.hpp>
 #include <capability.hpp>
+#include <main.hpp>
 #include <arch/x86/cpu.hpp>
 #include <arch/x86/idt.hpp>
 #include <arch/x86/gdt.hpp>
 #include <arch/x86/apic.hpp>
 #include <arch/x86/ioapic.hpp>
 #include <arch/x86/acpi.hpp>
+#include <arch/x86/vm/vm.hpp>
 #include <arch/x86/vm/svm.hpp>
 
 extern "C" void HandleSyscall64();
@@ -92,10 +94,6 @@ void LoadEssentialCPUStructures() {
 }
 
 void InitializeCPUFeatures() {
-	InitializeACPI(&acpi);
-
-	EnableSyscalls();
-
 	u32 vendor[4];
 	Memclr(vendor, sizeof(u32) * 4);
 	u32 maxIntelLevel = 0, maxAmdLevel = 0;
@@ -117,71 +115,76 @@ void InitializeCPUFeatures() {
 	__get_cpuid_count(0x80000004, 0, &cpustring[8], &cpustring[9], &cpustring[10], &cpustring[11]);
 	PRINTK::PrintK(PRINTK_DEBUG "CPUID Processor %s\r\n", cpustring);
 
-
-	if (__get_cpuid_count(0x1, 0, &eax, &ebx, &ecx, &edx) && (ecx & (1 << 5))) {
-		PRINTK::PrintK(PRINTK_DEBUG 
-			"VMX!\r\n");
-	asm volatile ("mov rax, cr4\n\t"
-		      "bts rax, 13\n\t"
-		      "mov cr4, rax\n\t":::"rax");
-	} else {
-		PRINTK::PrintK(PRINTK_DEBUG 
-			"No vmx!\r\n");
-	}
-
-	if (__get_cpuid_count(0x80000001, 0, &eax, &ebx, &ecx, &edx) && (ecx & (1 << 2))) {
-		PRINTK::PrintK(PRINTK_DEBUG 
-			"SVM!\r\n");
-
-		__get_cpuid_count(0x8000000A, 0, &eax, &ebx, &ecx, &edx);
-		if ((edx & (1 <<0)) == 0) {
-			PRINTK::PrintK(PRINTK_DEBUG 
-				"Nested paging not supported!\r\n");
-		}
-		
-		u32 msrLo = 0, msrHi = 0;
-		GetMSR(MSR_VM_CR, &msrLo, &msrHi);
-		if ((msrLo & (1 << 4)) == 0) {
-			PRINTK::PrintK(PRINTK_DEBUG 
-				"Can enable SVM!\r\n");
-
-			GetMSR(MSR_EFER, &msrLo, &msrHi);
-			msrLo |= (1 << 12);
-			SetMSR(MSR_EFER, msrLo, msrHi);
-		} else {
-			if (edx != 0 && (edx & (1 << 2)) == 0) {
-				PRINTK::PrintK(PRINTK_DEBUG 
-					"Disabled at BIOS!\r\n");
-			} else {
-				PRINTK::PrintK(PRINTK_DEBUG 
-					"Disabled with KEY!\r\n");
-			}
-		}
-		
-		uptr hostSave = (uptr)PMM::RequestPage();
-		msrLo = hostSave & 0xFFFFFFFF;
-		msrHi = (hostSave << 32) & 0xFFFFFFFF;
-		SetMSR(MSR_VM_HSAVE_PA, msrLo, msrHi);
-
-		SVM::VMCB *vmcb = (SVM::VMCB*)PMM::RequestPage();
-		Memclr(vmcb, PAGE_SIZE);
-		SVM::InitializeVMCB(vmcb);
-
-		PRINTK::PrintK(PRINTK_DEBUG "VMCB size: %d\r\n", sizeof(SVM::VMCB));
-
-		//SVM::SaveVM(VMM::VirtualToPhysical((uptr)vmcb));
-		SVM::LoadVM(VMM::VirtualToPhysical((uptr)vmcb));
-
-		PRINTK::PrintK(PRINTK_DEBUG 
-			"Enabled SVM!\r\n");
-		
-		SVM::LaunchVM(VMM::VirtualToPhysical((uptr)vmcb));
-	} else {
-		PRINTK::PrintK(PRINTK_DEBUG 
-			"No svm!\r\n");
-	}
-
+	EnableSyscalls();
+	InitializeACPI(&acpi);
 	InitializeAPIC(&apic);
+
+	volatile bool vmEnabled = false;
+	uptr rsp = GetRSP();
+	uptr rflags = GetRFLAGS();
+	uptr rip = GetRIP();
+
+	if (vmEnabled) {
+		PRINTK::PrintK(PRINTK_DEBUG "Hello from VM!\r\n");
+		UserStart();
+	} else {
+		if (__get_cpuid_count(0x1, 0, &eax, &ebx, &ecx, &edx) && (ecx & (1 << 5))) {
+			PRINTK::PrintK(PRINTK_DEBUG 
+				"VMX!\r\n");
+		} else {
+			PRINTK::PrintK(PRINTK_DEBUG 
+				"No vmx!\r\n");
+		}
+
+		if (__get_cpuid_count(0x80000001, 0, &eax, &ebx, &ecx, &edx) && (ecx & (1 << 2))) {
+			PRINTK::PrintK(PRINTK_DEBUG 
+				"SVM!\r\n");
+
+			__get_cpuid_count(0x8000000A, 0, &eax, &ebx, &ecx, &edx);
+			if ((edx & (1 <<0)) == 0) {
+				PRINTK::PrintK(PRINTK_DEBUG 
+					"Nested paging not supported!\r\n");
+			}
+		
+			u32 msrLo = 0, msrHi = 0;
+			GetMSR(MSR_VM_CR, &msrLo, &msrHi);
+			if ((msrLo & (1 << 4)) == 0) {
+				PRINTK::PrintK(PRINTK_DEBUG 
+					"Can enable SVM!\r\n");
+
+				GetMSR(MSR_EFER, &msrLo, &msrHi);
+				msrLo |= (1 << 12);
+				SetMSR(MSR_EFER, msrLo, msrHi);
+			} else {
+				if (edx != 0 && (edx & (1 << 2)) == 0) {
+					PRINTK::PrintK(PRINTK_DEBUG 
+						"Disabled at BIOS!\r\n");
+				} else {
+					PRINTK::PrintK(PRINTK_DEBUG 
+						"Disabled with KEY!\r\n");
+				}
+			}
+
+			vmEnabled = true;
+			PRINTK::PrintK(PRINTK_DEBUG 
+				"Enabled SVM!\r\n");
+
+			x86::VCpu vcpu;
+			vcpu.GuestVMCB = PMM::RequestPage();
+			Memclr(vcpu.GuestVMCB, PAGE_SIZE);
+			vcpu.HostVMCB = PMM::RequestPage();
+			Memclr(vcpu.HostVMCB, PAGE_SIZE);
+			vcpu.SharedVMCB = PMM::RequestPage();
+			Memclr(vcpu.SharedVMCB, PAGE_SIZE);
+
+			SVM::InitializeVMCB(&vcpu, rip, rsp, rflags);
+			SVM::LoadVM(VMM::VirtualToPhysical((uptr)vcpu.GuestVMCB));
+			SVM::LaunchVM(VMM::VirtualToPhysical((uptr)vcpu.GuestVMCB));
+		} else {
+			PRINTK::PrintK(PRINTK_DEBUG 
+				"No svm!\r\n");
+		}
+	}
 }
 
 void InitializeBootCPU() {

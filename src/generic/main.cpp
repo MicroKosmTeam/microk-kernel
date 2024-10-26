@@ -34,11 +34,6 @@
 #include <sched.hpp>
 #include <pmm.hpp>
 
-extern "C"
-void SyscallMain() {
-	PANIC("UNIMPL");
-}
-
 extern "C" __attribute__((noreturn))
 void KernelStart() {
 	KInfo *info = GetInfo();
@@ -64,16 +59,27 @@ void KernelStart() {
 
 	//MEM::Init();
 	ARCH::InitializeCPUFeatures();
+
+	(void)info;
+
+	__builtin_unreachable();
+}
+
+extern "C" __attribute__((noreturn))
+void UserStart() {
+	KInfo *info = GetInfo();
+
 	SCHED::InitializeCPUScheduler(info->BootDomain, (uptr)PMM::RequestPage());
 	LOADER::LoadELF((u8*)info->ManagerExecutableAddress, info->ManagerExecutableSize);
 	//MEM::Deinit();
-	//SCHED::Recalculate(info->BootDomain->DomainScheduler);
+	SCHED::Recalculate(info->BootDomain->DomainScheduler);
 
 	PRINTK::PrintK(PRINTK_DEBUG "Kernel startup complete.\r\n");
-/*
+
 	VMM::LoadVirtualSpace(info->RootTCB->MemorySpace);
 	ARCH::LoadSchedulerContext(info->RootTCB->Context);
-*/
+
+
 	HALT;
 
 	(void)info;

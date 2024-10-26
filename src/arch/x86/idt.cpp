@@ -2,6 +2,7 @@
 #include <printk.hpp>
 #include <kinfo.hpp>
 #include <vmm.hpp>
+#include <sched.hpp>
 #include <arch/x86/idt.hpp>
 
 /* ISR stub table, declared in assembly code */
@@ -192,7 +193,6 @@ extern "C" InterruptStatus *InterruptHandler(InterruptStatus *context) {
 			break;
 		case 32: {
 			// TODO
-			/*
 			Scheduler *scheduler = info->BootDomain->DomainScheduler;
 			ThreadControlBlock *activeThread = scheduler->Running;
 			SchedulerContext *threadContext = activeThread->Context;
@@ -215,7 +215,6 @@ extern "C" InterruptStatus *InterruptHandler(InterruptStatus *context) {
 			context->Base.IretRFLAGS = threadContext->RFLAGS;
 
 			Memcpy(&context->Registers, &threadContext->Registers, sizeof(GeneralRegisters));
-			*/
 			}
 			break;
 		default:

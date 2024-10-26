@@ -1,5 +1,6 @@
 #pragma once
 #include <cdefs.h>
+#include <arch/x86/vm/vm.hpp>
 
 namespace x86 {
 namespace SVM {
@@ -135,7 +136,7 @@ namespace SVM {
 		struct VMCBSaveArea Save;
 	}__attribute__((packed));
 
-	int InitializeVMCB(VMCB *vmcb);
+	int InitializeVMCB(VCpu *vcpu, uptr rip, uptr rsp, uptr rflags);
 	void LoadVM(uptr statePhysAddr);
 	void SaveVM(uptr statePhysAddr);
 	void LaunchVM(uptr vmcbPhysAddr);

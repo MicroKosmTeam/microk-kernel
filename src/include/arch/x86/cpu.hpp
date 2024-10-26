@@ -77,6 +77,12 @@ namespace x86 {
 		return rflags;
 	}
 
+	extern "C"
+	u64 GetRSP();
+
+	extern "C"
+	u64 GetRIP();
+
 	struct _DTR {
 		u16 Limit;
 #if defined(__x86_64__)

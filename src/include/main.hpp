@@ -36,3 +36,6 @@
  */
 extern "C" __attribute__((noreturn))
 void KernelStart();
+extern "C" __attribute__((noreturn))
+void UserStart();
+
