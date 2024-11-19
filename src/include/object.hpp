@@ -52,6 +52,8 @@ struct CapabilityTreeNode : public Capability {
 	u32 Level;
 };
 
+
+
 /*
  * WARNING: Experimental, for future use
  */
@@ -113,6 +115,15 @@ struct CapabilitySlab {
 struct CapabilitySpace {
 	CapabilitySlab Slabs[OBJECT_TYPE_COUNT];
 };
+
+struct ContainerIdentifier {
+	u8 Secret[SECP256k1_SHARED_SECRET_SIZE];
+}__attribute__((aligned(0x10)));
+
+struct Container {
+	ContainerIdentifier Identifier;
+}__attribute__((aligned(0x10)));
+
 
 /*
  *
