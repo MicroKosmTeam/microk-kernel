@@ -198,9 +198,7 @@ void Deinit() {
 		}
 	}
 
-	((usize*)(VMM::PhysicalToVirtual(info->RootVirtualRegistersFrame)))[0] = info->MemmapCapabilityEntries;
-	((usize*)(VMM::PhysicalToVirtual(info->RootVirtualRegistersFrame)))[1] = VMM::VirtualToPhysical(info->InitrdAddress);
-	((usize*)(VMM::PhysicalToVirtual(info->RootVirtualRegistersFrame)))[2] = VMM::VirtualToPhysical(info->InitrdAddress) + info->InitrdSize;
+
 }
 #endif
 

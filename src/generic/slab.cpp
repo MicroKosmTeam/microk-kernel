@@ -243,6 +243,24 @@ CapabilityTreeNode *Search(CapabilityTreeNode *tree, uptr key) {
 	return NULL;
 }
 
+CapabilityTreeNode *SearchClose(CapabilityTreeNode *tree, uptr key) {
+	CapabilityTreeNode *node = tree;
+
+	while (node != NULL) {
+		if ((node->Right == NULL && node->Left == NULL) || key == node->Object) {
+			return node;
+		} else if (key > node->Object) {
+			node = node->Right;
+		} else {
+			node = node->Left;
+		}
+	}
+
+	return NULL;
+}
+
+
+
 void Dump(CapabilityTreeNode *tree) {
 	if (tree == NULL) {
 		return;

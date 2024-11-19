@@ -8,19 +8,12 @@
 namespace x86 {
 namespace SVM {
 
-u64 Stack[256];
-extern "C" void TestFunc() {
-	PRINTK::PrintK(PRINTK_DEBUG "Hello from VM!\r\n");
-
-
-	while(true) { }
-}
-
 int InitializeVMCB(VCpu *vcpu, uptr rip, uptr rsp, uptr rflags) {
 	VMCB *guestVmcb = (VMCB*)vcpu->GuestVMCB;
+	VMCB *hostSave = (VMCB*)vcpu->HostSave;
 	VMCB *hostVmcb = (VMCB*)vcpu->HostVMCB;
-	VMCB *sharedVmcb = (VMCB*)vcpu->SharedVMCB;
-	
+	VMCB *sharedVmcb = (VMCB*)vcpu->SharedPage;
+
 	// CONTROL
 	guestVmcb->Control.Intercepts[INTERCEPT_WORD3] |= INTERCEPT_MSR_PROT |
 					             INTERCEPT_CPUID;
@@ -87,13 +80,12 @@ int InitializeVMCB(VCpu *vcpu, uptr rip, uptr rsp, uptr rflags) {
 
 	SaveVM(VMM::VirtualToPhysical((uptr)guestVmcb));
 
-	msrLo = VMM::VirtualToPhysical((uptr)hostVmcb) & 0xFFFFFFFF;
-	msrHi = (VMM::VirtualToPhysical((uptr)hostVmcb) >> 32) & 0xFFFFFFFF;
+	msrLo = VMM::VirtualToPhysical((uptr)hostSave) & 0xFFFFFFFF;
+	msrHi = (VMM::VirtualToPhysical((uptr)hostSave) >> 32) & 0xFFFFFFFF;
 	SetMSR(MSR_VM_HSAVE_PA, msrLo, msrHi);
 
 	SaveVM(VMM::VirtualToPhysical((uptr)hostVmcb));
-
-
+	
 	return 0;
 }
 
@@ -105,8 +97,29 @@ void SaveVM(uptr statePhysAddr) {
 	__asm__ __volatile__("vmsave %[statePhysAddr]" : : [statePhysAddr] "a"(statePhysAddr) : "memory");
 }
 
+char stack[256];
+void *stackTop = (void*)((uptr)stack + 256);
 void LaunchVM(uptr vmcbPhysAddr) {
-	__asm__ __volatile__("vmrun %[vmcbPhysAddr]" : : [vmcbPhysAddr] "a"(vmcbPhysAddr) : "memory");
+	while (true) {
+		__asm__ __volatile__("vmrun %[vmcbPhysAddr]" : : [vmcbPhysAddr] "a"(vmcbPhysAddr) : "memory");
+		SaveVM(vmcbPhysAddr);
+
+		PRINTK::PrintK(PRINTK_DEBUG "Hello, world\r\n");
+
+		while(true);
+
+		VMCB *guestVMCB = (VMCB*)VMM::PhysicalToVirtual(vmcbPhysAddr);
+		switch(guestVMCB->Control.ExitCode) {
+			case _VMRUN:
+		PRINTK::PrintK(PRINTK_DEBUG "Run\r\n");
+				break;
+			case _VMMCALL:
+		PRINTK::PrintK(PRINTK_DEBUG "Call\r\n");
+				break;
+		}
+
+		LoadVM(vmcbPhysAddr);
+	}
 }
 
 }

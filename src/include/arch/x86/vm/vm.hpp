@@ -5,6 +5,7 @@ namespace x86 {
 	struct VCpu {
 		void *GuestVMCB;
 		void *HostVMCB;
-		void *SharedVMCB;
+		void *HostSave;
+		void *SharedPage;
 	};
 }

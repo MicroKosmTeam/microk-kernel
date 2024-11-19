@@ -11,6 +11,7 @@ namespace SLAB {
 	CapabilityTreeNode *Insert(CapabilityTreeNode *tree, CapabilityTreeNode *node);
 	CapabilityTreeNode *Delete(CapabilityTreeNode *tree, CapabilityTreeNode *node);
 	CapabilityTreeNode *Search(CapabilityTreeNode *tree, uptr key);
+	CapabilityTreeNode *SearchClose(CapabilityTreeNode *tree, uptr key);
 
 	void Dump(CapabilityTreeNode *tree);
 }

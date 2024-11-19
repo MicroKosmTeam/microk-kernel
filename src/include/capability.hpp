@@ -2,18 +2,6 @@
 #include "cdefs.h"
 #include <object.hpp>
 
-/*
-inline static void SetCap(Capability *capability, u8 type, uptr object, u16 accessRightsMask, Capability *next, Capability *prev, Capability *parent) {
-	capability->IsMasked = 0;
-	capability->Type = type;
-	capability->Object = object;
-	capability->AccessRightsMask = accessRightsMask;
-	capability->Next = next;
-	capability->Prev = prev;
-	capability->Parent = parent;
-
-}*/
-
 namespace CAPABILITY {
 	uptr InitializeRootSpace(uptr framesBase, UntypedHeader *memoryMap);
 	usize GetObjectSize(OBJECT_TYPE kind);

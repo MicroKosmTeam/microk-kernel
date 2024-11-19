@@ -89,7 +89,7 @@ ACPI acpi;
 
 void LoadEssentialCPUStructures() {
 	LoadGDT(&gdt, &pointer);
-	TSSInit(&gdt, &tss, (uptr)PMM::RequestPages(8));
+	TSSInit(&gdt, &tss, (uptr)PMM::RequestPages(8) + PAGE_SIZE * 8);
 	IDTInit();
 }
 
@@ -120,9 +120,9 @@ void InitializeCPUFeatures() {
 	InitializeAPIC(&apic);
 
 	volatile bool vmEnabled = false;
+	uptr rip = GetRIP();
 	uptr rsp = GetRSP();
 	uptr rflags = GetRFLAGS();
-	uptr rip = GetRIP();
 
 	if (vmEnabled) {
 		PRINTK::PrintK(PRINTK_DEBUG "Hello from VM!\r\n");
@@ -174,8 +174,10 @@ void InitializeCPUFeatures() {
 			Memclr(vcpu.GuestVMCB, PAGE_SIZE);
 			vcpu.HostVMCB = PMM::RequestPage();
 			Memclr(vcpu.HostVMCB, PAGE_SIZE);
-			vcpu.SharedVMCB = PMM::RequestPage();
-			Memclr(vcpu.SharedVMCB, PAGE_SIZE);
+			vcpu.HostSave = PMM::RequestPage();
+			Memclr(vcpu.HostSave, PAGE_SIZE);
+			vcpu.SharedPage = PMM::RequestPages(2);
+			Memclr(vcpu.SharedPage, 2* PAGE_SIZE);
 
 			SVM::InitializeVMCB(&vcpu, rip, rsp, rflags);
 			SVM::LoadVM(VMM::VirtualToPhysical((uptr)vcpu.GuestVMCB));

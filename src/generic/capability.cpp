@@ -111,6 +111,16 @@ usize GetObjectSize(OBJECT_TYPE kind) {
 	}
 }
 
+Capability *AddressFirstCapability(CapabilitySpace *space, uptr ptr, OBJECT_TYPE kind) {
+	if (kind < UNTYPED || kind >= OBJECT_TYPE_COUNT) {
+		return NULL;
+	}
+	
+	CapabilitySlab *slab = &space->Slabs[kind];
+
+	return (Capability*)SLAB::SearchClose(slab->CapabilityTree, ptr);
+}
+
 Capability *AddressCapability(CapabilitySpace *space, uptr ptr, OBJECT_TYPE kind) {
 	if (kind < UNTYPED || kind >= OBJECT_TYPE_COUNT) {
 		return NULL;
