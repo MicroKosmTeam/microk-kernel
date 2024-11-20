@@ -33,7 +33,6 @@ extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize seco
 			}
 			break;
 		case SYSCALL_VECTOR_ADDRESS_CAPABILITY:
-			
 			break;
 		case SYSCALL_VECTOR_SEARCH_CAPABILITY:
 			break;

@@ -103,13 +103,12 @@ void SaveVM(uptr statePhysAddr) {
 
 void LaunchVM(uptr vmcbPhysAddr) {
 	while (true) {
-		__asm__ __volatile__("vmrun %[vmcbPhysAddr]" : : [vmcbPhysAddr] "a"(vmcbPhysAddr) : "memory");
+		__asm__ __volatile__("vmrun %[vmcbPhysAddr]" : : [vmcbPhysAddr] "a"(vmcbPhysAddr) : "memory");/*
 		SaveVM(vmcbPhysAddr);
 		LoadVM(vmcbPhysAddr + PAGE_SIZE);
 
-		PRINTK::PrintK(PRINTK_DEBUG "Hello, VMEXIT\r\n");
+		PRINTK::PrintK(PRINTK_DEBUG "Hello, VMEXIT\r\n");*/
 
-		while(true) { }
 	}
 }
 

@@ -138,7 +138,6 @@ void InitializeCPUFeatures() {
 
 	if (vmEnabled) {
 		PRINTK::PrintK(PRINTK_DEBUG "Hello from VM!\r\n");
-			__get_cpuid_count(0x8000000A, 0, &eax, &ebx, &ecx, &edx);
 
 		while(true) { }
 	} else {
