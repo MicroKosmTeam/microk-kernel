@@ -8,11 +8,15 @@
 namespace x86 {
 namespace SVM {
 
-int InitializeVMCB(VCpu *vcpu, uptr rip, uptr rsp, uptr rflags) {
+uptr hostPhysAddr;
+
+int InitializeVMCB(VMData *vcpu, uptr rip, uptr rsp, uptr rflags) {
 	VMCB *guestVmcb = (VMCB*)vcpu->GuestVMCB;
 	VMCB *hostSave = (VMCB*)vcpu->HostSave;
 	VMCB *hostVmcb = (VMCB*)vcpu->HostVMCB;
 	VMCB *sharedVmcb = (VMCB*)vcpu->SharedPage;
+
+	hostPhysAddr = VMM::VirtualToPhysical((uptr)hostVmcb);
 
 	// CONTROL
 	guestVmcb->Control.Intercepts[INTERCEPT_WORD3] |= INTERCEPT_MSR_PROT |
@@ -97,28 +101,15 @@ void SaveVM(uptr statePhysAddr) {
 	__asm__ __volatile__("vmsave %[statePhysAddr]" : : [statePhysAddr] "a"(statePhysAddr) : "memory");
 }
 
-char stack[256];
-void *stackTop = (void*)((uptr)stack + 256);
 void LaunchVM(uptr vmcbPhysAddr) {
 	while (true) {
 		__asm__ __volatile__("vmrun %[vmcbPhysAddr]" : : [vmcbPhysAddr] "a"(vmcbPhysAddr) : "memory");
 		SaveVM(vmcbPhysAddr);
+		LoadVM(vmcbPhysAddr + PAGE_SIZE);
 
-		PRINTK::PrintK(PRINTK_DEBUG "Hello, world\r\n");
+		PRINTK::PrintK(PRINTK_DEBUG "Hello, VMEXIT\r\n");
 
-		while(true);
-
-		VMCB *guestVMCB = (VMCB*)VMM::PhysicalToVirtual(vmcbPhysAddr);
-		switch(guestVMCB->Control.ExitCode) {
-			case _VMRUN:
-		PRINTK::PrintK(PRINTK_DEBUG "Run\r\n");
-				break;
-			case _VMMCALL:
-		PRINTK::PrintK(PRINTK_DEBUG "Call\r\n");
-				break;
-		}
-
-		LoadVM(vmcbPhysAddr);
+		while(true) { }
 	}
 }
 

@@ -47,6 +47,18 @@ inline static u32 GetStepping(u32 sig) {
 	return sig & 0xf;
 }
 
+void EnterUsermode(uptr user_rip, uptr user_rsp, u64 user_flags) {
+    asm volatile(
+        "movq %0, %%rcx\n"      // Load RCX with user RIP
+        "movq %1, %%rsp\n"      // Load RSP with user stack pointer
+        "movq %2, %%r11\n"      // Load R11 with user RFLAGS
+        "sysretq\n"             // Perform sysret
+        :
+        : "r"(user_rip), "r"(user_rsp), "r"(user_flags)
+        : "rcx", "r11", "memory"
+    );
+}
+
 inline static int EnableSyscalls() {
 	PRINTK::PrintK(PRINTK_DEBUG "Syscall entries at 0x%x for 64-bit and 0x%x for 32-bit\r\n", &HandleSyscall64, HandleSyscall32);
 
@@ -126,7 +138,9 @@ void InitializeCPUFeatures() {
 
 	if (vmEnabled) {
 		PRINTK::PrintK(PRINTK_DEBUG "Hello from VM!\r\n");
-		UserStart();
+			__get_cpuid_count(0x8000000A, 0, &eax, &ebx, &ecx, &edx);
+
+		while(true) { }
 	} else {
 		if (__get_cpuid_count(0x1, 0, &eax, &ebx, &ecx, &edx) && (ecx & (1 << 5))) {
 			PRINTK::PrintK(PRINTK_DEBUG 
@@ -169,19 +183,13 @@ void InitializeCPUFeatures() {
 			PRINTK::PrintK(PRINTK_DEBUG 
 				"Enabled SVM!\r\n");
 
-			x86::VCpu vcpu;
-			vcpu.GuestVMCB = PMM::RequestPage();
-			Memclr(vcpu.GuestVMCB, PAGE_SIZE);
-			vcpu.HostVMCB = PMM::RequestPage();
-			Memclr(vcpu.HostVMCB, PAGE_SIZE);
-			vcpu.HostSave = PMM::RequestPage();
-			Memclr(vcpu.HostSave, PAGE_SIZE);
-			vcpu.SharedPage = PMM::RequestPages(2);
-			Memclr(vcpu.SharedPage, 2* PAGE_SIZE);
+			VMData *vmdata = (VMData*)PMM::RequestPages(sizeof(VMData) / PAGE_SIZE);
+			Memclr(vmdata, sizeof(VMData));
+			vmdata->Self = vmdata;
 
-			SVM::InitializeVMCB(&vcpu, rip, rsp, rflags);
-			SVM::LoadVM(VMM::VirtualToPhysical((uptr)vcpu.GuestVMCB));
-			SVM::LaunchVM(VMM::VirtualToPhysical((uptr)vcpu.GuestVMCB));
+			SVM::InitializeVMCB(vmdata, rip, rsp, rflags);
+			SVM::LoadVM(VMM::VirtualToPhysical((uptr)vmdata->GuestVMCB));
+			SVM::LaunchVM(VMM::VirtualToPhysical((uptr)vmdata->GuestVMCB));
 		} else {
 			PRINTK::PrintK(PRINTK_DEBUG 
 				"No svm!\r\n");

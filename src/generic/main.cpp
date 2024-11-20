@@ -30,32 +30,25 @@
 #include <kinfo.hpp>
 #include <cpu.hpp>
 #include <capability.hpp>
+#include <main.hpp>
 #include <pmm.hpp>
 
 extern "C" __attribute__((noreturn))
 void KernelStart() {
-	KInfo *info = GetInfo();
-
-	PRINTK::PrintK(PRINTK_DEBUG "Hello, world\r\n");
-
 	/* Initializing virtual memory */
 	VMM::InitVMM();
 
 	//MEM::Init();
 	ARCH::InitializeCPUFeatures();
 
-	(void)info;
-
 	__builtin_unreachable();
 }
 
 extern "C" __attribute__((noreturn))
 void UserStart() {
-	KInfo *info = GetInfo();
+	PRINTK::PrintK(PRINTK_DEBUG "Hello, world\r\n");
 
 	HALT;
-
-	(void)info;
 
 	__builtin_unreachable();
 }

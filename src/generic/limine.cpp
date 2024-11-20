@@ -235,7 +235,7 @@ void LimineEntry() {
 	}
 
 	{
-		UntypedHeader *longestRegion;
+		UntypedHeader *longestRegion = NULL;
 
 		usize longestRegionLength = 0;
 		

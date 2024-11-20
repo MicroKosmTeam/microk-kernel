@@ -35,5 +35,13 @@ namespace x86 {
 		u64 RSI;
 		u64 RDI;
 	}__attribute__((packed));
+
+	struct VMData {
+		u8 GuestVMCB[PAGE_SIZE];
+		u8 HostVMCB[PAGE_SIZE];
+		u8 HostSave[PAGE_SIZE];
+		u8 SharedPage[PAGE_SIZE];
+		VMData *Self;
+	}__attribute__((packed, aligned((PAGE_SIZE))));
 }
 

@@ -453,7 +453,7 @@ namespace SVM {
 		struct VMCBSaveArea Save;
 	}__attribute__((packed));
 
-	int InitializeVMCB(VCpu *vcpu, uptr rip, uptr rsp, uptr rflags);
+	int InitializeVMCB(VMData *vcpu, uptr rip, uptr rsp, uptr rflags);
 	void LoadVM(uptr statePhysAddr);
 	void SaveVM(uptr statePhysAddr);
 	void LaunchVM(uptr vmcbPhysAddr);

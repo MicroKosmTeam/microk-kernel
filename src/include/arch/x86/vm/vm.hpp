@@ -1,11 +1,7 @@
 #pragma once
 #include <cdefs.h>
+#include <arch/x86/object.hpp>
 
 namespace x86 {
-	struct VCpu {
-		void *GuestVMCB;
-		void *HostVMCB;
-		void *HostSave;
-		void *SharedPage;
-	};
+
 }
