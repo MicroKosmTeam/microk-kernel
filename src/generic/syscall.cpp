@@ -5,15 +5,6 @@
 #include <panic.hpp>
 #include <cdefs.h>
 
-inline __attribute__((always_inline))
-usize GetVirtualArgs(ThreadControlBlock *tcb, usize index) {
-	if (index * sizeof(usize) >= VIRTUAL_REGISTERS_SIZE) {
-		return 0;
-	}
-
-	return ((usize*)tcb->VirtualRegisters)[index];
-}
-
 extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize secondArgument, usize thirdArgument, usize fourthArgument, usize fithArgument, usize sixthArgument) {
 	switch (syscallNumber) {
 		case SYSCALL_VECTOR_DEBUG: {
@@ -58,7 +49,17 @@ extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize seco
 			break;
 		case SYSCALL_VECTOR_GET_FREE_CAPABILITY:
 			break;
-		case SYSCALL_VECTOR_ADD_FREE_CAPABILIT:
+		case SYSCALL_VECTOR_ADD_FREE_CAPABILITY:
+			break;
+		case SYSCALL_VECTOR_START_CONTAINER:
+			break;
+		case SYSCALL_VECTOR_STOP_CONTAINER:
+			break;
+		case SYSCALL_VECTOR_CREATE_CONTAINER:
+			break;
+		case SYSCALL_VECTOR_CLONE_CONTAINER:
+			break;
+		case SYSCALL_VECTOR_DESTROY_CONTAINER:
 			break;
 		default:
 			break;

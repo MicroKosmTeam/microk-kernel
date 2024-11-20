@@ -1,5 +1,6 @@
 #pragma once
+#include <object.hpp>
 
-namespace CONTAINER {
-	void InitializeContainer();
+namespace CONTAINERS {
+	Container *InitializeContainer(uptr containerFrame);
 }

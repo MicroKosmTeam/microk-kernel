@@ -55,10 +55,10 @@ struct KInfo {
 	uptr InitrdAddress;
 	usize InitrdSize;
 
-	ThreadControlBlock *RootTCB;
+	Container *RootContainer;
 	CapabilitySpace *RootCSpace;
 
-	Domain *BootDomain;
+	void *BootDomain;
 
 	uptr RSDP;
 	uptr DeviceTree;

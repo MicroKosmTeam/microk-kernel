@@ -2,7 +2,6 @@
 #include <printk.hpp>
 #include <kinfo.hpp>
 #include <vmm.hpp>
-#include <sched.hpp>
 #include <arch/x86/idt.hpp>
 
 /* ISR stub table, declared in assembly code */
@@ -189,32 +188,6 @@ extern "C" InterruptStatus *InterruptHandler(InterruptStatus *context) {
 				PANIC("Page fault");
 			//}
 
-			}
-			break;
-		case 32: {
-			// TODO
-			Scheduler *scheduler = info->BootDomain->DomainScheduler;
-			ThreadControlBlock *activeThread = scheduler->Running;
-			SchedulerContext *threadContext = activeThread->Context;
-
-			threadContext->SP = context->Base.IretRSP;
-			threadContext->BP = context->Base.IretRSP;
-			threadContext->IP = context->Base.IretRIP;
-			threadContext->RFLAGS = context->Base.IretRFLAGS;
-
-			Memcpy(&threadContext->Registers, &context->Registers, sizeof(GeneralRegisters));
-
-			activeThread = SCHED::Recalculate(scheduler);
-			threadContext = activeThread->Context;
-
-			VMM::LoadVirtualSpace(activeThread->MemorySpace);
-
-			context->Base.IretRSP = threadContext->SP;
-			context->Base.IretRSP = threadContext->BP;
-			context->Base.IretRIP = threadContext->IP;
-			context->Base.IretRFLAGS = threadContext->RFLAGS;
-
-			Memcpy(&context->Registers, &threadContext->Registers, sizeof(GeneralRegisters));
 			}
 			break;
 		default:

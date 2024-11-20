@@ -1,9 +1,9 @@
 #include <capability.hpp>
 #include <memory.hpp>
 #include <kinfo.hpp>
+#include <container.hpp>
 #include <printk.hpp>
 #include <panic.hpp>
-#include <thread.hpp>
 #include <slab.hpp>
 #include <math.hpp>
 
@@ -12,18 +12,17 @@ uptr InitializeRootSpace(uptr framesBase, UntypedHeader *memoryMap) {
 	KInfo *info = GetInfo();
 
 	/* Getting the page for the TCB and the cspace */
-	uptr tcbFrame = VMM::PhysicalToVirtual(framesBase);
-	Memclr((void*)tcbFrame, PAGE_SIZE);
-	uptr cspaceFrame = tcbFrame + sizeof(ThreadControlBlock);
-	uptr slabNodeFrame = tcbFrame + PAGE_SIZE;
+	uptr containerFrame = VMM::PhysicalToVirtual(framesBase);
+	Memclr((void*)containerFrame, PAGE_SIZE);
+	uptr slabNodeFrame = containerFrame + PAGE_SIZE;
 
 	/* Initializing the TCB and creating the root CSpace */
-	info->RootTCB = THREAD::InitializeTCB(tcbFrame);
-	info->RootCSpace = (CapabilitySpace*)cspaceFrame;
+	info->RootContainer = CONTAINERS::InitializeContainer(containerFrame);
+	info->RootCSpace = &info->RootContainer->CSpace;
 
 	CapabilitySpace *space = info->RootCSpace;
 	uptr nextSlabNodeFrame = slabNodeFrame;
-	for (int t = UNTYPED; t < OBJECT_TYPE_COUNT; ++t) {
+	for (int t = UNTYPED_FRAMES; t < OBJECT_TYPE_COUNT; ++t) {
 		CapabilityNode *node = (CapabilityNode*)nextSlabNodeFrame;
 
 		space->Slabs[t].FreeSlabs.Head =
@@ -47,13 +46,14 @@ uptr InitializeRootSpace(uptr framesBase, UntypedHeader *memoryMap) {
 		nextSlabNodeFrame += PAGE_SIZE;
 	}
 
-	for (int t = UNTYPED; t < OBJECT_TYPE_COUNT; ++t) {
-		GenerateCapability(space, CNODE, slabNodeFrame, ACCESS);
+	for (int t = UNTYPED_FRAMES; t < OBJECT_TYPE_COUNT; ++t) {
+		GenerateCapability(space, CAPABILITY_NODE, slabNodeFrame, ACCESS);
 		slabNodeFrame += PAGE_SIZE;
 	}
 
 	/* Now put all the capabilites in the respective slabs, - obviously the frames we used */
 
+	/* TODO REHAUL */
 	for (UntypedHeader *entry = memoryMap; entry->Address != (uptr)-1; ++entry) {
 		if(entry->Flags == MEMMAP_USABLE) {
 			UntypedHeader *accessibleHeader;
@@ -71,13 +71,16 @@ uptr InitializeRootSpace(uptr framesBase, UntypedHeader *memoryMap) {
 				Memcpy(accessibleHeader, entry, sizeof(UntypedHeader));
 			}
 
-			GenerateCapability(space, UNTYPED, (uptr)accessibleHeader, ACCESS | RETYPE | GRANT);
+			GenerateCapability(space, UNTYPED_FRAMES, (uptr)accessibleHeader, ACCESS | RETYPE | GRANT);
+		} else {
+			/* LOGIC HERE */
+			//GenerateCapability(space, UNTYPED_FRAMES_DMA, (uptr)accessibleHeader, ACCESS | RETYPE | GRANT);
 		}
 
 	}
 	
-	GenerateCapability(space, THREAD_CONTROL_BLOCK, (uptr)info->RootTCB, ACCESS);
-	GenerateCapability(space, CSPACE, (uptr)info->RootCSpace, ACCESS);
+	GenerateCapability(space, CONTAINER, (uptr)info->RootContainer, ACCESS);
+	GenerateCapability(space, CAPABILITY_SPACE, (uptr)info->RootCSpace, ACCESS);
 	
 	PRINTK::PrintK(PRINTK_DEBUG "Root space initialized.\r\n");
 
@@ -86,33 +89,33 @@ uptr InitializeRootSpace(uptr framesBase, UntypedHeader *memoryMap) {
 
 usize GetObjectSize(OBJECT_TYPE kind) {
 	switch(kind) {
-		case UNTYPED:
-			return 0;
-		case FRAMES:
+		case UNTYPED_FRAMES:
+			return -1;
+		case UNTYPED_DMA:
+			return -1;
+		case FRAME_MEMORY:
 			return PAGE_SIZE;
-		case VIRTUAL_MEMORY_MAPPING:
-			return 0;
+		case DMA_MEMORY:
+			return -1;
 		case VIRTUAL_MEMORY_PAGING_STRUCTURE:
 			return PAGE_SIZE;
-		case CSPACE:
+		case CAPABILITY_SPACE:
 			return sizeof(CapabilitySpace);
-		case CNODE:
+		case CAPABILITY_NODE:
 			return sizeof(CapabilityNode);
-		case CPU_DOMAIN:
-			return sizeof(Domain);
-		case PROCESS_SCHEDULER:
-			return sizeof(Scheduler);
-		case THREAD_CONTROL_BLOCK:
-			return sizeof(ThreadControlBlock);
-		case THREAD_SCHEDULER_CONTEXT:
+		case VIRTUAL_CPU:
+			return sizeof(VirtualCPU);
+		case CONTAINER:
+			return sizeof(Container);
+		case CONTEXT:
 			return sizeof(SchedulerContext);
 		default:
-			return -1;
+			return 0;
 	}
 }
 
 Capability *AddressFirstCapability(CapabilitySpace *space, uptr ptr, OBJECT_TYPE kind) {
-	if (kind < UNTYPED || kind >= OBJECT_TYPE_COUNT) {
+	if (kind < UNTYPED_FRAMES || kind >= OBJECT_TYPE_COUNT) {
 		return NULL;
 	}
 	
@@ -122,7 +125,7 @@ Capability *AddressFirstCapability(CapabilitySpace *space, uptr ptr, OBJECT_TYPE
 }
 
 Capability *AddressCapability(CapabilitySpace *space, uptr ptr, OBJECT_TYPE kind) {
-	if (kind < UNTYPED || kind >= OBJECT_TYPE_COUNT) {
+	if (kind < UNTYPED_FRAMES || kind >= OBJECT_TYPE_COUNT) {
 		return NULL;
 	}
 	
@@ -133,7 +136,7 @@ Capability *AddressCapability(CapabilitySpace *space, uptr ptr, OBJECT_TYPE kind
 
 
 Capability *GenerateCapability(CapabilitySpace *space, OBJECT_TYPE kind, uptr object, u16 accessRights) {
-	if (kind < UNTYPED || kind >= OBJECT_TYPE_COUNT) {
+	if (kind < UNTYPED_FRAMES || kind >= OBJECT_TYPE_COUNT) {
 		return NULL;
 	}
 
@@ -159,7 +162,7 @@ Capability *GenerateCapability(CapabilitySpace *space, OBJECT_TYPE kind, uptr ob
 
 
 Capability *RetypeUntyped(CapabilitySpace *space, Capability *untyped, OBJECT_TYPE kind, usize count, Capability **array) {
-	if (kind < UNTYPED || kind >= OBJECT_TYPE_COUNT || kind == UNTYPED) {
+	if (kind < UNTYPED_FRAMES || kind >= OBJECT_TYPE_COUNT || kind == UNTYPED_FRAMES || kind == UNTYPED_DMA) {
 		return NULL;
 	}
 
@@ -207,7 +210,7 @@ Capability *RetypeUntyped(CapabilitySpace *space, Capability *untyped, OBJECT_TY
 }
 
 Capability *UntypeObject(CapabilitySpace *space, Capability *capability) {
-	CapabilitySlab *slab = &space->Slabs[UNTYPED];
+	CapabilitySlab *slab = &space->Slabs[UNTYPED_FRAMES];
 
 	/* Transforms back into untyped */
 	(void)slab;
@@ -259,7 +262,7 @@ Capability *SplitUntyped(CapabilitySpace *space, Capability *untyped, usize spli
 		capHeader->Address = initialAddress + splitSize * i;
 		capHeader->Length = splitSize;
 	
-		cap = GenerateCapability(space, UNTYPED, (uptr)capHeader, rights);
+		cap = GenerateCapability(space, UNTYPED_FRAMES, (uptr)capHeader, rights);
 		cap->AccessRightsMask = mask; 
 		array[i] = cap;
 	}
@@ -273,7 +276,7 @@ Capability *SplitUntyped(CapabilitySpace *space, Capability *untyped, usize spli
 		lastHeader->Address = initialAddress + totalSplitSize;
 		lastHeader->Length = initialLength - totalSplitSize;
 	
-		Capability *last = GenerateCapability(space, UNTYPED, (uptr)lastHeader, rights);
+		Capability *last = GenerateCapability(space, UNTYPED_FRAMES, (uptr)lastHeader, rights);
 		last->AccessRightsMask = mask;
 
 		return last;
@@ -291,7 +294,7 @@ Capability *MergeUntyped(CapabilitySpace *space, Capability *capability) {
 }
 
 usize GetFreeSlots(CapabilitySpace *space, OBJECT_TYPE kind) {
-	if (kind < UNTYPED || kind >= OBJECT_TYPE_COUNT) {
+	if (kind < UNTYPED_FRAMES || kind >= OBJECT_TYPE_COUNT) {
 		return -1;
 	}
 
@@ -301,7 +304,7 @@ usize GetFreeSlots(CapabilitySpace *space, OBJECT_TYPE kind) {
 }
 	
 void AddSlabNode(CapabilitySpace *space, OBJECT_TYPE kind, Capability *capability) {
-	if (kind < UNTYPED || kind >= OBJECT_TYPE_COUNT || !capability || capability->Type != CNODE) {
+	if (kind < UNTYPED_FRAMES || kind >= OBJECT_TYPE_COUNT || !capability || capability->Type != CAPABILITY_NODE) {
 		return;
 	}
 	
@@ -317,7 +320,7 @@ void AddSlabNode(CapabilitySpace *space, OBJECT_TYPE kind, Capability *capabilit
 }
 
 void DumpCapabilitySlab(CapabilitySpace *space, OBJECT_TYPE kind) {
-	if (kind < UNTYPED || kind >= OBJECT_TYPE_COUNT) {
+	if (kind < UNTYPED_FRAMES || kind >= OBJECT_TYPE_COUNT) {
 		return;
 	}
 

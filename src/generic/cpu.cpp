@@ -19,12 +19,6 @@ void InitializeBootCPU() {
 }
 
 void InitializeCPUFeatures() {
-	KInfo *info = GetInfo();
-
-	// TODO 
-	info->BootDomain = (Domain*)PMM::RequestPage();
-	Memclr(info->BootDomain, sizeof(Domain));
-
 #if defined(__x86_64__)
 	x86::InitializeCPUFeatures();
 #endif

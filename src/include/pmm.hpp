@@ -13,5 +13,6 @@ namespace PMM {
 	void Deinit();
 
 	void *RequestPage();
+	void *RequestVirtualPage();
 	void *RequestPages(usize length);
 }

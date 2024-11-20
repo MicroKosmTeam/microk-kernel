@@ -159,7 +159,7 @@ void MMap(VirtualSpace space, uptr src, uptr dest, usize length, usize flags) {
 			}
 
 			if (result != 0) {
-				MapIntermediateLevel(space, result, VMM::VirtualToPhysical((uptr)PMM::RequestPage()), dest + diff, flags);
+				MapIntermediateLevel(space, result, VMM::VirtualToPhysical((uptr)PMM::RequestVirtualPage()), dest + diff, flags);
 			} else {
 				break;
 			}

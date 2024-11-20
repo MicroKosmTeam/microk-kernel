@@ -120,91 +120,19 @@ struct ContainerIdentifier {
 	u8 Secret[SECP256k1_SHARED_SECRET_SIZE];
 }__attribute__((aligned(0x10)));
 
-struct Container {
-	ContainerIdentifier Identifier;
-}__attribute__((aligned(0x10)));
-
-
-/*
- *
- */
-struct ThreadControlBlock;
-struct SchedulerContext;
-struct Scheduler;
-
-/*
- *
- */
-enum EndpointStatus {
-	EP_EMPTY = 1,
-	EP_WAITING,
-	EP_SEND,
-	EP_RECV,
-};
-
-/*
- *
- */
-struct Endpoint {
-	ThreadControlBlock *Thread;
-	EndpointStatus Status;
-
-	List ThreadQueue;
-};
-
-enum NotificationStatus {
-	NT_IDLE = 1,
-};
-
-struct Notification {
-	NotificationStatus Status;
-};
-
-enum ThreadStatus {
-	IDLING = 0xFF, /* Special, used for Idle thread */
-	RUNNING = 0,
-	WAITING,
-	BLOCKED,
-};
-
-struct Domain {
-	Scheduler *DomainScheduler;
-};
-
-/* The scheduler itself, one exists for each domain
- * Threads can't therefore be passed from one domain to
- * another. Because of the absence of the knowledge of processes,
- * however, that implies that threads can be created on another
- * domain but still have the same CSpace and VirtualSpace
- */
-struct Scheduler {
-	Domain *Parent;
-	ThreadControlBlock *Running;
-
-	List Waiting[SCHEDULER_PRIORITIES];
-	List Blocked[SCHEDULER_PRIORITIES];
+struct VirtualCPU {
+	u8 ID;
 }__attribute__((aligned(PAGE_SIZE)));
 
-struct ThreadControlBlock : public ListHead {
-	Scheduler *Parent;
+struct Container {
+	ContainerIdentifier Identifier;
 
-	/* Used to queue up the thread in endpoints and such.
-	 * Also, because a TCB can only be waiting in one EP
-	 * (thanks to the blocking behavior) we only need one
-	 * list head per ThreadControlBlock.
-	 */
-	ListHead ActionQueue;
-
-	ThreadStatus Status;
-	usize ThreadID;
-	u8 Priority;
-
-	u8 *VirtualRegisters;
-
+	CapabilitySpace CSpace;
 	VirtualSpace MemorySpace;
-	CapabilityNode *RootCNode;
-	SchedulerContext *Context;
-};
+
+	VirtualCPU *VCPU;
+}__attribute__((aligned(0x10)));
+
 
 struct SchedulerContext {
 	uptr SP;

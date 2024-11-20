@@ -10,7 +10,6 @@
 #include <random.hpp>
 #include <sha256.hpp>
 #include <micro-ecc/uECC.h>
-#include <tiny-aes/aes.hpp>
 #include <slab.hpp>
 #include <cpu.hpp>
 #include <pmm.hpp>
@@ -126,6 +125,7 @@ void LimineEntry() {
 
 	ARCH::InitializeBootCPU();
 	RANDOM::SRand(BootTimeRequest.response->boot_time);
+	uECC_set_rng(reinterpret_cast<uECC_RNG_Function>((void*)&RANDOM::Rng));
 	/*
 	uECC_set_rng(reinterpret_cast<uECC_RNG_Function>((void*)&RANDOM::Rng));
 
@@ -274,13 +274,13 @@ void LimineEntry() {
 
 		uptr address = VMM::PhysicalToVirtual(addr);
 		
-		Capability *cap = CAPABILITY::AddressCapability(info->RootCSpace, address, UNTYPED);
+		Capability *cap = CAPABILITY::AddressCapability(info->RootCSpace, address, UNTYPED_FRAMES);
 		PMM::Init(cap);
 
 		/*
 		for (int i = 0; i < 100; ++i) {
 			PRINTK::PrintK(PRINTK_DEBUG "Requested page: 0x%x\r\n", PMM::RequestPage());
-		}*/
+		}
 
 		CAPABILITY::DumpCapabilitySlab(info->RootCSpace, UNTYPED);
 		SLAB::Dump(info->RootCSpace->Slabs[UNTYPED].CapabilityTree);
@@ -293,8 +293,6 @@ void LimineEntry() {
 
 		CAPABILITY::DumpCapabilitySlab(info->RootCSpace, CSPACE);
 		SLAB::Dump(info->RootCSpace->Slabs[CSPACE].CapabilityTree);
-
-		/*
 		struct fdt_header {
 			uint32_t magic;            // magic word FDT_MAGIC
 			uint32_t totalsize;        // total size of DTB
