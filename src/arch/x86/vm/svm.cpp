@@ -24,7 +24,7 @@ int InitializeVMCB(VMData *vcpu, uptr rip, uptr rsp, uptr rflags, uptr cr3) {
 
 	guestVmcb->Control.MSRPMBasePa = VMM::VirtualToPhysical((uptr)sharedVmcb);
 
-	guestVmcb->Control.NestedCtl |= NESTED_CTL_NP_ENABLE;
+	guestVmcb->Control.NestedCtl |= 0;// |= NESTED_CTL_NP_ENABLE;
 	guestVmcb->Control.NestedCR3 = cr3;
 
 	// SAVE
@@ -102,12 +102,14 @@ void SaveVM(uptr statePhysAddr) {
 
 void LaunchVM(uptr vmcbPhysAddr) {
 	while (true) {
-		__asm__ __volatile__("vmrun %[vmcbPhysAddr]" : : [vmcbPhysAddr] "a"(vmcbPhysAddr) : "memory");/*
-		SaveVM(vmcbPhysAddr);
-		LoadVM(vmcbPhysAddr + PAGE_SIZE);*/
+		__asm__ __volatile__("vmload %[vmcbPhysAddr]\n"
+				     "vmrun\n"
+				     "vmsave\n": : [vmcbPhysAddr] "a"(vmcbPhysAddr) : "memory");
+		uptr addr;
+		asm volatile ("mov %0, %%rax" : "=r"(addr) : : "memory");
+		VMCB *vmcb = (VMCB*)VMM::PhysicalToVirtual(addr);
 
-		PRINTK::PrintK(PRINTK_DEBUG "Hello, VMEXIT\r\n");
-
+		PRINTK::PrintK(PRINTK_DEBUG "Hello, VMEXIT: 0x%x\r\n", vmcb->Control.ExitCode);
 		while(true) { }
 
 	}

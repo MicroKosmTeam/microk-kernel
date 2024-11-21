@@ -143,6 +143,7 @@ void InitializeCPUFeatures() {
 
 		UserStart();
 	} else {
+		PRINTK::PrintK(PRINTK_DEBUG "Detecting VMs...\r\n");
 		if (__get_cpuid_count(0x1, 0, &eax, &ebx, &ecx, &edx) && (ecx & (1 << 5))) {
 			PRINTK::PrintK(PRINTK_DEBUG 
 				"VMX!\r\n");
