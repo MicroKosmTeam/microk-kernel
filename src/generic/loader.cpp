@@ -26,9 +26,11 @@ Container *LoadContainer(Container *container, u8 *data, usize size) {
 
 		container->MemorySpace = VMM::NewVirtualSpace((uptr)PMM::RequestVirtualPage());
 		VMM::PrepareUserVirtualSpace(container->MemorySpace);
+		PRINTK::PrintK(PRINTK_DEBUG "Ready to load ELF.\r\n");
 
 		uptr highestAddress = 0;
 		LoadProgramHeaders(container, data, size, elfHeader, &highestAddress);
+		PRINTK::PrintK(PRINTK_DEBUG "Elf loaded.\r\n");
 
 		return container;
 	} else {

@@ -131,68 +131,49 @@ void InitializeCPUFeatures() {
 	InitializeACPI(&acpi);
 	InitializeAPIC(&apic);
 
-	volatile bool vmEnabled = false;
-	uptr rip = GetRIP();
-	uptr rsp = GetRSP();
-	uptr rflags = GetRFLAGS();
-
-	if (vmEnabled) {
-		PRINTK::PrintK(PRINTK_DEBUG "Hello from VM!\r\n");
-
-		while(true) { }
-	} else {
-		if (__get_cpuid_count(0x1, 0, &eax, &ebx, &ecx, &edx) && (ecx & (1 << 5))) {
-			PRINTK::PrintK(PRINTK_DEBUG 
+	if (__get_cpuid_count(0x1, 0, &eax, &ebx, &ecx, &edx) && (ecx & (1 << 5))) {
+		PRINTK::PrintK(PRINTK_DEBUG 
 				"VMX!\r\n");
-		} else {
-			PRINTK::PrintK(PRINTK_DEBUG 
+	} else {
+		PRINTK::PrintK(PRINTK_DEBUG 
 				"No vmx!\r\n");
-		}
+	}
 
-		if (__get_cpuid_count(0x80000001, 0, &eax, &ebx, &ecx, &edx) && (ecx & (1 << 2))) {
-			PRINTK::PrintK(PRINTK_DEBUG 
+	if (__get_cpuid_count(0x80000001, 0, &eax, &ebx, &ecx, &edx) && (ecx & (1 << 2))) {
+		PRINTK::PrintK(PRINTK_DEBUG 
 				"SVM!\r\n");
 
-			__get_cpuid_count(0x8000000A, 0, &eax, &ebx, &ecx, &edx);
-			if ((edx & (1 <<0)) == 0) {
-				PRINTK::PrintK(PRINTK_DEBUG 
+		__get_cpuid_count(0x8000000A, 0, &eax, &ebx, &ecx, &edx);
+		if ((edx & (1 <<0)) == 0) {
+			PRINTK::PrintK(PRINTK_DEBUG 
 					"Nested paging not supported!\r\n");
-			}
-		
-			u32 msrLo = 0, msrHi = 0;
-			GetMSR(MSR_VM_CR, &msrLo, &msrHi);
-			if ((msrLo & (1 << 4)) == 0) {
-				PRINTK::PrintK(PRINTK_DEBUG 
+		}
+
+		u32 msrLo = 0, msrHi = 0;
+		GetMSR(MSR_VM_CR, &msrLo, &msrHi);
+		if ((msrLo & (1 << 4)) == 0) {
+			PRINTK::PrintK(PRINTK_DEBUG 
 					"Can enable SVM!\r\n");
 
-				GetMSR(MSR_EFER, &msrLo, &msrHi);
-				msrLo |= (1 << 12);
-				SetMSR(MSR_EFER, msrLo, msrHi);
-			} else {
-				if (edx != 0 && (edx & (1 << 2)) == 0) {
-					PRINTK::PrintK(PRINTK_DEBUG 
-						"Disabled at BIOS!\r\n");
-				} else {
-					PRINTK::PrintK(PRINTK_DEBUG 
-						"Disabled with KEY!\r\n");
-				}
-			}
-
-			vmEnabled = true;
-			PRINTK::PrintK(PRINTK_DEBUG 
-				"Enabled SVM!\r\n");
-
-			VMData *vmdata = (VMData*)PMM::RequestPages(sizeof(VMData) / PAGE_SIZE);
-			Memclr(vmdata, sizeof(VMData));
-			vmdata->Self = vmdata;
-
-			SVM::InitializeVMCB(vmdata, rip, rsp, rflags);
-			SVM::LoadVM(VMM::VirtualToPhysical((uptr)vmdata->GuestVMCB));
-			SVM::LaunchVM(VMM::VirtualToPhysical((uptr)vmdata->GuestVMCB));
+			GetMSR(MSR_EFER, &msrLo, &msrHi);
+			msrLo |= (1 << 12);
+			SetMSR(MSR_EFER, msrLo, msrHi);
 		} else {
-			PRINTK::PrintK(PRINTK_DEBUG 
-				"No svm!\r\n");
+			if (edx != 0 && (edx & (1 << 2)) == 0) {
+				PRINTK::PrintK(PRINTK_DEBUG 
+						"Disabled at BIOS!\r\n");
+			} else {
+				PRINTK::PrintK(PRINTK_DEBUG 
+						"Disabled with KEY!\r\n");
+			}
 		}
+
+		vmEnabled = true;
+		PRINTK::PrintK(PRINTK_DEBUG 
+				"Enabled SVM!\r\n");
+	} else {
+		PRINTK::PrintK(PRINTK_DEBUG 
+				"No svm!\r\n");
 	}
 }
 
