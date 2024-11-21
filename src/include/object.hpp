@@ -124,16 +124,6 @@ struct VirtualCPU {
 	u8 ID;
 }__attribute__((aligned(PAGE_SIZE)));
 
-struct Container {
-	ContainerIdentifier Identifier;
-
-	CapabilitySpace CSpace;
-	VirtualSpace MemorySpace;
-
-	VirtualCPU *VCPU;
-}__attribute__((aligned(0x10)));
-
-
 struct SchedulerContext {
 	uptr SP;
 	uptr BP;
@@ -148,3 +138,16 @@ struct SchedulerContext {
 
 	usize Budget;
 }__attribute__((packed));
+
+struct Container {
+	ContainerIdentifier Identifier;
+
+	CapabilitySpace CSpace;
+	VirtualSpace MemorySpace;
+	SchedulerContext Context;
+
+	VirtualCPU *VCPU;
+}__attribute__((aligned(0x10)));
+
+
+

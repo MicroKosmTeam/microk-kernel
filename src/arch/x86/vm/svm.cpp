@@ -24,7 +24,7 @@ int InitializeVMCB(VMData *vcpu, uptr rip, uptr rsp, uptr rflags, uptr cr3) {
 
 	guestVmcb->Control.MSRPMBasePa = VMM::VirtualToPhysical((uptr)sharedVmcb);
 
-	guestVmcb->Control.NestedCtl |= 0;// |= NESTED_CTL_NP_ENABLE;
+	guestVmcb->Control.NestedCtl |= 0 ; // NESTED_CTL_NP_ENABLE;
 	guestVmcb->Control.NestedCR3 = cr3;
 
 	// SAVE
@@ -133,6 +133,9 @@ void LaunchVM(uptr vmcbPhysAddr) {
 					PRINTK::PrintK(PRINTK_DEBUG "VMMCALL\r\n");
 					vmcb->Save.RAX = 0xDEAD;
 					vmcb->Save.RIP += 3;
+					break;
+				case _NPF:
+					vmcb->Save.RIP += 2;
 					break;
 			}
 
