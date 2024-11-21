@@ -99,6 +99,9 @@ APIC apic;
 IOAPIC ioapic;
 ACPI acpi;
 
+
+volatile bool vmEnabled = false;
+
 void LoadEssentialCPUStructures() {
 	LoadGDT(&gdt, &pointer);
 	TSSInit(&gdt, &tss, (uptr)PMM::RequestPages(8) + PAGE_SIZE * 8);
@@ -133,7 +136,6 @@ void InitializeCPUFeatures() {
 	InitializeACPI(&acpi);
 	InitializeAPIC(&apic);
 
-	volatile bool vmEnabled = false;
 	uptr rip = GetRIP();
 	uptr rsp = GetRSP();
 	uptr rflags = GetRFLAGS();
@@ -144,6 +146,7 @@ void InitializeCPUFeatures() {
 		UserStart();
 	} else {
 		PRINTK::PrintK(PRINTK_DEBUG "Detecting VMs...\r\n");
+
 		if (__get_cpuid_count(0x1, 0, &eax, &ebx, &ecx, &edx) && (ecx & (1 << 5))) {
 			PRINTK::PrintK(PRINTK_DEBUG 
 				"VMX!\r\n");
