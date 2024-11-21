@@ -30,7 +30,7 @@ Container *LoadContainer(Container *container, u8 *data, usize size) {
 
 		uptr highestAddress = 0;
 		LoadProgramHeaders(container, data, size, elfHeader, &highestAddress);
-		PRINTK::PrintK(PRINTK_DEBUG "Elf loaded.\r\n");
+		PRINTK::PrintK(PRINTK_DEBUG "Elf loaded.\r\n");	
 
 		return container;
 	} else {

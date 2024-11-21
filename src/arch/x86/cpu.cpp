@@ -168,7 +168,6 @@ void InitializeCPUFeatures() {
 			}
 		}
 
-		vmEnabled = true;
 		PRINTK::PrintK(PRINTK_DEBUG 
 				"Enabled SVM!\r\n");
 	} else {

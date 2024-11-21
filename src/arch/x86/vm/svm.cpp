@@ -8,15 +8,11 @@
 namespace x86 {
 namespace SVM {
 
-uptr hostPhysAddr;
-
-int InitializeVMCB(VMData *vcpu, uptr rip, uptr rsp, uptr rflags) {
+int InitializeVMCB(VMData *vcpu, uptr rip, uptr rsp, uptr rflags, uptr cr3) {
 	VMCB *guestVmcb = (VMCB*)vcpu->GuestVMCB;
 	VMCB *hostSave = (VMCB*)vcpu->HostSave;
 	VMCB *hostVmcb = (VMCB*)vcpu->HostVMCB;
 	VMCB *sharedVmcb = (VMCB*)vcpu->SharedPage;
-
-	hostPhysAddr = VMM::VirtualToPhysical((uptr)hostVmcb);
 
 	// CONTROL
 	guestVmcb->Control.Intercepts[INTERCEPT_WORD3] |= INTERCEPT_MSR_PROT |
@@ -27,6 +23,9 @@ int InitializeVMCB(VMData *vcpu, uptr rip, uptr rsp, uptr rflags) {
 	guestVmcb->Control.asid = 1;
 
 	guestVmcb->Control.MSRPMBasePa = VMM::VirtualToPhysical((uptr)sharedVmcb);
+
+	guestVmcb->Control.NestedCtl |= NESTED_CTL_NP_ENABLE;
+	guestVmcb->Control.NestedCR3 = cr3;
 
 	// SAVE
 	guestVmcb->Save.CR0 = GetCR0();
