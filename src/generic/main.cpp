@@ -52,7 +52,7 @@ void UserStart() {
 	KInfo *info = GetInfo();
 
 	PRINTK::PrintK(PRINTK_DEBUG "Hello, world\r\n");
-	asm volatile("cpuid");
+	asm volatile("vmmcall");
 
 	LOADER::LoadContainer(info->RootContainer, (u8*)info->ManagerExecutableAddress, info->ManagerExecutableSize);
 

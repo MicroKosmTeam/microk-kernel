@@ -131,6 +131,8 @@ void LaunchVM(uptr vmcbPhysAddr) {
 					break;
 				case _VMMCALL:
 					PRINTK::PrintK(PRINTK_DEBUG "VMMCALL\r\n");
+					vmcb->Save.RAX = 0xDEAD;
+					vmcb->Save.RIP += 3;
 					break;
 			}
 
