@@ -118,9 +118,19 @@ void LaunchVM(uptr vmcbPhysAddr) {
 			PRINTK::PrintK(PRINTK_DEBUG "Hello, VMEXIT: 0x%x\r\n", vmcb->Control.ExitCode);
 
 			switch(vmcb->Control.ExitCode) {
+				case _CPUID:
+					PRINTK::PrintK(PRINTK_DEBUG "CPUID\r\n");
+					    // Example: Emulate CPUID instruction
+					    uint32_t eax, ebx, ecx, edx;
+					    __asm__ __volatile__("cpuid"
+			                         : "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx)
+                        			 : "a"(vmcb->Save.RAX));
+					    vmcb->Save.RAX = eax;
+					    // Advance the RIP
+					    vmcb->Save.RIP += 2;
+					break;
 				case _VMMCALL:
 					PRINTK::PrintK(PRINTK_DEBUG "VMMCALL\r\n");
-					vmcb->Save.RIP += 2;
 					break;
 			}
 
