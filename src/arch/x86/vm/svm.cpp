@@ -160,8 +160,13 @@ void LaunchVM(uptr vmcbPhysAddr) {
 					PRINTK::PrintK(PRINTK_DEBUG "VMMCALL: 0x%x\r\n", vmcb->Save.RAX);
 					vmcb->Save.RIP += 3;
 					break;
+				case _IOIO:
+					vmcb->Save.RIP += 2;
+					break;
 				case _NPF:
 					vmcb->Save.RIP += 2;
+					break;
+				default:
 					break;
 			}
 
