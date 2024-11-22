@@ -143,13 +143,17 @@ void LaunchVM(uptr vmcbPhysAddr) {
 			switch(vmcb->Control.ExitCode) {
 				case _CPUID:
 					PRINTK::PrintK(PRINTK_DEBUG "CPUID\r\n");
-					    // Example: Emulate CPUID instruction
-					    uint32_t eax, ebx, ecx, edx;
-					    __asm__ __volatile__("cpuid"
+					// Example: Emulate CPUID instruction
+					uint32_t eax, ebx, ecx, edx;
+					__asm__ __volatile__("cpuid"
 			                         : "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx)
-                        			 : "a"(vmcb->Save.RAX));
+                        			 : "a"(vmcb->Save.RAX), "c"(context->RCX));
+
 					    vmcb->Save.RAX = eax;
-					    // Advance the RIP
+					    context->RBX = ebx;
+					    context->RCX = ecx;
+					    context->RDX = edx;
+
 					    vmcb->Save.RIP += 2;
 					break;
 				case _VMMCALL:
