@@ -118,6 +118,7 @@ struct CapabilitySpace {
 
 struct ContainerIdentifier {
 	u8 Secret[SECP256k1_SHARED_SECRET_SIZE];
+	u8 IV[AES_BLOCKLEN];
 }__attribute__((aligned(0x10)));
 
 struct VirtualCPU {
@@ -139,7 +140,7 @@ struct SchedulerContext {
 	usize Budget;
 }__attribute__((packed));
 
-struct Container {
+struct Container : public ListHead {
 	ContainerIdentifier Identifier;
 
 	CapabilitySpace CSpace;
@@ -147,6 +148,11 @@ struct Container {
 	SchedulerContext Context;
 
 	VirtualCPU *VCPU;
+
+	void *ExceptionHandler;
+	void *InterruptHandler;
+	void *SyscallHandler;
+	void *MemoryHandler;
 }__attribute__((aligned(0x10)));
 
 

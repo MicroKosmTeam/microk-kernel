@@ -7,6 +7,7 @@ namespace CAPABILITY {
 	usize GetObjectSize(OBJECT_TYPE kind);
 
 	Capability *AddressCapability(CapabilitySpace *space, uptr ptr, OBJECT_TYPE kind);
+	Capability *AddressFirstCapability(CapabilitySpace *space, uptr ptr, OBJECT_TYPE kind);
 	Capability *GenerateCapability(CapabilitySpace *space, OBJECT_TYPE kind, uptr object, u16 accessRights);
 	Capability *RetypeUntyped(CapabilitySpace *space, Capability *untyped, OBJECT_TYPE kind, usize count, Capability **array);
 	Capability *UntypeObject(CapabilitySpace *space, Capability *capability);

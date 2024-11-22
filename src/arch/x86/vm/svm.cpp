@@ -26,12 +26,15 @@ int InitializeVMCB(VMData *vcpu, uptr rip, uptr rsp, uptr rflags, uptr cr3) {
 
 	guestVmcb->Control.NestedCtl |= 0 ; // NESTED_CTL_NP_ENABLE;
 	guestVmcb->Control.NestedCR3 = cr3;
+	
 
 	// SAVE
 	guestVmcb->Save.CR0 = GetCR0();
 	guestVmcb->Save.CR2 = GetCR2();
 	guestVmcb->Save.CR3 = GetCR3();
 	guestVmcb->Save.CR4 = GetCR4();
+	
+	//guestVmcb->Save.CPL = 3;
 
 	u32 msrLo = 0, msrHi = 0;
 	GetMSR(MSR_EFER, &msrLo, &msrHi);
@@ -102,17 +105,29 @@ void SaveVM(uptr statePhysAddr) {
 
 void LaunchVM(uptr vmcbPhysAddr) {
 	while (true) {
-	        asm volatile("sub %%rsp, 8\n\t" ::: "memory"); // Align stack to 16-byte boundary
-
-
 		__asm__ __volatile__("vmload %[vmcbPhysAddr]\n"
 				     "vmrun\n"
 				     "vmsave\n"
+			             "push %%r15\n\t"
+			             "push %%r14\n\t"
+			             "push %%r13\n\t"
+  			             "push %%r12\n\t"
+			             "push %%r11\n\t"
+			             "push %%r10\n\t"
+ 			             "push %%r9\n\t"
+				     "push %%r8\n\t"
+			             "push %%rdx\n\t"
+				     "push %%rcx\n\t"
+				     "push %%rbx\n\t"
+				     "push %%rax\n\t"
+				     "push %%rsi\n\t"
+				     "push %%rdi\n\t"
 				     : : [vmcbPhysAddr] "a"(vmcbPhysAddr) : "memory");
 		{
 			uptr addr;
 			asm volatile ("mov %0, %%rax" : "=r"(addr) : : "memory");
 			vmcbPhysAddr = addr;
+
 			VMCB *vmcb = (VMCB*)VMM::PhysicalToVirtual(addr);
 
 			PRINTK::PrintK(PRINTK_DEBUG "Hello, VMEXIT: 0x%x\r\n", vmcb->Control.ExitCode);
@@ -130,8 +145,7 @@ void LaunchVM(uptr vmcbPhysAddr) {
 					    vmcb->Save.RIP += 2;
 					break;
 				case _VMMCALL:
-					PRINTK::PrintK(PRINTK_DEBUG "VMMCALL\r\n");
-					vmcb->Save.RAX = 0xDEAD;
+					PRINTK::PrintK(PRINTK_DEBUG "VMMCALL: 0x%x\r\n", vmcb->Save.RAX);
 					vmcb->Save.RIP += 3;
 					break;
 				case _NPF:
@@ -140,7 +154,25 @@ void LaunchVM(uptr vmcbPhysAddr) {
 			}
 
 			vmcb->Control.ExitCode = 0;
+			
 		}
+
+		        __asm__ __volatile__(
+            "pop %%rdi\n\t"
+            "pop %%rsi\n\t"
+            "pop %%rax\n\t"
+            "pop %%rbx\n\t"
+            "pop %%rcx\n\t"
+            "pop %%rdx\n\t"
+            "pop %%r8\n\t"
+            "pop %%r9\n\t"
+            "pop %%r10\n\t"
+            "pop %%r11\n\t"
+            "pop %%r12\n\t"
+            "pop %%r13\n\t"
+            "pop %%r14\n\t"
+            "pop %%r15\n\t"
+            : : : "memory");
 	}
 }
 

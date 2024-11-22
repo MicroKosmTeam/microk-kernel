@@ -6,6 +6,11 @@
 #include <cdefs.h>
 
 extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize secondArgument, usize thirdArgument, usize fourthArgument, usize fithArgument, usize sixthArgument) {
+	KInfo *info = GetInfo();
+	CapabilitySpace *cspace = &info->RootContainer->CSpace;
+	VirtualSpace vspace = info->RootContainer->MemorySpace;
+	(void)vspace;
+
 	switch (syscallNumber) {
 		case SYSCALL_VECTOR_DEBUG: {
 			usize value = firstArgument;
@@ -32,11 +37,13 @@ extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize seco
 			}
 			}
 			break;
-		case SYSCALL_VECTOR_ADDRESS_CAPABILITY:
+		case SYSCALL_VECTOR_ADDRESS_CAPABILITY: {
+			Capability *cap = CAPABILITY::AddressFirstCapability(cspace, firstArgument, (OBJECT_TYPE)secondArgument);
+			*(uptr*)thirdArgument = cap->Object;
+			}
 			break;
 		case SYSCALL_VECTOR_SEARCH_CAPABILITY:
-			break;
-		case SYSCALL_VECTOR_SEARCH_NEAR_CAPABILITY:
+			*(uptr*)thirdArgument = (uptr)CAPABILITY::AddressFirstCapability(cspace, firstArgument, (OBJECT_TYPE)secondArgument);
 			break;
 		case SYSCALL_VECTOR_RETYPE_CAPABILITY:
 			break;
@@ -49,6 +56,19 @@ extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize seco
 		case SYSCALL_VECTOR_GET_FREE_CAPABILITY:
 			break;
 		case SYSCALL_VECTOR_ADD_FREE_CAPABILITY:
+			break;
+		case SYSCALL_VECTOR_MAP_CAPABILITY: {/*
+			OBJECT_TYPE type = (OBJECT_TYPE)secondArgument;
+			if (type < FRAME_MEMORY || type >= CACHE_MEMORY) {
+				break;
+			}
+
+			Capability *cap = CAPABILITY::AddressFirstCapability(cspace, firstArgument, type);
+			VMM::MapPage(vspace, thirdArgument, fourthArgument, fithArgument);
+
+			*/}
+			break;
+		case SYSCALL_VECTOR_MAP_INTERMEDIATE_CAPABILITY:
 			break;
 		case SYSCALL_VECTOR_START_CONTAINER:
 			break;
