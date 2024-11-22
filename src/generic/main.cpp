@@ -63,6 +63,10 @@ void UserStart() {
 	PRINTK::PrintK(PRINTK_DEBUG "Hello, world\r\n");
 
 	VMMCall(0xDEAD);
+	VMMCall(0xB337);
+	VMMCall(0x10EF);
+	VMMCall(0x7071);
+	VMMCall(0x8086);
 
 	LOADER::LoadContainer(info->RootContainer, (u8*)info->ManagerExecutableAddress, info->ManagerExecutableSize);
 

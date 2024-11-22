@@ -1,5 +1,6 @@
 #include <arch/x86/vm/svm.hpp>
 #include <arch/x86/cpu.hpp>
+#include <arch/x86/object.hpp>
 #include <arch/x86/gdt.hpp>
 #include <vmm.hpp>
 #include <pmm.hpp>
@@ -104,11 +105,12 @@ void SaveVM(uptr statePhysAddr) {
 }
 
 void LaunchVM(uptr vmcbPhysAddr) {
+	GeneralRegisters *context = NULL;
 	while (true) {
 		__asm__ __volatile__("vmload %[vmcbPhysAddr]\n"
 				     "vmrun\n"
 				     "vmsave\n"
-			             "push %%r15\n\t"
+				     "push %%r15\n\t"
 			             "push %%r14\n\t"
 			             "push %%r13\n\t"
   			             "push %%r12\n\t"
@@ -122,13 +124,19 @@ void LaunchVM(uptr vmcbPhysAddr) {
 				     "push %%rax\n\t"
 				     "push %%rsi\n\t"
 				     "push %%rdi\n\t"
-				     : : [vmcbPhysAddr] "a"(vmcbPhysAddr) : "memory");
+				     "mov %[context], %%rsp\n\t"
+				     : : [vmcbPhysAddr] "a"(vmcbPhysAddr), [context] "m" (context): "memory");
 		{
 			uptr addr;
 			asm volatile ("mov %0, %%rax" : "=r"(addr) : : "memory");
 			vmcbPhysAddr = addr;
 
 			VMCB *vmcb = (VMCB*)VMM::PhysicalToVirtual(addr);
+
+			/* Unknown math, but its correct */
+			context--;
+			context = (GeneralRegisters*)((uptr*)context - sizeof(u64) * 2);
+			PRINTK::PrintK(PRINTK_DEBUG "Context: %x\r\n", context->RAX);
 
 			PRINTK::PrintK(PRINTK_DEBUG "Hello, VMEXIT: 0x%x\r\n", vmcb->Control.ExitCode);
 
