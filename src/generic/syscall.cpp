@@ -45,11 +45,15 @@ extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize seco
 		case SYSCALL_VECTOR_SEARCH_CAPABILITY:
 			*(uptr*)thirdArgument = (uptr)CAPABILITY::AddressFirstCapability(cspace, firstArgument, (OBJECT_TYPE)secondArgument);
 			break;
-		case SYSCALL_VECTOR_RETYPE_CAPABILITY:
+		case SYSCALL_VECTOR_RETYPE_CAPABILITY: {
+
+			}
 			break;
 		case SYSCALL_VECTOR_UNTYPE_CAPABILITY:
 			break;
-		case SYSCALL_VECTOR_SPLIT_CAPABILITY:
+		case SYSCALL_VECTOR_SPLIT_CAPABILITY: {
+
+			}
 			break;
 		case SYSCALL_VECTOR_MERGE_CAPABILITY:
 			break;
@@ -57,18 +61,26 @@ extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize seco
 			break;
 		case SYSCALL_VECTOR_ADD_FREE_CAPABILITY:
 			break;
-		case SYSCALL_VECTOR_MAP_CAPABILITY: {/*
+		case SYSCALL_VECTOR_MAP_CAPABILITY: {
 			OBJECT_TYPE type = (OBJECT_TYPE)secondArgument;
 			if (type < FRAME_MEMORY || type >= CACHE_MEMORY) {
 				break;
 			}
 
 			Capability *cap = CAPABILITY::AddressFirstCapability(cspace, firstArgument, type);
-			VMM::MapPage(vspace, thirdArgument, fourthArgument, fithArgument);
-
-			*/}
+			if(cap != NULL) {
+				VMM::MapPage(vspace, thirdArgument, VMM::VirtualToPhysical(cap->Object), fourthArgument);
+			}
+			}
 			break;
-		case SYSCALL_VECTOR_MAP_INTERMEDIATE_CAPABILITY:
+		case SYSCALL_VECTOR_MAP_INTERMEDIATE_CAPABILITY: {
+			Capability *cap = CAPABILITY::AddressFirstCapability(cspace, firstArgument, VIRTUAL_MEMORY_PAGING_STRUCTURE);
+			if (cap == NULL) {
+				break;
+			}
+				
+			VMM::MapIntermediateLevel(vspace, secondArgument, VMM::VirtualToPhysical(cap->Object), thirdArgument, fourthArgument);
+			}
 			break;
 		case SYSCALL_VECTOR_START_CONTAINER:
 			break;

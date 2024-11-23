@@ -2,6 +2,8 @@
 #include <cdefs.h>
 #include <arch/x86/vm/vm.hpp>
 
+extern "C" void SVMLaunchVM(uptr hostRSP, uptr guestVMCB);
+
 namespace x86 {
 namespace SVM {
 	/*
@@ -458,6 +460,5 @@ namespace SVM {
 	int InitializeVMCB(VMData *vcpu, uptr rip, uptr rsp, uptr rflags, uptr cr3);
 	void LoadVM(uptr statePhysAddr);
 	void SaveVM(uptr statePhysAddr);
-	void LaunchVM(uptr vmcbPhysAddr);
 }
 }

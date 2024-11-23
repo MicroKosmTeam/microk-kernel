@@ -100,8 +100,6 @@ IOAPIC ioapic;
 ACPI acpi;
 
 
-volatile bool vmEnabled = false;
-
 void LoadEssentialCPUStructures() {
 	LoadGDT(&gdt, &pointer);
 	TSSInit(&gdt, &tss, (uptr)PMM::RequestPages(8) + PAGE_SIZE * 8);
@@ -109,7 +107,7 @@ void LoadEssentialCPUStructures() {
 }
 
 void InitializeCPUFeatures() {
-	KInfo *info = GetInfo();
+	//KInfo *info = GetInfo();
 
 	u32 vendor[4];
 	Memclr(vendor, sizeof(u32) * 4);
@@ -136,15 +134,6 @@ void InitializeCPUFeatures() {
 	InitializeACPI(&acpi);
 	InitializeAPIC(&apic);
 
-	uptr rip = GetRIP();
-	uptr rsp = GetRSP();
-	uptr rflags = GetRFLAGS();
-
-	if (vmEnabled) {
-		PRINTK::PrintK(PRINTK_DEBUG "Hello from VM!\r\n");
-
-		UserStart();
-	} else {
 		PRINTK::PrintK(PRINTK_DEBUG "Detecting VMs...\r\n");
 
 		if (__get_cpuid_count(0x1, 0, &eax, &ebx, &ecx, &edx) && (ecx & (1 << 5))) {
@@ -184,22 +173,25 @@ void InitializeCPUFeatures() {
 				}
 			}
 
-			vmEnabled = true;
+			//vmEnabled = true;
 			PRINTK::PrintK(PRINTK_DEBUG 
 				"Enabled SVM!\r\n");
 
+			/*
 			VMData *vmdata = (VMData*)PMM::RequestPages(sizeof(VMData) / PAGE_SIZE);
 			Memclr(vmdata, sizeof(VMData));
 			vmdata->Self = vmdata;
 
 			SVM::InitializeVMCB(vmdata, rip, rsp, rflags, VMM::VirtualToPhysical(info->KernelVirtualSpace));
 			SVM::LoadVM(VMM::VirtualToPhysical((uptr)vmdata->GuestVMCB));
-			SVM::LaunchVM(VMM::VirtualToPhysical((uptr)vmdata->GuestVMCB));
+			//SVM::LaunchVM(VMM::VirtualToPhysical((uptr)vmdata->GuestVMCB));*/
+		UserStart();
 		} else {
 			PRINTK::PrintK(PRINTK_DEBUG 
 				"No svm!\r\n");
 		}
-	}
+			
+
 }
 
 void InitializeBootCPU() {

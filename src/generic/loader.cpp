@@ -12,6 +12,10 @@
 #include <kinfo.hpp>
 #include <capability.hpp>
 
+#include <arch/x86/cpu.hpp>
+#include <arch/x86/vm/vm.hpp>
+#include <arch/x86/vm/svm.hpp>
+
 namespace LOADER {
 static bool VerifyELF(Elf64_Ehdr *elfHeader);
 static int LoadProgramHeaders(Container *container, u8 *data, usize size, Elf64_Ehdr *elfHeader, uptr *highestAddress);
@@ -122,13 +126,21 @@ static usize LoadContainer(Container *container, Elf64_Ehdr *elfHeader, uptr hig
 	 */
 	highestAddress += INIT_INITIAL_STACK_SIZE;
 
+	using namespace x86;
 
-	VMM::LoadVirtualSpace(container->MemorySpace);
+	VMData *vmdata = (VMData*)PMM::RequestPages(sizeof(VMData) / PAGE_SIZE);
+	Memclr(vmdata, sizeof(VMData));
+	vmdata->Self = vmdata;
+
+	SVM::InitializeVMCB(vmdata, elfHeader->e_entry, highestAddress, 0x202, VMM::VirtualToPhysical(container->MemorySpace));
+	//SVM::LaunchVM(VMM::VirtualToPhysical((uptr)vmdata->GuestVMCB));	VMM::LoadVirtualSpace(container->MemorySpace);
+	SVMLaunchVM(GetRSP(), VMM::VirtualToPhysical((uptr)vmdata->GuestVMCB));
+	/*
 	asm volatile ("mov rcx, %[entry]\n\t"
 		      "mov rsp, %[highestAddress]\n\t"
-		      "mov r11, 0x202\n\t"
-	              "sysretq\n\t" : : [entry] "r"(elfHeader->e_entry), [highestAddress] "a"(highestAddress): "memory");
-
+		      "mov r11, \n\t"
+	              "sysretq\n\t" : : [entry] "r"(), [] "a"(highestAddress): "memory");
+*/
 
 	return 0;
 }
