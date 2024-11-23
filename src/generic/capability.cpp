@@ -178,6 +178,7 @@ Capability *RetypeUntyped(CapabilitySpace *space, Capability *untyped, OBJECT_TY
 	
 	UntypedHeader *header = (UntypedHeader*)untyped->Object;
 	uptr startAddress = header->Address;
+	usize startLength = header->Length;
 
 	/* Don't worry about this, all structures will be aligned to be powers of two 
 	 * to result in a null quotient always
@@ -185,26 +186,45 @@ Capability *RetypeUntyped(CapabilitySpace *space, Capability *untyped, OBJECT_TY
 	usize objectSize = GetObjectSize(kind);
 	usize realCount = header->Length / objectSize;
 
-	/* Here check if there are enough slots in the slab, then allocate those slots and
-	 * make the capabilities */
-	for (usize i = 0; i < realCount; ++i) {
-		Capability *cap = GenerateCapability(space, kind, startAddress + i * objectSize, maskedRights);
-		if (cap == NULL) {
-			return NULL;
+
+
+	if (header->Length > objectSize * realCount) {
+		for (usize i = 0; i < realCount; ++i) {
+			Capability *cap = GenerateCapability(space, kind, startAddress + i * objectSize, maskedRights);
+			if (cap == NULL) {
+				return NULL;
+			}
+
+			if (i < count) {
+				array[i] = cap;
+			}
 		}
 
-		cap->Parent = untyped;
-		++untyped->Children;
+		untyped->Object = startAddress + realCount * objectSize;
+		header = (UntypedHeader*)untyped->Object;
+		header->Address = untyped->Object;
+		header->Length = startLength - realCount * objectSize;
+	} else {
+		for (usize i = 1; i < realCount; ++i) {
+			Capability *cap = GenerateCapability(space, kind, startAddress + i * objectSize, maskedRights);
+			if (cap == NULL) {
+				return NULL;
+			}
 
-		if (i < count) {
-			array[i] = cap;
+			if (i < count) {
+				array[i] = cap;
+			}
 		}
-	}
 		
-	untyped->IsMasked = 1;
+		array[0] = untyped;
+		untyped->Type = kind;
+		untyped->Object = startAddress;
+		untyped->AccessRights = maskedRights;
+		untyped->AccessRightsMask = 0xFFFF;
+	
+		Memclr(header, sizeof(UntypedHeader));
 
-	/* From now on, the UntypedHeader is not to be read anymore, as it's considered overwritten */
-	Memclr(header, sizeof(UntypedHeader));
+	}
 
 	return array[0];
 }
