@@ -54,7 +54,6 @@ SVMLaunchVM:
         ;
         mov rsp, rdi    ; Rsp <= HostRsp
 
-SvLV10: ;
         ; Run the loop to executed the guest and handle #VMEXIT. Below is the
         ; current stack leyout.
         ; ----
@@ -67,6 +66,7 @@ SvLV10: ;
         ; ----
         ;
         mov rax, rsi  ; RAX <= VpData->HostStackLayout.GuestVmcbPa
+SvLV10: ;
         vmload       ; load previously saved guest state from VMCB
 
         ;
@@ -134,8 +134,6 @@ SvLV10: ;
 	
 
         popall
-	
-	jmp $
 
         jmp SvLV10                  ; jmp SvLV10
 
