@@ -47,26 +47,13 @@ void KernelStart() {
 	__builtin_unreachable();
 }
 
-extern "C" void VMMCall(usize syscallNum) {
-	asm volatile(
-		     "mov %%rax, %0 \n\t"
-		     "vmmcall\n\t"
-		     :
-		     : "r"(syscallNum)
-		     : "memory", "cc", "rax");
-}
+
 
 extern "C" __attribute__((noreturn))
 void UserStart() {
 	KInfo *info = GetInfo();
 
 	PRINTK::PrintK(PRINTK_DEBUG "Hello, world\r\n");
-
-	VMMCall(0xDEAD);
-	VMMCall(0xB337);
-	VMMCall(0x10EF);
-	VMMCall(0x7071);
-	VMMCall(0x8086);
 
 	LOADER::LoadContainer(info->RootContainer, (u8*)info->ManagerExecutableAddress, info->ManagerExecutableSize);
 

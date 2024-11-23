@@ -117,28 +117,34 @@ void SaveVM(uptr statePhysAddr) {
 }
 }
 
-extern "C" void HandleVMExit(uptr addr, x86::GeneralRegisters context) {
+extern "C" void HandleVMExit(uptr addr, x86::GeneralRegisters *context) {
 	using namespace x86;
 	using namespace x86::SVM;
 
 	VMCB *vmcb = (VMCB*)VMM::PhysicalToVirtual(addr);
 
-	/* Unknown math, but its correct */
-	PRINTK::PrintK(PRINTK_DEBUG "Context: %x\r\n", context.RAX);
 	PRINTK::PrintK(PRINTK_DEBUG "Hello, VMEXIT: 0x%x\r\n", vmcb->Control.ExitCode);
 	switch(vmcb->Control.ExitCode) {
 		case _CPUID:
-			PRINTK::PrintK(PRINTK_DEBUG "CPUID\r\n");
+			PRINTK::PrintK(PRINTK_DEBUG "CPUID: %d\r\n", vmcb->Save.RAX);
 			// Example: Emulate CPUID instruction
 			uint32_t eax, ebx, ecx, edx;
-			__asm__ __volatile__("cpuid"
-					: "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx)
-					: "a"(vmcb->Save.RAX), "c"(context.RCX));
+			if (vmcb->Save.RAX == 0x40000000) {
+				eax = 0x40000001; // Maximum input value for hypervisor CPUID leaves
+			        const char *hypervisorName = "MicroKosm   "; // 12 characters
+			        Memcpy((u32*)&ebx, hypervisorName, 4);
+			        Memcpy((u32*)&ecx, hypervisorName + 4, 4);
+			        Memcpy((u32*)&edx, hypervisorName + 8, 4);
+			} else {
+				__asm__ __volatile__("cpuid"
+						: "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx)
+						: "a"(vmcb->Save.RAX), "c"(context->RCX));
+			}
 
 			vmcb->Save.RAX = eax;
-			context.RBX = ebx;
-			context.RCX = ecx;
-			context.RDX = edx;
+			context->RBX = ebx;
+			context->RCX = ecx;
+			context->RDX = edx;
 			vmcb->Save.RIP += 2;
 			break;
 		case _VMMCALL:

@@ -376,7 +376,7 @@ namespace SVM {
 		u64 virt_ext;
 		u32 clean;
 		u32 reserved_5;
-		u64 next_rip;
+		u64 NextRIP;
 		u8 insn_len;
 		u8 insn_bytes[15];
 		u64 avic_backing_page;	/* Offset 0xe0 */

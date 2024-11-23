@@ -39,8 +39,6 @@ pop rax
 pop rsi
 pop rdi
 
-add rsp, 16
-
 %endmacro
 
 extern HandleVMExit
@@ -131,7 +129,6 @@ SvLV10: ;
         ; Handle #VMEXIT.
         ;
         call HandleVMExit
-	
 
         popall
 
