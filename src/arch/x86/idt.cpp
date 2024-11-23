@@ -90,7 +90,6 @@ void IDTInit() {
 	asm volatile ("sti");
 }
 
-
 extern "C" InterruptStatus *InterruptHandler(InterruptStatus *context) {
 	KInfo *info = GetInfo();
 

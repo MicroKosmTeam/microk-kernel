@@ -15,6 +15,7 @@ int InitializeVMCB(VMData *vcpu, uptr rip, uptr rsp, uptr rflags, uptr cr3) {
 	VMCB *hostVmcb = (VMCB*)vcpu->HostVMCB;
 	VMCB *sharedVmcb = (VMCB*)vcpu->SharedPage;
 
+	guestVmcb->Control.Intercepts[INTERCEPT_EXCEPTION] |= 0xFFFFFFFF;
 	// CONTROL
 	guestVmcb->Control.Intercepts[INTERCEPT_WORD3] |= INTERCEPT_MSR_PROT |
 					             INTERCEPT_CPUID;
@@ -108,8 +109,8 @@ void LaunchVM(uptr vmcbPhysAddr) {
 	GeneralRegisters *context = NULL;
 	while (true) {
 		__asm__ __volatile__("vmload %[vmcbPhysAddr]\n"
-				     "vmrun\n"
-				     "vmsave\n"
+				     "vmrun %%rax\n"
+				     "vmsave %%rax\n"
 				     "push %%r15\n\t"
 			             "push %%r14\n\t"
 			             "push %%r13\n\t"
@@ -125,7 +126,7 @@ void LaunchVM(uptr vmcbPhysAddr) {
 				     "push %%rsi\n\t"
 				     "push %%rdi\n\t"
 				     "mov %[context], %%rsp\n\t"
-				     : : [vmcbPhysAddr] "a"(vmcbPhysAddr), [context] "m" (context): "memory");
+				     : [context] "=m" (context): [vmcbPhysAddr] "a"(vmcbPhysAddr): "memory");
 		{
 			uptr addr;
 			asm volatile ("mov %0, %%rax" : "=r"(addr) : : "memory");
@@ -160,14 +161,24 @@ void LaunchVM(uptr vmcbPhysAddr) {
 					PRINTK::PrintK(PRINTK_DEBUG "VMMCALL: 0x%x\r\n", vmcb->Save.RAX);
 					vmcb->Save.RIP += 3;
 					break;
-				case _IOIO:
-					vmcb->Save.RIP += 2;
-					break;
+				case _INTR:
+					PRINTK::PrintK(PRINTK_DEBUG "Interrupt physical\r\n");
+					while(true) { }
+				case _INIT:				
+					PRINTK::PrintK(PRINTK_DEBUG "Interrupt virtual\r\n");
+					while(true) { }
+				case _VINTR:
+					PRINTK::PrintK(PRINTK_DEBUG "Interrupt virtual\r\n");
+					while(true) { }
+				case _IOIO:					
+					PRINTK::PrintK(PRINTK_DEBUG "Disallowed IO\r\n");
+					while(true) { }
 				case _NPF:
-					vmcb->Save.RIP += 2;
-					break;
+					PRINTK::PrintK(PRINTK_DEBUG "Nested page fault\r\n");
+					while(true) { }
 				default:
-					break;
+					PRINTK::PrintK(PRINTK_DEBUG "Unknown error\r\n");
+					while(true) { }
 			}
 
 			vmcb->Control.ExitCode = 0;
