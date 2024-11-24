@@ -11,6 +11,8 @@ extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize seco
 	VirtualSpace vspace = info->RootContainer->MemorySpace;
 	(void)vspace;
 
+	VMM::LoadVirtualSpace(vspace);
+
 	switch (syscallNumber) {
 		case SYSCALL_VECTOR_DEBUG: {
 			usize value = firstArgument;
@@ -95,4 +97,6 @@ extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize seco
 		default:
 			break;
 	}
+	
+	VMM::LoadVirtualSpace(info->KernelVirtualSpace);
 }

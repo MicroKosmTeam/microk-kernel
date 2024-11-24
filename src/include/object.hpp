@@ -149,7 +149,7 @@ struct Container : public ListHead {
 
 	VirtualCPU *VCPU;
 
-	void *ExceptionHandler;
+	void (*ExceptionHandler)();
 	void *InterruptHandler;
 	void *SyscallHandler;
 	void *MemoryHandler;

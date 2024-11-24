@@ -4,6 +4,7 @@
 #include <arch/x86/gdt.hpp>
 #include <vmm.hpp>
 #include <pmm.hpp>
+#include <syscall.hpp>
 #include <printk.hpp>
 
 namespace x86 {
@@ -123,9 +124,9 @@ extern "C" void HandleVMExit(uptr addr, x86::GeneralRegisters *context) {
 
 	VMCB *vmcb = (VMCB*)VMM::PhysicalToVirtual(addr);
 
-	PRINTK::PrintK(PRINTK_DEBUG "Hello, VMEXIT: 0x%x\r\n", vmcb->Control.ExitCode);
+	//PRINTK::PrintK(PRINTK_DEBUG "Hello, VMEXIT: 0x%x\r\n", vmcb->Control.ExitCode);
 	switch(vmcb->Control.ExitCode) {
-		case _CPUID:
+		case _CPUID: {
 			PRINTK::PrintK(PRINTK_DEBUG "CPUID: %d\r\n", vmcb->Save.RAX);
 			// Example: Emulate CPUID instruction
 			uint32_t eax, ebx, ecx, edx;
@@ -146,11 +147,16 @@ extern "C" void HandleVMExit(uptr addr, x86::GeneralRegisters *context) {
 			context->RCX = ecx;
 			context->RDX = edx;
 			vmcb->Save.RIP += 2;
+			}
 			break;
 		case _VMMCALL:
-			PRINTK::PrintK(PRINTK_DEBUG "VMMCALL: 0x%x\r\n", vmcb->Save.RAX);
+			//PRINTK::PrintK(PRINTK_DEBUG "VMMCALL: 0x%x\r\n", vmcb->Save.RAX);
+			SyscallMain(vmcb->Save.RAX, context->RDI, context->RSI, context->RDX, context->R8, context->R9, context->R10);
 			vmcb->Save.RIP += 3;
 			break;
+		case _CR3_WRITE:
+			PRINTK::PrintK("Change cr3: 0x%x\r\n", vmcb->Control.ExitInfo1);
+			while(true) { }
 		case _INTR:
 			PRINTK::PrintK(PRINTK_DEBUG "Interrupt physical\r\n");
 			while(true) { }

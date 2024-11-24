@@ -363,7 +363,7 @@ namespace SVM {
 		u8 reserved_3[4];
 		u32 ExitCode;
 		u32 exit_code_hi;
-		u64 exit_info_1;
+		u64 ExitInfo1;
 		u64 exit_info_2;
 		u32 exit_int_info;
 		u32 exit_int_info_err;
