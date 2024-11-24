@@ -140,19 +140,21 @@ struct SchedulerContext {
 	usize Budget;
 }__attribute__((packed));
 
+struct ContainerBindings {
+	void (*ExceptionHandler)();
+	void (*InterruptHandler)();
+	void (*SyscallHandler)();
+};
+
 struct Container : public ListHead {
 	ContainerIdentifier Identifier;
+	ContainerBindings Bindings;
 
 	CapabilitySpace CSpace;
 	VirtualSpace MemorySpace;
 	SchedulerContext Context;
 
 	VirtualCPU *VCPU;
-
-	void (*ExceptionHandler)();
-	void *InterruptHandler;
-	void *SyscallHandler;
-	void *MemoryHandler;
 }__attribute__((aligned(0x10)));
 
 

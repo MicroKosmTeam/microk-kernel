@@ -16,8 +16,8 @@ int InitializeVMCB(VMData *vcpu, uptr rip, uptr rsp, uptr rflags, uptr cr3) {
 	VMCB *hostVmcb = (VMCB*)vcpu->HostVMCB;
 	VMCB *sharedVmcb = (VMCB*)vcpu->SharedPage;
 
-	guestVmcb->Control.Intercepts[INTERCEPT_EXCEPTION] |= 0xFFFFFFFF;
 	// CONTROL
+	guestVmcb->Control.Intercepts[INTERCEPT_EXCEPTION] |= 0xFFFFFFFF;
 	guestVmcb->Control.Intercepts[INTERCEPT_WORD3] |= INTERCEPT_MSR_PROT |
 					             INTERCEPT_CPUID;
 
@@ -124,7 +124,6 @@ extern "C" void HandleVMExit(uptr addr, x86::GeneralRegisters *context) {
 
 	VMCB *vmcb = (VMCB*)VMM::PhysicalToVirtual(addr);
 
-	//PRINTK::PrintK(PRINTK_DEBUG "Hello, VMEXIT: 0x%x\r\n", vmcb->Control.ExitCode);
 	switch(vmcb->Control.ExitCode) {
 		case _CPUID: {
 			PRINTK::PrintK(PRINTK_DEBUG "CPUID: %d\r\n", vmcb->Save.RAX);
@@ -132,7 +131,7 @@ extern "C" void HandleVMExit(uptr addr, x86::GeneralRegisters *context) {
 			uint32_t eax, ebx, ecx, edx;
 			if (vmcb->Save.RAX == 0x40000000) {
 				eax = 0x40000001; // Maximum input value for hypervisor CPUID leaves
-			        const char *hypervisorName = "MicroKosm   "; // 12 characters
+			        const char *hypervisorName = "MicroKosmPre"; // 12 characters
 			        Memcpy((u32*)&ebx, hypervisorName, 4);
 			        Memcpy((u32*)&ecx, hypervisorName + 4, 4);
 			        Memcpy((u32*)&edx, hypervisorName + 8, 4);
@@ -173,6 +172,7 @@ extern "C" void HandleVMExit(uptr addr, x86::GeneralRegisters *context) {
 			PRINTK::PrintK(PRINTK_DEBUG "Nested page fault\r\n");
 			while(true) { }
 		default:
+			PRINTK::PrintK(PRINTK_DEBUG "Hello, VMEXIT: 0x%x\r\n", vmcb->Control.ExitCode);
 			PRINTK::PrintK(PRINTK_DEBUG "Unknown error\r\n");
 			while(true) { }
 	}

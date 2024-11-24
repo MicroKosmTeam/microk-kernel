@@ -48,13 +48,28 @@ extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize seco
 			*(uptr*)thirdArgument = (uptr)CAPABILITY::AddressFirstCapability(cspace, firstArgument, (OBJECT_TYPE)secondArgument);
 			break;
 		case SYSCALL_VECTOR_RETYPE_CAPABILITY: {
-
+			Capability *cap = CAPABILITY::AddressFirstCapability(cspace, firstArgument, UNTYPED_FRAMES);
+			OBJECT_TYPE type = (OBJECT_TYPE)secondArgument;
+			usize retypeCount = fourthArgument;
+			Capability **frameRetypeArray = (Capability**)thirdArgument;
+			CAPABILITY::RetypeUntyped(cspace, cap, type, retypeCount, frameRetypeArray);
 			}
 			break;
 		case SYSCALL_VECTOR_UNTYPE_CAPABILITY:
 			break;
 		case SYSCALL_VECTOR_SPLIT_CAPABILITY: {
+			usize splitCount = fourthArgument;
+			usize splitSize = thirdArgument;
+			Capability **splitArray = (Capability**)secondArgument;
 
+			Capability *cap = CAPABILITY::AddressFirstCapability(cspace, firstArgument, UNTYPED_FRAMES);
+			if (cap == NULL) {
+				splitArray[0] = NULL;
+			}
+
+			if(CAPABILITY::SplitUntyped(cspace, cap, splitSize, splitCount, splitArray) == NULL) {
+				splitArray[0] = NULL;
+			}
 			}
 			break;
 		case SYSCALL_VECTOR_MERGE_CAPABILITY:

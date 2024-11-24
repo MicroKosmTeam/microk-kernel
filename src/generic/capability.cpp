@@ -148,6 +148,7 @@ Capability *GenerateCapability(CapabilitySpace *space, OBJECT_TYPE kind, uptr ob
 
 	capability->IsMasked = 0;
 	capability->Type = kind;
+	capability->Children = 0;
 	capability->Object = object;
 	capability->AccessRights = accessRights;
 	capability->AccessRightsMask = 0xFFFF;
@@ -168,11 +169,13 @@ Capability *RetypeUntyped(CapabilitySpace *space, Capability *untyped, OBJECT_TY
 
 	if (untyped->IsMasked != 0 || untyped->Children != 0) {
 		/* The ut capability must not have children */
+		PRINTK::PrintK(PRINTK_DEBUG "Capability has children\r\n");
 		return NULL;
 	}
 
 	u16 maskedRights = untyped->AccessRights & untyped->AccessRightsMask;
 	if ((maskedRights & CAPABILITY_RIGHTS::RETYPE) == 0) {
+		PRINTK::PrintK(PRINTK_DEBUG "No rights\r\n");
 		return NULL;
 	}
 	
@@ -186,6 +189,10 @@ Capability *RetypeUntyped(CapabilitySpace *space, Capability *untyped, OBJECT_TY
 	usize objectSize = GetObjectSize(kind);
 	usize realCount = header->Length / objectSize;
 
+	if (header->Length == 0) {
+		PRINTK::PrintK(PRINTK_DEBUG "UT is dead\r\n");
+		return NULL;
+	}
 
 
 	if (header->Length > objectSize * realCount) {
@@ -240,6 +247,7 @@ Capability *UntypeObject(CapabilitySpace *space, Capability *capability) {
 
 Capability *SplitUntyped(CapabilitySpace *space, Capability *untyped, usize splitSize, usize count, Capability **array) {
 	if (untyped->IsMasked != 0 || untyped->Children != 0) {
+		PRINTK::PrintK(PRINTK_DEBUG "Capability has children\r\n");
 		/* The ut capability must not have children */
 		return NULL;
 	}
@@ -261,11 +269,23 @@ Capability *SplitUntyped(CapabilitySpace *space, Capability *untyped, usize spli
 	usize totalSplitSize = splitSize * count;
 	if (splitSize < sizeof(UntypedHeader)) {
 		/* We can't split it, it's too small */
+		PRINTK::PrintK(PRINTK_DEBUG "Excessively small split amount\r\n");
 		return NULL;
+	}
+
+	if (header->Length == totalSplitSize) {
+		/* We can't split it, it's too small */
+		PRINTK::PrintK(PRINTK_DEBUG "Excessively big split amount: %d\r\n", totalSplitSize);
+		array[0] = untyped;
+		if (count > 1) {
+			array[1] = NULL;
+		}
+		return untyped;
 	}
 
 	if (header->Length < totalSplitSize) {
 		/* We can't split it, it's too small */
+		PRINTK::PrintK(PRINTK_DEBUG "Excessively big split amount: %d vs %d\r\n", header->Length, totalSplitSize);
 		return NULL;
 	}
 

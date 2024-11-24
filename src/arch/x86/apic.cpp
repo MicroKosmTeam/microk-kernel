@@ -3,6 +3,7 @@
 #include <arch/x86/cpu.hpp>
 #include <kinfo.hpp>
 #include <vmm.hpp>
+#include <capability.hpp>
 
 #define MSR_APIC_FLAG_IS_BSP        (1 << 8)
 #define MSR_APIC_FLAG_x2APIC_ENABLE (1 << 10)
@@ -142,8 +143,8 @@ int InitializeAPIC(APIC *apic) {
 
 	apic->Base = GetAPICBase();
 	apic->MappedAddress = VMM::PhysicalToVirtual(apic->Base);
-	// TODO
 	VMM::MMap(info->KernelVirtualSpace, apic->Base, apic->MappedAddress, PAGE_SIZE, VMM_FLAGS_READ | VMM_FLAGS_WRITE | VMM_FLAGS_NOEXEC);
+	CAPABILITY::GenerateCapability(info->RootCSpace, MMIO_MEMORY, apic->Base, ACCESS | READ | WRITE);
 	//MEM::MEMBLOCK::AddRegion(info->PhysicalMemoryChunks, apic->Base, PAGE_SIZE, MEMMAP_KERNEL_DEVICE);
 	
 	apic->ProcessorIsBSP = IsAPICBSP();
