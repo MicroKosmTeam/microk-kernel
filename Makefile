@@ -4,7 +4,7 @@ SRCDIR = src
 COMMON_SOURCES = $(SRCDIR)/generic
 ARCH_SOURCES = $(SRCDIR)/arch/$(ARCH)
 
-LDS64 = $(SRCDIR)/kernel_$(ARCH).ld
+LDS64 = $(SRCDIR)/arch/$(ARCH)/kernel.ld
 
 COMMON_CFLAGS = -ffreestanding             \
 	 -fno-stack-protector          \
@@ -34,9 +34,11 @@ COMMON_CPPSRC = $(call rwildcard,$(COMMON_SOURCES),*.cpp)
 COMMON_OBJS += $(patsubst $(COMMON_SOURCES)/%.c, $(COMMON_SOURCES)/%.o, $(COMMON_CSRC))
 COMMON_OBJS += $(patsubst $(COMMON_SOURCES)/%.cpp, $(COMMON_SOURCES)/%.o, $(COMMON_CPPSRC))
 
+ARCH_CSRC = $(call rwildcard,$(ARCH_SOURCES),*.c)
 ARCH_CPPSRC = $(call rwildcard,$(ARCH_SOURCES),*.cpp)
 ARCH_ASMSRC = $(call rwildcard,$(ARCH_SOURCES),*.asm)
-ARCH_OBJS = $(patsubst $(ARCH_SOURCES)/%.cpp, $(ARCH_SOURCES)/%.o, $(ARCH_CPPSRC))
+ARCH_OBJS += $(patsubst $(ARCH_SOURCES)/%.c, $(ARCH_SOURCES)/%.o, $(ARCH_CSRC))
+ARCH_OBJS += $(patsubst $(ARCH_SOURCES)/%.cpp, $(ARCH_SOURCES)/%.o, $(ARCH_CPPSRC))
 ARCH_OBJS += $(patsubst $(ARCH_SOURCES)/%.asm, $(ARCH_SOURCES)/%.o, $(ARCH_ASMSRC))
 
 ifeq ($(ARCH), x86_64)
@@ -78,6 +80,11 @@ $(COMMON_SOURCES)/%.o: $(COMMON_SOURCES)/%.cpp
 	@ mkdir -p $(@D)
 	@ echo !==== COMPILING $^ && \
 	$(CPP) $(CFLAGS) $(CXXFLAGS) -c $^ -o $@
+
+$(ARCH_SOURCES)/%.o: $(ARCH_SOURCES)/%.c
+	@ mkdir -p $(@D)
+	@ echo !==== COMPILING $(ARCH) $^ && \
+	$(CC) $(CFLAGS) -c $^ -o $@
 
 $(ARCH_SOURCES)/%.o: $(ARCH_SOURCES)/%.cpp
 	@ mkdir -p $(@D)
