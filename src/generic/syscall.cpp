@@ -41,7 +41,8 @@ extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize seco
 			break;
 		case SYSCALL_VECTOR_ADDRESS_CAPABILITY: {
 			Capability *cap = CAPABILITY::AddressFirstCapability(cspace, firstArgument, (OBJECT_TYPE)secondArgument);
-			*(uptr*)thirdArgument = cap->Object;
+			*(uptr*)fourthArgument = (uptr)cap;
+			*(Capability*)thirdArgument = *cap;
 			}
 			break;
 		case SYSCALL_VECTOR_SEARCH_CAPABILITY:
@@ -60,7 +61,8 @@ extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize seco
 		case SYSCALL_VECTOR_SPLIT_CAPABILITY: {
 			usize splitCount = fourthArgument;
 			usize splitSize = thirdArgument;
-			Capability **splitArray = (Capability**)secondArgument;
+			Capability *copyArray = (Capability*)secondArgument;
+			Capability *splitArray[splitCount];
 
 			Capability *cap = CAPABILITY::AddressFirstCapability(cspace, firstArgument, UNTYPED_FRAMES);
 			if (cap == NULL) {
@@ -69,6 +71,10 @@ extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize seco
 
 			if(CAPABILITY::SplitUntyped(cspace, cap, splitSize, splitCount, splitArray) == NULL) {
 				splitArray[0] = NULL;
+			}
+
+			for (usize i = 0; i < splitCount; ++i) {
+				copyArray[i] = *splitArray[i];
 			}
 			}
 			break;
