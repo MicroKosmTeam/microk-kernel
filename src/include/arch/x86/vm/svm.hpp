@@ -11,8 +11,12 @@ namespace SVM {
 	 * at Byte offset 000h.
 	 */
 
-#define INTERCEPT_MSR_PROT (1UL << 28) // MSR_PROT—intercept RDMSR or WRMSR accesses to selected MSRs.
-#define INTERCEPT_CPUID    (1UL << 18) // Intercept CPUID Instruction.
+#define INTERCEPT_CPUID     (1UL << 18) // Intercept CPUID Instruction.
+#define INTERCEPT_INVLPG    (1UL << 25)
+#define INTERCEPT_INVLPGA   (1UL << 26)
+#define INTERCEPT_IOIO_PROT (1UL << 27)
+#define INTERCEPT_MSR_PROT  (1UL << 28) // MSR_PROT—intercept RDMSR or WRMSR accesses to selected MSRs
+
 
 #define INTERCEPT_VMRUN    (1UL << 0)  // Intercept VMRUN instruction.
 #define INTERCEPT_VMMCALL  (1UL << 1)  // Intercept VMMCALL instruction.
@@ -364,7 +368,7 @@ namespace SVM {
 		u32 ExitCode;
 		u32 exit_code_hi;
 		u64 ExitInfo1;
-		u64 exit_info_2;
+		u64 ExitInfo2;
 		u32 exit_int_info;
 		u32 exit_int_info_err;
 		u64 NestedCtl;

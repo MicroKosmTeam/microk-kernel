@@ -19,10 +19,13 @@ int InitializeVMCB(VMData *vcpu, uptr rip, uptr rsp, uptr rflags, uptr cr3) {
 	// CONTROL
 	guestVmcb->Control.Intercepts[INTERCEPT_EXCEPTION] |= 0xFFFFFFFF;
 	guestVmcb->Control.Intercepts[INTERCEPT_WORD3] |= INTERCEPT_MSR_PROT |
-					             INTERCEPT_CPUID;
+					                  INTERCEPT_CPUID |
+							  INTERCEPT_INVLPG |
+							  INTERCEPT_INVLPGA |
+							  INTERCEPT_IOIO_PROT;
 
 	guestVmcb->Control.Intercepts[INTERCEPT_WORD4] |= INTERCEPT_VMRUN |
-						     INTERCEPT_VMMCALL;
+						          INTERCEPT_VMMCALL;
 	guestVmcb->Control.asid = 1;
 
 	guestVmcb->Control.MSRPMBasePa = VMM::VirtualToPhysical((uptr)sharedVmcb);
@@ -171,6 +174,22 @@ extern "C" void HandleVMExit(uptr addr, x86::GeneralRegisters *context) {
 		case _NPF:
 			PRINTK::PrintK(PRINTK_DEBUG "Nested page fault\r\n");
 			while(true) { }
+		case _EXCP14_WRITE:
+			PRINTK::PrintK(PRINTK_DEBUG "INT14\r\n");
+			PRINTK::PrintK(PRINTK_DEBUG "FaultAddress: 0x%x\r\n", vmcb->Control.ExitInfo2);
+			PRINTK::PrintK(PRINTK_DEBUG "ErrorCode: 0x%x\r\n", vmcb->Control.ExitInfo1);
+			while(true) { }
+		case _EXCP13_WRITE:
+			PRINTK::PrintK(PRINTK_DEBUG "INT13\r\n");
+			while(true) { }
+		case _INVLPG:
+			PRINTK::PrintK(PRINTK_DEBUG "INVLPG\r\n");
+			while(true) { }
+			//EXITINFO1
+		case _INVLPGA:
+			PRINTK::PrintK(PRINTK_DEBUG "INVLPGA\r\n");
+			while(true) { }
+
 		default:
 			PRINTK::PrintK(PRINTK_DEBUG "Hello, VMEXIT: 0x%x\r\n", vmcb->Control.ExitCode);
 			PRINTK::PrintK(PRINTK_DEBUG "Unknown error\r\n");

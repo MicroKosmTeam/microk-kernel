@@ -102,7 +102,7 @@ extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize seco
 			Capability *cap = CAPABILITY::AddressFirstCapability(cspace, firstArgument, type);
 			if(cap != NULL) {
 				PRINTK::PrintK(PRINTK_DEBUG "Mapping page\r\n");
-				VMM::MapPage(vspace, thirdArgument, VMM::VirtualToPhysical(cap->Object), fourthArgument);
+				VMM::MapPage(vspace, thirdArgument, cap->Object, fourthArgument);
 			}
 			}
 			break;
@@ -113,7 +113,7 @@ extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize seco
 			}
 				
 			PRINTK::PrintK(PRINTK_DEBUG "Mapping level paging\r\n");
-			VMM::MapIntermediateLevel(vspace, secondArgument, VMM::VirtualToPhysical(cap->Object), thirdArgument, fourthArgument);
+			VMM::MapIntermediateLevel(vspace, secondArgument, cap->Object, thirdArgument, fourthArgument);
 			}
 			break;
 		case SYSCALL_VECTOR_START_CONTAINER:
