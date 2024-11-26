@@ -20,8 +20,8 @@ void Deinit() {
 static void CheckSpace(OBJECT_TYPE type) {
 	KInfo *info = GetInfo();
 
-	usize slots = CAPABILITY::GetFreeSlots(info->RootCSpace);
-	if (slots < 10) {
+	usize slots = CAPABILITY::GetFreeSlots(info->RootCSpace, UNTYPED_FRAMES);
+	if (slots < 3) {
 		usize splitCount = 1;
 		usize splitSize = PAGE_SIZE;
 		Capability *splitArray[splitCount];
@@ -30,7 +30,33 @@ static void CheckSpace(OBJECT_TYPE type) {
 		usize retypeCount = 1;
 		Capability *nodeRetypeArray[retypeCount];
 		CAPABILITY::RetypeUntyped(info->RootCSpace, splitArray[0], CAPABILITY_NODE, retypeCount, nodeRetypeArray);
-		CAPABILITY::AddSlabNode(info->RootCSpace, nodeRetypeArray[0]);
+		CAPABILITY::AddSlabNode(info->RootCSpace, UNTYPED_FRAMES, nodeRetypeArray[0]);
+	}
+
+	slots = CAPABILITY::GetFreeSlots(info->RootCSpace, CAPABILITY_NODE);
+	if (slots < 3) {
+		usize splitCount = 1;
+		usize splitSize = PAGE_SIZE;
+		Capability *splitArray[splitCount];
+		PhysicalMemoryManager.UntypedArea = CAPABILITY::SplitUntyped(info->RootCSpace, PhysicalMemoryManager.UntypedArea, splitSize, splitCount, splitArray);
+
+		usize retypeCount = 1;
+		Capability *nodeRetypeArray[retypeCount];
+		CAPABILITY::RetypeUntyped(info->RootCSpace, splitArray[0], CAPABILITY_NODE, retypeCount, nodeRetypeArray);
+		CAPABILITY::AddSlabNode(info->RootCSpace, CAPABILITY_NODE, nodeRetypeArray[0]);
+	}
+
+	slots = CAPABILITY::GetFreeSlots(info->RootCSpace, type);
+	if (slots < 3) {
+		usize splitCount = 1;
+		usize splitSize = PAGE_SIZE;
+		Capability *splitArray[splitCount];
+		PhysicalMemoryManager.UntypedArea = CAPABILITY::SplitUntyped(info->RootCSpace, PhysicalMemoryManager.UntypedArea, splitSize, splitCount, splitArray);
+
+		usize retypeCount = 1;
+		Capability *nodeRetypeArray[retypeCount];
+		CAPABILITY::RetypeUntyped(info->RootCSpace, splitArray[0], CAPABILITY_NODE, retypeCount, nodeRetypeArray);
+		CAPABILITY::AddSlabNode(info->RootCSpace, type, nodeRetypeArray[0]);
 	}
 }
 

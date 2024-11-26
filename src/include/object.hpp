@@ -113,7 +113,7 @@ struct CapabilitySlab {
  *
  */
 struct CapabilitySpace {
-	CapabilitySlab Slab;
+	CapabilitySlab Slabs[OBJECT_TYPE_COUNT];
 };
 
 struct ContainerIdentifier {
