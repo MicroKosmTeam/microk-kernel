@@ -8,33 +8,30 @@ void limine_main(void);
 __attribute__((used, section(".limine_requests")))
 static volatile LIMINE_BASE_REVISION(3);
 
-__attribute__((used, section(".limine_requests_start")))
-static volatile LIMINE_REQUESTS_START_MARKER;
+__attribute__((used, section(".limine_requests")))
+static volatile struct limine_memmap_request memory_map = {
+	.id = LIMINE_MEMMAP_REQUEST,
+	.revision = 0,
+};
 
-struct limine_paging_mode_request paging_request = {
+__attribute__((used, section(".limine_requests")))
+static volatile struct limine_paging_mode_request paging_request = {
 	.id = LIMINE_PAGING_MODE_REQUEST,
 	.revision = 0,
 	.mode = LIMINE_PAGING_MODE_DEFAULT,
 };
 
-struct limine_hhdm_request higher_half = {
+__attribute__((used, section(".limine_requests")))
+static volatile struct limine_hhdm_request higher_half = {
 	.id = LIMINE_HHDM_REQUEST,
 	.revision = 0,
 };
 
-struct limine_memmap_request memory_map = {
-	.id = LIMINE_MEMMAP_REQUEST,
-	.revision = 0,
-};
-
-struct limine_kernel_address_request kernel_address = {
+__attribute__((used, section(".limine_requests")))
+static volatile struct limine_kernel_address_request kernel_address = {
 	.id = LIMINE_KERNEL_ADDRESS_REQUEST,
 	.revision = 0,
 };
-
-
-__attribute__((used, section(".limine_requests_end")))
-static volatile LIMINE_REQUESTS_END_MARKER;
 
 // Halt and catch fire function.
 static void hcf(void) {
@@ -58,21 +55,36 @@ void puts(char *s) {
 	}
 }
 
+typedef struct {
+	uintptr_t addr;
+	size_t size;
+	uint16_t type;
+} memmap_entry_t;
+
+#include <printf.h>
 void limine_main(void) {
 	// Ensure the bootloader actually understands our base revision (see spec).
-	if (LIMINE_BASE_REVISION_SUPPORTED == false
-	   ) {
+	if (LIMINE_BASE_REVISION_SUPPORTED == false ||
+	   memory_map.response == NULL) {
 		hcf();
 	}
 
 	puts("Hello, world\r\n");
 	
 
-	puts("Loading memmap\r\n");
+	printk("Loading memmap\r\n");
 
-	size_t entry_count = memory_map->response.entry_count;
-	struct limine_memmap_entry **entries = memory_map->response.entries;
-	for (int i = 0; i < 0; ++i) {
+	size_t entry_count = memory_map.response->entry_count;
+	printk("Loading %d memmap entries\r\n", entry_count);
+
+	memmap_entry_t entries[entry_count];
+
+	for (size_t i = 0; i < entry_count; ++i) {
+		entries[i].addr = memory_map.response->entries[i]->base;
+		entries[i].size = memory_map.response->entries[i]->length;
+		entries[i].type = memory_map.response->entries[i]->type;
+
+		printk("Entry %d: [%lx-%lx]\r\n", i, entries[i].addr, entries[i].addr + entries[i].size);
 	}
 
 
@@ -81,7 +93,7 @@ void limine_main(void) {
 }
 
 __attribute__((used, section(".limine_requests")))
-struct limine_entry_point_request entry_point = {
+static volatile struct limine_entry_point_request entry_point = {
 	.id = LIMINE_ENTRY_POINT_REQUEST,
 	.revision = 0,
 	.entry = &limine_main,
