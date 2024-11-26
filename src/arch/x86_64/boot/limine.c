@@ -22,6 +22,17 @@ struct limine_hhdm_request higher_half = {
 	.revision = 0,
 };
 
+struct limine_memmap_request memory_map = {
+	.id = LIMINE_MEMMAP_REQUEST,
+	.revision = 0,
+};
+
+struct limine_kernel_address_request kernel_address = {
+	.id = LIMINE_KERNEL_ADDRESS_REQUEST,
+	.revision = 0,
+};
+
+
 __attribute__((used, section(".limine_requests_end")))
 static volatile LIMINE_REQUESTS_END_MARKER;
 
@@ -32,9 +43,19 @@ static void hcf(void) {
 	}
 }
 
-static inline void outb(uint16_t port, uint8_t val)
+void outb(uint16_t port, uint8_t val)
 {
 	__asm__ volatile ( "outb %w1, %b0" : : "a"(val), "Nd"(port) : "memory");
+}
+
+void putc(char c) {
+	outb(0xe9, c);
+}
+
+void puts(char *s) { 
+	while(*s) {
+		putc(*s++);
+	}
 }
 
 void limine_main(void) {
@@ -44,11 +65,16 @@ void limine_main(void) {
 		hcf();
 	}
 
-	outb(0xe9, 'H');
-	outb(0xe9, 'e');
-	outb(0xe9, 'l');
-	outb(0xe9, 'l');
-	outb(0xe9, 'o');
+	puts("Hello, world\r\n");
+	
+
+	puts("Loading memmap\r\n");
+
+	size_t entry_count = memory_map->response.entry_count;
+	struct limine_memmap_entry **entries = memory_map->response.entries;
+	for (int i = 0; i < 0; ++i) {
+	}
+
 
 	// We're done, just hang...
 	hcf();
