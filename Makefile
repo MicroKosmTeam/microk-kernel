@@ -1,7 +1,7 @@
 include ../Makefile.inc
 
 SRCDIR = src
-COMMON_SOURCES = $(SRCDIR)/generic
+COMMON_SOURCES = $(SRCDIR)/main
 ARCH_SOURCES = $(SRCDIR)/arch/$(ARCH)
 
 LDS64 = $(SRCDIR)/arch/$(ARCH)/kernel.ld
