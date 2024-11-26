@@ -49,11 +49,19 @@ extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize seco
 			*(uptr*)thirdArgument = (uptr)CAPABILITY::AddressFirstCapability(cspace, firstArgument, (OBJECT_TYPE)secondArgument);
 			break;
 		case SYSCALL_VECTOR_RETYPE_CAPABILITY: {
-			Capability *cap = CAPABILITY::AddressFirstCapability(cspace, firstArgument, UNTYPED_FRAMES);
 			OBJECT_TYPE type = (OBJECT_TYPE)secondArgument;
 			usize retypeCount = fourthArgument;
-			Capability **frameRetypeArray = (Capability**)thirdArgument;
+			Capability *copyArray = (Capability*)thirdArgument;
+			Capability *frameRetypeArray[retypeCount];
+
+			Capability *cap = CAPABILITY::AddressFirstCapability(cspace, firstArgument, UNTYPED_FRAMES);
+			
+
 			CAPABILITY::RetypeUntyped(cspace, cap, type, retypeCount, frameRetypeArray);
+
+			for (usize i = 0; i < retypeCount; ++i) {
+				copyArray[i] = *frameRetypeArray[i];
+			}
 			}
 			break;
 		case SYSCALL_VECTOR_UNTYPE_CAPABILITY:
@@ -87,11 +95,13 @@ extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize seco
 		case SYSCALL_VECTOR_MAP_CAPABILITY: {
 			OBJECT_TYPE type = (OBJECT_TYPE)secondArgument;
 			if (type < FRAME_MEMORY || type >= CACHE_MEMORY) {
+				PRINTK::PrintK(PRINTK_DEBUG "Invalid mapping type");
 				break;
 			}
 
 			Capability *cap = CAPABILITY::AddressFirstCapability(cspace, firstArgument, type);
 			if(cap != NULL) {
+				PRINTK::PrintK(PRINTK_DEBUG "Mapping page\r\n");
 				VMM::MapPage(vspace, thirdArgument, VMM::VirtualToPhysical(cap->Object), fourthArgument);
 			}
 			}
@@ -102,6 +112,7 @@ extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize seco
 				break;
 			}
 				
+			PRINTK::PrintK(PRINTK_DEBUG "Mapping level paging\r\n");
 			VMM::MapIntermediateLevel(vspace, secondArgument, VMM::VirtualToPhysical(cap->Object), thirdArgument, fourthArgument);
 			}
 			break;
