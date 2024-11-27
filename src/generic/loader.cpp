@@ -116,6 +116,25 @@ static int LoadProgramHeaders(Container *container, u8 *data, usize size, Elf64_
 
 
 static usize LoadContainer(Container *container, Elf64_Ehdr *elfHeader, uptr highestAddress) { 
+	usize sectionHeaderSize = elfHeader->e_shentsize;
+	usize sectionHeaderOffset = elfHeader->e_shoff;
+	usize sectionHeaderNumber = elfHeader->e_shnum;
+
+
+	Elf64_Shdr *sectionHeader;
+	Elf64_Shdr *nameHeader = (Elf64_Shdr*)((uptr)elfHeader + sectionHeaderOffset + sectionHeaderSize * elfHeader->e_shstrndx);
+	char *nameTable = (char*)((uptr)elfHeader + nameHeader->sh_offset);
+
+	for (usize i = 0; i < sectionHeaderNumber; i++) {
+		sectionHeader = (Elf64_Shdr*)((uptr)elfHeader + sectionHeaderOffset + sectionHeaderSize * i);
+
+		if (sectionHeader->sh_name == SHN_UNDEF) continue;
+
+		char *name = nameTable + sectionHeader->sh_name;
+		PRINTK::PrintK(PRINTK_DEBUG "Section %s\r\n", name);
+	}
+
+
 	/* Allocate the space for the stack and map it in
 	 * the virtual space for init
 	 */
