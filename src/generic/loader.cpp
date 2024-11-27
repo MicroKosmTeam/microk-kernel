@@ -164,6 +164,8 @@ static usize LoadContainer(Container *container, Elf64_Ehdr *elfHeader, uptr hig
 	Memclr(vmdata, sizeof(VMData));
 	vmdata->Self = vmdata;
 
+	PMM::Deinit();
+
 	SVM::InitializeVMCB(vmdata, elfHeader->e_entry, highestAddress, GetRFLAGS(), VMM::VirtualToPhysical(container->MemorySpace));
 	//SVM::LaunchVM(VMM::VirtualToPhysical((uptr)vmdata->GuestVMCB));	VMM::LoadVirtualSpace(container->MemorySpace);
 	SVMLaunchVM(GetRSP(), VMM::VirtualToPhysical((uptr)vmdata->GuestVMCB));

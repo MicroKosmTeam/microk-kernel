@@ -90,7 +90,13 @@ extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize seco
 			break;
 		case SYSCALL_VECTOR_GET_FREE_CAPABILITY:
 			break;
-		case SYSCALL_VECTOR_ADD_FREE_CAPABILITY:
+		case SYSCALL_VECTOR_ADD_FREE_CAPABILITY: {
+			OBJECT_TYPE type = (OBJECT_TYPE)secondArgument;
+			Capability *cap = CAPABILITY::AddressFirstCapability(cspace, firstArgument, CAPABILITY_NODE);
+
+			CAPABILITY::AddSlabNode(cspace, type, cap);
+			}
+
 			break;
 		case SYSCALL_VECTOR_MAP_CAPABILITY: {
 			OBJECT_TYPE type = (OBJECT_TYPE)secondArgument;
