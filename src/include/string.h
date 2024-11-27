@@ -1,4 +1,6 @@
 #pragma once
+#include <stdint.h>
+#include <stddef.h>
 
 char* itoa(int num, char* str);
 char* ltoa(long num, char* str);
