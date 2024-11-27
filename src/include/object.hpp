@@ -155,6 +155,9 @@ struct Container : public ListHead {
 	SchedulerContext Context;
 
 	VirtualCPU *VCPU;
+
+	uptr LowestKernelAddress;
+	uptr HighestKernelAddress;
 }__attribute__((aligned(0x10)));
 
 

@@ -194,6 +194,9 @@ Capability *RetypeUntyped(CapabilitySpace *space, Capability *untyped, OBJECT_TY
 	}
 
 	// TODO: Delete the untyped
+	//CapabilitySlab *slab = &space->Slabs[UNTYPED_FRAMES];
+	//CapabilityTreeNode *node = SLAB::Search(slab->CapabilityTree, untyped->Object);
+	//SLAB::Delete(slab->CapabilityTree, node);
 
 	for (usize i = 0; i < realCount; ++i) {
 		Capability *cap = GenerateCapability(space, kind, startAddress + i * objectSize, maskedRights);

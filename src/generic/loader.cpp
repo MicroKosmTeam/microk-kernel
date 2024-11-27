@@ -84,6 +84,10 @@ static int LoadProgramHeaders(Container *container, u8 *data, usize size, Elf64_
 		uptr virtAddr = programHeader->p_vaddr;
 		usize memSize = programHeader->p_memsz;
 
+		if (*highestAddress == 0) {
+			container->LowestKernelAddress = virtAddr;
+		}
+
 		if (*highestAddress < virtAddr + memSize) {
 			*highestAddress = virtAddr + memSize;
 			ROUND_UP_TO_PAGE(*highestAddress);
@@ -151,6 +155,8 @@ static usize LoadContainer(Container *container, Elf64_Ehdr *elfHeader, uptr hig
 	 * making sure to reserve enough space for eventual expansion
 	 */
 	highestAddress += INIT_INITIAL_STACK_SIZE;
+	
+	container->HighestKernelAddress = highestAddress;
 
 	using namespace x86;
 

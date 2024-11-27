@@ -129,6 +129,7 @@ extern "C" void HandleVMExit(uptr addr, x86::GeneralRegisters *context) {
 	KInfo *info = GetInfo();
 
 	VMCB *vmcb = (VMCB*)VMM::PhysicalToVirtual(addr);
+	Container *container = info->RootContainer;
 
 	switch(vmcb->Control.ExitCode) {
 		case _CPUID: {
@@ -177,15 +178,20 @@ extern "C" void HandleVMExit(uptr addr, x86::GeneralRegisters *context) {
 		case _NPF:
 			PRINTK::PrintK(PRINTK_DEBUG "Nested page fault\r\n");
 			while(true) { }
-		case _EXCP14_WRITE:
-			PRINTK::PrintK(PRINTK_DEBUG "INT14\r\n");
-			PRINTK::PrintK(PRINTK_DEBUG "FaultAddress: 0x%x\r\n", vmcb->Control.ExitInfo2);
-			PRINTK::PrintK(PRINTK_DEBUG "ErrorCode: 0x%x\r\n", vmcb->Control.ExitInfo1);
-			vmcb->Save.RIP = (uptr)info->RootContainer->Bindings.ExceptionHandler;
-
-			context->RDI = 14;
-			context->RSI = vmcb->Control.ExitInfo1;
-			context->RDX = vmcb->Control.ExitInfo2;
+		case _EXCP14_WRITE: {
+			uptr faultAddress = vmcb->Control.ExitInfo2;
+			if (faultAddress >= container->LowestKernelAddress && faultAddress <= container->HighestKernelAddress) {
+				PRINTK::PrintK(PRINTK_DEBUG "Kernel INT14\r\n");
+				PRINTK::PrintK(PRINTK_DEBUG "FaultAddress: 0x%x\r\n", vmcb->Control.ExitInfo2);
+				PRINTK::PrintK(PRINTK_DEBUG "ErrorCode: 0x%x\r\n", vmcb->Control.ExitInfo1);
+			} else {
+				// TODO: Set wrapper
+				vmcb->Save.RIP = (uptr)container->Bindings.ExceptionHandler;
+				context->RDI = 14;
+				context->RSI = vmcb->Control.ExitInfo1;
+				context->RDX = vmcb->Control.ExitInfo2;
+			}
+			}
 			break;
 		case _EXCP13_WRITE:
 			PRINTK::PrintK(PRINTK_DEBUG "INT13\r\n");
