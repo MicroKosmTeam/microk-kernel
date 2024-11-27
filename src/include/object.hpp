@@ -141,7 +141,7 @@ struct SchedulerContext {
 }__attribute__((packed));
 
 struct ContainerBindings {
-	void (*ExceptionHandler)();
+	void (*ExceptionHandler)(usize excp, usize errinfo1, usize errinfo2);
 	void (*InterruptHandler)();
 	void (*SyscallHandler)();
 }__attribute__((packed));

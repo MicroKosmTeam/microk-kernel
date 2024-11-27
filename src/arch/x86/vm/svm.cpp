@@ -182,6 +182,9 @@ extern "C" void HandleVMExit(uptr addr, x86::GeneralRegisters *context) {
 			PRINTK::PrintK(PRINTK_DEBUG "FaultAddress: 0x%x\r\n", vmcb->Control.ExitInfo2);
 			PRINTK::PrintK(PRINTK_DEBUG "ErrorCode: 0x%x\r\n", vmcb->Control.ExitInfo1);
 			vmcb->Save.RIP = (uptr)info->RootContainer->Bindings.ExceptionHandler;
+			context->RDI = 14;
+			context->RSI = vmcb->Control.ExitInfo1;
+			context->RDX = vmcb->Control.ExitInfo2;
 			break;
 		case _EXCP13_WRITE:
 			PRINTK::PrintK(PRINTK_DEBUG "INT13\r\n");
