@@ -7,9 +7,9 @@ extern void FlushTSS();
 /*
    Function that initializes the TSS given the current kernel stack
 */
-void LoadNewStackInTSS(TSS *tss, uintptr_t stackPointer) {
+void LoadNewStackInTSS(TSS *tss, uintptr_t stack_pointer) {
 	/* Initializing the stack pointer */
-	tss->RSP0 = stackPointer;
+	tss->RSP0 = stack_pointer;
 	tss->IST1 = tss->RSP0 - 64 * 1024;
 	tss->IST2 = tss->IST1 - 64 * 1024;
 	tss->IST3 = tss->IST2 - 64 * 1024;
@@ -20,11 +20,11 @@ void LoadNewStackInTSS(TSS *tss, uintptr_t stackPointer) {
 
 }
 
-void TSSInit(GDT *gdt, TSS *tss, uintptr_t stackPointer) {
+void tss_init(GDT *gdt, TSS *tss, uintptr_t stack_pointer) {
 	/* Cleaning the TSS struct */
 	memclr(tss, sizeof(*tss));
 
-	LoadNewStackInTSS(tss, stackPointer);
+	LoadNewStackInTSS(tss, stack_pointer);
 
 	/* Giving TSS size */
 	tss->IOPBOffset = sizeof(*tss);
@@ -44,7 +44,7 @@ void TSSInit(GDT *gdt, TSS *tss, uintptr_t stackPointer) {
 /*
    Function that loads the GDT to the CPU
 */
-void LoadGDT(GDT *gdt, GDTPointer *gdtPointer) {
+void load_gdt(GDT *gdt, GDTPointer *gdtPointer) {
 	memclr(gdt, sizeof(*gdt));
 	/* Setting GDT pointer size and offset */
 	gdtPointer->Size = sizeof(*gdt) - 1;

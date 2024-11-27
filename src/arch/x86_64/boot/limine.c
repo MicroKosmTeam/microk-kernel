@@ -100,17 +100,16 @@ void limine_main(void) {
 
 	printk("Longest entry: [%lx-%lx] of type %d\r\n", entries[longest_entry_index].addr, entries[longest_entry_index].addr + entries[longest_entry_index].size, entries[longest_entry_index].type);
 
-	memory_manager_t mm;
+	MemoryManager mm;
 	initialize_memory_manager(&mm, (void*)entries[longest_entry_index].addr, entries[longest_entry_index].size);
 
 	GDT gdt;
 	GDTPointer gdt_ptr;
 	TSS tss;
-	LoadGDT(&gdt, &gdt_ptr);
-	TSSInit(&gdt, &tss, 0);
+	load_gdt(&gdt, &gdt_ptr);
+	tss_init(&gdt, &tss, 0);
 
 	printk("GDT loaded.\r\n");
-
 
 	// We're done, just hang...
 	hcf();

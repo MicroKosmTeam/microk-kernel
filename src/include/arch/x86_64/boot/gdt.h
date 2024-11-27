@@ -57,11 +57,11 @@ typedef struct  {
 	GDTEntry TSSHigh;
 } __attribute__((packed)) GDT;
 
-	void LoadGDT(GDT *gdt, GDTPointer *gdtPointer);
+	void load_gdt(GDT *gdt, GDTPointer *gdtPointer);
 	uint16_t GetLimit(GDT *gdt, uint8_t desc);
 	uintptr_t GetBase(GDT *gdt, uint8_t desc);
 	uint8_t GetAccess(GDT *gdt, uint8_t desc);
 	uint8_t GetGranularity(GDT *gdt, uint8_t desc);
 
 	void LoadNewStackInTSS(TSS *tss, uintptr_t stackPointer);
-	void TSSInit(GDT *gdt, TSS *tss, uintptr_t stackPointer);
+	void tss_init(GDT *gdt, TSS *tss, uintptr_t stackPointer);
