@@ -3,6 +3,7 @@
 #include <arch/x86/object.hpp>
 #include <arch/x86/gdt.hpp>
 #include <vmm.hpp>
+#include <kinfo.hpp>
 #include <pmm.hpp>
 #include <syscall.hpp>
 #include <printk.hpp>
@@ -125,6 +126,8 @@ extern "C" void HandleVMExit(uptr addr, x86::GeneralRegisters *context) {
 	using namespace x86;
 	using namespace x86::SVM;
 
+	KInfo *info = GetInfo();
+
 	VMCB *vmcb = (VMCB*)VMM::PhysicalToVirtual(addr);
 
 	switch(vmcb->Control.ExitCode) {
@@ -178,7 +181,8 @@ extern "C" void HandleVMExit(uptr addr, x86::GeneralRegisters *context) {
 			PRINTK::PrintK(PRINTK_DEBUG "INT14\r\n");
 			PRINTK::PrintK(PRINTK_DEBUG "FaultAddress: 0x%x\r\n", vmcb->Control.ExitInfo2);
 			PRINTK::PrintK(PRINTK_DEBUG "ErrorCode: 0x%x\r\n", vmcb->Control.ExitInfo1);
-			while(true) { }
+			vmcb->Save.RIP = (uptr)info->RootContainer->Bindings.ExceptionHandler;
+			break;
 		case _EXCP13_WRITE:
 			PRINTK::PrintK(PRINTK_DEBUG "INT13\r\n");
 			while(true) { }

@@ -134,7 +134,8 @@ static usize LoadContainer(Container *container, Elf64_Ehdr *elfHeader, uptr hig
 		PRINTK::PrintK(PRINTK_DEBUG "Section %s\r\n", name);
 
 		if (Strncmp(name, ".microkosm_bindings", 255) == 0) {
-			uptr *fileOffset = (uptr*)((uptr)elfHeader + sectionHeader->sh_offset);
+			ContainerBindings *fileOffset = (ContainerBindings*)((uptr)elfHeader + sectionHeader->sh_offset);
+			container->Bindings = *fileOffset;
 			PRINTK::PrintK(PRINTK_DEBUG "Result: 0x%x\r\n", *fileOffset);
 
 		}

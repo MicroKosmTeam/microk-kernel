@@ -144,7 +144,7 @@ struct ContainerBindings {
 	void (*ExceptionHandler)();
 	void (*InterruptHandler)();
 	void (*SyscallHandler)();
-};
+}__attribute__((packed));
 
 struct Container : public ListHead {
 	ContainerIdentifier Identifier;
