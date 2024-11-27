@@ -132,6 +132,12 @@ static usize LoadContainer(Container *container, Elf64_Ehdr *elfHeader, uptr hig
 
 		char *name = nameTable + sectionHeader->sh_name;
 		PRINTK::PrintK(PRINTK_DEBUG "Section %s\r\n", name);
+
+		if (Strncmp(name, ".microkosm_bindings", 255) == 0) {
+			uptr *fileOffset = (uptr*)((uptr)elfHeader + sectionHeader->sh_offset);
+			PRINTK::PrintK(PRINTK_DEBUG "Result: 0x%x\r\n", *fileOffset);
+
+		}
 	}
 
 
