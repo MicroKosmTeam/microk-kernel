@@ -62,6 +62,8 @@ typedef struct {
 } memmap_entry_t;
 
 #include <printf.h>
+#include <arch/x86_64/boot/alloc.h>
+#include <arch/x86_64/boot/gdt.h>
 void limine_main(void) {
 	// Ensure the bootloader actually understands our base revision (see spec).
 	if (LIMINE_BASE_REVISION_SUPPORTED == false ||
@@ -79,13 +81,35 @@ void limine_main(void) {
 
 	memmap_entry_t entries[entry_count];
 
+	size_t longest_entry_size = 0;
+	size_t longest_entry_index = 0;
+
 	for (size_t i = 0; i < entry_count; ++i) {
 		entries[i].addr = memory_map.response->entries[i]->base;
 		entries[i].size = memory_map.response->entries[i]->length;
 		entries[i].type = memory_map.response->entries[i]->type;
 
-		printk("Entry %d: [%lx-%lx]\r\n", i, entries[i].addr, entries[i].addr + entries[i].size);
+		printk("Entry %d: [%lx-%lx] of type %d\r\n", i, entries[i].addr, entries[i].addr + entries[i].size, entries[i].type);
+
+		if (entries[i].type == LIMINE_MEMMAP_USABLE &&
+			entries[i].size >= longest_entry_size) {
+			longest_entry_size = entries[i].size;
+			longest_entry_index = i;
+		}
 	}
+
+	printk("Longest entry: [%lx-%lx] of type %d\r\n", entries[longest_entry_index].addr, entries[longest_entry_index].addr + entries[longest_entry_index].size, entries[longest_entry_index].type);
+
+	memory_manager_t mm;
+	initialize_memory_manager(&mm, (void*)entries[longest_entry_index].addr, entries[longest_entry_index].size);
+
+	GDT gdt;
+	GDTPointer gdt_ptr;
+	TSS tss;
+	LoadGDT(&gdt, &gdt_ptr);
+	TSSInit(&gdt, &tss, 0);
+
+	printk("GDT loaded.\r\n");
 
 
 	// We're done, just hang...

@@ -168,6 +168,10 @@ void *memset(void *s, int c, size_t n) {
 	return s;
 }
 
+void *memclr(void *s, size_t n) {
+	return memset(s, 0, n);
+}
+
 void *memmove(void *dest, const void *src, size_t n) {
 	uint8_t *pdest = (uint8_t *)dest;
 	const uint8_t *psrc = (const uint8_t *)src;
