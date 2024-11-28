@@ -185,7 +185,6 @@ void InitializeCPUFeatures() {
 			SVM::InitializeVMCB(vmdata, rip, rsp, rflags, VMM::VirtualToPhysical(info->KernelVirtualSpace));
 			SVM::LoadVM(VMM::VirtualToPhysical((uptr)vmdata->GuestVMCB));
 			//SVM::LaunchVM(VMM::VirtualToPhysical((uptr)vmdata->GuestVMCB));*/
-		UserStart();
 		} else {
 			PRINTK::PrintK(PRINTK_DEBUG 
 				"No svm!\r\n");

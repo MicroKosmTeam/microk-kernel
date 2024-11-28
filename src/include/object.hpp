@@ -50,7 +50,7 @@ struct CapabilityTreeNode : public Capability {
 	CapabilityTreeNode *Left, *Right;
 
 	u32 Level;
-};
+}__attribute__((packed));
 
 
 

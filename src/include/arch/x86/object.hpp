@@ -40,7 +40,8 @@ namespace x86 {
 		u8 GuestVMCB[PAGE_SIZE];
 		u8 HostVMCB[PAGE_SIZE];
 		u8 HostSave[PAGE_SIZE];
-		u8 SharedPage[PAGE_SIZE * 2]; // MSR Data
+		u8 MSRPa[PAGE_SIZE * 2]; // MSR Data
+		u8 IOPa[PAGE_SIZE * 2];
 		VMData *Self;
 	}__attribute__((packed, aligned((PAGE_SIZE))));
 }

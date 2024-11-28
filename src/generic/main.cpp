@@ -42,18 +42,7 @@ void KernelStart() {
 	//MEM::Init();
 	ARCH::InitializeCPUFeatures();
 
-
-	UserStart();
-	__builtin_unreachable();
-}
-
-
-
-extern "C" __attribute__((noreturn))
-void UserStart() {
 	KInfo *info = GetInfo();
-
-	PRINTK::PrintK(PRINTK_DEBUG "Hello, world\r\n");
 
 	LOADER::LoadContainer(info->RootContainer, (u8*)info->ManagerExecutableAddress, info->ManagerExecutableSize);
 

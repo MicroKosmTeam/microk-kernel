@@ -15,7 +15,8 @@ int InitializeVMCB(VMData *vcpu, uptr rip, uptr rsp, uptr rflags, uptr cr3) {
 	VMCB *guestVmcb = (VMCB*)vcpu->GuestVMCB;
 	u8 *hostSave = (u8*)vcpu->HostSave;
 	VMCB *hostVmcb = (VMCB*)vcpu->HostVMCB;
-	u8 *sharedVmcb = (u8*)vcpu->SharedPage; // MSR Bitmap
+	u8 *msrPa = (u8*)vcpu->MSRPa ; // MSR Bitmap
+	u8 *ioPa = (u8*)vcpu->IOPa ; // MSR Bitmap
 
 	// CONTROL
 	guestVmcb->Control.Intercepts[INTERCEPT_EXCEPTION] |= 0xFFFFFFFF;
@@ -29,8 +30,10 @@ int InitializeVMCB(VMData *vcpu, uptr rip, uptr rsp, uptr rflags, uptr cr3) {
 						          INTERCEPT_VMMCALL;
 	guestVmcb->Control.asid = 1;
 
-	guestVmcb->Control.MSRPMBasePa = VMM::VirtualToPhysical((uptr)sharedVmcb);
-	Memset(sharedVmcb, 0xFF, PAGE_SIZE * 2);
+	guestVmcb->Control.MSRPMBasePa = VMM::VirtualToPhysical((uptr)msrPa);
+	guestVmcb->Control.IOPMBasePa = VMM::VirtualToPhysical((uptr)ioPa);
+	Memset(msrPa, 0xFF, PAGE_SIZE * 2);
+	Memset(ioPa, 0xFF, PAGE_SIZE * 2);
 
 //	guestVmcb->Control.NestedCtl |= 0 ; // NESTED_CTL_NP_ENABLE;
 //	guestVmcb->Control.NestedCR3 = cr3;
@@ -173,9 +176,19 @@ extern "C" void HandleVMExit(uptr addr, x86::GeneralRegisters *context) {
 		case _VINTR:
 			PRINTK::PrintK(PRINTK_DEBUG "Interrupt virtual\r\n");
 			while(true) { }
-		case _IOIO:					
-			PRINTK::PrintK(PRINTK_DEBUG "Disallowed IO\r\n");
-			while(true) { }
+		case _IOIO: {
+			usize info = vmcb->Control.ExitInfo1;
+			u16 port = info >> 16;
+			bool type = info & 0b1;
+			if (type) { // IN
+				PRINTK::PrintK(PRINTK_DEBUG "Disallowed IN in port 0x%x for value 0x%x\r\n", port, vmcb->Save.RAX);
+			} else {    // OUT
+				PRINTK::PrintK(PRINTK_DEBUG "Disallowed OUT in port 0x%x for value 0x%x\r\n", port, vmcb->Save.RAX);
+			}
+
+			vmcb->Save.RIP = vmcb->Control.ExitInfo2;
+			}
+			break;
 		case _NPF:
 			PRINTK::PrintK(PRINTK_DEBUG "Nested page fault\r\n");
 			while(true) { }

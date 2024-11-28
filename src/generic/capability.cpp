@@ -196,6 +196,7 @@ Capability *RetypeUntyped(CapabilitySpace *space, Capability *untyped, OBJECT_TY
 	// TODO: Delete the untyped
 	//CapabilitySlab *slab = &space->Slabs[UNTYPED_FRAMES];
 	//CapabilityTreeNode *node = SLAB::Search(slab->CapabilityTree, untyped->Object);
+	//SLAB::FreeSlabSlot(slab, node);
 	//SLAB::Delete(slab->CapabilityTree, node);
 	untyped->IsMasked = 1;
 
@@ -217,14 +218,16 @@ Capability *RetypeUntyped(CapabilitySpace *space, Capability *untyped, OBJECT_TY
 }
 
 Capability *UntypeObject(CapabilitySpace *space, Capability *capability) {
-	CapabilitySlab *slab = &space->Slabs[UNTYPED_FRAMES];
-	(void)slab;
-
+	CapabilitySlab *slab = &space->Slabs[capability->Type];
 	/* Transforms back into untyped */
 
 	// TODO: Recreate untyped
 	Capability *ut = capability->Parent;
-	// TODO: Delete the capability;
+
+	CapabilityTreeNode *node = SLAB::Search(slab->CapabilityTree, capability->Object);
+	SLAB::FreeSlabSlot(slab, node);
+	SLAB::Delete(slab->CapabilityTree, node);
+
 	ut->Children--;
 	if (ut->Children == 0) {
 		ut->IsMasked = 0;
