@@ -10,6 +10,7 @@ namespace PMM {
 	};
 
 	void Init(Capability *untypedArea);
+	void CheckSpace(CapabilitySpace *cspace, OBJECT_TYPE type, usize count);
 	void Deinit();
 
 	void *RequestPage();

@@ -3,6 +3,8 @@
 #include <arch/x86/cpu.hpp>
 #include <kinfo.hpp>
 #include <memory.hpp>
+#include <capability.hpp>
+#include <pmm.hpp>
 
 namespace x86 {
 int InitializeACPI(ACPI *acpi) {
@@ -60,6 +62,9 @@ int InitializeACPI(ACPI *acpi) {
 			} else if (Memcmp(sdt->Signature, "SRAT", 4) == 0) {
 				PRINTK::PrintK(PRINTK_DEBUG "Processing SRAT\r\n");
 				InitializeSRAT((SRAT_t*)sdt);
+			} else if (Memcmp(sdt->Signature, "MCFG", 4) == 0) {
+				PRINTK::PrintK(PRINTK_DEBUG "Processing MCFG\r\n");
+				InitializeMCFG((MCFG_t*)sdt);
 			}
 		}
 	}
@@ -162,6 +167,61 @@ int InitializeSRAT(SRAT_t *srat) {
 
 		currentPtr += current->RecordLength;
 	}
+
+	return 0;
+}
+
+int InitializeMCFG(MCFG_t *mcfg) {
+	KInfo *info = GetInfo();
+
+	uptr currentPtr = (uptr)&mcfg->FirstEntry;
+	uptr entriesEnd = (uptr)mcfg + mcfg->Length;
+
+	while(currentPtr < entriesEnd) {
+		MCFGEntry_t *current = (MCFGEntry_t*)currentPtr;
+		PRINTK::PrintK(PRINTK_DEBUG "Device addr: 0x%x\r\n"
+				            "Seg:         0x%x\r\n"
+					    "Start bus:   0x%x\r\n"
+					    "End bus:     0x%x\r\n", 
+					    current->BaseAddress, current->PCISeg,
+					    current->StartPCIBus, current->EndPCIBus);
+
+		for (usize bus = current->StartPCIBus; bus < current->EndPCIBus; ++bus) {
+			u64 offset = bus << 20;
+			uptr busAddress = current->BaseAddress + offset;
+
+			VMM::MMap(info->KernelVirtualSpace, busAddress, VMM::PhysicalToVirtual(busAddress), PAGE_SIZE, VMM_FLAGS_READ | VMM_FLAGS_WRITE | VMM_FLAGS_NOEXEC);
+
+			PCIDeviceHeader_t *header = (PCIDeviceHeader_t*)VMM::PhysicalToVirtual(busAddress);
+			if(header->DeviceID == 0) continue;
+			if(header->DeviceID == 0xFFFF) continue;
+			
+			PRINTK::PrintK(PRINTK_DEBUG"Bus addr: 0x%x\r\n", busAddress);
+
+			for (usize device = 0; device < 32; ++device) {
+				u64 offset = device << 15;
+				uptr deviceAddress = busAddress + offset;
+
+				if (deviceAddress != busAddress) {
+					VMM::MMap(info->KernelVirtualSpace, deviceAddress, VMM::PhysicalToVirtual(deviceAddress), PAGE_SIZE, VMM_FLAGS_READ | VMM_FLAGS_WRITE | VMM_FLAGS_NOEXEC);
+				}
+
+				PCIDeviceHeader_t *header = (PCIDeviceHeader_t*)VMM::PhysicalToVirtual(deviceAddress);
+				if(header->DeviceID == 0) continue;
+				if(header->DeviceID == 0xFFFF) continue;
+				
+				PRINTK::PrintK(PRINTK_DEBUG" Device addr: 0x%x\r\n", deviceAddress);
+				
+
+			}
+		}
+		/*
+		PMM::CheckSpace(info->RootCSpace, MMIO_MEMORY, 1);
+		CAPABILITY::GenerateCapability(info->RootCSpace, MMIO_MEMORY, current->BaseAddress, ACCESS | READ | WRITE);*/
+		currentPtr += sizeof(MCFGEntry_t);
+	}
+
+
 
 	return 0;
 }

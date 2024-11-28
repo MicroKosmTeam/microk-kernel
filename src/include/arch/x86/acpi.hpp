@@ -118,6 +118,35 @@ namespace x86 {
 		SRATEntry_t FirstEntry;
 	}__attribute__((packed));
 
+	struct MCFGEntry_t {
+		uptr BaseAddress;
+		u16 PCISeg;
+		u8 StartPCIBus;
+		u8 EndPCIBus;
+		u8 Reserved[4];
+	}__attribute__((packed));
+
+	struct MCFG_t : public SDTHeader_t {
+		u8 Reserved[8];
+
+		MCFGEntry_t FirstEntry;
+	}__attribute__((packed));
+
+	struct PCIDeviceHeader_t {
+		uint16_t VendorID;
+		uint16_t DeviceID;
+		uint16_t Command;
+		uint16_t Status;
+		uint8_t RevisionID;
+		uint8_t ProgIF;
+		uint8_t Subclass;
+		uint8_t Class;
+		uint8_t CacheLineSize;
+		uint8_t LatencyTimer;
+		uint8_t HeaderType;
+		uint8_t BIST;
+	}__attribute__((packed));
+
 	struct ACPI {
 		RSDP_t *RSDP;
 		SDTHeader_t *MainSDT;
@@ -127,4 +156,5 @@ namespace x86 {
 	int InitializeACPI(ACPI *acpi);
 	int InitializeMADT(MADT_t *madt);
 	int InitializeSRAT(SRAT_t *srat);
+	int InitializeMCFG(MCFG_t *srat);
 }

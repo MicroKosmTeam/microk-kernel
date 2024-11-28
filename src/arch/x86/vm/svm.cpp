@@ -13,9 +13,9 @@ namespace SVM {
 
 int InitializeVMCB(VMData *vcpu, uptr rip, uptr rsp, uptr rflags, uptr cr3) {
 	VMCB *guestVmcb = (VMCB*)vcpu->GuestVMCB;
-	VMCB *hostSave = (VMCB*)vcpu->HostSave;
+	u8 *hostSave = (u8*)vcpu->HostSave;
 	VMCB *hostVmcb = (VMCB*)vcpu->HostVMCB;
-	VMCB *sharedVmcb = (VMCB*)vcpu->SharedPage;
+	u8 *sharedVmcb = (u8*)vcpu->SharedPage; // MSR Bitmap
 
 	// CONTROL
 	guestVmcb->Control.Intercepts[INTERCEPT_EXCEPTION] |= 0xFFFFFFFF;
@@ -30,6 +30,7 @@ int InitializeVMCB(VMData *vcpu, uptr rip, uptr rsp, uptr rflags, uptr cr3) {
 	guestVmcb->Control.asid = 1;
 
 	guestVmcb->Control.MSRPMBasePa = VMM::VirtualToPhysical((uptr)sharedVmcb);
+	Memset(sharedVmcb, 0xFF, PAGE_SIZE * 2);
 
 //	guestVmcb->Control.NestedCtl |= 0 ; // NESTED_CTL_NP_ENABLE;
 //	guestVmcb->Control.NestedCR3 = cr3;
@@ -195,6 +196,7 @@ extern "C" void HandleVMExit(uptr addr, x86::GeneralRegisters *context) {
 			break;
 		case _EXCP13_WRITE:
 			PRINTK::PrintK(PRINTK_DEBUG "INT13\r\n");
+			PRINTK::PrintK(PRINTK_DEBUG "ErrorCode: 0x%x\r\n", vmcb->Control.ExitInfo1);
 			while(true) { }
 		case _INVLPG:
 			PRINTK::PrintK(PRINTK_DEBUG "INVLPG\r\n");
