@@ -211,13 +211,29 @@ int InitializeMCFG(MCFG_t *mcfg) {
 				if(header->DeviceID == 0xFFFF) continue;
 				
 				PRINTK::PrintK(PRINTK_DEBUG" Device addr: 0x%x\r\n", deviceAddress);
+
+				for (usize function = 0; function < 8; ++function) {
+					u64 offset = function << 12;
+					uptr functionAddress = deviceAddress + offset;
+
+					if (functionAddress != deviceAddress) {
+						VMM::MMap(info->KernelVirtualSpace, functionAddress, VMM::PhysicalToVirtual(functionAddress), PAGE_SIZE, VMM_FLAGS_READ | VMM_FLAGS_WRITE | VMM_FLAGS_NOEXEC);
+					}
+
+					PCIDeviceHeader_t *header = (PCIDeviceHeader_t*)VMM::PhysicalToVirtual(functionAddress);
+					if(header->DeviceID == 0) continue;
+					if(header->DeviceID == 0xFFFF) continue;
+
+					PRINTK::PrintK(PRINTK_DEBUG"  Function addr: 0x%x\r\n", functionAddress);
+
+					PMM::CheckSpace(info->RootCSpace, MMIO_MEMORY, 1);
+					CAPABILITY::GenerateCapability(info->RootCSpace, MMIO_MEMORY, functionAddress, ACCESS | READ | WRITE);
+				}
 				
 
 			}
 		}
-		/*
-		PMM::CheckSpace(info->RootCSpace, MMIO_MEMORY, 1);
-		CAPABILITY::GenerateCapability(info->RootCSpace, MMIO_MEMORY, current->BaseAddress, ACCESS | READ | WRITE);*/
+
 		currentPtr += sizeof(MCFGEntry_t);
 	}
 
