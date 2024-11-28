@@ -197,12 +197,16 @@ Capability *RetypeUntyped(CapabilitySpace *space, Capability *untyped, OBJECT_TY
 	//CapabilitySlab *slab = &space->Slabs[UNTYPED_FRAMES];
 	//CapabilityTreeNode *node = SLAB::Search(slab->CapabilityTree, untyped->Object);
 	//SLAB::Delete(slab->CapabilityTree, node);
+	untyped->IsMasked = 1;
 
 	for (usize i = 0; i < realCount; ++i) {
 		Capability *cap = GenerateCapability(space, kind, startAddress + i * objectSize, maskedRights);
 		if (cap == NULL) {
 			return NULL;
 		}
+
+		untyped->Children++;
+		cap->Parent = untyped;
 
 		if (i < count) {
 			array[i] = cap;
@@ -214,10 +218,18 @@ Capability *RetypeUntyped(CapabilitySpace *space, Capability *untyped, OBJECT_TY
 
 Capability *UntypeObject(CapabilitySpace *space, Capability *capability) {
 	CapabilitySlab *slab = &space->Slabs[UNTYPED_FRAMES];
+	(void)slab;
 
 	/* Transforms back into untyped */
-	(void)slab;
-	(void)capability;
+
+	// TODO: Recreate untyped
+	Capability *ut = capability->Parent;
+	// TODO: Delete the capability;
+	ut->Children--;
+	if (ut->Children == 0) {
+		ut->IsMasked = 0;
+	}
+
 	return NULL;
 }
 
@@ -247,16 +259,6 @@ Capability *SplitUntyped(CapabilitySpace *space, Capability *untyped, usize spli
 		/* We can't split it, it's too small */
 		PRINTK::PrintK(PRINTK_DEBUG "Excessively small split amount\r\n");
 		return NULL;
-	}
-
-	if (header->Length == totalSplitSize) {
-		/* We can't split it, it's too small */
-		PRINTK::PrintK(PRINTK_DEBUG "Excessively big split amount: %d\r\n", totalSplitSize);
-		array[0] = untyped;
-		if (count > 1) {
-			array[1] = NULL;
-		}
-		return untyped;
 	}
 
 	if (header->Length < totalSplitSize) {

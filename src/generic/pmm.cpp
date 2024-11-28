@@ -69,7 +69,7 @@ static void CheckSpace(OBJECT_TYPE type, usize count) {
 void Deinit() {
 	PhysicalMemoryManager.IsActive = false;
 	
-	CheckSpace(FRAME_MEMORY, 300);
+	CheckSpace(FRAME_MEMORY, 500); 
 	CheckSpace(VIRTUAL_MEMORY_PAGING_STRUCTURE, 300);
 }
 

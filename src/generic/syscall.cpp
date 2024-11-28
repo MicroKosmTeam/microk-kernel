@@ -45,6 +45,11 @@ extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize seco
 			*(Capability*)thirdArgument = *cap;
 			}
 			break;
+		case SYSCALL_VECTOR_GET_UNTYPED_CAPABILITY: {
+			Capability *cap = CAPABILITY::AddressFirstCapability(cspace, firstArgument, UNTYPED_FRAMES);
+			*(UntypedHeader*)secondArgument = *(UntypedHeader*)cap->Object;
+			}
+			break;
 		case SYSCALL_VECTOR_SEARCH_CAPABILITY:
 			*(uptr*)thirdArgument = (uptr)CAPABILITY::AddressFirstCapability(cspace, firstArgument, (OBJECT_TYPE)secondArgument);
 			break;
