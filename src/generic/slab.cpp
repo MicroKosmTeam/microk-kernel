@@ -195,19 +195,24 @@ CapabilityTreeNode *Delete(CapabilityTreeNode *tree, CapabilityTreeNode *node) {
 		} else if (tree->Left == NULL) {
 			CapabilityTreeNode *successor = Successor(tree);
 
+			tree = successor;
 			/* TODO:ZEROCOPY CAPABILITY */
+			/*
 			Capability *treeCapability = (Capability*)tree;
 			Capability *successorCapability = (Capability*)successor;
 			*treeCapability = *successorCapability;
-			
+			*/
 			tree->Right = Delete(tree->Right, successor);
 		} else {
 			CapabilityTreeNode *predecessor = Successor(tree);
 
 			/* TODO:ZEROCOPY CAPABILITY */
+			/*
 			Capability *treeCapability = (Capability*)tree;
 			Capability *predecessorCapability = (Capability*)predecessor;
 			*treeCapability = *predecessorCapability;
+			*/
+			tree = predecessor;
 			
 			tree->Left = Delete(tree->Left, predecessor);
 		}
@@ -259,6 +264,13 @@ CapabilityTreeNode *SearchClose(CapabilityTreeNode *tree, uptr key) {
 	return NULL;
 }
 
+	
+void GetCapabilities(CapabilitySlab *slab, CapabilityTreeNode **capabilityArray, usize count, bool includeMasked) {
+	(void)slab;
+	(void)capabilityArray;
+	(void)count;
+	(void)includeMasked;
+}
 
 
 void Dump(CapabilityTreeNode *tree) {

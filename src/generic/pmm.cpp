@@ -85,6 +85,8 @@ void *RequestPage() {
 	usize splitCount = 1;
 	usize splitSize = PAGE_SIZE;
 	Capability *splitArray[splitCount];
+	// TODO: Issue is, when tree deletes, address changes, fucking this up
+	// Fix by using Address?
 	PhysicalMemoryManager.UntypedArea = CAPABILITY::SplitUntyped(info->RootCSpace, PhysicalMemoryManager.UntypedArea, splitSize, splitCount, splitArray);
 
 	usize retypeCount = 1;

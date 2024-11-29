@@ -224,14 +224,20 @@ Capability *UntypeObject(CapabilitySpace *space, Capability *capability) {
 	// TODO: Recreate untyped
 	Capability *ut = capability->Parent;
 
-	CapabilityTreeNode *node = SLAB::Search(slab->CapabilityTree, capability->Object);
-	SLAB::FreeSlabSlot(slab, node);
-	SLAB::Delete(slab->CapabilityTree, node);
-
 	ut->Children--;
 	if (ut->Children == 0) {
 		ut->IsMasked = 0;
+
+		// TODO: fix this
+
+		UntypedHeader *utHeader = (UntypedHeader*)ut->Object;
+		utHeader->Address = VMM::VirtualToPhysical(ut->Object);
+		utHeader->Length = GetObjectSize((OBJECT_TYPE)capability->Type);
 	}
+
+	CapabilityTreeNode *node = SLAB::Search(slab->CapabilityTree, capability->Object);
+	SLAB::FreeSlabSlot(slab, node);
+	SLAB::Delete(slab->CapabilityTree, node);
 
 	return NULL;
 }
@@ -306,10 +312,17 @@ Capability *SplitUntyped(CapabilitySpace *space, Capability *untyped, usize spli
 	return array[count - 1];
 }
 
-Capability *MergeUntyped(CapabilitySpace *space, Capability *capability) {
+Capability *MergeUntyped(CapabilitySpace *space, Capability *ut, Capability *other) {
 	/* Merges adiacent untyped memory regions */
-	(void)space;
-	(void)capability;
+
+	UntypedHeader *utHeader = (UntypedHeader*)ut->Object;
+	UntypedHeader *capHeader = (UntypedHeader*)other->Object;
+	utHeader->Length += capHeader->Length;
+
+	CapabilitySlab *slab = &space->Slabs[UNTYPED_FRAMES];
+	CapabilityTreeNode *node = SLAB::Search(slab->CapabilityTree, other->Object);
+	SLAB::FreeSlabSlot(slab, node);
+	SLAB::Delete(slab->CapabilityTree, node);
 
 	return NULL;
 }
