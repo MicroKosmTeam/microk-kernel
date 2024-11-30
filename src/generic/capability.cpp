@@ -95,8 +95,8 @@ usize GetObjectSize(OBJECT_TYPE kind) {
 			return -1;
 		case FRAME_MEMORY:
 			return PAGE_SIZE;
-		case DMA_MEMORY:
-			return -1;
+		case MMIO_MEMORY:
+			return PAGE_SIZE;
 		case VIRTUAL_MEMORY_PAGING_STRUCTURE:
 			return PAGE_SIZE;
 		case CAPABILITY_SPACE:

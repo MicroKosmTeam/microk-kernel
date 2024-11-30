@@ -8,9 +8,6 @@
 #include <arch/x86/cpu.hpp>
 #include <arch/x86/idt.hpp>
 #include <arch/x86/gdt.hpp>
-#include <arch/x86/apic.hpp>
-#include <arch/x86/ioapic.hpp>
-#include <arch/x86/acpi.hpp>
 #include <arch/x86/vm/vm.hpp>
 #include <arch/x86/vm/svm.hpp>
 
@@ -96,9 +93,6 @@ inline static int EnableSyscalls() {
 GDT gdt;
 GDTPointer pointer;
 TSS tss;
-APIC apic;
-IOAPIC ioapic;
-ACPI acpi;
 
 
 void LoadEssentialCPUStructures() {
@@ -133,8 +127,6 @@ void InitializeCPUFeatures() {
 
 	EnableSSE();
 	EnableSyscalls();
-	InitializeACPI(&acpi);
-	InitializeAPIC(&apic);
 
 	PRINTK::PrintK(PRINTK_DEBUG "Detecting VMs...\r\n");
 

@@ -67,8 +67,11 @@ void CheckSpace(CapabilitySpace *cspace, OBJECT_TYPE type, usize count) {
 void Deinit() {
 	KInfo *info = GetInfo();
 
+	// Reserve space for userspace
+	CheckSpace(info->RootCSpace, UNTYPED_FRAMES, 500); 
 	CheckSpace(info->RootCSpace, FRAME_MEMORY, 500); 
 	CheckSpace(info->RootCSpace, VIRTUAL_MEMORY_PAGING_STRUCTURE, 300);
+	CheckSpace(info->RootCSpace, MMIO_MEMORY, 300);
 	
 	PhysicalMemoryManager.IsActive = false;
 }

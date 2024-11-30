@@ -264,15 +264,6 @@ CapabilityTreeNode *SearchClose(CapabilityTreeNode *tree, uptr key) {
 	return NULL;
 }
 
-	
-void GetCapabilities(CapabilitySlab *slab, CapabilityTreeNode **capabilityArray, usize count, bool includeMasked) {
-	(void)slab;
-	(void)capabilityArray;
-	(void)count;
-	(void)includeMasked;
-}
-
-
 void Dump(CapabilityTreeNode *tree) {
 	if (tree == NULL) {
 		return;

@@ -45,6 +45,11 @@ extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize seco
 			*(Capability*)thirdArgument = *cap;
 			}
 			break;
+		case SYSCALL_VECTOR_CREATE_FROM_MEM_CAPABILITY:
+			// TODO: Risky
+			*(Capability*)secondArgument = *CAPABILITY::GenerateCapability(cspace, MMIO_MEMORY, firstArgument, ACCESS | READ | WRITE);
+			break;
+
 		case SYSCALL_VECTOR_GET_UNTYPED_CAPABILITY: {
 			Capability *cap = CAPABILITY::AddressFirstCapability(cspace, firstArgument, UNTYPED_FRAMES);
 			*(UntypedHeader*)secondArgument = *(UntypedHeader*)cap->Object;

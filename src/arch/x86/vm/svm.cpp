@@ -12,6 +12,7 @@ namespace x86 {
 namespace SVM {
 
 int InitializeVMCB(VMData *vcpu, uptr rip, uptr rsp, uptr rflags, uptr cr3) {
+	KInfo *info = GetInfo();
 	VMCB *guestVmcb = (VMCB*)vcpu->GuestVMCB;
 	u8 *hostSave = (u8*)vcpu->HostSave;
 	VMCB *hostVmcb = (VMCB*)vcpu->HostVMCB;
@@ -35,15 +36,17 @@ int InitializeVMCB(VMData *vcpu, uptr rip, uptr rsp, uptr rflags, uptr cr3) {
 	Memset(msrPa, 0xFF, PAGE_SIZE * 2);
 	Memset(ioPa, 0xFF, PAGE_SIZE * 2);
 
-//	guestVmcb->Control.NestedCtl |= 0 ; // NESTED_CTL_NP_ENABLE;
-//	guestVmcb->Control.NestedCR3 = cr3;
+	guestVmcb->Control.NestedCtl |= 0 ; // NESTED_CTL_NP_ENABLE;
+	guestVmcb->Control.NestedCR3 = info->KernelVirtualSpace;
 	
 
 	// SAVE
+	guestVmcb->Save.RAX = VMM::VirtualToPhysical(info->RSDP);
+
 	guestVmcb->Save.CR0 = GetCR0();
 	guestVmcb->Save.CR2 = GetCR2();
 	guestVmcb->Save.CR3 = cr3;// GetCR3();
-	guestVmcb->Save.CR4 = GetCR4();
+	guestVmcb->Save.CR4 = GetCR4();	
 	
 	guestVmcb->Save.CPL = 3;
 
