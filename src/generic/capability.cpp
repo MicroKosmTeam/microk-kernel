@@ -71,10 +71,10 @@ uptr InitializeRootSpace(uptr framesBase, UntypedHeader *memoryMap) {
 				Memcpy(accessibleHeader, entry, sizeof(UntypedHeader));
 			}
 
-			GenerateCapability(space, UNTYPED_FRAMES, (uptr)accessibleHeader, ACCESS | RETYPE | GRANT);
+			GenerateCapability(space, UNTYPED_FRAMES, (uptr)accessibleHeader, entry->Length, ACCESS | RETYPE | GRANT);
 		} else {
 			/* LOGIC HERE */
-			//GenerateCapability(space, UNTYPED_FRAMES_DMA, (uptr)accessibleHeader, ACCESS | RETYPE | GRANT);
+			GenerateCapability(space, UNTYPED_DMA, VMM::PhysicalToVirtual(entry->Address), entry->Length, ACCESS | RETYPE | GRANT);
 		}
 
 	}
@@ -134,8 +134,11 @@ Capability *AddressCapability(CapabilitySpace *space, uptr ptr, OBJECT_TYPE kind
 	return (Capability*)SLAB::Search(slab->CapabilityTree, ptr);
 }
 
-
 Capability *GenerateCapability(CapabilitySpace *space, OBJECT_TYPE kind, uptr object, u16 accessRights) {
+	return GenerateCapability(space, kind, object, GetObjectSize(kind), accessRights);
+}
+
+Capability *GenerateCapability(CapabilitySpace *space, OBJECT_TYPE kind, uptr object, usize size, u16 accessRights) {
 	if (kind < UNTYPED_FRAMES || kind >= OBJECT_TYPE_COUNT) {
 		return NULL;
 	}
@@ -150,6 +153,7 @@ Capability *GenerateCapability(CapabilitySpace *space, OBJECT_TYPE kind, uptr ob
 	capability->Type = kind;
 	capability->Children = 0;
 	capability->Object = object;
+	capability->Size = size;
 	capability->AccessRights = accessRights;
 	capability->AccessRightsMask = 0xFFFF;
 	
@@ -201,7 +205,7 @@ Capability *RetypeUntyped(CapabilitySpace *space, Capability *untyped, OBJECT_TY
 	untyped->IsMasked = 1;
 
 	for (usize i = 0; i < realCount; ++i) {
-		Capability *cap = GenerateCapability(space, kind, startAddress + i * objectSize, maskedRights);
+		Capability *cap = GenerateCapability(space, kind, startAddress + i * objectSize, objectSize, maskedRights);
 		if (cap == NULL) {
 			return NULL;
 		}
@@ -282,6 +286,10 @@ Capability *SplitUntyped(CapabilitySpace *space, Capability *untyped, usize spli
 	u16 mask = untyped->AccessRightsMask;
 	uptr baseAddr = untyped->Object;
 
+	array[0] = untyped;
+	untyped->Size = splitSize;
+	header->Length = splitSize;
+
 	for (usize i = 1; i < count; ++i) {
 		Capability *cap = NULL;
 		UntypedHeader *capHeader = (UntypedHeader*)(baseAddr + splitSize * i);
@@ -293,9 +301,6 @@ Capability *SplitUntyped(CapabilitySpace *space, Capability *untyped, usize spli
 		cap->AccessRightsMask = mask; 
 		array[i] = cap;
 	}
-
-	header->Length = splitSize;
-	array[0] = untyped;
 
 	if (initialLength > totalSplitSize) {
 		UntypedHeader *lastHeader = (UntypedHeader*)(untyped->Object + totalSplitSize);
