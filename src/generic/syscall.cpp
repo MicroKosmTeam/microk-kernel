@@ -7,9 +7,9 @@
 
 extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize secondArgument, usize thirdArgument, usize fourthArgument, usize fithArgument, usize sixthArgument) {
 	KInfo *info = GetInfo();
+	// TODO
 	CapabilitySpace *cspace = &info->RootContainer->CSpace;
 	VirtualSpace vspace = info->RootContainer->MemorySpace;
-	(void)vspace;
 
 	VMM::LoadVirtualSpace(vspace);
 
@@ -75,6 +75,7 @@ extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize seco
 			}
 			break;
 		case SYSCALL_VECTOR_UNTYPE_CAPABILITY:
+			// TODO
 			break;
 		case SYSCALL_VECTOR_SPLIT_CAPABILITY: {
 			usize splitCount = fourthArgument;
@@ -97,10 +98,13 @@ extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize seco
 			}
 			break;
 		case SYSCALL_VECTOR_MERGE_CAPABILITY:
+			// TODO
 			break;
 		case SYSCALL_VECTOR_GET_FREE_CAPABILITY:
+			// TODO
 			break;
 		case SYSCALL_VECTOR_ADD_FREE_CAPABILITY: {
+								 // TODO
 			OBJECT_TYPE type = (OBJECT_TYPE)secondArgument;
 			Capability *cap = CAPABILITY::AddressFirstCapability(cspace, firstArgument, CAPABILITY_NODE);
 
@@ -132,6 +136,7 @@ extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize seco
 			VMM::MapIntermediateLevel(vspace, secondArgument, cap->Object, thirdArgument, VMM::ConvertUserFlags(fourthArgument));
 			}
 			break;
+			// TODO
 		case SYSCALL_VECTOR_START_CONTAINER:
 			break;
 		case SYSCALL_VECTOR_STOP_CONTAINER:
