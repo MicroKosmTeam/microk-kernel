@@ -55,26 +55,40 @@ uptr InitializeRootSpace(uptr framesBase, UntypedHeader *memoryMap) {
 
 	/* TODO REHAUL */
 	for (UntypedHeader *entry = memoryMap; entry->Address != (uptr)-1; ++entry) {
-		if(entry->Flags == MEMMAP_USABLE) {
-			UntypedHeader *accessibleHeader;
-			if(framesBase == entry->Address) {
-				uptr oldAddress = entry->Address;
+		switch(entry->Flags) {
+			case MEMMAP_USABLE: {
+				UntypedHeader *accessibleHeader;
+				if(framesBase == entry->Address) {
+					uptr oldAddress = entry->Address;
 				
-				accessibleHeader = (UntypedHeader*)slabNodeFrame;
-				Memcpy(accessibleHeader, entry, sizeof(UntypedHeader));
+					accessibleHeader = (UntypedHeader*)slabNodeFrame;
+					Memcpy(accessibleHeader, entry, sizeof(UntypedHeader));
 
-				accessibleHeader->Address = slabNodeFrame;
-				accessibleHeader->Length -= (accessibleHeader->Address - oldAddress);
-			} else {
-				accessibleHeader = (UntypedHeader*)VMM::PhysicalToVirtual(entry->Address);
+					accessibleHeader->Address = slabNodeFrame;
+					accessibleHeader->Length -= (accessibleHeader->Address - oldAddress);
+				} else {
+					accessibleHeader = (UntypedHeader*)VMM::PhysicalToVirtual(entry->Address);
 			
-				Memcpy(accessibleHeader, entry, sizeof(UntypedHeader));
-			}
+					Memcpy(accessibleHeader, entry, sizeof(UntypedHeader));
+				}
 
-			GenerateCapability(space, UNTYPED_FRAMES, (uptr)accessibleHeader, entry->Length, ACCESS | RETYPE | GRANT);
-		} else {
-			/* LOGIC HERE */
-			GenerateCapability(space, UNTYPED_DMA, VMM::PhysicalToVirtual(entry->Address), entry->Length, ACCESS | RETYPE | GRANT);
+				GenerateCapability(space, UNTYPED_FRAMES, (uptr)accessibleHeader, entry->Length, ACCESS | RETYPE | GRANT);
+				}
+				break;
+			case MEMMAP_RESERVED:
+			case MEMMAP_ACPI_RECLAIMABLE:
+			case MEMMAP_FRAMEBUFFER:
+				/* LOGIC HERE */
+				GenerateCapability(space, UNTYPED_DMA, VMM::PhysicalToVirtual(entry->Address), entry->Length, ACCESS | RETYPE | GRANT);
+				break;
+			case MEMMAP_ACPI_NVS:
+			case MEMMAP_BAD_MEMORY:
+				break;
+			case MEMMAP_KERNEL_AND_MODULES:
+			case MEMMAP_BOOTLOADER_RECLAIMABLE:
+				// TODO
+				break;
+
 		}
 
 	}
