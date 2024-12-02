@@ -135,7 +135,6 @@ Capability *GenerateCapability(CapabilitySpace *space, OBJECT_TYPE kind, uptr ob
 
 	capability->IsMasked = 0;
 	capability->Type = kind;
-	capability->Children = 0;
 	capability->Object = object;
 	capability->Size = size;
 	capability->AccessRights = accessRights;
@@ -155,7 +154,7 @@ Capability *RetypeUntyped(CapabilitySpace *space, Capability *untyped, OBJECT_TY
 		return NULL;
 	}
 
-	if (untyped->IsMasked != 0 || untyped->Children != 0) {
+	if (untyped->IsMasked != 0) {
 		/* The ut capability must not have children */
 		PRINTK::PrintK(PRINTK_DEBUG "Capability has children\r\n");
 		return NULL;
@@ -193,9 +192,6 @@ Capability *RetypeUntyped(CapabilitySpace *space, Capability *untyped, OBJECT_TY
 			return NULL;
 		}
 
-		//untyped->Children++;
-		//cap->Parent = untyped;
-
 		if (i < count) {
 			array[i] = cap;
 		}
@@ -205,27 +201,9 @@ Capability *RetypeUntyped(CapabilitySpace *space, Capability *untyped, OBJECT_TY
 }
 
 Capability *UntypeObject(CapabilitySpace *space, Capability *capability) {
-	//CapabilitySlab *slab = &space->Slabs;
 	/* Transforms back into untyped */
 
-	// TODO: Recreate untyped
-	Capability *ut = capability->Parent;
-	ut->Children--;
-
-	if (ut->Children == 0) {
-		ut->IsMasked = 0;
-
-		// TODO: fix this
-/*
-		UntypedHeader *utHeader = (UntypedHeader*)ut->Object;
-		utHeader->Address = VMM::VirtualToPhysical(ut->Object);
-		utHeader->Length = GetObjectSize((OBJECT_TYPE)capability->Type);
-*/
-	}
-
-//	CapabilityTreeNode *node = SLAB::Search(space->CapabilityTree, capability->Object);
-//	SLAB::FreeSlabSlot(slab, node);
-//	SLAB::Delete(space->CapabilityTree, node);
+	(void)space, (void)capability;
 
 	return NULL;
 }
@@ -237,7 +215,7 @@ Capability *SplitUntyped(CapabilitySpace *space, Capability *untyped, usize spli
 Capability *SplitUntyped(CapabilitySpace *space, Capability *untyped, usize splitSize, usize offset, usize count, Capability **array) {
 	//PRINTK::PrintK(PRINTK_DEBUG "Splitting untyped of size %d\r\n", untyped->Size);
 
-	if (untyped->IsMasked != 0 || untyped->Children != 0) {
+	if (untyped->IsMasked != 0) {
 		PRINTK::PrintK(PRINTK_DEBUG "Capability has children\r\n");
 		/* The ut capability must not have children */
 		return NULL;
@@ -339,10 +317,32 @@ void DumpCapabilitySlab(CapabilitySpace *space) {
 		return;
 	}
 
-	PRINTK::PrintK(PRINTK_DEBUG "CSlab\r\n");
-	PRINTK::PrintK(PRINTK_DEBUG "Slots:\r\n");
+	while(node) {
+		PRINTK::PrintK(PRINTK_DEBUG "CSlab\r\n");
+		PRINTK::PrintK(PRINTK_DEBUG "Slots:\r\n");
+
+		for (usize i = 0; i < CAPABILITIES_PER_NODE; ++i) {
+			Capability *capability = &node->Slots[i];
+			if (capability->Type == NULL_CAPABILITY) continue;
+			PRINTK::PrintK(PRINTK_DEBUG "Slot #%d\r\n"
+					            " Capability 0x%x\r\n"
+						    "  Type:     %d\r\n"
+						    "  Object:   0x%x\r\n", i, capability, capability->Type, capability->Object);
+		}
+
+		node = (CapabilityNode*)node->Next;
+	}
+
+	node = (CapabilityNode*)slab->FullSlabs.Head;
+
+	if(node == NULL) {
+		return;
+	}
 
 	while(node) {
+		PRINTK::PrintK(PRINTK_DEBUG "CSlab\r\n");
+		PRINTK::PrintK(PRINTK_DEBUG "Slots:\r\n");
+
 		for (usize i = 0; i < CAPABILITIES_PER_NODE; ++i) {
 			Capability *capability = &node->Slots[i];
 			if (capability->Type == NULL_CAPABILITY) continue;

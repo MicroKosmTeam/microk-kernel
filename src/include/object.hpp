@@ -38,15 +38,13 @@ struct Capability {
 	u8 Type : 7;
 
 	// TODO: overhaul parent/child relationship
-	u32 Children : 24;
-	Capability *Parent;
 
 	u16 AccessRights;
 	u16 AccessRightsMask;
 
 	uptr Object;
 	usize Size;
-}__attribute__((packed, aligned(0x10)));
+}__attribute__((packed));
 
 struct CapabilityTreeNode : public Capability {
 	CapabilityTreeNode *Left, *Right;
