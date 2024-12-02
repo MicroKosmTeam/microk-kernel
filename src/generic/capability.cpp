@@ -51,7 +51,7 @@ uptr InitializeRootSpace(uptr framesBase, MemoryHeader *memoryMap) {
 		switch(entry->Flags) {
 			case MEMMAP_USABLE: {
 				if(framesBase == entry->Address) {
-					GenerateCapability(space, UNTYPED_FRAMES, VMM::VirtualToPhysical(slabNodeFrame), VMM::VirtualToPhysical(slabNodeFrame) - entry->Address, ACCESS | RETYPE | GRANT);
+					GenerateCapability(space, UNTYPED_FRAMES, VMM::VirtualToPhysical(slabNodeFrame), entry->Length - (VMM::VirtualToPhysical(slabNodeFrame) - entry->Address), ACCESS | RETYPE | GRANT);
 				} else {
 					GenerateCapability(space, UNTYPED_FRAMES, entry->Address, entry->Length, ACCESS | RETYPE | GRANT);
 				}
@@ -156,7 +156,7 @@ Capability *GenerateCapability(CapabilitySpace *space, OBJECT_TYPE kind, uptr ob
 	//capability->Key = object;
 	space->CapabilityTree = SLAB::Insert(space->CapabilityTree, capability);
 
-	PRINTK::PrintK(PRINTK_DEBUG "Generated capability of 0x%x (%d) with kind: %d\r\n", object, size, kind);
+	//PRINTK::PrintK(PRINTK_DEBUG "Generated capability of 0x%x (%d) with kind: %d\r\n", object, size, kind);
 
 	return capability;
 }
@@ -243,6 +243,8 @@ Capability *UntypeObject(CapabilitySpace *space, Capability *capability) {
 }
 
 Capability *SplitUntyped(CapabilitySpace *space, Capability *untyped, usize splitSize, usize count, Capability **array) {
+	//PRINTK::PrintK(PRINTK_DEBUG "Splitting untyped of size %d\r\n", untyped->Size);
+
 	if (untyped->IsMasked != 0 || untyped->Children != 0) {
 		PRINTK::PrintK(PRINTK_DEBUG "Capability has children\r\n");
 		/* The ut capability must not have children */
@@ -270,10 +272,12 @@ Capability *SplitUntyped(CapabilitySpace *space, Capability *untyped, usize spli
 	u16 rights = untyped->AccessRights;
 	u16 mask = untyped->AccessRightsMask;
 
+	/*
 	array[0] = untyped;
 	untyped->Size = splitSize;
+	*/
 
-	for (usize i = 1; i < count; ++i) {
+	for (usize i = 0; i < count; ++i) {
 		Capability *cap = NULL;
 	
 		cap = GenerateCapability(space, UNTYPED_FRAMES, initialAddress + splitSize * i, splitSize, rights);
