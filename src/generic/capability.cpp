@@ -52,9 +52,8 @@ uptr InitializeRootSpace(uptr framesBase, MemoryHeader *memoryMap) {
 			case MEMMAP_USABLE: {
 				uptr addr;
 				if(framesBase == entry->Address) {
-					uptr oldAddress = entry->Address;
 					addr = slabNodeFrame;
-					GenerateCapability(space, UNTYPED_FRAMES, addr, addr - oldAddress, ACCESS | RETYPE | GRANT);
+					GenerateCapability(space, UNTYPED_FRAMES, VMM::VirtualToPhysical(addr), VMM::VirtualToPhysical(slabNodeFrame) - entry->Address, ACCESS | RETYPE | GRANT);
 				} else {
 					GenerateCapability(space, UNTYPED_FRAMES, entry->Address, entry->Length, ACCESS | RETYPE | GRANT);
 				}
@@ -83,7 +82,7 @@ uptr InitializeRootSpace(uptr framesBase, MemoryHeader *memoryMap) {
 	
 	PRINTK::PrintK(PRINTK_DEBUG "Root space initialized.\r\n");
 
-	return slabNodeFrame;
+	return VMM::VirtualToPhysical(slabNodeFrame);
 }
 
 usize GetObjectSize(OBJECT_TYPE kind) {
@@ -159,7 +158,7 @@ Capability *GenerateCapability(CapabilitySpace *space, OBJECT_TYPE kind, uptr ob
 	//capability->Key = object;
 	space->CapabilityTree = SLAB::Insert(space->CapabilityTree, capability);
 
-	//PRINTK::PrintK(PRINTK_DEBUG "Generated capability of 0x%x with kind: %d\r\n", object, kind);
+	PRINTK::PrintK(PRINTK_DEBUG "Generated capability of 0x%x (%d) with kind: %d\r\n", object, size, kind);
 
 	return capability;
 }
@@ -335,7 +334,7 @@ void AddSlabNode(CapabilitySpace *space, OBJECT_TYPE kind, Capability *capabilit
 
 	capability->IsMasked = 1;
 
-	CapabilityNode *node = (CapabilityNode*)capability->Object;
+	CapabilityNode *node = (CapabilityNode*)VMM::PhysicalToVirtual(capability->Object);
 	SLAB::AddSlabNode(slab, node);
 
 	//PRINTK::PrintK(PRINTK_DEBUG "Added slab node 0x%x from cap 0x%x\r\n",

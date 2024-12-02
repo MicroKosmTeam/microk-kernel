@@ -272,9 +272,7 @@ void LimineEntry() {
 			PRINTK::PrintK(PRINTK_DEBUG "0x%x %dbytes of %d type\r\n", memoryMap[i].Address, memoryMap[i].Length, memoryMap[i].Flags);
 		}
 
-		uptr address = VMM::PhysicalToVirtual(addr);
-		
-		Capability *cap = CAPABILITY::AddressCapability(info->RootCSpace, address, UNTYPED_FRAMES);
+		Capability *cap = CAPABILITY::AddressCapability(info->RootCSpace, addr, UNTYPED_FRAMES);
 		PMM::Init(cap);
 
 		/*
