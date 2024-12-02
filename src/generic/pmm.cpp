@@ -96,7 +96,7 @@ void *RequestPage() {
 	Capability *frameRetypeArray[retypeCount];
 	CAPABILITY::RetypeUntyped(info->RootCSpace, splitArray[0], FRAME_MEMORY, retypeCount, frameRetypeArray);
 
-	return (void*)frameRetypeArray[0]->Object;
+	return (void*)VMM::PhysicalToVirtual(frameRetypeArray[0]->Object);
 }
 
 void *RequestVirtualPage() {
@@ -117,7 +117,7 @@ void *RequestVirtualPage() {
 	Capability *frameRetypeArray[retypeCount];
 	CAPABILITY::RetypeUntyped(info->RootCSpace, splitArray[0], VIRTUAL_MEMORY_PAGING_STRUCTURE, retypeCount, frameRetypeArray);
 
-	return (void*)frameRetypeArray[0]->Object;
+	return (void*)VMM::PhysicalToVirtual(frameRetypeArray[0]->Object);
 }
 
 void *RequestPages(usize length) {
@@ -138,6 +138,6 @@ void *RequestPages(usize length) {
 	Capability *frameRetypeArray[retypeCount];
 	CAPABILITY::RetypeUntyped(info->RootCSpace, splitArray[0], FRAME_MEMORY, retypeCount, frameRetypeArray);
 
-	return (void*)frameRetypeArray[0]->Object;
+	return (void*)VMM::PhysicalToVirtual(frameRetypeArray[0]->Object);
 }
 }
