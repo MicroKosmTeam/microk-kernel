@@ -41,7 +41,7 @@ uptr InitializeRootSpace(uptr framesBase, MemoryHeader *memoryMap) {
 		node->Slots[i].Type = NULL_CAPABILITY;
 	}
 
-	GenerateCapability(space, CAPABILITY_NODE, slabNodeFrame, ACCESS);
+	GenerateCapability(space, CAPABILITY_NODE, VMM::VirtualToPhysical(slabNodeFrame), ACCESS);
 	slabNodeFrame += PAGE_SIZE;
 
 	/* Now put all the capabilites in the respective slabs, - obviously the frames we used */
@@ -50,10 +50,8 @@ uptr InitializeRootSpace(uptr framesBase, MemoryHeader *memoryMap) {
 	for (MemoryHeader *entry = memoryMap; entry->Address != (uptr)-1; ++entry) {
 		switch(entry->Flags) {
 			case MEMMAP_USABLE: {
-				uptr addr;
 				if(framesBase == entry->Address) {
-					addr = slabNodeFrame;
-					GenerateCapability(space, UNTYPED_FRAMES, VMM::VirtualToPhysical(addr), VMM::VirtualToPhysical(slabNodeFrame) - entry->Address, ACCESS | RETYPE | GRANT);
+					GenerateCapability(space, UNTYPED_FRAMES, VMM::VirtualToPhysical(slabNodeFrame), VMM::VirtualToPhysical(slabNodeFrame) - entry->Address, ACCESS | RETYPE | GRANT);
 				} else {
 					GenerateCapability(space, UNTYPED_FRAMES, entry->Address, entry->Length, ACCESS | RETYPE | GRANT);
 				}
@@ -77,8 +75,8 @@ uptr InitializeRootSpace(uptr framesBase, MemoryHeader *memoryMap) {
 
 	}
 	
-	GenerateCapability(space, CONTAINER, (uptr)info->RootContainer, ACCESS);
-	GenerateCapability(space, CAPABILITY_SPACE, (uptr)info->RootCSpace, ACCESS);
+	GenerateCapability(space, CONTAINER, VMM::VirtualToPhysical((uptr)info->RootContainer), ACCESS);
+	GenerateCapability(space, CAPABILITY_SPACE, VMM::VirtualToPhysical((uptr)info->RootCSpace), ACCESS);
 	
 	PRINTK::PrintK(PRINTK_DEBUG "Root space initialized.\r\n");
 
@@ -260,9 +258,6 @@ Capability *SplitUntyped(CapabilitySpace *space, Capability *untyped, usize spli
 		return NULL;
 	}
 
-	/* Can't be split to less than a page */
-	ROUND_UP_TO_PAGE(splitSize);
-
 	usize totalSplitSize = splitSize * count;
 	if (untyped->Size < totalSplitSize) {
 		/* We can't split it, it's too small */
@@ -274,7 +269,6 @@ Capability *SplitUntyped(CapabilitySpace *space, Capability *untyped, usize spli
 	usize initialLength = untyped->Size;
 	u16 rights = untyped->AccessRights;
 	u16 mask = untyped->AccessRightsMask;
-	uptr baseAddr = untyped->Object;
 
 	array[0] = untyped;
 	untyped->Size = splitSize;
@@ -282,7 +276,7 @@ Capability *SplitUntyped(CapabilitySpace *space, Capability *untyped, usize spli
 	for (usize i = 1; i < count; ++i) {
 		Capability *cap = NULL;
 	
-		cap = GenerateCapability(space, UNTYPED_FRAMES, baseAddr + splitSize * i, splitSize, rights);
+		cap = GenerateCapability(space, UNTYPED_FRAMES, initialAddress + splitSize * i, splitSize, rights);
 		cap->AccessRightsMask = mask; 
 		array[i] = cap;
 	}

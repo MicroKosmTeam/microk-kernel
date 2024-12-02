@@ -20,35 +20,7 @@ void CheckSpace(CapabilitySpace *cspace, OBJECT_TYPE type, usize count) {
 	do {
 		free = false;
 
-		usize slots = CAPABILITY::GetFreeSlots(cspace, UNTYPED_FRAMES);
-		if (slots < count) {
-			free = true;
-			usize splitCount = 1;
-			usize splitSize = PAGE_SIZE;
-			Capability *splitArray[splitCount];
-			PhysicalMemoryManager.UntypedArea = CAPABILITY::SplitUntyped(cspace, PhysicalMemoryManager.UntypedArea, splitSize, splitCount, splitArray);
-
-			usize retypeCount = 1;
-			Capability *nodeRetypeArray[retypeCount];
-			CAPABILITY::RetypeUntyped(cspace, splitArray[0], CAPABILITY_NODE, retypeCount, nodeRetypeArray);
-			CAPABILITY::AddSlabNode(cspace, UNTYPED_FRAMES, nodeRetypeArray[0]);
-		}
-
-		slots = CAPABILITY::GetFreeSlots(cspace, CAPABILITY_NODE);
-		if (slots < count) {
-			free = true;
-			usize splitCount = 1;
-			usize splitSize = PAGE_SIZE;
-			Capability *splitArray[splitCount];
-			PhysicalMemoryManager.UntypedArea = CAPABILITY::SplitUntyped(cspace, PhysicalMemoryManager.UntypedArea, splitSize, splitCount, splitArray);
-
-			usize retypeCount = 1;
-			Capability *nodeRetypeArray[retypeCount];
-			CAPABILITY::RetypeUntyped(cspace, splitArray[0], CAPABILITY_NODE, retypeCount, nodeRetypeArray);
-			CAPABILITY::AddSlabNode(cspace, CAPABILITY_NODE, nodeRetypeArray[0]);
-		}
-
-		slots = CAPABILITY::GetFreeSlots(cspace, type);
+		usize slots = CAPABILITY::GetFreeSlots(cspace, type);
 		if (slots < count) {
 			free = true;
 			usize splitCount = 1;
@@ -83,7 +55,7 @@ void *RequestPage() {
 
 	KInfo *info = GetInfo();
 	
-	CheckSpace(info->RootCSpace, FRAME_MEMORY, 3 * 2);
+	CheckSpace(info->RootCSpace, FRAME_MEMORY, 5);
 
 	usize splitCount = 1;
 	usize splitSize = PAGE_SIZE;
@@ -106,7 +78,7 @@ void *RequestVirtualPage() {
 
 	KInfo *info = GetInfo();
 	
-	CheckSpace(info->RootCSpace, VIRTUAL_MEMORY_PAGING_STRUCTURE, 3 * 2);
+	CheckSpace(info->RootCSpace, VIRTUAL_MEMORY_PAGING_STRUCTURE, 5);
 
 	usize splitCount = 1;
 	usize splitSize = PAGE_SIZE;
@@ -127,7 +99,7 @@ void *RequestPages(usize length) {
 
 	KInfo *info = GetInfo();
 	
-	CheckSpace(info->RootCSpace, FRAME_MEMORY, length + 3 * 2);
+	CheckSpace(info->RootCSpace, FRAME_MEMORY, length + 5);
 
 	usize splitCount = 1;
 	usize splitSize = PAGE_SIZE * length;
