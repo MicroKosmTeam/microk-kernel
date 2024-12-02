@@ -61,7 +61,7 @@ void PrepareKernelVirtualSpace(VirtualSpace space) {
 	
 	/* We go through every entry in the memory map and map it in virtual memory */
 	for (usize i = 0; info->MemoryMap[i].Address != (uptr)-1; i++) {	
-		UntypedHeader *current = &info->MemoryMap[i];
+		MemoryHeader *current = &info->MemoryMap[i];
 
 		/* We will skip any memory that is not usable by our kernel */
 		if (current->Flags == MEMMAP_BAD_MEMORY ||
@@ -124,7 +124,7 @@ void PrepareUserVirtualSpace(VirtualSpace space) {
 	
 	/* We go through every entry in the memory map and map it in virtual memory */
 	for (usize i = 0; info->MemoryMap[i].Address != (uptr)-1; i++) {	
-		UntypedHeader *current = &info->MemoryMap[i];
+		MemoryHeader *current = &info->MemoryMap[i];
 		/* We will skip any memory that is not usable by our kernel */
 		if (current->Flags == MEMMAP_BAD_MEMORY ||
 		    current->Flags == MEMMAP_RESERVED ||

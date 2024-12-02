@@ -8,7 +8,7 @@
 #include <math.hpp>
 
 namespace CAPABILITY {
-uptr InitializeRootSpace(uptr framesBase, UntypedHeader *memoryMap) {
+uptr InitializeRootSpace(uptr framesBase, MemoryHeader *memoryMap) {
 	KInfo *info = GetInfo();
 
 	/* Getting the page for the TCB and the cspace */
@@ -47,32 +47,24 @@ uptr InitializeRootSpace(uptr framesBase, UntypedHeader *memoryMap) {
 	/* Now put all the capabilites in the respective slabs, - obviously the frames we used */
 
 	/* TODO REHAUL */
-	for (UntypedHeader *entry = memoryMap; entry->Address != (uptr)-1; ++entry) {
+	for (MemoryHeader *entry = memoryMap; entry->Address != (uptr)-1; ++entry) {
 		switch(entry->Flags) {
 			case MEMMAP_USABLE: {
-				UntypedHeader *accessibleHeader;
+				uptr addr;
 				if(framesBase == entry->Address) {
 					uptr oldAddress = entry->Address;
-				
-					accessibleHeader = (UntypedHeader*)slabNodeFrame;
-					Memcpy(accessibleHeader, entry, sizeof(UntypedHeader));
-
-					accessibleHeader->Address = slabNodeFrame;
-					accessibleHeader->Length -= (accessibleHeader->Address - oldAddress);
+					addr = slabNodeFrame;
+					GenerateCapability(space, UNTYPED_FRAMES, addr, addr - oldAddress, ACCESS | RETYPE | GRANT);
 				} else {
-					accessibleHeader = (UntypedHeader*)VMM::PhysicalToVirtual(entry->Address);
-			
-					Memcpy(accessibleHeader, entry, sizeof(UntypedHeader));
+					GenerateCapability(space, UNTYPED_FRAMES, entry->Address, entry->Length, ACCESS | RETYPE | GRANT);
 				}
-
-				GenerateCapability(space, UNTYPED_FRAMES, (uptr)accessibleHeader, entry->Length, ACCESS | RETYPE | GRANT);
 				}
 				break;
 			case MEMMAP_RESERVED:
 			case MEMMAP_ACPI_RECLAIMABLE:
 			case MEMMAP_FRAMEBUFFER:
 				/* LOGIC HERE */
-				GenerateCapability(space, UNTYPED_DMA, VMM::PhysicalToVirtual(entry->Address), entry->Length, ACCESS | RETYPE | GRANT);
+				GenerateCapability(space, UNTYPED_DMA, entry->Address, entry->Length, ACCESS | RETYPE | GRANT);
 				break;
 			case MEMMAP_ACPI_NVS:
 			case MEMMAP_BAD_MEMORY:
@@ -190,16 +182,15 @@ Capability *RetypeUntyped(CapabilitySpace *space, Capability *untyped, OBJECT_TY
 		return NULL;
 	}
 	
-	UntypedHeader *header = (UntypedHeader*)untyped->Object;
-	uptr startAddress = header->Address;
+	uptr startAddress = untyped->Object;
 
 	/* Don't worry about this, all structures will be aligned to be powers of two 
 	 * to result in a null quotient always
 	 */
 	usize objectSize = GetObjectSize(kind);
-	usize realCount = header->Length / objectSize;
+	usize realCount = untyped->Size / objectSize;
 
-	if (header->Length == 0) {
+	if (untyped->Size == 0) {
 		PRINTK::PrintK(PRINTK_DEBUG "UT is dead\r\n");
 		return NULL;
 	}
@@ -229,26 +220,27 @@ Capability *RetypeUntyped(CapabilitySpace *space, Capability *untyped, OBJECT_TY
 }
 
 Capability *UntypeObject(CapabilitySpace *space, Capability *capability) {
-	CapabilitySlab *slab = &space->Slabs;
+	//CapabilitySlab *slab = &space->Slabs;
 	/* Transforms back into untyped */
 
 	// TODO: Recreate untyped
 	Capability *ut = capability->Parent;
-
 	ut->Children--;
+
 	if (ut->Children == 0) {
 		ut->IsMasked = 0;
 
 		// TODO: fix this
-
+/*
 		UntypedHeader *utHeader = (UntypedHeader*)ut->Object;
 		utHeader->Address = VMM::VirtualToPhysical(ut->Object);
 		utHeader->Length = GetObjectSize((OBJECT_TYPE)capability->Type);
+*/
 	}
 
-	CapabilityTreeNode *node = SLAB::Search(space->CapabilityTree, capability->Object);
-	SLAB::FreeSlabSlot(slab, node);
-	SLAB::Delete(space->CapabilityTree, node);
+//	CapabilityTreeNode *node = SLAB::Search(space->CapabilityTree, capability->Object);
+//	SLAB::FreeSlabSlot(slab, node);
+//	SLAB::Delete(space->CapabilityTree, node);
 
 	return NULL;
 }
@@ -272,50 +264,32 @@ Capability *SplitUntyped(CapabilitySpace *space, Capability *untyped, usize spli
 	/* Can't be split to less than a page */
 	ROUND_UP_TO_PAGE(splitSize);
 
-	UntypedHeader *header = (UntypedHeader*)untyped->Object;
-
 	usize totalSplitSize = splitSize * count;
-	if (splitSize < sizeof(UntypedHeader)) {
+	if (untyped->Size < totalSplitSize) {
 		/* We can't split it, it's too small */
-		PRINTK::PrintK(PRINTK_DEBUG "Excessively small split amount\r\n");
+		PRINTK::PrintK(PRINTK_DEBUG "Excessively big split amount: %d vs %d\r\n", untyped->Size, totalSplitSize);
 		return NULL;
 	}
 
-	if (header->Length < totalSplitSize) {
-		/* We can't split it, it's too small */
-		PRINTK::PrintK(PRINTK_DEBUG "Excessively big split amount: %d vs %d\r\n", header->Length, totalSplitSize);
-		return NULL;
-	}
-
-	uptr initialAddress = header->Address;
-	usize initialLength = header->Length;
+	uptr initialAddress = untyped->Object;
+	usize initialLength = untyped->Size;
 	u16 rights = untyped->AccessRights;
 	u16 mask = untyped->AccessRightsMask;
 	uptr baseAddr = untyped->Object;
 
 	array[0] = untyped;
 	untyped->Size = splitSize;
-	header->Length = splitSize;
 
 	for (usize i = 1; i < count; ++i) {
 		Capability *cap = NULL;
-		UntypedHeader *capHeader = (UntypedHeader*)(baseAddr + splitSize * i);
-		Memcpy(capHeader, header, sizeof(UntypedHeader));
-		capHeader->Address = initialAddress + splitSize * i;
-		capHeader->Length = splitSize;
 	
-		cap = GenerateCapability(space, UNTYPED_FRAMES, (uptr)capHeader, rights);
+		cap = GenerateCapability(space, UNTYPED_FRAMES, baseAddr + splitSize * i, splitSize, rights);
 		cap->AccessRightsMask = mask; 
 		array[i] = cap;
 	}
 
 	if (initialLength > totalSplitSize) {
-		UntypedHeader *lastHeader = (UntypedHeader*)(untyped->Object + totalSplitSize);
-		Memcpy(lastHeader, header, sizeof(UntypedHeader));
-		lastHeader->Address = initialAddress + totalSplitSize;
-		lastHeader->Length = initialLength - totalSplitSize;
-	
-		Capability *last = GenerateCapability(space, UNTYPED_FRAMES, (uptr)lastHeader, rights);
+		Capability *last = GenerateCapability(space, UNTYPED_FRAMES, initialAddress + totalSplitSize, initialLength - totalSplitSize, rights);
 		last->AccessRightsMask = mask;
 
 		return last;
@@ -327,6 +301,9 @@ Capability *SplitUntyped(CapabilitySpace *space, Capability *untyped, usize spli
 Capability *MergeUntyped(CapabilitySpace *space, Capability *ut, Capability *other) {
 	/* Merges adiacent untyped memory regions */
 
+	(void)space; (void)ut; (void)other;
+
+	/*
 	UntypedHeader *utHeader = (UntypedHeader*)ut->Object;
 	UntypedHeader *capHeader = (UntypedHeader*)other->Object;
 	utHeader->Length += capHeader->Length;
@@ -334,7 +311,7 @@ Capability *MergeUntyped(CapabilitySpace *space, Capability *ut, Capability *oth
 	CapabilitySlab *slab = &space->Slabs;
 	CapabilityTreeNode *node = SLAB::Search(space->CapabilityTree, other->Object);
 	SLAB::FreeSlabSlot(slab, node);
-	SLAB::Delete(space->CapabilityTree, node);
+	SLAB::Delete(space->CapabilityTree, node);*/
 
 	return NULL;
 }

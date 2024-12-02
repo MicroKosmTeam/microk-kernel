@@ -3,7 +3,7 @@
 #include <object.hpp>
 
 namespace CAPABILITY {
-	uptr InitializeRootSpace(uptr framesBase, UntypedHeader *memoryMap);
+	uptr InitializeRootSpace(uptr framesBase, MemoryHeader *memoryMap);
 	usize GetObjectSize(OBJECT_TYPE kind);
 
 	Capability *AddressCapability(CapabilitySpace *space, uptr ptr, OBJECT_TYPE kind);

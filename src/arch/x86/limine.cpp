@@ -14,7 +14,7 @@
 #include <cpu.hpp>
 #include <pmm.hpp>
 
-static volatile LIMINE_BASE_REVISION(1)
+static volatile LIMINE_BASE_REVISION(1);
 
 /* Function called by Limine at bootup through the entry point */
 extern "C" void LimineEntry();
@@ -199,7 +199,7 @@ void LimineEntry() {
 		
 
 	usize memoryRegions = MemoryMapRequest.response->entry_count;
-	UntypedHeader memoryMap[memoryRegions + 1];
+	MemoryHeader memoryMap[memoryRegions + 1];
 
 	PRINTK::PrintK(PRINTK_DEBUG "Memory regions from bootloader: %d\r\n", memoryRegions);
 
@@ -235,7 +235,7 @@ void LimineEntry() {
 	}
 
 	{
-		UntypedHeader *longestRegion = NULL;
+		MemoryHeader *longestRegion = NULL;
 
 		usize longestRegionLength = 0;
 		
@@ -321,7 +321,7 @@ void LimineEntry() {
 
 		Capability *cap = CAPABILITY::AddressCapability(info->RootCSpace, address, UNTYPED);
 		PRINTK::PrintK(PRINTK_DEBUG "Capability with address 0x%x: 0x%x\r\n", address, cap);
-		UntypedHeader *header = (UntypedHeader*)cap->Object;
+		MemoryHeader *header = (MemoryHeader*)cap->Object;
 		PRINTK::PrintK(PRINTK_DEBUG "Header with address 0x%x: %d bytes\r\n", header->Address, header->Length);
 
 		usize splitCount = 2;
@@ -331,13 +331,13 @@ void LimineEntry() {
 
 		for (usize i = 0; i < splitCount; ++i) {
 			PRINTK::PrintK(PRINTK_DEBUG "Capability with address 0x%x: 0x%x\r\n", splitArray[i]->Object, splitArray[i]);
-			header = (UntypedHeader*)splitArray[i]->Object;
+			header = (MemoryHeader*)splitArray[i]->Object;
 			PRINTK::PrintK(PRINTK_DEBUG "Header with address 0x%x: %d bytes\r\n", header->Address, header->Length);
 		}
 		
 
 		PRINTK::PrintK(PRINTK_DEBUG "Capability with address 0x%x: 0x%x\r\n", cap->Object, cap);
-		header = (UntypedHeader*)cap->Object;
+		header = (MemoryHeader*)cap->Object;
 		PRINTK::PrintK(PRINTK_DEBUG "Header with address 0x%x: %d bytes\r\n", header->Address, header->Length);
 
 		slots = CAPABILITY::GetFreeSlots(info->RootCSpace, UNTYPED);

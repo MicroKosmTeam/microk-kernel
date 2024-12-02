@@ -13,7 +13,7 @@ void Init() {
 	PRINTK::PrintK(PRINTK_DEBUG "Physical Memory Map:\r\n");
 
 	for (usize i = 0; info->MemoryMap[i].Address != (uptr)-1; i++) {	
-		UntypedHeader *current = &info->MemoryMap[i];
+		MemoryHeader *current = &info->MemoryMap[i];
 		PRINTK::PrintK(PRINTK_DEBUG " [0x%x - 0x%x] -> %s\r\n",
 				current->Address,
 				current->Address + current->Length,
@@ -158,7 +158,7 @@ void Deinit() {
 			info->PhysicalMemoryChunks->Regions.Head;
 	     current != NULL;
 	     current = (MEM::MEMBLOCK::MemblockRegion*)current->Next) {
-		UntypedHeader *header = (UntypedHeader*)VMM::PhysicalToVirtual(current->Base);
+		MemoryHeader *header = (MemoryHeader*)VMM::PhysicalToVirtual(current->Base);
 		switch (current->Type) {
 			case MEMMAP_USABLE:
 				/* Usable is untyped, and userspace is free to do anything they please

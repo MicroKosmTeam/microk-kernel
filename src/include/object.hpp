@@ -77,7 +77,7 @@ struct EncryptedCapabilityContext {
 /*
  *
  */
-struct UntypedHeader {
+struct MemoryHeader {
 	uptr Address;
 	usize Length;
 	u32 Flags;
