@@ -72,8 +72,9 @@ extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize seco
 			// TODO
 			break;
 		case SYSCALL_VECTOR_SPLIT_CAPABILITY: {
-			usize splitCount = fourthArgument;
+			usize splitCount = fithArgument;
 			usize splitSize = thirdArgument;
+			usize splitOffset = fourthArgument;
 			Capability *copyArray = (Capability*)secondArgument;
 			Capability *splitArray[splitCount];
 
@@ -82,7 +83,7 @@ extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize seco
 				splitArray[0] = NULL;
 			}
 
-			if(CAPABILITY::SplitUntyped(cspace, cap, splitSize, splitCount, splitArray) == NULL) {
+			if(CAPABILITY::SplitUntyped(cspace, cap, splitSize, splitOffset, splitCount, splitArray) == NULL) {
 				splitArray[0] = NULL;
 			}
 

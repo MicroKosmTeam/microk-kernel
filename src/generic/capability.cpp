@@ -243,6 +243,10 @@ Capability *UntypeObject(CapabilitySpace *space, Capability *capability) {
 }
 
 Capability *SplitUntyped(CapabilitySpace *space, Capability *untyped, usize splitSize, usize count, Capability **array) {
+	return SplitUntyped(space, untyped, splitSize, 0, count, array);
+}
+
+Capability *SplitUntyped(CapabilitySpace *space, Capability *untyped, usize splitSize, usize offset, usize count, Capability **array) {
 	//PRINTK::PrintK(PRINTK_DEBUG "Splitting untyped of size %d\r\n", untyped->Size);
 
 	if (untyped->IsMasked != 0 || untyped->Children != 0) {
@@ -261,7 +265,7 @@ Capability *SplitUntyped(CapabilitySpace *space, Capability *untyped, usize spli
 	}
 
 	usize totalSplitSize = splitSize * count;
-	if (untyped->Size < totalSplitSize) {
+	if (untyped->Size < totalSplitSize + offset) {
 		/* We can't split it, it's too small */
 		PRINTK::PrintK(PRINTK_DEBUG "Excessively big split amount: %d vs %d\r\n", untyped->Size, totalSplitSize);
 		return NULL;
@@ -277,16 +281,20 @@ Capability *SplitUntyped(CapabilitySpace *space, Capability *untyped, usize spli
 	untyped->Size = splitSize;
 	*/
 
+	if (offset > 0) {
+		GenerateCapability(space, UNTYPED_FRAMES, initialAddress, offset, rights);
+	}
+
 	for (usize i = 0; i < count; ++i) {
 		Capability *cap = NULL;
 	
-		cap = GenerateCapability(space, UNTYPED_FRAMES, initialAddress + splitSize * i, splitSize, rights);
+		cap = GenerateCapability(space, UNTYPED_FRAMES, offset + initialAddress + splitSize * i, splitSize, rights);
 		cap->AccessRightsMask = mask; 
 		array[i] = cap;
 	}
 
 	if (initialLength > totalSplitSize) {
-		Capability *last = GenerateCapability(space, UNTYPED_FRAMES, initialAddress + totalSplitSize, initialLength - totalSplitSize, rights);
+		Capability *last = GenerateCapability(space, UNTYPED_FRAMES, offset + initialAddress + totalSplitSize, initialLength - totalSplitSize - offset, rights);
 		last->AccessRightsMask = mask;
 
 		return last;
