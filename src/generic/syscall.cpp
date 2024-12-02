@@ -40,7 +40,7 @@ extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize seco
 			}
 			break;
 		case SYSCALL_VECTOR_ADDRESS_CAPABILITY: {
-			Capability *cap = CAPABILITY::AddressFirstCapability(cspace, firstArgument, (OBJECT_TYPE)secondArgument);
+			Capability *cap = CAPABILITY::AddressFirstCapability(cspace, firstArgument);
 			*(uptr*)fourthArgument = (uptr)cap;
 			*(Capability*)thirdArgument = *cap;
 			}
@@ -50,7 +50,7 @@ extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize seco
 			*(Capability*)secondArgument = *CAPABILITY::GenerateCapability(cspace, MMIO_MEMORY, firstArgument, ACCESS | READ | WRITE);
 			break;
 		case SYSCALL_VECTOR_SEARCH_CAPABILITY:
-			*(uptr*)thirdArgument = (uptr)CAPABILITY::AddressFirstCapability(cspace, firstArgument, (OBJECT_TYPE)secondArgument);
+			*(uptr*)thirdArgument = (uptr)CAPABILITY::AddressFirstCapability(cspace, firstArgument);
 			break;
 		case SYSCALL_VECTOR_RETYPE_CAPABILITY: {
 			OBJECT_TYPE type = (OBJECT_TYPE)secondArgument;
@@ -58,7 +58,7 @@ extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize seco
 			Capability *copyArray = (Capability*)thirdArgument;
 			Capability *frameRetypeArray[retypeCount];
 
-			Capability *cap = CAPABILITY::AddressFirstCapability(cspace, firstArgument, UNTYPED_FRAMES);
+			Capability *cap = CAPABILITY::AddressFirstCapability(cspace, firstArgument);
 			
 
 			CAPABILITY::RetypeUntyped(cspace, cap, type, retypeCount, frameRetypeArray);
@@ -78,7 +78,7 @@ extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize seco
 			Capability *copyArray = (Capability*)secondArgument;
 			Capability *splitArray[splitCount];
 
-			Capability *cap = CAPABILITY::AddressFirstCapability(cspace, firstArgument, UNTYPED_FRAMES);
+			Capability *cap = CAPABILITY::AddressFirstCapability(cspace, firstArgument);
 			if (cap == NULL) {
 				splitArray[0] = NULL;
 			}
@@ -99,11 +99,9 @@ extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize seco
 			// TODO
 			break;
 		case SYSCALL_VECTOR_ADD_FREE_CAPABILITY: {
-								 // TODO
-			OBJECT_TYPE type = (OBJECT_TYPE)secondArgument;
-			Capability *cap = CAPABILITY::AddressFirstCapability(cspace, firstArgument, CAPABILITY_NODE);
+			Capability *cap = CAPABILITY::AddressFirstCapability(cspace, firstArgument);
 
-			CAPABILITY::AddSlabNode(cspace, type, cap);
+			CAPABILITY::AddSlabNode(cspace, cap);
 			}
 
 			break;
@@ -114,7 +112,7 @@ extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize seco
 				break;
 			}
 
-			Capability *cap = CAPABILITY::AddressFirstCapability(cspace, firstArgument, type);
+			Capability *cap = CAPABILITY::AddressFirstCapability(cspace, firstArgument);
 			if(cap != NULL) {
 				PRINTK::PrintK(PRINTK_DEBUG "Mapping page 0x%x at addr 0x%x\r\n", cap->Object, thirdArgument);
 				VMM::MapPage(vspace, cap->Object, thirdArgument, VMM::ConvertUserFlags(fourthArgument));
@@ -122,7 +120,7 @@ extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize seco
 			}
 			break;
 		case SYSCALL_VECTOR_MAP_INTERMEDIATE_CAPABILITY: {
-			Capability *cap = CAPABILITY::AddressFirstCapability(cspace, firstArgument, VIRTUAL_MEMORY_PAGING_STRUCTURE);
+			Capability *cap = CAPABILITY::AddressFirstCapability(cspace, firstArgument);
 			if (cap == NULL) {
 				break;
 			}

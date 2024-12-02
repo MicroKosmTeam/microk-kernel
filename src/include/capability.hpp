@@ -6,8 +6,8 @@ namespace CAPABILITY {
 	uptr InitializeRootSpace(uptr framesBase, MemoryHeader *memoryMap);
 	usize GetObjectSize(OBJECT_TYPE kind);
 
-	Capability *AddressCapability(CapabilitySpace *space, uptr ptr, OBJECT_TYPE kind);
-	Capability *AddressFirstCapability(CapabilitySpace *space, uptr ptr, OBJECT_TYPE kind);
+	Capability *AddressCapability(CapabilitySpace *space, uptr ptr);
+	Capability *AddressFirstCapability(CapabilitySpace *space, uptr ptr);
 	Capability *GenerateCapability(CapabilitySpace *space, OBJECT_TYPE kind, uptr object, u16 accessRights);
 	Capability *GenerateCapability(CapabilitySpace *space, OBJECT_TYPE kind, uptr object, usize size, u16 accessRights);
 	Capability *RetypeUntyped(CapabilitySpace *space, Capability *untyped, OBJECT_TYPE kind, usize count, Capability **array);
@@ -16,8 +16,8 @@ namespace CAPABILITY {
 	Capability *SplitUntyped(CapabilitySpace *space, Capability *untyped, usize splitSize, usize offset, usize count, Capability **array);
 	Capability *MergeUntyped(CapabilitySpace *space, Capability *capability);
 
-	usize GetFreeSlots(CapabilitySpace *space, OBJECT_TYPE kind);
-	void AddSlabNode(CapabilitySpace *space, OBJECT_TYPE kind, Capability *capability);
+	usize GetFreeSlots(CapabilitySpace *space);
+	void AddSlabNode(CapabilitySpace *space, Capability *capability);
 
-	void DumpCapabilitySlab(CapabilitySpace *space, OBJECT_TYPE kind);
+	void DumpCapabilitySlab(CapabilitySpace *space);
 }

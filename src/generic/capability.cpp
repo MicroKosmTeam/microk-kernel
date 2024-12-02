@@ -110,23 +110,11 @@ usize GetObjectSize(OBJECT_TYPE kind) {
 	}
 }
 
-Capability *AddressFirstCapability(CapabilitySpace *space, uptr ptr, OBJECT_TYPE kind) {
-	if (kind < UNTYPED_FRAMES || kind >= OBJECT_TYPE_COUNT) {
-		return NULL;
-	}
-	
-	//CapabilitySlab *slab = &space->Slabs;
-
+Capability *AddressFirstCapability(CapabilitySpace *space, uptr ptr) {
 	return (Capability*)SLAB::SearchClose(space->CapabilityTree, ptr);
 }
 
-Capability *AddressCapability(CapabilitySpace *space, uptr ptr, OBJECT_TYPE kind) {
-	if (kind < UNTYPED_FRAMES || kind >= OBJECT_TYPE_COUNT) {
-		return NULL;
-	}
-	
-	//CapabilitySlab *slab = &space->Slabs;
-
+Capability *AddressCapability(CapabilitySpace *space, uptr ptr) {
 	return (Capability*)SLAB::Search(space->CapabilityTree, ptr);
 }
 
@@ -321,18 +309,14 @@ Capability *MergeUntyped(CapabilitySpace *space, Capability *ut, Capability *oth
 	return NULL;
 }
 
-usize GetFreeSlots(CapabilitySpace *space, OBJECT_TYPE kind) {
-	if (kind < UNTYPED_FRAMES || kind >= OBJECT_TYPE_COUNT) {
-		return -1;
-	}
-
+usize GetFreeSlots(CapabilitySpace *space) {
 	CapabilitySlab *slab = &space->Slabs;
 	
 	return SLAB::GetFreeSlabSlots(slab);	
 }
 	
-void AddSlabNode(CapabilitySpace *space, OBJECT_TYPE kind, Capability *capability) {
-	if (kind < UNTYPED_FRAMES || kind >= OBJECT_TYPE_COUNT || !capability || capability->Type != CAPABILITY_NODE) {
+void AddSlabNode(CapabilitySpace *space, Capability *capability) {
+	if (!capability || capability->Type != CAPABILITY_NODE) {
 		return;
 	}
 	
@@ -347,11 +331,7 @@ void AddSlabNode(CapabilitySpace *space, OBJECT_TYPE kind, Capability *capabilit
 	//		capability->Object, capability);
 }
 
-void DumpCapabilitySlab(CapabilitySpace *space, OBJECT_TYPE kind) {
-	if (kind < UNTYPED_FRAMES || kind >= OBJECT_TYPE_COUNT) {
-		return;
-	}
-
+void DumpCapabilitySlab(CapabilitySpace *space) {
 	CapabilitySlab *slab = &space->Slabs;
 	CapabilityNode *node = (CapabilityNode*)slab->UsedSlabs.Head;
 

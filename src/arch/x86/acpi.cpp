@@ -226,7 +226,7 @@ int InitializeMCFG(MCFG_t *mcfg) {
 
 					PRINTK::PrintK(PRINTK_DEBUG"  Function addr: 0x%x\r\n", functionAddress);
 
-					PMM::CheckSpace(info->RootCSpace, MMIO_MEMORY, 1);
+					PMM::CheckSpace(info->RootCSpace, 2);
 					CAPABILITY::GenerateCapability(info->RootCSpace, MMIO_MEMORY, functionAddress, ACCESS | READ | WRITE);
 				}
 				
