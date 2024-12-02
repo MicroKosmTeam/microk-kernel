@@ -133,9 +133,9 @@ Capability *AddressFirstCapability(CapabilitySpace *space, uptr ptr, OBJECT_TYPE
 		return NULL;
 	}
 	
-	CapabilitySlab *slab = &space->Slabs[kind];
+	//CapabilitySlab *slab = &space->Slabs[kind];
 
-	return (Capability*)SLAB::SearchClose(slab->CapabilityTree, ptr);
+	return (Capability*)SLAB::SearchClose(space->CapabilityTree, ptr);
 }
 
 Capability *AddressCapability(CapabilitySpace *space, uptr ptr, OBJECT_TYPE kind) {
@@ -143,9 +143,9 @@ Capability *AddressCapability(CapabilitySpace *space, uptr ptr, OBJECT_TYPE kind
 		return NULL;
 	}
 	
-	CapabilitySlab *slab = &space->Slabs[kind];
+	//CapabilitySlab *slab = &space->Slabs[kind];
 
-	return (Capability*)SLAB::Search(slab->CapabilityTree, ptr);
+	return (Capability*)SLAB::Search(space->CapabilityTree, ptr);
 }
 
 Capability *GenerateCapability(CapabilitySpace *space, OBJECT_TYPE kind, uptr object, u16 accessRights) {
@@ -172,7 +172,7 @@ Capability *GenerateCapability(CapabilitySpace *space, OBJECT_TYPE kind, uptr ob
 	capability->AccessRightsMask = 0xFFFF;
 	
 	//capability->Key = object;
-	slab->CapabilityTree = SLAB::Insert(slab->CapabilityTree, capability);
+	space->CapabilityTree = SLAB::Insert(space->CapabilityTree, capability);
 
 	//PRINTK::PrintK(PRINTK_DEBUG "Generated capability of 0x%x with kind: %d\r\n", object, kind);
 
@@ -213,9 +213,9 @@ Capability *RetypeUntyped(CapabilitySpace *space, Capability *untyped, OBJECT_TY
 
 	// TODO: Delete the untyped
 	//CapabilitySlab *slab = &space->Slabs[UNTYPED_FRAMES];
-	//CapabilityTreeNode *node = SLAB::Search(slab->CapabilityTree, untyped->Object);
+	//CapabilityTreeNode *node = SLAB::Search(space->CapabilityTree, untyped->Object);
 	//SLAB::FreeSlabSlot(slab, node);
-	//SLAB::Delete(slab->CapabilityTree, node);
+	//SLAB::Delete(space->CapabilityTree, node);
 	untyped->IsMasked = 1;
 
 	for (usize i = 0; i < realCount; ++i) {
@@ -253,9 +253,9 @@ Capability *UntypeObject(CapabilitySpace *space, Capability *capability) {
 		utHeader->Length = GetObjectSize((OBJECT_TYPE)capability->Type);
 	}
 
-	CapabilityTreeNode *node = SLAB::Search(slab->CapabilityTree, capability->Object);
+	CapabilityTreeNode *node = SLAB::Search(space->CapabilityTree, capability->Object);
 	SLAB::FreeSlabSlot(slab, node);
-	SLAB::Delete(slab->CapabilityTree, node);
+	SLAB::Delete(space->CapabilityTree, node);
 
 	return NULL;
 }
@@ -339,9 +339,9 @@ Capability *MergeUntyped(CapabilitySpace *space, Capability *ut, Capability *oth
 	utHeader->Length += capHeader->Length;
 
 	CapabilitySlab *slab = &space->Slabs[UNTYPED_FRAMES];
-	CapabilityTreeNode *node = SLAB::Search(slab->CapabilityTree, other->Object);
+	CapabilityTreeNode *node = SLAB::Search(space->CapabilityTree, other->Object);
 	SLAB::FreeSlabSlot(slab, node);
-	SLAB::Delete(slab->CapabilityTree, node);
+	SLAB::Delete(space->CapabilityTree, node);
 
 	return NULL;
 }

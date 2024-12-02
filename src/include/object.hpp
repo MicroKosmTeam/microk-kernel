@@ -108,7 +108,6 @@ struct CapabilitySlab {
 	List FreeSlabs;
 	List UsedSlabs;
 	List FullSlabs;
-	CapabilityTreeNode *CapabilityTree;
 };
 
 /*
@@ -116,6 +115,7 @@ struct CapabilitySlab {
  */
 struct CapabilitySpace {
 	CapabilitySlab Slabs[OBJECT_TYPE_COUNT];
+	CapabilityTreeNode *CapabilityTree;
 };
 
 struct ContainerIdentifier {

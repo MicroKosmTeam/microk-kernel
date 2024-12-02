@@ -137,7 +137,8 @@ CapabilityTreeNode *Insert(CapabilityTreeNode *tree, CapabilityTreeNode *node) {
 	} else if (node->Object > tree->Object) {
 		tree->Right = Insert(tree->Right, node);
 	} else /* (node->Object == tree->Object) */ {
-		PANIC("SAME KEY DOUBLE INSERTED");
+		//PANIC("SAME KEY DOUBLE INSERTED");
+		*(Capability*)tree = *(Capability*)node;
 	}
 	
 	tree = Skew(tree);
