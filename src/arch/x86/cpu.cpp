@@ -126,7 +126,7 @@ void InitializeCPUFeatures() {
 	PRINTK::PrintK(PRINTK_DEBUG "CPUID Processor %s\r\n", cpustring);
 
 	EnableSSE();
-	EnableSyscalls();
+	//EnableSyscalls();
 
 	PRINTK::PrintK(PRINTK_DEBUG "Detecting VMs...\r\n");
 
