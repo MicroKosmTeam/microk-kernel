@@ -277,12 +277,14 @@ Capability *SplitUntyped(CapabilitySpace *space, Capability *untyped, usize spli
 	u16 rights = untyped->AccessRights;
 	u16 mask = untyped->AccessRightsMask;
 
-	//SLAB::FreeSlabSlot(&space->Slabs, (CapabilityTreeNode*)untyped);
 	/*
 	array[0] = untyped;
 	untyped->Size = splitSize;
 	*/
+
 	untyped->IsMasked = true;
+	//SLAB::FreeSlabSlot(&space->Slabs, (CapabilityTreeNode*)untyped);
+
 
 	if (offset > 0) {
 		GenerateCapability(space, UNTYPED_FRAMES, initialAddress, offset, rights);
@@ -295,6 +297,7 @@ Capability *SplitUntyped(CapabilitySpace *space, Capability *untyped, usize spli
 		cap->AccessRightsMask = mask; 
 		array[i] = cap;
 	}
+	
 
 	if (initialLength > totalSplitSize) {
 		Capability *last = GenerateCapability(space, UNTYPED_FRAMES, offset + initialAddress + totalSplitSize, initialLength - totalSplitSize - offset, rights);
