@@ -9,6 +9,7 @@
 namespace x86 {
 int InitializeACPI(ACPI *acpi) {
 	KInfo *info = GetInfo();
+
 	acpi->RSDP = (RSDP_t*)info->RSDP;
 	VMM::MMap(info->KernelVirtualSpace, VMM::VirtualToPhysical(info->RSDP), info->RSDP, PAGE_SIZE, VMM_FLAGS_READ | VMM_FLAGS_NOEXEC);
 
@@ -172,8 +173,6 @@ int InitializeSRAT(SRAT_t *srat) {
 }
 
 int InitializeMCFG(MCFG_t *mcfg) {
-	KInfo *info = GetInfo();
-
 	uptr currentPtr = (uptr)&mcfg->FirstEntry;
 	uptr entriesEnd = (uptr)mcfg + mcfg->Length;
 
@@ -186,6 +185,7 @@ int InitializeMCFG(MCFG_t *mcfg) {
 					    current->BaseAddress, current->PCISeg,
 					    current->StartPCIBus, current->EndPCIBus);
 
+		/*
 		for (usize bus = current->StartPCIBus; bus < current->EndPCIBus; ++bus) {
 			u64 offset = bus << 20;
 			uptr busAddress = current->BaseAddress + offset;
@@ -232,7 +232,7 @@ int InitializeMCFG(MCFG_t *mcfg) {
 				
 
 			}
-		}
+		}*/
 
 		currentPtr += sizeof(MCFGEntry_t);
 	}

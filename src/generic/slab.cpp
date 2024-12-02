@@ -137,7 +137,7 @@ CapabilityTreeNode *Insert(CapabilityTreeNode *tree, CapabilityTreeNode *node) {
 	} else if (node->Object > tree->Object) {
 		tree->Right = Insert(tree->Right, node);
 	} else /* (node->Object == tree->Object) */ {
-		//PANIC("SAME KEY DOUBLE INSERTED");
+		//PRINTK::PrintK(PRINTK_DEBUG "Replaced old key\r\n");
 		*(Capability*)tree = *(Capability*)node;
 	}
 	

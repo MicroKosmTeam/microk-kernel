@@ -49,8 +49,21 @@ extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize seco
 			// TODO: Risky
 			*(Capability*)secondArgument = *CAPABILITY::GenerateCapability(cspace, MMIO_MEMORY, firstArgument, ACCESS | READ | WRITE);
 			break;
-		case SYSCALL_VECTOR_SEARCH_CAPABILITY:
-			*(uptr*)thirdArgument = (uptr)CAPABILITY::AddressFirstCapability(cspace, firstArgument);
+		case SYSCALL_VECTOR_GET_UNTYPED_CAPABILITY: {
+			Capability *copyCap = (Capability*)firstArgument;
+			usize index = secondArgument;
+			Capability *cap = CAPABILITY::GetUntyped(cspace, index);
+			if (cap != NULL) {
+				*copyCap = *cap;
+			} else {
+				Capability cap;
+				cap.IsMasked = 1;
+				cap.Type = NULL_CAPABILITY;
+				cap.Object = -1;
+				cap.Size = 0;
+				*copyCap = cap;
+			}
+			}
 			break;
 		case SYSCALL_VECTOR_RETYPE_CAPABILITY: {
 			OBJECT_TYPE type = (OBJECT_TYPE)secondArgument;

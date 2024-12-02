@@ -6,6 +6,7 @@ namespace CAPABILITY {
 	uptr InitializeRootSpace(uptr framesBase, MemoryHeader *memoryMap);
 	usize GetObjectSize(OBJECT_TYPE kind);
 
+	Capability *GetUntyped(CapabilitySpace *space, usize idx);
 	Capability *AddressCapability(CapabilitySpace *space, uptr ptr);
 	Capability *AddressFirstCapability(CapabilitySpace *space, uptr ptr);
 	Capability *GenerateCapability(CapabilitySpace *space, OBJECT_TYPE kind, uptr object, u16 accessRights);

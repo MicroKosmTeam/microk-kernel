@@ -110,6 +110,43 @@ usize GetObjectSize(OBJECT_TYPE kind) {
 	}
 }
 
+Capability *GetUntyped(CapabilitySpace *space, usize idx) {
+	CapabilitySlab *slab = &space->Slabs;
+	CapabilityNode *node = (CapabilityNode*)slab->UsedSlabs.Head;
+
+	if(node == NULL) {
+		return NULL;
+	}
+
+	while(node) {
+		for (usize i = 0; i < CAPABILITIES_PER_NODE; ++i) {
+			Capability *capability = &node->Slots[i];
+			if (capability->IsMasked || capability->Type != UNTYPED_FRAMES) continue;
+			else if (idx-- == 0) return capability;
+		}
+
+		node = (CapabilityNode*)node->Next;
+	}
+
+	node = (CapabilityNode*)slab->FullSlabs.Head;
+
+	if(node == NULL) {
+		return NULL;
+	}
+
+	while(node) {
+		for (usize i = 0; i < CAPABILITIES_PER_NODE; ++i) {
+			Capability *capability = &node->Slots[i];
+			if (capability->IsMasked || capability->Type != UNTYPED_FRAMES) continue;
+			else if (idx-- == 0) return capability;
+		}
+
+		node = (CapabilityNode*)node->Next;
+	}
+
+	return NULL;
+}
+
 Capability *AddressFirstCapability(CapabilitySpace *space, uptr ptr) {
 	return (Capability*)SLAB::SearchClose(space->CapabilityTree, ptr);
 }
@@ -180,11 +217,9 @@ Capability *RetypeUntyped(CapabilitySpace *space, Capability *untyped, OBJECT_TY
 	}
 
 	// TODO: Delete the untyped
-	//CapabilitySlab *slab = &space->Slabs[UNTYPED_FRAMES];
-	//CapabilityTreeNode *node = SLAB::Search(space->CapabilityTree, untyped->Object);
-	//SLAB::FreeSlabSlot(slab, node);
-	//SLAB::Delete(space->CapabilityTree, node);
-	//untyped->IsMasked = 1;
+	untyped->IsMasked = 1;
+	SLAB::FreeSlabSlot(&space->Slabs, (CapabilityTreeNode*)untyped);
+	
 
 	for (usize i = 0; i < realCount; ++i) {
 		Capability *cap = GenerateCapability(space, kind, startAddress + i * objectSize, objectSize, maskedRights);

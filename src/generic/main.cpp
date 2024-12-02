@@ -44,7 +44,7 @@ void KernelStart() {
 
 	KInfo *info = GetInfo();
 
-	CAPABILITY::DumpCapabilitySlab(info->RootCSpace);
+	//CAPABILITY::DumpCapabilitySlab(info->RootCSpace);
 
 	LOADER::LoadContainer(info->RootContainer, (u8*)info->ManagerExecutableAddress, info->ManagerExecutableSize);
 
