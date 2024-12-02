@@ -83,7 +83,7 @@ void *RequestPage() {
 
 	KInfo *info = GetInfo();
 	
-	CheckSpace(info->RootCSpace, FRAME_MEMORY, 3);
+	CheckSpace(info->RootCSpace, FRAME_MEMORY, 3 * 4);
 
 	usize splitCount = 1;
 	usize splitSize = PAGE_SIZE;
@@ -106,7 +106,7 @@ void *RequestVirtualPage() {
 
 	KInfo *info = GetInfo();
 	
-	CheckSpace(info->RootCSpace, VIRTUAL_MEMORY_PAGING_STRUCTURE, 3);
+	CheckSpace(info->RootCSpace, VIRTUAL_MEMORY_PAGING_STRUCTURE, 3 * 4);
 
 	usize splitCount = 1;
 	usize splitSize = PAGE_SIZE;
@@ -127,7 +127,7 @@ void *RequestPages(usize length) {
 
 	KInfo *info = GetInfo();
 	
-	CheckSpace(info->RootCSpace, FRAME_MEMORY, length + 3);
+	CheckSpace(info->RootCSpace, FRAME_MEMORY, length + 3 * 4);
 
 	usize splitCount = 1;
 	usize splitSize = PAGE_SIZE * length;

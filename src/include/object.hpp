@@ -114,7 +114,7 @@ struct CapabilitySlab {
  *
  */
 struct CapabilitySpace {
-	CapabilitySlab Slabs[OBJECT_TYPE_COUNT];
+	CapabilitySlab Slabs;
 	CapabilityTreeNode *CapabilityTree;
 };
 

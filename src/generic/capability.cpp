@@ -21,35 +21,28 @@ uptr InitializeRootSpace(uptr framesBase, UntypedHeader *memoryMap) {
 	info->RootCSpace = &info->RootContainer->CSpace;
 
 	CapabilitySpace *space = info->RootCSpace;
-	uptr nextSlabNodeFrame = slabNodeFrame;
-	for (int t = UNTYPED_FRAMES; t < OBJECT_TYPE_COUNT; ++t) {
-		CapabilityNode *node = (CapabilityNode*)nextSlabNodeFrame;
+	CapabilityNode *node = (CapabilityNode*)slabNodeFrame;
 
-		space->Slabs[t].FreeSlabs.Head =
-		space->Slabs[t].FreeSlabs.Tail = node;
+	space->Slabs.FreeSlabs.Head =
+		space->Slabs.FreeSlabs.Tail = node;
 
-		space->Slabs[t].UsedSlabs.Head =
-		space->Slabs[t].UsedSlabs.Tail = NULL;
+	space->Slabs.UsedSlabs.Head =
+		space->Slabs.UsedSlabs.Tail = NULL;
 
-		space->Slabs[t].FullSlabs.Head =
-		space->Slabs[t].FullSlabs.Tail = NULL;
+	space->Slabs.FullSlabs.Head =
+		space->Slabs.FullSlabs.Tail = NULL;
 
-		node->Next = node->Previous = NULL;
-			
-		node->FreeElements = CAPABILITIES_PER_NODE;
+	node->Next = node->Previous = NULL;
 
-		for (usize i = 0; i < CAPABILITIES_PER_NODE; ++i) {
-			node->Slots[i].IsMasked = 0;
-			node->Slots[i].Type = NULL_CAPABILITY;
-		}
+	node->FreeElements = CAPABILITIES_PER_NODE;
 
-		nextSlabNodeFrame += PAGE_SIZE;
+	for (usize i = 0; i < CAPABILITIES_PER_NODE; ++i) {
+		node->Slots[i].IsMasked = 0;
+		node->Slots[i].Type = NULL_CAPABILITY;
 	}
 
-	for (int t = UNTYPED_FRAMES; t < OBJECT_TYPE_COUNT; ++t) {
-		GenerateCapability(space, CAPABILITY_NODE, slabNodeFrame, ACCESS);
-		slabNodeFrame += PAGE_SIZE;
-	}
+	GenerateCapability(space, CAPABILITY_NODE, slabNodeFrame, ACCESS);
+	slabNodeFrame += PAGE_SIZE;
 
 	/* Now put all the capabilites in the respective slabs, - obviously the frames we used */
 
@@ -133,7 +126,7 @@ Capability *AddressFirstCapability(CapabilitySpace *space, uptr ptr, OBJECT_TYPE
 		return NULL;
 	}
 	
-	//CapabilitySlab *slab = &space->Slabs[kind];
+	//CapabilitySlab *slab = &space->Slabs;
 
 	return (Capability*)SLAB::SearchClose(space->CapabilityTree, ptr);
 }
@@ -143,7 +136,7 @@ Capability *AddressCapability(CapabilitySpace *space, uptr ptr, OBJECT_TYPE kind
 		return NULL;
 	}
 	
-	//CapabilitySlab *slab = &space->Slabs[kind];
+	//CapabilitySlab *slab = &space->Slabs;
 
 	return (Capability*)SLAB::Search(space->CapabilityTree, ptr);
 }
@@ -157,7 +150,7 @@ Capability *GenerateCapability(CapabilitySpace *space, OBJECT_TYPE kind, uptr ob
 		return NULL;
 	}
 
-	CapabilitySlab *slab = &space->Slabs[kind];
+	CapabilitySlab *slab = &space->Slabs;
 	CapabilityTreeNode *capability = SLAB::AllocateSlabSlot(slab);
 	if (capability == NULL) {
 		return NULL;
@@ -216,7 +209,7 @@ Capability *RetypeUntyped(CapabilitySpace *space, Capability *untyped, OBJECT_TY
 	//CapabilityTreeNode *node = SLAB::Search(space->CapabilityTree, untyped->Object);
 	//SLAB::FreeSlabSlot(slab, node);
 	//SLAB::Delete(space->CapabilityTree, node);
-	untyped->IsMasked = 1;
+	//untyped->IsMasked = 1;
 
 	for (usize i = 0; i < realCount; ++i) {
 		Capability *cap = GenerateCapability(space, kind, startAddress + i * objectSize, objectSize, maskedRights);
@@ -224,8 +217,8 @@ Capability *RetypeUntyped(CapabilitySpace *space, Capability *untyped, OBJECT_TY
 			return NULL;
 		}
 
-		untyped->Children++;
-		cap->Parent = untyped;
+		//untyped->Children++;
+		//cap->Parent = untyped;
 
 		if (i < count) {
 			array[i] = cap;
@@ -236,7 +229,7 @@ Capability *RetypeUntyped(CapabilitySpace *space, Capability *untyped, OBJECT_TY
 }
 
 Capability *UntypeObject(CapabilitySpace *space, Capability *capability) {
-	CapabilitySlab *slab = &space->Slabs[capability->Type];
+	CapabilitySlab *slab = &space->Slabs;
 	/* Transforms back into untyped */
 
 	// TODO: Recreate untyped
@@ -338,7 +331,7 @@ Capability *MergeUntyped(CapabilitySpace *space, Capability *ut, Capability *oth
 	UntypedHeader *capHeader = (UntypedHeader*)other->Object;
 	utHeader->Length += capHeader->Length;
 
-	CapabilitySlab *slab = &space->Slabs[UNTYPED_FRAMES];
+	CapabilitySlab *slab = &space->Slabs;
 	CapabilityTreeNode *node = SLAB::Search(space->CapabilityTree, other->Object);
 	SLAB::FreeSlabSlot(slab, node);
 	SLAB::Delete(space->CapabilityTree, node);
@@ -351,7 +344,7 @@ usize GetFreeSlots(CapabilitySpace *space, OBJECT_TYPE kind) {
 		return -1;
 	}
 
-	CapabilitySlab *slab = &space->Slabs[kind];
+	CapabilitySlab *slab = &space->Slabs;
 	
 	return SLAB::GetFreeSlabSlots(slab);	
 }
@@ -361,7 +354,7 @@ void AddSlabNode(CapabilitySpace *space, OBJECT_TYPE kind, Capability *capabilit
 		return;
 	}
 	
-	CapabilitySlab *slab = &space->Slabs[kind];
+	CapabilitySlab *slab = &space->Slabs;
 
 	capability->IsMasked = 1;
 
@@ -377,7 +370,7 @@ void DumpCapabilitySlab(CapabilitySpace *space, OBJECT_TYPE kind) {
 		return;
 	}
 
-	CapabilitySlab *slab = &space->Slabs[kind];
+	CapabilitySlab *slab = &space->Slabs;
 	CapabilityNode *node = (CapabilityNode*)slab->UsedSlabs.Head;
 
 	if(node == NULL) {
