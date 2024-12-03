@@ -41,8 +41,8 @@ extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize seco
 			break;
 		case SYSCALL_VECTOR_ADDRESS_CAPABILITY: {
 			Capability *cap = CAPABILITY::AddressFirstCapability(cspace, firstArgument);
-			*(uptr*)fourthArgument = (uptr)cap;
-			*(Capability*)thirdArgument = *cap;
+			//*(uptr*)fourthArgument = (uptr)cap;
+			*(Capability*)secondArgument = *cap;
 			}
 			break;
 		case SYSCALL_VECTOR_CREATE_FROM_MEM_CAPABILITY:
