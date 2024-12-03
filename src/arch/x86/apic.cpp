@@ -147,7 +147,6 @@ int InitializeAPIC(APIC *apic) {
 	VMM::MMap(info->KernelVirtualSpace, apic->Base, apic->MappedAddress, PAGE_SIZE, VMM_FLAGS_READ | VMM_FLAGS_WRITE | VMM_FLAGS_NOEXEC);
 	PMM::CheckSpace(info->RootCSpace, 2);
 	CAPABILITY::GenerateCapability(info->RootCSpace, MMIO_MEMORY, apic->Base, ACCESS | READ | WRITE);
-	//MEM::MEMBLOCK::AddRegion(info->PhysicalMemoryChunks, apic->Base, PAGE_SIZE, MEMMAP_KERNEL_DEVICE);
 	
 	apic->ProcessorIsBSP = IsAPICBSP();
 

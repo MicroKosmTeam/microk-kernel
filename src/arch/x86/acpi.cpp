@@ -27,29 +27,43 @@ int InitializeACPI(ACPI *acpi) {
 				    acpi->RSDP->XsdtAddress);
 
 	if(acpi->RSDP->XsdtAddress) {
-		VMM::MMap(info->KernelVirtualSpace, acpi->RSDP->XsdtAddress, VMM::PhysicalToVirtual(acpi->RSDP->XsdtAddress), PAGE_SIZE, VMM_FLAGS_READ | VMM_FLAGS_NOEXEC);
+		uptr addr = acpi->RSDP->XsdtAddress;
+		ROUND_DOWN_TO_PAGE(addr);
+		VMM::MMap(info->KernelVirtualSpace, addr, VMM::PhysicalToVirtual(addr), PAGE_SIZE, VMM_FLAGS_READ | VMM_FLAGS_NOEXEC);
 		acpi->MainSDT = (SDTHeader_t*)VMM::PhysicalToVirtual(acpi->RSDP->XsdtAddress);
 		acpi->MainSDTPointerSize = 8;
 	} else if (acpi->RSDP->RsdtAddress) {
-		VMM::MMap(info->KernelVirtualSpace, acpi->RSDP->RsdtAddress, VMM::PhysicalToVirtual(acpi->RSDP->RsdtAddress), PAGE_SIZE, VMM_FLAGS_READ | VMM_FLAGS_NOEXEC);
+		uptr addr = acpi->RSDP->RsdtAddress;
+		ROUND_DOWN_TO_PAGE(addr);
+		VMM::MMap(info->KernelVirtualSpace, addr, VMM::PhysicalToVirtual(addr), PAGE_SIZE, VMM_FLAGS_READ | VMM_FLAGS_NOEXEC);
 		acpi->MainSDT = (SDTHeader_t*)VMM::PhysicalToVirtual(acpi->RSDP->RsdtAddress);
 		acpi->MainSDTPointerSize = 4;
 	} else {
 		return -1;
 	}
 
-	PRINTK::PrintK(PRINTK_DEBUG "Pointers:\r\n");
-
 	int entries = (acpi->MainSDT->Length - sizeof(SDTHeader_t)) / acpi->MainSDTPointerSize;
-	PRINTK::PrintK(PRINTK_DEBUG "Pointers:\r\n");
+	PRINTK::PrintK(PRINTK_DEBUG "Entries: %d\r\n", entries);
+
 	for (int i = 0; i < entries; i++) {
 		char sig[4 + 1] = { '\0' };
-		if (acpi->MainSDT->Length == 8) {
+		if (acpi->MainSDTPointerSize == 8) {
 			uptr *ptr = (uptr*)((uptr)acpi->MainSDT + sizeof(SDTHeader_t) + i * 8);
 			VMM::MMap(info->KernelVirtualSpace, *ptr, VMM::PhysicalToVirtual(*ptr), PAGE_SIZE, VMM_FLAGS_READ | VMM_FLAGS_NOEXEC);
 			SDTHeader_t *sdt = (SDTHeader_t*)VMM::PhysicalToVirtual(*ptr);
 			Memcpy(sig, sdt->Signature, 4);
 			PRINTK::PrintK(PRINTK_DEBUG "%d: 0x%x -> %s\r\n", i, *ptr, sig);
+
+			if (Memcmp(sdt->Signature, "APIC", 4) == 0) {
+				PRINTK::PrintK(PRINTK_DEBUG "Processing MADT\r\n");
+				InitializeMADT(acpi, (MADT_t*)sdt);
+			} else if (Memcmp(sdt->Signature, "SRAT", 4) == 0) {
+				PRINTK::PrintK(PRINTK_DEBUG "Processing SRAT\r\n");
+				InitializeSRAT(acpi, (SRAT_t*)sdt);
+			} else if (Memcmp(sdt->Signature, "MCFG", 4) == 0) {
+				PRINTK::PrintK(PRINTK_DEBUG "Processing MCFG\r\n");
+				InitializeMCFG(acpi, (MCFG_t*)sdt);
+			}
 		} else {
 			u32 *ptr = (u32*)((uptr)acpi->MainSDT + sizeof(SDTHeader_t) + i * 4);
 			SDTHeader_t *sdt = (SDTHeader_t*)VMM::PhysicalToVirtual(*ptr);
@@ -59,13 +73,13 @@ int InitializeACPI(ACPI *acpi) {
 
 			if (Memcmp(sdt->Signature, "APIC", 4) == 0) {
 				PRINTK::PrintK(PRINTK_DEBUG "Processing MADT\r\n");
-				InitializeMADT((MADT_t*)sdt);
+				InitializeMADT(acpi, (MADT_t*)sdt);
 			} else if (Memcmp(sdt->Signature, "SRAT", 4) == 0) {
 				PRINTK::PrintK(PRINTK_DEBUG "Processing SRAT\r\n");
-				InitializeSRAT((SRAT_t*)sdt);
+				InitializeSRAT(acpi, (SRAT_t*)sdt);
 			} else if (Memcmp(sdt->Signature, "MCFG", 4) == 0) {
 				PRINTK::PrintK(PRINTK_DEBUG "Processing MCFG\r\n");
-				InitializeMCFG((MCFG_t*)sdt);
+				InitializeMCFG(acpi, (MCFG_t*)sdt);
 			}
 		}
 	}
@@ -73,7 +87,7 @@ int InitializeACPI(ACPI *acpi) {
 	return 0;
 }
 
-int InitializeMADT(MADT_t *madt) {
+int InitializeMADT(ACPI *acpi, MADT_t *madt) {
 	uptr currentPtr = (uptr)&madt->FirstEntry;
 	uptr entriesEnd = (uptr)madt + madt->Length;
 
@@ -94,6 +108,10 @@ int InitializeMADT(MADT_t *madt) {
 						entry->IOAPICID,
 						entry->IOAPICAddress,
 						entry->GlobalSystemInterruptBase);
+
+				if (acpi->IOAPICCount < MAX_IOAPIC) {
+					InitializeIOAPIC(&acpi->IOApics[acpi->IOAPICCount++], entry->IOAPICID, entry->IOAPICAddress);
+				}
 			}
 			break;
 			case MADT_ENTRY_APIC_SOURCE_OVERRIDE: {
@@ -124,7 +142,7 @@ int InitializeMADT(MADT_t *madt) {
 	return 0;
 }
 
-int InitializeSRAT(SRAT_t *srat) {
+int InitializeSRAT(ACPI *acpi, SRAT_t *srat) {
 	uptr currentPtr = (uptr)&srat->FirstEntry;
 	uptr entriesEnd = (uptr)srat + srat->Length;
 
@@ -172,7 +190,7 @@ int InitializeSRAT(SRAT_t *srat) {
 	return 0;
 }
 
-int InitializeMCFG(MCFG_t *mcfg) {
+int InitializeMCFG(ACPI *acpi, MCFG_t *mcfg) {
 	uptr currentPtr = (uptr)&mcfg->FirstEntry;
 	uptr entriesEnd = (uptr)mcfg + mcfg->Length;
 

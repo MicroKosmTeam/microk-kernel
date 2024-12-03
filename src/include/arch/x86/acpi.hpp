@@ -1,5 +1,6 @@
 #pragma once
 #include <cdefs.h>
+#include <arch/x86/ioapic.hpp>
 
 namespace x86 {
 	struct RSDP_t {
@@ -147,14 +148,21 @@ namespace x86 {
 		uint8_t BIST;
 	}__attribute__((packed));
 
+
+	#define MAX_IOAPIC 4
+
 	struct ACPI {
 		RSDP_t *RSDP;
 		SDTHeader_t *MainSDT;
 		u8 MainSDTPointerSize;
+
+		u32 APICCount;
+		u32 IOAPICCount;
+		IOAPIC IOApics[MAX_IOAPIC];
 	};
 
 	int InitializeACPI(ACPI *acpi);
-	int InitializeMADT(MADT_t *madt);
-	int InitializeSRAT(SRAT_t *srat);
-	int InitializeMCFG(MCFG_t *srat);
+	int InitializeMADT(ACPI *acpi, MADT_t *madt);
+	int InitializeSRAT(ACPI *acpi, SRAT_t *srat);
+	int InitializeMCFG(ACPI *acpi, MCFG_t *srat);
 }

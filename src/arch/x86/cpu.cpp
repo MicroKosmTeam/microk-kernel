@@ -1,5 +1,6 @@
 #include <cpuid.h>
 #include <printk.hpp>
+#include <panic.hpp>
 #include <memory.hpp>
 #include <kinfo.hpp>
 #include <pmm.hpp>
@@ -8,6 +9,9 @@
 #include <arch/x86/cpu.hpp>
 #include <arch/x86/idt.hpp>
 #include <arch/x86/gdt.hpp>
+#include <arch/x86/apic.hpp>
+#include <arch/x86/ioapic.hpp>
+#include <arch/x86/acpi.hpp>
 #include <arch/x86/vm/vm.hpp>
 #include <arch/x86/vm/svm.hpp>
 
@@ -93,6 +97,9 @@ inline static int EnableSyscalls() {
 GDT gdt;
 GDTPointer pointer;
 TSS tss;
+APIC apic;
+ACPI acpi;
+IOAPIC ioapic;
 
 
 void LoadEssentialCPUStructures() {
@@ -125,14 +132,20 @@ void InitializeCPUFeatures() {
 	__get_cpuid_count(0x80000004, 0, &cpustring[8], &cpustring[9], &cpustring[10], &cpustring[11]);
 	PRINTK::PrintK(PRINTK_DEBUG "CPUID Processor %s\r\n", cpustring);
 
+	InitializeAPIC(&apic);
+	InitializeACPI(&acpi);
+
 	EnableSSE();
 	//EnableSyscalls();
 
 	PRINTK::PrintK(PRINTK_DEBUG "Detecting VMs...\r\n");
 
+	bool enabledVM = false;
+
 	if (__get_cpuid_count(0x1, 0, &eax, &ebx, &ecx, &edx) && (ecx & (1 << 5))) {
 		PRINTK::PrintK(PRINTK_DEBUG 
 				"VMX!\r\n");
+		enabledVM = true;
 	} else {
 		PRINTK::PrintK(PRINTK_DEBUG 
 				"No vmx!\r\n");
@@ -171,6 +184,8 @@ void InitializeCPUFeatures() {
 		PRINTK::PrintK(PRINTK_DEBUG 
 				"Enabled SVM!\r\n");
 
+		enabledVM = true;
+
 		/*
 		   VMData *vmdata = (VMData*)PMM::RequestPages(sizeof(VMData) / PAGE_SIZE);
 		   Memclr(vmdata, sizeof(VMData));
@@ -184,6 +199,9 @@ void InitializeCPUFeatures() {
 				"No svm!\r\n");
 	}
 
+	if (!enabledVM) {
+		PANIC("Couldn't enable virtual machine extensions");
+	}
 
 }
 
