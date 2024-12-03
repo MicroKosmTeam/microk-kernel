@@ -60,6 +60,6 @@ namespace x86 {
 	void ReadAPIC(APIC *device, usize registerSelector, u32 *lo, u32 *hi);
 	void WriteAPIC(APIC *device, usize registerSelector, u32 lo, u32 hi);
 
-	int InitializeAPIC(APIC *apic);
+	int InitializeAPIC(APIC *apic, bool x2APIC);
 	int DeinitializeAPIC(APIC *apic);
 }

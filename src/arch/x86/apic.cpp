@@ -137,10 +137,10 @@ void SetAPICBase(uptr apic, usize flags) {
 }
 
 
-int InitializeAPIC(APIC *apic) {
+int InitializeAPIC(APIC *apic, bool x2APIC) {
 	KInfo *info = GetInfo();
 
-	apic->x2APICMode = false;
+	apic->x2APICMode = x2APIC;
 
 	apic->Base = GetAPICBase();
 	apic->MappedAddress = VMM::PhysicalToVirtual(apic->Base);

@@ -30,6 +30,11 @@ int InitializeIOAPIC(IOAPIC *ioapic, u32 id, uptr address) {
 	VMM::MMap(info->KernelVirtualSpace, ioapic->Base, ioapic->MappedAddress, PAGE_SIZE, VMM_FLAGS_READ | VMM_FLAGS_WRITE | VMM_FLAGS_NOEXEC);
 	PMM::CheckSpace(info->RootCSpace, 2);
 	CAPABILITY::GenerateCapability(info->RootCSpace, MMIO_MEMORY, ioapic->Base, ACCESS | READ | WRITE);
+
+	PRINTK::PrintK(PRINTK_DEBUG "IOAPIC with ID 0x%x at 0x%x\r\n",
+		       ioapic->ID,
+		       ioapic->Base);
+
 	return 0;
 }
 }

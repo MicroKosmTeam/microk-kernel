@@ -49,8 +49,14 @@ int InitializeACPI(ACPI *acpi) {
 		char sig[4 + 1] = { '\0' };
 		if (acpi->MainSDTPointerSize == 8) {
 			uptr *ptr = (uptr*)((uptr)acpi->MainSDT + sizeof(SDTHeader_t) + i * 8);
+
+			PMM::CheckSpace(info->RootCSpace, 2);
+			CAPABILITY::GenerateCapability(info->RootCSpace, MMIO_MEMORY, *ptr, PAGE_SIZE, ACCESS | READ);
+
 			VMM::MMap(info->KernelVirtualSpace, *ptr, VMM::PhysicalToVirtual(*ptr), PAGE_SIZE, VMM_FLAGS_READ | VMM_FLAGS_NOEXEC);
+
 			SDTHeader_t *sdt = (SDTHeader_t*)VMM::PhysicalToVirtual(*ptr);
+
 			Memcpy(sig, sdt->Signature, 4);
 			PRINTK::PrintK(PRINTK_DEBUG "%d: 0x%x -> %s\r\n", i, *ptr, sig);
 
@@ -66,7 +72,14 @@ int InitializeACPI(ACPI *acpi) {
 			}
 		} else {
 			u32 *ptr = (u32*)((uptr)acpi->MainSDT + sizeof(SDTHeader_t) + i * 4);
+
+			PMM::CheckSpace(info->RootCSpace, 2);
+			CAPABILITY::GenerateCapability(info->RootCSpace, MMIO_MEMORY, *ptr, PAGE_SIZE, ACCESS | READ);
+			
+			VMM::MMap(info->KernelVirtualSpace, *ptr, VMM::PhysicalToVirtual(*ptr), PAGE_SIZE, VMM_FLAGS_READ | VMM_FLAGS_NOEXEC);
+
 			SDTHeader_t *sdt = (SDTHeader_t*)VMM::PhysicalToVirtual(*ptr);
+
 			Memcpy(sig, sdt->Signature, 4);
 			
 			PRINTK::PrintK(PRINTK_DEBUG "%d: 0x%x -> %s\r\n", i, *ptr, sig);
@@ -191,6 +204,8 @@ int InitializeSRAT(ACPI *acpi, SRAT_t *srat) {
 }
 
 int InitializeMCFG(ACPI *acpi, MCFG_t *mcfg) {
+	KInfo *info = GetInfo();
+
 	uptr currentPtr = (uptr)&mcfg->FirstEntry;
 	uptr entriesEnd = (uptr)mcfg + mcfg->Length;
 
@@ -202,6 +217,9 @@ int InitializeMCFG(ACPI *acpi, MCFG_t *mcfg) {
 					    "End bus:     0x%x\r\n", 
 					    current->BaseAddress, current->PCISeg,
 					    current->StartPCIBus, current->EndPCIBus);
+
+		PMM::CheckSpace(info->RootCSpace, 2);
+		CAPABILITY::GenerateCapability(info->RootCSpace, MMIO_MEMORY, current->BaseAddress, PAGE_SIZE, ACCESS | READ | WRITE);
 
 		/*
 		for (usize bus = current->StartPCIBus; bus < current->EndPCIBus; ++bus) {

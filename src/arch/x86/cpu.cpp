@@ -132,7 +132,9 @@ void InitializeCPUFeatures() {
 	__get_cpuid_count(0x80000004, 0, &cpustring[8], &cpustring[9], &cpustring[10], &cpustring[11]);
 	PRINTK::PrintK(PRINTK_DEBUG "CPUID Processor %s\r\n", cpustring);
 
-	InitializeAPIC(&apic);
+	__get_cpuid_count(0x1, 0, &eax, &ebx, &ecx, &edx);
+	bool x2APIC = (ecx & (1 << 21));
+	InitializeAPIC(&apic, x2APIC);
 	InitializeACPI(&acpi);
 
 	EnableSSE();
