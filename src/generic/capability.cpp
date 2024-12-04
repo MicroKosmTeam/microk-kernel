@@ -235,11 +235,16 @@ Capability *RetypeUntyped(CapabilitySpace *space, Capability *untyped, OBJECT_TY
 }
 
 Capability *UntypeObject(CapabilitySpace *space, Capability *capability) {
-	/* Transforms back into untyped */
+	if (!capability || capability->Type == UNTYPED_FRAMES || capability->Type == UNTYPED_DMA) {
+		return NULL;
+	}
 
-	(void)space, (void)capability;
+	// TODO: Add more
+	capability->Type = UNTYPED_FRAMES;
 
-	return NULL;
+	(void)space;
+
+	return capability;
 }
 
 Capability *SplitUntyped(CapabilitySpace *space, Capability *untyped, usize splitSize, usize count, Capability **array) {
@@ -310,18 +315,14 @@ Capability *SplitUntyped(CapabilitySpace *space, Capability *untyped, usize spli
 
 Capability *MergeUntyped(CapabilitySpace *space, Capability *ut, Capability *other) {
 	/* Merges adiacent untyped memory regions */
+	if (ut->Object + ut->Size != other->Object) return NULL;
 
-	(void)space; (void)ut; (void)other;
-
-	/*
-	UntypedHeader *utHeader = (UntypedHeader*)ut->Object;
-	UntypedHeader *capHeader = (UntypedHeader*)other->Object;
-	utHeader->Length += capHeader->Length;
+	ut->Size += other->Size;
 
 	CapabilitySlab *slab = &space->Slabs;
 	CapabilityTreeNode *node = SLAB::Search(space->CapabilityTree, other->Object);
 	SLAB::FreeSlabSlot(slab, node);
-	SLAB::Delete(space->CapabilityTree, node);*/
+	SLAB::Delete(space->CapabilityTree, node);
 
 	return NULL;
 }
