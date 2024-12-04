@@ -35,13 +35,14 @@ int InitializeVMCB(VMData *vcpu, uptr rip, uptr rsp, uptr rflags, uptr cr3) {
 	guestVmcb->Control.IOPMBasePa = VMM::VirtualToPhysical((uptr)ioPa);
 	Memset(msrPa, 0xFF, PAGE_SIZE * 2);
 	Memset(ioPa, 0xFF, PAGE_SIZE * 2);
-
+/*
 	guestVmcb->Control.NestedCtl |= 0 ; // NESTED_CTL_NP_ENABLE;
-	guestVmcb->Control.NestedCR3 = info->KernelVirtualSpace;
-	
+	guestVmcb->Control.NestedCR3 = ;
+*/	
 
 	// SAVE
-	guestVmcb->Save.RAX = VMM::VirtualToPhysical(info->RSDP);
+	(void)info;
+	guestVmcb->Save.RAX = info->ContainerInfo;
 
 	guestVmcb->Save.CR0 = GetCR0();
 	guestVmcb->Save.CR2 = GetCR2();

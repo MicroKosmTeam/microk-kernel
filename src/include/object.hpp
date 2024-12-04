@@ -146,6 +146,14 @@ struct ContainerBindings {
 	void (*SyscallHandler)();
 }__attribute__((packed));
 
+struct ContainerInfo {
+	uptr InitrdAddress;
+	usize InitrdSize;
+
+	uptr RSDP;
+	uptr DTB;
+}__attribute__((packed));
+
 struct Container : public ListHead {
 	ContainerIdentifier Identifier;
 	ContainerBindings Bindings;

@@ -56,15 +56,13 @@ struct KInfo {
 	usize InitrdSize;
 
 	Container *RootContainer;
+	uptr ContainerInfo;
 	CapabilitySpace *RootCSpace;
 
 	void *BootDomain;
 
 	uptr RSDP;
 	uptr DeviceTree;
-
-	usize MemmapCapabilityEntries;
-	uptr RootVirtualRegistersFrame;
 };
 
 /*

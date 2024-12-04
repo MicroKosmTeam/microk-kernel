@@ -120,10 +120,11 @@ static int LoadProgramHeaders(Container *container, u8 *data, usize size, Elf64_
 
 
 static usize LoadContainer(Container *container, Elf64_Ehdr *elfHeader, uptr highestAddress) { 
+	KInfo *info = GetInfo();
+
 	usize sectionHeaderSize = elfHeader->e_shentsize;
 	usize sectionHeaderOffset = elfHeader->e_shoff;
 	usize sectionHeaderNumber = elfHeader->e_shnum;
-
 
 	Elf64_Shdr *sectionHeader;
 	Elf64_Shdr *nameHeader = (Elf64_Shdr*)((uptr)elfHeader + sectionHeaderOffset + sectionHeaderSize * elfHeader->e_shstrndx);
@@ -140,11 +141,18 @@ static usize LoadContainer(Container *container, Elf64_Ehdr *elfHeader, uptr hig
 		if (Strncmp(name, ".microkosm_bindings", 255) == 0) {
 			ContainerBindings *fileOffset = (ContainerBindings*)((uptr)elfHeader + sectionHeader->sh_offset);
 			container->Bindings = *fileOffset;
-			PRINTK::PrintK(PRINTK_DEBUG "Result: 0x%x\r\n", *fileOffset);
-
 		}
 	}
 
+	ContainerInfo *cinfo = (ContainerInfo*)PMM::RequestPage();
+	cinfo->InitrdAddress = VMM::VirtualToPhysical(info->InitrdAddress);
+	cinfo->InitrdSize = info->InitrdSize;
+	cinfo->RSDP = VMM::VirtualToPhysical(info->RSDP);
+	cinfo->DTB = VMM::VirtualToPhysical(info->DeviceTree);
+	VMM::MapPage(container->MemorySpace, VMM::VirtualToPhysical((uptr)cinfo), highestAddress, VMM_FLAGS_USER | VMM_FLAGS_READ);
+	info->ContainerInfo = highestAddress;
+
+	highestAddress += PAGE_SIZE;
 
 	/* Allocate the space for the stack and map it in
 	 * the virtual space for init
