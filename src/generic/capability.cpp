@@ -220,7 +220,6 @@ Capability *RetypeUntyped(CapabilitySpace *space, Capability *untyped, OBJECT_TY
 	untyped->IsMasked = 1;
 	SLAB::FreeSlabSlot(&space->Slabs, (CapabilityTreeNode*)untyped);
 	
-
 	for (usize i = 0; i < realCount; ++i) {
 		Capability *cap = GenerateCapability(space, kind, startAddress + i * objectSize, objectSize, maskedRights);
 		if (cap == NULL) {
@@ -283,7 +282,7 @@ Capability *SplitUntyped(CapabilitySpace *space, Capability *untyped, usize spli
 	*/
 
 	untyped->IsMasked = true;
-	//SLAB::FreeSlabSlot(&space->Slabs, (CapabilityTreeNode*)untyped);
+	SLAB::FreeSlabSlot(&space->Slabs, (CapabilityTreeNode*)untyped);
 
 
 	if (offset > 0) {

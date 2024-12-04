@@ -64,7 +64,8 @@ void FreeSlabSlot(CapabilitySlab *slab, CapabilityTreeNode *capability) {
 	CapabilityNode *node = (CapabilityNode*)nodeAddress;
 
 	++node->FreeElements;
-
+/*
+ * TODO: fix issue here, otherwise the call from RETYPE causes issues
 	if (node->FreeElements == CAPABILITIES_PER_NODE) {
 		RemoveElementFromList(node, &slab->UsedSlabs);
 		AddElementToList(node, &slab->FreeSlabs);
@@ -72,7 +73,7 @@ void FreeSlabSlot(CapabilitySlab *slab, CapabilityTreeNode *capability) {
 		RemoveElementFromList(node, &slab->FullSlabs);
 		AddElementToList(node, &slab->UsedSlabs);
 	}
-
+*/
 	return;
 }
 
@@ -182,6 +183,7 @@ CapabilityTreeNode *Successor(CapabilityTreeNode *curNode) {
 	return curNode;
 }
 
+// TODO This is a mess
 CapabilityTreeNode *Delete(CapabilityTreeNode *tree, CapabilityTreeNode *node) {
 	if (tree == NULL) {
 		return tree;
