@@ -74,7 +74,10 @@ int InitializeACPI(ACPI *acpi) {
 			Memcpy(sig, sdt->Signature, 4);
 			PRINTK::PrintK(PRINTK_DEBUG "%d: 0x%x -> %s\r\n", i, *ptr, sig);
 
-			if (Memcmp(sdt->Signature, "APIC", 4) == 0) {
+			if (Memcmp(sdt->Signature, "FACP", 4) == 0) {
+				PRINTK::PrintK(PRINTK_DEBUG "Processing FADT\r\n");
+				InitializeFADT(acpi, (FADT_t*)sdt);
+			} else if (Memcmp(sdt->Signature, "APIC", 4) == 0) {
 				PRINTK::PrintK(PRINTK_DEBUG "Processing MADT\r\n");
 				InitializeMADT(acpi, (MADT_t*)sdt);
 			} else if (Memcmp(sdt->Signature, "SRAT", 4) == 0) {
@@ -83,6 +86,9 @@ int InitializeACPI(ACPI *acpi) {
 			} else if (Memcmp(sdt->Signature, "MCFG", 4) == 0) {
 				PRINTK::PrintK(PRINTK_DEBUG "Processing MCFG\r\n");
 				InitializeMCFG(acpi, (MCFG_t*)sdt);
+			} else if (Memcmp(sdt->Signature, "HPET", 4) == 0) {
+				PRINTK::PrintK(PRINTK_DEBUG "Processing HPET\r\n");
+				InitializeHPET(acpi, (HPET_t*)sdt);
 			}
 		} else {
 			u32 *ptr = (u32*)((uptr)acpi->MainSDT + sizeof(SDTHeader_t) + i * 4);
@@ -111,6 +117,10 @@ int InitializeACPI(ACPI *acpi) {
 		}
 	}
 
+	return 0;
+}
+	
+int InitializeFADT(ACPI *acpi, FADT_t *fadt) {
 	return 0;
 }
 
@@ -270,6 +280,8 @@ int InitializeMCFG(ACPI *acpi, MCFG_t *mcfg) {
 			u64 offset = bus << 20;
 			uptr busAddress = current->BaseAddress + offset;
 
+			PMM::CheckSpace(info->RootCSpace, DEFAULT_CHECK_SPACE);
+			CAPABILITY::GenerateCapability(info->RootCSpace, MMIO_MEMORY, busAddress, ACCESS | READ | WRITE);
 			VMM::MMap(info->KernelVirtualSpace, busAddress, VMM::PhysicalToVirtual(busAddress), PAGE_SIZE, VMM_FLAGS_READ | VMM_FLAGS_WRITE | VMM_FLAGS_NOEXEC);
 
 			PCIDeviceHeader_t *header = (PCIDeviceHeader_t*)VMM::PhysicalToVirtual(busAddress);
@@ -283,6 +295,8 @@ int InitializeMCFG(ACPI *acpi, MCFG_t *mcfg) {
 				uptr deviceAddress = busAddress + offset;
 
 				if (deviceAddress != busAddress) {
+					PMM::CheckSpace(info->RootCSpace, DEFAULT_CHECK_SPACE);
+					CAPABILITY::GenerateCapability(info->RootCSpace, MMIO_MEMORY, deviceAddress, ACCESS | READ | WRITE);
 					VMM::MMap(info->KernelVirtualSpace, deviceAddress, VMM::PhysicalToVirtual(deviceAddress), PAGE_SIZE, VMM_FLAGS_READ | VMM_FLAGS_WRITE | VMM_FLAGS_NOEXEC);
 				}
 
@@ -298,6 +312,8 @@ int InitializeMCFG(ACPI *acpi, MCFG_t *mcfg) {
 
 					if (functionAddress != deviceAddress) {
 						VMM::MMap(info->KernelVirtualSpace, functionAddress, VMM::PhysicalToVirtual(functionAddress), PAGE_SIZE, VMM_FLAGS_READ | VMM_FLAGS_WRITE | VMM_FLAGS_NOEXEC);
+						PMM::CheckSpace(info->RootCSpace, DEFAULT_CHECK_SPACE);
+						CAPABILITY::GenerateCapability(info->RootCSpace, MMIO_MEMORY, functionAddress, ACCESS | READ | WRITE);
 					}
 
 					PCIDeviceHeader_t *header = (PCIDeviceHeader_t*)VMM::PhysicalToVirtual(functionAddress);
@@ -348,13 +364,7 @@ int InitializeMCFG(ACPI *acpi, MCFG_t *mcfg) {
 						PRINTK::PrintK(PRINTK_DEBUG "   Unknown header type: %d\r\n",
 								header->HeaderType);
 					}
-
-
-					PMM::CheckSpace(info->RootCSpace, DEFAULT_CHECK_SPACE);
-					CAPABILITY::GenerateCapability(info->RootCSpace, MMIO_MEMORY, functionAddress, ACCESS | READ | WRITE);
 				}
-				
-
 			}
 		}
 
@@ -365,4 +375,9 @@ int InitializeMCFG(ACPI *acpi, MCFG_t *mcfg) {
 
 	return 0;
 }
+
+int InitializeHPET(ACPI *acpi, HPET_t *hpet) {
+	return 0;
+}
+
 }

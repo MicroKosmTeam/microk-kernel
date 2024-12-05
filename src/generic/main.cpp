@@ -41,13 +41,6 @@ void KernelStart() {
 	/* Initializing virtual memory */
 	VMM::InitVMM();
 
-	ContainerInfo *cinfo = (ContainerInfo*)PMM::RequestPage();
-	cinfo->InitrdAddress = VMM::VirtualToPhysical(info->InitrdAddress);
-	cinfo->InitrdSize = info->InitrdSize;
-	cinfo->RSDP = VMM::VirtualToPhysical(info->RSDP);
-	cinfo->DTB = VMM::VirtualToPhysical(info->DeviceTree);
-	info->_ContainerInfo = cinfo;
-
 	//MEM::Init();
 	ARCH::InitializeCPUFeatures();
 

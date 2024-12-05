@@ -275,6 +275,13 @@ void LimineEntry() {
 		Capability *cap = CAPABILITY::AddressCapability(info->RootCSpace, addr);
 		PMM::Init(cap);
 
+		ContainerInfo *cinfo = (ContainerInfo*)PMM::RequestPage();
+		cinfo->InitrdAddress = VMM::VirtualToPhysical(info->InitrdAddress);
+		cinfo->InitrdSize = info->InitrdSize;
+		cinfo->RSDP = VMM::VirtualToPhysical(info->RSDP);
+		cinfo->DTB = VMM::VirtualToPhysical(info->DeviceTree);
+		info->_ContainerInfo = cinfo;
+
 		/*
 		for (int i = 0; i < 100; ++i) {
 			PRINTK::PrintK(PRINTK_DEBUG "Requested page: 0x%x\r\n", PMM::RequestPage());
