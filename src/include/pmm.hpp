@@ -10,6 +10,7 @@ namespace PMM {
 	};
 
 	void Init(Capability *untypedArea);
+#define DEFAULT_CHECK_SPACE 5
 	void CheckSpace(CapabilitySpace *cspace, usize count);
 	void Deinit();
 

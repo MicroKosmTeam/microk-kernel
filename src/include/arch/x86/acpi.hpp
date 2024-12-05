@@ -148,6 +148,39 @@ namespace x86 {
 		uint8_t BIST;
 	}__attribute__((packed));
 
+	struct PCIHeader0_t : public PCIDeviceHeader_t {
+		u32 BAR0;
+		u32 BAR1;
+		u32 BAR2;
+		u32 BAR3;
+		u32 BAR4;
+		u32 BAR5;
+		u32 CardbusCISPointer;
+		u16 SunbystemVendorID;
+		u16 SubsystemID;
+		u32 ExpansionROMBaseAddress;
+		u8 CapabilitiesPointer;
+		u8 Reserved0[3];
+		u32 Reserved1;
+		u8 InterruptLine;
+		u8 InterruptPIN;
+		u8 MinGrant;
+		u8 MaxLatency;
+	}__attribute__((packed));
+
+	struct PCIHeader1_t : public PCIDeviceHeader_t {
+		u32 BAR0;
+		u32 BAR1;
+		u8 PrimaryBusNumber;
+		u8 SecondaryBUsNumber;
+	}__attribute__((packed));
+
+	struct PCIHeader2_t : public PCIDeviceHeader_t {
+		u32 CardBusBaseAddress;
+		u8 CapabilityListOffset;
+		u8 Reserved0;
+		u16 SecondaryStatus;
+	}__attribute__((packed));
 
 	#define MAX_IOAPIC 4
 

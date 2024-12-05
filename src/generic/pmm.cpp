@@ -40,7 +40,7 @@ void Deinit() {
 	KInfo *info = GetInfo();
 
 	// Reserve space for userspace
-	CheckSpace(info->RootCSpace, 500); 
+	CheckSpace(info->RootCSpace, DEFAULT_CHECK_SPACE * 100); 
 	
 	PhysicalMemoryManager.IsActive = false;
 }
@@ -52,7 +52,7 @@ void *RequestPage() {
 
 	KInfo *info = GetInfo();
 	
-	CheckSpace(info->RootCSpace, 5);
+	CheckSpace(info->RootCSpace, DEFAULT_CHECK_SPACE);
 
 	usize splitCount = 1;
 	usize splitSize = PAGE_SIZE;
@@ -75,7 +75,7 @@ void *RequestVirtualPage() {
 
 	KInfo *info = GetInfo();
 	
-	CheckSpace(info->RootCSpace, 5);
+	CheckSpace(info->RootCSpace, DEFAULT_CHECK_SPACE);
 
 	usize splitCount = 1;
 	usize splitSize = PAGE_SIZE;
@@ -96,7 +96,7 @@ void *RequestPages(usize length) {
 
 	KInfo *info = GetInfo();
 	
-	CheckSpace(info->RootCSpace, length + 5);
+	CheckSpace(info->RootCSpace, length + DEFAULT_CHECK_SPACE);
 
 	usize splitCount = 1;
 	usize splitSize = PAGE_SIZE * length;

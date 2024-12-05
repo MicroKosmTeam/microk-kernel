@@ -42,7 +42,7 @@ int InitializeVMCB(VMData *vcpu, uptr rip, uptr rsp, uptr rflags, uptr cr3) {
 
 	// SAVE
 	(void)info;
-	guestVmcb->Save.RAX = info->ContainerInfo;
+	guestVmcb->Save.RAX = info->ContainerInfoAddr;
 
 	guestVmcb->Save.CR0 = GetCR0();
 	guestVmcb->Save.CR2 = GetCR2();

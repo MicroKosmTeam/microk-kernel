@@ -189,6 +189,9 @@ extern "C" InterruptStatus *InterruptHandler(InterruptStatus *context) {
 
 			}
 			break;
+		case 32:
+			PANIC("Time");
+			break;
 		default:
 			PRINTK::PrintK(PRINTK_DEBUG "Unhandled interrupt: 0x%x\r\n", context->Base.VectorNumber);
 			OOPS("Unhandled interrupt");

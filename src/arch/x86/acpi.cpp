@@ -13,6 +13,12 @@ int InitializeACPI(ACPI *acpi) {
 	acpi->RSDP = (RSDP_t*)info->RSDP;
 	VMM::MMap(info->KernelVirtualSpace, VMM::VirtualToPhysical(info->RSDP), info->RSDP, PAGE_SIZE, VMM_FLAGS_READ | VMM_FLAGS_NOEXEC);
 
+	uptr rsdpPageAligned = VMM::VirtualToPhysical(info->RSDP);
+	ROUND_DOWN_TO_PAGE(rsdpPageAligned);
+
+	PMM::CheckSpace(info->RootCSpace, DEFAULT_CHECK_SPACE);
+	CAPABILITY::GenerateCapability(info->RootCSpace, MMIO_MEMORY, rsdpPageAligned, PAGE_SIZE, ACCESS | READ);
+
 	PRINTK::PrintK(PRINTK_DEBUG "RSDP at 0x%x\r\n", acpi->RSDP);
 
 	if(Memcmp(acpi->RSDP->Signature, "RSD PTR ", 8) != 0) {
@@ -29,12 +35,20 @@ int InitializeACPI(ACPI *acpi) {
 	if(acpi->RSDP->XsdtAddress) {
 		uptr addr = acpi->RSDP->XsdtAddress;
 		ROUND_DOWN_TO_PAGE(addr);
+
+		PMM::CheckSpace(info->RootCSpace, DEFAULT_CHECK_SPACE);
+		CAPABILITY::GenerateCapability(info->RootCSpace, MMIO_MEMORY, addr, PAGE_SIZE, ACCESS | READ);
+
 		VMM::MMap(info->KernelVirtualSpace, addr, VMM::PhysicalToVirtual(addr), PAGE_SIZE, VMM_FLAGS_READ | VMM_FLAGS_NOEXEC);
 		acpi->MainSDT = (SDTHeader_t*)VMM::PhysicalToVirtual(acpi->RSDP->XsdtAddress);
 		acpi->MainSDTPointerSize = 8;
 	} else if (acpi->RSDP->RsdtAddress) {
 		uptr addr = acpi->RSDP->RsdtAddress;
 		ROUND_DOWN_TO_PAGE(addr);
+
+		PMM::CheckSpace(info->RootCSpace, DEFAULT_CHECK_SPACE);
+		CAPABILITY::GenerateCapability(info->RootCSpace, MMIO_MEMORY, addr, PAGE_SIZE, ACCESS | READ);
+
 		VMM::MMap(info->KernelVirtualSpace, addr, VMM::PhysicalToVirtual(addr), PAGE_SIZE, VMM_FLAGS_READ | VMM_FLAGS_NOEXEC);
 		acpi->MainSDT = (SDTHeader_t*)VMM::PhysicalToVirtual(acpi->RSDP->RsdtAddress);
 		acpi->MainSDTPointerSize = 4;
@@ -50,7 +64,7 @@ int InitializeACPI(ACPI *acpi) {
 		if (acpi->MainSDTPointerSize == 8) {
 			uptr *ptr = (uptr*)((uptr)acpi->MainSDT + sizeof(SDTHeader_t) + i * 8);
 
-			PMM::CheckSpace(info->RootCSpace, 2);
+			PMM::CheckSpace(info->RootCSpace, DEFAULT_CHECK_SPACE);
 			CAPABILITY::GenerateCapability(info->RootCSpace, MMIO_MEMORY, *ptr, PAGE_SIZE, ACCESS | READ);
 
 			VMM::MMap(info->KernelVirtualSpace, *ptr, VMM::PhysicalToVirtual(*ptr), PAGE_SIZE, VMM_FLAGS_READ | VMM_FLAGS_NOEXEC);
@@ -73,7 +87,7 @@ int InitializeACPI(ACPI *acpi) {
 		} else {
 			u32 *ptr = (u32*)((uptr)acpi->MainSDT + sizeof(SDTHeader_t) + i * 4);
 
-			PMM::CheckSpace(info->RootCSpace, 2);
+			PMM::CheckSpace(info->RootCSpace, DEFAULT_CHECK_SPACE);
 			CAPABILITY::GenerateCapability(info->RootCSpace, MMIO_MEMORY, *ptr, PAGE_SIZE, ACCESS | READ);
 			
 			VMM::MMap(info->KernelVirtualSpace, *ptr, VMM::PhysicalToVirtual(*ptr), PAGE_SIZE, VMM_FLAGS_READ | VMM_FLAGS_NOEXEC);
@@ -203,6 +217,38 @@ int InitializeSRAT(ACPI *acpi, SRAT_t *srat) {
 	return 0;
 }
 
+inline void CheckBar(u32 bar, u32 nextBar) {
+	KInfo *info = GetInfo();
+
+	if (bar & 0b1) {
+		// IO SPACE BAR
+		// TODO: manage io ports
+		uptr addr = bar & 0xFFF0;
+		if (addr != 0) {
+			PRINTK::PrintK(PRINTK_DEBUG "    16 bit BAR at 0x%x\r\n", addr);
+		}
+	} else {
+		u8 type = (bar & 0b110 >> 1);
+		if (type == 0) {
+			// 32 bit bar
+			uptr addr = bar & 0xFFFFFFF0;
+			if (addr != 0) {
+				PRINTK::PrintK(PRINTK_DEBUG "    32 bit BAR at 0x%x\r\n", addr);
+				PMM::CheckSpace(info->RootCSpace, DEFAULT_CHECK_SPACE);
+				CAPABILITY::GenerateCapability(info->RootCSpace, MMIO_MEMORY, addr, ACCESS | READ | WRITE);
+			}
+		} else if (type == 2) {
+			//64 bit bar
+			uptr addr = ((bar & 0xFFFFFFF0) + (((uptr)nextBar & 0xFFFFFFFF) << 32));
+			if (addr != 0) {
+				PRINTK::PrintK(PRINTK_DEBUG "    64 bit BAR at 0x%x\r\n", addr);
+				PMM::CheckSpace(info->RootCSpace, DEFAULT_CHECK_SPACE);
+				CAPABILITY::GenerateCapability(info->RootCSpace, MMIO_MEMORY, addr, ACCESS | READ | WRITE);
+			}
+		}
+	}
+}
+
 int InitializeMCFG(ACPI *acpi, MCFG_t *mcfg) {
 	KInfo *info = GetInfo();
 
@@ -218,10 +264,8 @@ int InitializeMCFG(ACPI *acpi, MCFG_t *mcfg) {
 					    current->BaseAddress, current->PCISeg,
 					    current->StartPCIBus, current->EndPCIBus);
 
-		PMM::CheckSpace(info->RootCSpace, 2);
-		CAPABILITY::GenerateCapability(info->RootCSpace, MMIO_MEMORY, current->BaseAddress, PAGE_SIZE, ACCESS | READ | WRITE);
 
-		/*
+
 		for (usize bus = current->StartPCIBus; bus < current->EndPCIBus; ++bus) {
 			u64 offset = bus << 20;
 			uptr busAddress = current->BaseAddress + offset;
@@ -259,16 +303,60 @@ int InitializeMCFG(ACPI *acpi, MCFG_t *mcfg) {
 					PCIDeviceHeader_t *header = (PCIDeviceHeader_t*)VMM::PhysicalToVirtual(functionAddress);
 					if(header->DeviceID == 0) continue;
 					if(header->DeviceID == 0xFFFF) continue;
-
+					
 					PRINTK::PrintK(PRINTK_DEBUG"  Function addr: 0x%x\r\n", functionAddress);
+					PRINTK::PrintK(PRINTK_DEBUG"   ID: %x:%x\r\n", header->DeviceID, header->VendorID);
 
-					PMM::CheckSpace(info->RootCSpace, 2);
+					if (header->HeaderType == 0) {
+						PCIHeader0_t *header0 = (PCIHeader0_t*)header;
+						PRINTK::PrintK(PRINTK_DEBUG "   Type 0\r\n"
+								            "    BAR0: 0x%x\r\n"
+								            "    BAR1: 0x%x\r\n"
+								            "    BAR2: 0x%x\r\n"
+								            "    BAR3: 0x%x\r\n"
+								            "    BAR4: 0x%x\r\n"
+								            "    BAR5: 0x%x\r\n",
+									    header0->BAR0,
+									    header0->BAR1,
+									    header0->BAR2,
+									    header0->BAR3,
+									    header0->BAR4,
+									    header0->BAR5);
+						CheckBar(header0->BAR0, header0->BAR1);
+						CheckBar(header0->BAR1, header0->BAR2);
+						CheckBar(header0->BAR2, header0->BAR3);
+						CheckBar(header0->BAR3, header0->BAR4);
+						CheckBar(header0->BAR4, header0->BAR5);
+						CheckBar(header0->BAR5, 0);
+
+					} else if (header->HeaderType == 1) {
+						PCIHeader1_t *header1 = (PCIHeader1_t*)header;
+						PRINTK::PrintK(PRINTK_DEBUG "   Type 1\r\n"
+								            "    BAR0: 0x%x\r\n"
+								            "    BAR1: 0x%x\r\n",
+									    header1->BAR0,
+									    header1->BAR1);
+						CheckBar(header1->BAR0, header1->BAR1);
+						CheckBar(header1->BAR1, 0);
+
+					} else if (header->HeaderType == 2) {
+						PCIHeader2_t *header2 = (PCIHeader2_t*)header;
+						PRINTK::PrintK(PRINTK_DEBUG "   Type 2\r\n"
+								            "    Base: 0x%x\r\n",
+									    header2->CardBusBaseAddress);
+					} else {
+						PRINTK::PrintK(PRINTK_DEBUG "   Unknown header type: %d\r\n",
+								header->HeaderType);
+					}
+
+
+					PMM::CheckSpace(info->RootCSpace, DEFAULT_CHECK_SPACE);
 					CAPABILITY::GenerateCapability(info->RootCSpace, MMIO_MEMORY, functionAddress, ACCESS | READ | WRITE);
 				}
 				
 
 			}
-		}*/
+		}
 
 		currentPtr += sizeof(MCFGEntry_t);
 	}

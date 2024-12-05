@@ -36,13 +36,20 @@
 
 extern "C" __attribute__((noreturn))
 void KernelStart() {
+	KInfo *info = GetInfo();
+
 	/* Initializing virtual memory */
 	VMM::InitVMM();
 
+	ContainerInfo *cinfo = (ContainerInfo*)PMM::RequestPage();
+	cinfo->InitrdAddress = VMM::VirtualToPhysical(info->InitrdAddress);
+	cinfo->InitrdSize = info->InitrdSize;
+	cinfo->RSDP = VMM::VirtualToPhysical(info->RSDP);
+	cinfo->DTB = VMM::VirtualToPhysical(info->DeviceTree);
+	info->_ContainerInfo = cinfo;
+
 	//MEM::Init();
 	ARCH::InitializeCPUFeatures();
-
-	KInfo *info = GetInfo();
 
 	//CAPABILITY::DumpCapabilitySlab(info->RootCSpace);
 

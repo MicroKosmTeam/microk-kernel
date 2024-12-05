@@ -56,7 +56,8 @@ struct KInfo {
 	usize InitrdSize;
 
 	Container *RootContainer;
-	uptr ContainerInfo;
+	ContainerInfo *_ContainerInfo;
+	uptr ContainerInfoAddr;
 	CapabilitySpace *RootCSpace;
 
 	void *BootDomain;

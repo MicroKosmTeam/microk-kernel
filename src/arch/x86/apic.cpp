@@ -145,7 +145,7 @@ int InitializeAPIC(APIC *apic, bool x2APIC) {
 	apic->Base = GetAPICBase();
 	apic->MappedAddress = VMM::PhysicalToVirtual(apic->Base);
 	VMM::MMap(info->KernelVirtualSpace, apic->Base, apic->MappedAddress, PAGE_SIZE, VMM_FLAGS_READ | VMM_FLAGS_WRITE | VMM_FLAGS_NOEXEC);
-	PMM::CheckSpace(info->RootCSpace, 2);
+	PMM::CheckSpace(info->RootCSpace, DEFAULT_CHECK_SPACE);
 	CAPABILITY::GenerateCapability(info->RootCSpace, MMIO_MEMORY, apic->Base, ACCESS | READ | WRITE);
 	
 	apic->ProcessorIsBSP = IsAPICBSP();
@@ -164,6 +164,7 @@ int InitializeAPIC(APIC *apic, bool x2APIC) {
 		       apic->ProcessorIsBSP ? "BSP" : "Not a BSP",
 		       apic->Base);
 
+	/*
 	u8 timerVector = 32;
 	u32 timer = timerVector | APIC_LVT_TIMER_TSCDEADLINE | APIC_LVT_TIMER_MASK;
 	u32 spuriousVector = 33 | 0x100;
@@ -183,17 +184,14 @@ int InitializeAPIC(APIC *apic, bool x2APIC) {
 	WriteAPIC(apic, APIC_REGISTER_LVT_TIMER_REGISTER, timer, 0);
 	
 	PRINTK::PrintK(PRINTK_DEBUG "APIC enabled.\r\n");
+	
+	WriteAPIC(apic, APIC_REGISTER_EOI, 0, 0);
 
-	/*
 	u64 tsc = __builtin_ia32_rdtsc() + 0x100000000;
 	SetMSR(MSR_TSC_DEADLINE, tsc & 0xFFFFFFFF, tsc >> 32);
 
-	while(true);
-
-	WriteXAPIC(apic, xAPIC_REGISTER_EOI, 0);
-	*/
-
-	(void)info;
+	while(true) { }
+*/
 
 	return 0;
 }

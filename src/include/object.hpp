@@ -152,6 +152,9 @@ struct ContainerInfo {
 
 	uptr RSDP;
 	uptr DTB;
+
+#if defined(__x86_64__)
+#endif
 }__attribute__((packed));
 
 struct Container : public ListHead {

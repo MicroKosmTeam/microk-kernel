@@ -144,13 +144,8 @@ static usize LoadContainer(Container *container, Elf64_Ehdr *elfHeader, uptr hig
 		}
 	}
 
-	ContainerInfo *cinfo = (ContainerInfo*)PMM::RequestPage();
-	cinfo->InitrdAddress = VMM::VirtualToPhysical(info->InitrdAddress);
-	cinfo->InitrdSize = info->InitrdSize;
-	cinfo->RSDP = VMM::VirtualToPhysical(info->RSDP);
-	cinfo->DTB = VMM::VirtualToPhysical(info->DeviceTree);
-	VMM::MapPage(container->MemorySpace, VMM::VirtualToPhysical((uptr)cinfo), highestAddress, VMM_FLAGS_USER | VMM_FLAGS_READ);
-	info->ContainerInfo = highestAddress;
+	VMM::MapPage(container->MemorySpace, VMM::VirtualToPhysical((uptr)info->_ContainerInfo), highestAddress, VMM_FLAGS_USER | VMM_FLAGS_READ);
+	info->ContainerInfoAddr = highestAddress;
 
 	highestAddress += PAGE_SIZE;
 

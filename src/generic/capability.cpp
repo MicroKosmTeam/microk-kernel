@@ -61,7 +61,7 @@ uptr InitializeRootSpace(uptr framesBase, MemoryHeader *memoryMap) {
 			case MEMMAP_ACPI_RECLAIMABLE:
 			case MEMMAP_FRAMEBUFFER:
 				/* LOGIC HERE */
-				GenerateCapability(space, UNTYPED_DMA, entry->Address, entry->Length, ACCESS | RETYPE | GRANT);
+				//GenerateCapability(space, UNTYPED_DMA, entry->Address, entry->Length, ACCESS | RETYPE | GRANT);
 				break;
 			case MEMMAP_ACPI_NVS:
 			case MEMMAP_BAD_MEMORY:
