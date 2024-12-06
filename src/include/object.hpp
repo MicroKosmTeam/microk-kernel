@@ -150,7 +150,15 @@ struct ContainerInfo {
 	uptr InitrdAddress;
 	usize InitrdSize;
 
-	uptr RSDP;
+	union {
+#if defined(__x86_64__)
+	struct {
+		uptr RSDPCapability;
+		usize RSDPOffset;
+	} x86_64;
+#endif
+	};
+
 	uptr DTB;
 }__attribute__((packed));
 

@@ -59,16 +59,18 @@ uptr InitializeRootSpace(uptr framesBase, MemoryHeader *memoryMap) {
 				break;
 			case MEMMAP_RESERVED:
 			case MEMMAP_ACPI_RECLAIMABLE:
+				//GenerateCapability(space, UNTYPED_FRAMES, entry->Address, entry->Length, ACCESS);
+				break;
 			case MEMMAP_FRAMEBUFFER:
-				/* LOGIC HERE */
-				//GenerateCapability(space, UNTYPED_DMA, entry->Address, entry->Length, ACCESS | RETYPE | GRANT);
+				GenerateCapability(space, MMIO_MEMORY, entry->Address, entry->Length, ACCESS | GRANT);
 				break;
 			case MEMMAP_ACPI_NVS:
 			case MEMMAP_BAD_MEMORY:
+				GenerateCapability(space, UNTYPED_DMA, entry->Address, entry->Length, ACCESS);
 				break;
 			case MEMMAP_KERNEL_AND_MODULES:
 			case MEMMAP_BOOTLOADER_RECLAIMABLE:
-				// TODO
+				GenerateCapability(space, UNTYPED_FRAMES, entry->Address, entry->Length, ACCESS | READ);
 				break;
 
 		}

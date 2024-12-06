@@ -71,6 +71,12 @@ static volatile limine_dtb_request DTBRequest {
 	.response = NULL
 };
 
+static volatile limine_framebuffer_request FramebufferRequest {
+	.id = LIMINE_FRAMEBUFFER_REQUEST,
+    	.revision = 0,
+	.response = NULL
+};
+
 /* Forcing the bootloader to provide the user manager */
 static volatile limine_internal_module UserManagerModule {
 	.path = "./" USER_MANAGER_NAME,
@@ -234,6 +240,16 @@ void LimineEntry() {
 		}
 	}
 
+	if(FramebufferRequest.response == NULL) {
+		PRINTK::PrintK(PRINTK_DEBUG "WARNING: No framebuffer found.\r\n");
+	} else {
+		if(FramebufferRequest.response->framebuffer_count != 0) {
+			PRINTK::PrintK(PRINTK_DEBUG "%d framebuffer(s) found\r\n", FramebufferRequest.response->framebuffer_count);
+		} else {
+			PRINTK::PrintK(PRINTK_DEBUG "WARNING: No framebuffer found.\r\n");
+		}
+	}
+
 	{
 		MemoryHeader *longestRegion = NULL;
 
@@ -278,7 +294,9 @@ void LimineEntry() {
 		ContainerInfo *cinfo = (ContainerInfo*)PMM::RequestPage();
 		cinfo->InitrdAddress = VMM::VirtualToPhysical(info->InitrdAddress);
 		cinfo->InitrdSize = info->InitrdSize;
-		cinfo->RSDP = VMM::VirtualToPhysical(info->RSDP);
+		cinfo->x86_64.RSDPCapability = VMM::VirtualToPhysical(info->RSDP);
+		cinfo->x86_64.RSDPOffset = cinfo->x86_64.RSDPCapability % PAGE_SIZE;
+		ROUND_DOWN_TO_PAGE(cinfo->x86_64.RSDPCapability);
 		cinfo->DTB = VMM::VirtualToPhysical(info->DeviceTree);
 		info->_ContainerInfo = cinfo;
 

@@ -9,6 +9,12 @@
 #error "Unknown architecture"
 #endif
 
+#define ROUND_DOWN_TO(x, y) \
+	if (x % y) x -= x % y
+
+#define ROUND_UP_TO(x, y) \
+	if (x % y) x += y - x % y
+
 #define HALT for(;;)
 
 #define USER_MANAGER_NAME "manager.kmd"

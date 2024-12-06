@@ -163,35 +163,19 @@ int InitializeAPIC(APIC *apic, bool x2APIC) {
 		       apic->ID,
 		       apic->ProcessorIsBSP ? "BSP" : "Not a BSP",
 		       apic->Base);
-
-	/*
+/*
 	u8 timerVector = 32;
-	u32 timer = timerVector | APIC_LVT_TIMER_TSCDEADLINE | APIC_LVT_TIMER_MASK;
-	u32 spuriousVector = 33 | 0x100;
-
-	WriteAPIC(apic, APIC_REGISTER_THREAD_PRIORITY, 0x1, 0);
-	WriteAPIC(apic, APIC_REGISTER_SPURIOUS_INTERRUPT_VECTOR, spuriousVector, 0);
+	u32 timer = timerVector | APIC_LVT_TIMER_TSCDEADLINE;
 
 	WriteAPIC(apic, APIC_REGISTER_TIMER_INITIAL_COUNT, -1, 0);
-	WriteAPIC(apic, APIC_REGISTER_TIMER_DIVIDE_CONFIGURATION, APIC_LVT_TIMER_DIVIDE_1, 0);
-	WriteAPIC(apic, APIC_REGISTER_LVT_TIMER_REGISTER, timer, 0);
-
-	u32 ignore;
-	ReadAPIC(apic, APIC_REGISTER_TIMER_CURRENT_COUNT, &ignore, NULL);
-
-	ReadAPIC(apic, APIC_REGISTER_LVT_TIMER_REGISTER, &timer, NULL);
-	timer &= ~APIC_LVT_TIMER_MASK;
-	WriteAPIC(apic, APIC_REGISTER_LVT_TIMER_REGISTER, timer, 0);
+	//WriteAPIC(apic, APIC_REGISTER_EOI, 0, 0);
+	
+	u64 tsc = __builtin_ia32_rdtsc() + 0x100;
+	SetMSR(MSR_TSC_DEADLINE, tsc & 0xFFFFFFFF, tsc >> 32);
 	
 	PRINTK::PrintK(PRINTK_DEBUG "APIC enabled.\r\n");
-	
-	WriteAPIC(apic, APIC_REGISTER_EOI, 0, 0);
 
-	u64 tsc = __builtin_ia32_rdtsc() + 0x100000000;
-	SetMSR(MSR_TSC_DEADLINE, tsc & 0xFFFFFFFF, tsc >> 32);
-
-	while(true) { }
-*/
+	WriteAPIC(apic, APIC_REGISTER_LVT_TIMER_REGISTER, timer, 0);*/
 
 	return 0;
 }
