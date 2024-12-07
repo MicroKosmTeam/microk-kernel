@@ -238,7 +238,7 @@ inline void CheckBar(u32 bar, u32 nextBar) {
 			PRINTK::PrintK(PRINTK_DEBUG "    16 bit BAR at 0x%x\r\n", addr);
 		}
 	} else {
-		u8 type = (bar & 0b110 >> 1);
+		u8 type = ((bar & 0b110) >> 1);
 		if (type == 0) {
 			// 32 bit bar
 			uptr addr = bar & 0xFFFFFFF0;

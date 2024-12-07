@@ -45,10 +45,6 @@ extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize seco
 			*(Capability*)secondArgument = *cap;
 			}
 			break;
-		case SYSCALL_VECTOR_CREATE_FROM_MEM_CAPABILITY:
-			// TODO: Risky
-			*(Capability*)secondArgument = *CAPABILITY::GenerateCapability(cspace, MMIO_MEMORY, firstArgument, ACCESS | READ | WRITE);
-			break;
 		case SYSCALL_VECTOR_GET_UNTYPED_CAPABILITY: {
 			Capability *copyCap = (Capability*)firstArgument;
 			usize index = secondArgument;
@@ -127,7 +123,7 @@ extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize seco
 
 			Capability *cap = CAPABILITY::AddressFirstCapability(cspace, firstArgument);
 			if(cap != NULL) {
-				PRINTK::PrintK(PRINTK_DEBUG "Mapping page 0x%x at addr 0x%x\r\n", cap->Object, thirdArgument);
+				//PRINTK::PrintK(PRINTK_DEBUG "Mapping page 0x%x at addr 0x%x\r\n", cap->Object, thirdArgument);
 				VMM::MapPage(vspace, cap->Object, thirdArgument, VMM::ConvertUserFlags(fourthArgument));
 			}
 			}
@@ -138,7 +134,7 @@ extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize seco
 				break;
 			}
 				
-			PRINTK::PrintK(PRINTK_DEBUG "Mapping level paging\r\n");
+			//PRINTK::PrintK(PRINTK_DEBUG "Mapping level paging\r\n");
 			VMM::MapIntermediateLevel(vspace, secondArgument, cap->Object, thirdArgument, VMM::ConvertUserFlags(fourthArgument));
 			}
 			break;

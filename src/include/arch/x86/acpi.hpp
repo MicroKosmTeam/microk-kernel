@@ -272,6 +272,24 @@ namespace x86 {
 		u8 CapabilityListOffset;
 		u8 Reserved0;
 		u16 SecondaryStatus;
+		u8 PCIBusNumber;
+		u8 CardBusNumber;
+		u8 SubordinateBusNumber;
+		u8 CardBusLatencyTimer;
+		u32 MemoryBaseAddress0;
+		u32 MemoryLimit0;
+		u32 MemoryBaseAddress1;
+		u32 MemoryLimit1;
+		u32 IOBaseAddress0;
+		u32 IOLimit0;
+		u32 IOBaseAddress1;
+		u32 IOLimit1;
+		u8 InterruptLine;
+		u8 InterruptPIN;
+		u16 BridgeControl;
+		u16 SubsystemDeviceID;
+		u16 SubsystemVendorID;
+		u32 LegacyModeBaseAddress;
 	}__attribute__((packed));
 
 	struct HPET_t: public SDTHeader_t {
