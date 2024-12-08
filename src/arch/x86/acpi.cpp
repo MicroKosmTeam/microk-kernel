@@ -227,33 +227,50 @@ int InitializeSRAT(ACPI *acpi, SRAT_t *srat) {
 	return 0;
 }
 
-inline void CheckBar(u32 bar, u32 nextBar) {
+inline void CheckBar(volatile u32 *bar, volatile u32 *nextBar) {
 	KInfo *info = GetInfo();
 
-	if (bar & 0b1) {
+	if (*bar & 0b1) {
 		// IO SPACE BAR
 		// TODO: manage io ports
-		uptr addr = bar & 0xFFF0;
+		uptr addr = *bar & 0xFFF0;
 		if (addr != 0) {
 			PRINTK::PrintK(PRINTK_DEBUG "    16 bit BAR at 0x%x\r\n", addr);
 		}
 	} else {
-		u8 type = ((bar & 0b110) >> 1);
+		u8 type = ((*bar & 0b110) >> 1);
 		if (type == 0) {
 			// 32 bit bar
-			uptr addr = bar & 0xFFFFFFF0;
+			uptr addr = *bar & 0xfffffff0;
+			usize size = PAGE_SIZE;
+
+			volatile u32 originalBar = *bar;
+			*bar = 0xffffffff;
+			size = ~(*bar) + 1;
+			ROUND_UP_TO_PAGE(size);
+			*bar = originalBar;
+
 			if (addr != 0) {
-				PRINTK::PrintK(PRINTK_DEBUG "    32 bit BAR at 0x%x\r\n", addr);
+				PRINTK::PrintK(PRINTK_DEBUG "    32 bit BAR at 0x%x of size 0x%x\r\n", addr, size);
 				PMM::CheckSpace(info->RootCSpace, DEFAULT_CHECK_SPACE);
-				CAPABILITY::GenerateCapability(info->RootCSpace, MMIO_MEMORY, addr, ACCESS | READ | WRITE);
+				CAPABILITY::GenerateCapability(info->RootCSpace, MMIO_MEMORY, addr, size, ACCESS | READ | WRITE);
 			}
 		} else if (type == 2) {
 			//64 bit bar
-			uptr addr = ((bar & 0xFFFFFFF0) + (((uptr)nextBar & 0xFFFFFFFF) << 32));
+			uptr addr = ((*bar & 0xFFFFFFF0) + (((uptr)*nextBar & 0xFFFFFFFF) << 32));
+			usize size = PAGE_SIZE;
+			
+			volatile u32 originalBar = *bar;
+			*bar = 0xFFFFFFFF;
+			size = ~(*bar) + 1;
+			ROUND_UP_TO_PAGE(size);
+			*bar = originalBar;
+			
+
 			if (addr != 0) {
-				PRINTK::PrintK(PRINTK_DEBUG "    64 bit BAR at 0x%x\r\n", addr);
+				PRINTK::PrintK(PRINTK_DEBUG "    64 bit BAR at 0x%x of size 0x%x\r\n", addr, size);
 				PMM::CheckSpace(info->RootCSpace, DEFAULT_CHECK_SPACE);
-				CAPABILITY::GenerateCapability(info->RootCSpace, MMIO_MEMORY, addr, ACCESS | READ | WRITE);
+				CAPABILITY::GenerateCapability(info->RootCSpace, MMIO_MEMORY, addr, size, ACCESS | READ | WRITE);
 			}
 		}
 	}
@@ -338,12 +355,12 @@ int InitializeMCFG(ACPI *acpi, MCFG_t *mcfg) {
 									    header0->BAR3,
 									    header0->BAR4,
 									    header0->BAR5);
-						CheckBar(header0->BAR0, header0->BAR1);
-						CheckBar(header0->BAR1, header0->BAR2);
-						CheckBar(header0->BAR2, header0->BAR3);
-						CheckBar(header0->BAR3, header0->BAR4);
-						CheckBar(header0->BAR4, header0->BAR5);
-						CheckBar(header0->BAR5, 0);
+						CheckBar(&header0->BAR0, &header0->BAR1);
+						CheckBar(&header0->BAR1, &header0->BAR2);
+						CheckBar(&header0->BAR2, &header0->BAR3);
+						CheckBar(&header0->BAR3, &header0->BAR4);
+						CheckBar(&header0->BAR4, &header0->BAR5);
+						CheckBar(&header0->BAR5, 0);
 
 					} else if (header->HeaderType == 1) {
 						PCIHeader1_t *header1 = (PCIHeader1_t*)header;
@@ -352,8 +369,8 @@ int InitializeMCFG(ACPI *acpi, MCFG_t *mcfg) {
 								            "    BAR1: 0x%x\r\n",
 									    header1->BAR0,
 									    header1->BAR1);
-						CheckBar(header1->BAR0, header1->BAR1);
-						CheckBar(header1->BAR1, 0);
+						CheckBar(&header1->BAR0, &header1->BAR1);
+						CheckBar(&header1->BAR1, 0);
 
 					} else if (header->HeaderType == 2) {
 						PCIHeader2_t *header2 = (PCIHeader2_t*)header;
