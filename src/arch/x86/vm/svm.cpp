@@ -204,6 +204,7 @@ extern "C" void HandleVMExit(uptr addr, x86::GeneralRegisters *context) {
 				PRINTK::PrintK(PRINTK_DEBUG "ErrorCode: 0x%x\r\n", vmcb->Control.ExitInfo1);
 				while(true) { }
 			} else {
+				PRINTK::PrintK(PRINTK_DEBUG "User INT14 at 0x%x\r\n", vmcb->Save.RIP);
 				// TODO: Set wrapper
 				vmcb->Save.RIP = (uptr)container->Bindings.ExceptionHandler;
 				context->RDI = 14;
