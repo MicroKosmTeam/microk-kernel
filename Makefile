@@ -16,6 +16,7 @@ COMMON_CFLAGS = -ffreestanding             \
 	 -Werror                    \
 	 -Wno-error=write-strings         \
 	 -Wno-error=unused-parameter \
+	 -Wno-error=address-of-packed-member \
 	 -O0                        \
 	 -fno-lto                   \
 	 -fno-pie                   \

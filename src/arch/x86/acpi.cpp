@@ -121,6 +121,7 @@ int InitializeACPI(ACPI *acpi) {
 }
 	
 int InitializeFADT(ACPI *acpi, FADT_t *fadt) {
+
 	return 0;
 }
 
