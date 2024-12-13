@@ -7,10 +7,19 @@ namespace CAPABILITY {
 	usize GetObjectSize(OBJECT_TYPE kind);
 
 	Capability *GetUntyped(CapabilitySpace *space, usize idx);
+
 	Capability *AddressCapability(CapabilitySpace *space, uptr ptr);
+	Capability *AddressIOCapability(CapabilitySpace *space, uptr ptr);
+	Capability *AddressCPUCapability(CapabilitySpace *space, uptr ptr);
+
 	Capability *AddressFirstCapability(CapabilitySpace *space, uptr ptr);
+
 	Capability *GenerateCapability(CapabilitySpace *space, OBJECT_TYPE kind, uptr object, u16 accessRights);
 	Capability *GenerateCapability(CapabilitySpace *space, OBJECT_TYPE kind, uptr object, usize size, u16 accessRights);
+	Capability *GenerateIOCapability(CapabilitySpace *space, uptr iostart, usize size, u16 accessRights);
+	Capability *GenerateCPUCapability(CapabilitySpace *space, usize timesliceStart, usize size, u16 accessRights);
+
+
 	Capability *RetypeUntyped(CapabilitySpace *space, Capability *untyped, OBJECT_TYPE kind, usize count, Capability **array);
 	Capability *UntypeObject(CapabilitySpace *space, Capability *capability);
 	Capability *SplitUntyped(CapabilitySpace *space, Capability *untyped, usize splitSize, usize count, Capability **array);

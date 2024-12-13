@@ -157,6 +157,14 @@ Capability *AddressCapability(CapabilitySpace *space, uptr ptr) {
 	return (Capability*)SLAB::Search(space->CapabilityTree, ptr);
 }
 
+Capability *AddressIOCapability(CapabilitySpace *space, uptr ptr) {
+	return (Capability*)SLAB::Search(space->IOCapabilityTree, ptr);
+}
+
+Capability *AddressCPUCapability(CapabilitySpace *space, uptr ptr) {
+	return (Capability*)SLAB::Search(space->CPUCapabilityTree, ptr);
+}
+
 Capability *GenerateCapability(CapabilitySpace *space, OBJECT_TYPE kind, uptr object, u16 accessRights) {
 	return GenerateCapability(space, kind, object, GetObjectSize(kind), accessRights);
 }
@@ -179,10 +187,51 @@ Capability *GenerateCapability(CapabilitySpace *space, OBJECT_TYPE kind, uptr ob
 	capability->AccessRights = accessRights;
 	capability->AccessRightsMask = 0xFFFF;
 	
-	//capability->Key = object;
 	space->CapabilityTree = SLAB::Insert(space->CapabilityTree, capability);
 
 	//PRINTK::PrintK(PRINTK_DEBUG "Generated capability of 0x%x (%d) with kind: %d\r\n", object, size, kind);
+
+	return capability;
+}
+
+Capability *GenerateIOCapability(CapabilitySpace *space, uptr iostart, usize size, u16 accessRights) {
+	CapabilitySlab *slab = &space->Slabs;
+	CapabilityTreeNode *capability = SLAB::AllocateSlabSlot(slab);
+	if (capability == NULL) {
+		return NULL;
+	}
+
+	capability->IsMasked = 0;
+	capability->Type = PORTIO_MEMORY;
+	capability->IOStart = iostart;
+	capability->Size = size;
+	capability->AccessRights = accessRights;
+	capability->AccessRightsMask = 0xFFFF;
+	
+	space->IOCapabilityTree = SLAB::Insert(space->IOCapabilityTree, capability);
+
+	PRINTK::PrintK(PRINTK_DEBUG "Generated IO capability of 0x%x (%d)\r\n", iostart, size);
+
+	return capability;
+}
+
+Capability *GenerateCPUCapability(CapabilitySpace *space, usize timesliceStart, usize size, u16 accessRights) {
+	CapabilitySlab *slab = &space->Slabs;
+	CapabilityTreeNode *capability = SLAB::AllocateSlabSlot(slab);
+	if (capability == NULL) {
+		return NULL;
+	}
+
+	capability->IsMasked = 0;
+	capability->Type = CPU_TIMESLICE;
+	capability->TimesliceStart = timesliceStart;
+	capability->Size = size;
+	capability->AccessRights = accessRights;
+	capability->AccessRightsMask = 0xFFFF;
+	
+	space->CPUCapabilityTree = SLAB::Insert(space->CPUCapabilityTree, capability);
+
+	PRINTK::PrintK(PRINTK_DEBUG "Generated CPU capability of 0x%x (%d)\r\n", timesliceStart, size);
 
 	return capability;
 }
@@ -324,7 +373,7 @@ Capability *MergeUntyped(CapabilitySpace *space, Capability *ut, Capability *oth
 	CapabilitySlab *slab = &space->Slabs;
 	CapabilityTreeNode *node = SLAB::Search(space->CapabilityTree, other->Object);
 	SLAB::FreeSlabSlot(slab, node);
-	SLAB::Delete(space->CapabilityTree, node);
+	space->CapabilityTree = SLAB::Delete(space->CapabilityTree, node);
 
 	return NULL;
 }

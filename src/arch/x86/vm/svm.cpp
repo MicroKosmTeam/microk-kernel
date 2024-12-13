@@ -2,6 +2,7 @@
 #include <arch/x86/cpu.hpp>
 #include <arch/x86/object.hpp>
 #include <arch/x86/gdt.hpp>
+#include <arch/x86/io.hpp>
 #include <vmm.hpp>
 #include <kinfo.hpp>
 #include <pmm.hpp>
@@ -181,13 +182,16 @@ extern "C" void HandleVMExit(uptr addr, x86::GeneralRegisters *context) {
 			PRINTK::PrintK(PRINTK_DEBUG "Interrupt virtual\r\n");
 			while(true) { }
 		case _IOIO: {
+			// TODO: do permissions and correct handling
 			usize info = vmcb->Control.ExitInfo1;
 			u16 port = info >> 16;
 			bool type = info & 0b1;
 			if (type) { // IN
-				PRINTK::PrintK(PRINTK_DEBUG "Disallowed IN in port 0x%x for value 0x%x\r\n", port, vmcb->Save.RAX);
+				PRINTK::PrintK(PRINTK_DEBUG "Caught IN in port 0x%x for value 0x%x\r\n", port, vmcb->Save.RAX);
+				vmcb->Save.RAX = InB(port);
 			} else {    // OUT
-				PRINTK::PrintK(PRINTK_DEBUG "Disallowed OUT in port 0x%x for value 0x%x\r\n", port, vmcb->Save.RAX);
+				PRINTK::PrintK(PRINTK_DEBUG "Caught OUT in port 0x%x for value 0x%x\r\n", port, vmcb->Save.RAX);
+				OutB(port, vmcb->Save.RAX);
 			}
 
 			vmcb->Save.RIP = vmcb->Control.ExitInfo2;

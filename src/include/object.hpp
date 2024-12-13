@@ -42,7 +42,11 @@ struct Capability {
 	u16 AccessRights;
 	u16 AccessRightsMask;
 
-	uptr Object;
+	union {
+		uptr Object;
+		uptr IOStart;
+		usize TimesliceStart;
+	};
 	usize Size;
 }__attribute__((packed));
 
@@ -114,6 +118,8 @@ struct CapabilitySlab {
 struct CapabilitySpace {
 	CapabilitySlab Slabs;
 	CapabilityTreeNode *CapabilityTree;
+	CapabilityTreeNode *CPUCapabilityTree;
+	CapabilityTreeNode *IOCapabilityTree;
 };
 
 struct ContainerIdentifier {
