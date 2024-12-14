@@ -3,6 +3,7 @@
 #include <kinfo.hpp>
 #include <vmm.hpp>
 #include <arch/x86/idt.hpp>
+#include <arch/x86/apic.hpp>
 
 /* ISR stub table, declared in assembly code */
 extern "C" void *ISRStubTable[];
@@ -11,6 +12,8 @@ extern "C" x86::InterruptStatus *InterruptHandler(x86::InterruptStatus *context)
 namespace x86 {
 __attribute__((section(".interrupt"), aligned(0x10))) IDTEntry IDT[IDT_MAX_DESCRIPTORS];
 __attribute__((section(".interrupt"), aligned(0x10))) IDTR _IDTR;
+
+extern APIC apic;
 
 static inline void PrintRegs(InterruptStatus *context) {
 	PRINTK::PrintK(PRINTK_DEBUG " -> RAX: 0x%x\r\n"
@@ -79,7 +82,7 @@ void IDTInit() {
 	_IDTR.Limit = (u16)sizeof(IDTEntry) * IDT_MAX_DESCRIPTORS - 1;
 
 	/* Fill in the 32 exception handlers */
-	for (u8 vector = 0; vector < 32; vector++) {
+	for (u8 vector = 0; vector < 255; vector++) {
 		IDTSetDescriptor(vector, ISRStubTable[vector], 0, 0x8E);
 	}
 	
@@ -190,7 +193,8 @@ extern "C" InterruptStatus *InterruptHandler(InterruptStatus *context) {
 			}
 			break;
 		case 32:
-			PANIC("Time");
+			OOPS("Time");
+			ArmTimer(&apic);
 			break;
 		default:
 			PRINTK::PrintK(PRINTK_DEBUG "Unhandled interrupt: 0x%x\r\n", context->Base.VectorNumber);

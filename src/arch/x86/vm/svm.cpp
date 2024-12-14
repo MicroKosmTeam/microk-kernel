@@ -34,7 +34,7 @@ int InitializeVMCB(VMData *vcpu, uptr rip, uptr rsp, uptr rflags, uptr cr3) {
 
 	guestVmcb->Control.MSRPMBasePa = VMM::VirtualToPhysical((uptr)msrPa);
 	guestVmcb->Control.IOPMBasePa = VMM::VirtualToPhysical((uptr)ioPa);
-	Memset(msrPa, 0xFF, PAGE_SIZE * 2);
+	Memset(msrPa, 0x0, PAGE_SIZE * 2);
 	Memset(ioPa, 0xFF, PAGE_SIZE * 2);
 /*
 	guestVmcb->Control.NestedCtl |= 0 ; // NESTED_CTL_NP_ENABLE;
@@ -192,10 +192,10 @@ extern "C" void HandleVMExit(uptr addr, x86::GeneralRegisters *context) {
 				PRINTK::PrintK(PRINTK_DEBUG "Disallowed port IO for port 0x%x\r\n", port);
 			} else {
 				if (type && (cap->AccessRights & READ)) { // IN
-					PRINTK::PrintK(PRINTK_DEBUG "Caught IN in port 0x%x for value 0x%x\r\n", port, vmcb->Save.RAX);
+					//PRINTK::PrintK(PRINTK_DEBUG "Caught IN in port 0x%x for value 0x%x\r\n", port, vmcb->Save.RAX);
 					vmcb->Save.RAX = InB(port);
 				} else if (cap->AccessRights & WRITE) {    // OUT
-					PRINTK::PrintK(PRINTK_DEBUG "Caught OUT in port 0x%x for value 0x%x\r\n", port, vmcb->Save.RAX);
+					//PRINTK::PrintK(PRINTK_DEBUG "Caught OUT in port 0x%x for value 0x%x\r\n", port, vmcb->Save.RAX);
 					OutB(port, vmcb->Save.RAX);
 				}
 			}

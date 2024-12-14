@@ -163,21 +163,29 @@ int InitializeAPIC(APIC *apic, bool x2APIC) {
 		       apic->ID,
 		       apic->ProcessorIsBSP ? "BSP" : "Not a BSP",
 		       apic->Base);
-/*
+
+	u8 spuriousVector = 33;
+	u32 spurious = spuriousVector | APIC_SPURIOUS_ACTIVATE;
+	WriteAPIC(apic, APIC_REGISTER_SPURIOUS_INTERRUPT_VECTOR, spurious, 0);
+	
 	u8 timerVector = 32;
 	u32 timer = timerVector | APIC_LVT_TIMER_TSCDEADLINE;
 
+	WriteAPIC(apic, APIC_REGISTER_LVT_TIMER_REGISTER, timer, 0);
+
 	WriteAPIC(apic, APIC_REGISTER_TIMER_INITIAL_COUNT, -1, 0);
-	//WriteAPIC(apic, APIC_REGISTER_EOI, 0, 0);
-	
-	u64 tsc = __builtin_ia32_rdtsc() + 0x100;
-	SetMSR(MSR_TSC_DEADLINE, tsc & 0xFFFFFFFF, tsc >> 32);
-	
+
+	ArmTimer(apic);
+		
 	PRINTK::PrintK(PRINTK_DEBUG "APIC enabled.\r\n");
 
-	WriteAPIC(apic, APIC_REGISTER_LVT_TIMER_REGISTER, timer, 0);*/
-
 	return 0;
+}
+
+void ArmTimer(APIC *apic) {
+	WriteAPIC(apic, APIC_REGISTER_EOI, 0, 0);
+	u64 tsc = __builtin_ia32_rdtsc() + 0x10000000;
+	SetMSR(MSR_TSC_DEADLINE, tsc & 0xFFFFFFFF, tsc >> 32);
 }
 
 int DeinitializeAPIC(APIC *apic, ...) {

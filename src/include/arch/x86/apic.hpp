@@ -39,7 +39,7 @@
 #define APIC_REGISTER_INTERRUPT_COMMAND_REGISTER_MAX      2
 
 
-
+#define APIC_SPURIOUS_ACTIVATE     (1 << 8)
 #define APIC_LVT_TIMER_MASK        0x10000
 #define APIC_LVT_TIMER_DIVIDE_1    0x3
 #define APIC_LVT_TIMER_ONESHOT     (0 << 17)
@@ -61,5 +61,6 @@ namespace x86 {
 	void WriteAPIC(APIC *device, usize registerSelector, u32 lo, u32 hi);
 
 	int InitializeAPIC(APIC *apic, bool x2APIC);
+	void ArmTimer(APIC *apic);
 	int DeinitializeAPIC(APIC *apic);
 }

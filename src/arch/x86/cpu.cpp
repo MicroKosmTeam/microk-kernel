@@ -105,7 +105,6 @@ APIC apic;
 ACPI acpi;
 IOAPIC ioapic;
 
-
 void LoadEssentialCPUStructures() {
 	LoadGDT(&gdt, &pointer);
 	TSSInit(&gdt, &tss, (uptr)PMM::RequestPages(8) + PAGE_SIZE * 8);
@@ -114,6 +113,11 @@ void LoadEssentialCPUStructures() {
 
 void InitializeCPUFeatures() {
 	KInfo *info = GetInfo();
+	
+	CAPABILITY::GenerateCPUCapability(info->RootCSpace, 0, 1024, ACCESS | SPLIT | READ | WRITE);
+	
+
+	CAPABILITY::GenerateIOCapability(info->RootCSpace, 0xe9, sizeof(u8), ACCESS | READ | WRITE);
 	
 	CAPABILITY::GenerateIOCapability(info->RootCSpace, 0x3f8, sizeof(u8), ACCESS | READ | WRITE);
 	CAPABILITY::GenerateIOCapability(info->RootCSpace, 0x3f9, sizeof(u8), ACCESS | READ | WRITE);
@@ -138,6 +142,7 @@ void InitializeCPUFeatures() {
 
 	u32 cpustring[4 * 4 + 1];
 	Memclr(cpustring, sizeof(u32) * (4 * 4 + 1));
+
 	__get_cpuid_count(0x80000002, 0, &cpustring[0], &cpustring[1], &cpustring[2], &cpustring[3]);
 	__get_cpuid_count(0x80000003, 0, &cpustring[4], &cpustring[5], &cpustring[6], &cpustring[7]);
 	__get_cpuid_count(0x80000004, 0, &cpustring[8], &cpustring[9], &cpustring[10], &cpustring[11]);
