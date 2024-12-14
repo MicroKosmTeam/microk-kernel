@@ -1,11 +1,11 @@
-#include <syscall.hpp>
+#include <hypercall.hpp>
 #include <kinfo.hpp>
 #include <printk.hpp>
 #include <capability.hpp>
 #include <panic.hpp>
 #include <cdefs.h>
 
-extern "C" void SyscallMain(usize syscallNumber, usize firstArgument, usize secondArgument, usize thirdArgument, usize fourthArgument, usize fithArgument, usize sixthArgument) {
+extern "C" void HypercallMain(usize syscallNumber, usize firstArgument, usize secondArgument, usize thirdArgument, usize fourthArgument, usize fithArgument, usize sixthArgument) {
 	KInfo *info = GetInfo();
 	// TODO
 	CapabilitySpace *cspace = &info->RootContainer->CSpace;

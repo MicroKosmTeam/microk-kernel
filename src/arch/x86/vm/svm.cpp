@@ -6,7 +6,7 @@
 #include <vmm.hpp>
 #include <kinfo.hpp>
 #include <pmm.hpp>
-#include <syscall.hpp>
+#include <hypercall.hpp>
 #include <printk.hpp>
 
 namespace x86 {
@@ -18,7 +18,7 @@ int InitializeVMCB(VMData *vcpu, uptr rip, uptr rsp, uptr rflags, uptr cr3) {
 	u8 *hostSave = (u8*)vcpu->HostSave;
 	VMCB *hostVmcb = (VMCB*)vcpu->HostVMCB;
 	u8 *msrPa = (u8*)vcpu->MSRPa ; // MSR Bitmap
-	u8 *ioPa = (u8*)vcpu->IOPa ; // MSR Bitmap
+	u8 *ioPa = (u8*)vcpu->IOPa ; // IO Bitmap
 
 	// CONTROL
 	guestVmcb->Control.Intercepts[INTERCEPT_EXCEPTION] |= 0xFFFFFFFF;
@@ -139,6 +139,7 @@ extern "C" void HandleVMExit(uptr addr, x86::GeneralRegisters *context) {
 
 	VMCB *vmcb = (VMCB*)VMM::PhysicalToVirtual(addr);
 	Container *container = info->RootContainer;
+	CapabilitySpace *cspace = &container->CSpace;
 
 	switch(vmcb->Control.ExitCode) {
 		case _CPUID: {
@@ -166,7 +167,7 @@ extern "C" void HandleVMExit(uptr addr, x86::GeneralRegisters *context) {
 			break;
 		case _VMMCALL:
 			//PRINTK::PrintK(PRINTK_DEBUG "VMMCALL: 0x%x\r\n", vmcb->Save.RAX);
-			SyscallMain(vmcb->Save.RAX, context->RDI, context->RSI, context->RDX, context->R8, context->R9, context->R10);
+			HypercallMain(vmcb->Save.RAX, context->RDI, context->RSI, context->RDX, context->R8, context->R9, context->R10);
 			vmcb->Save.RIP += 3;
 			break;
 		case _CR3_WRITE:
@@ -186,12 +187,17 @@ extern "C" void HandleVMExit(uptr addr, x86::GeneralRegisters *context) {
 			usize info = vmcb->Control.ExitInfo1;
 			u16 port = info >> 16;
 			bool type = info & 0b1;
-			if (type) { // IN
-				PRINTK::PrintK(PRINTK_DEBUG "Caught IN in port 0x%x for value 0x%x\r\n", port, vmcb->Save.RAX);
-				vmcb->Save.RAX = InB(port);
-			} else {    // OUT
-				PRINTK::PrintK(PRINTK_DEBUG "Caught OUT in port 0x%x for value 0x%x\r\n", port, vmcb->Save.RAX);
-				OutB(port, vmcb->Save.RAX);
+			Capability *cap = CAPABILITY::AddressIOCapability(cspace, port);
+			if (cap == NULL) {
+				PRINTK::PrintK(PRINTK_DEBUG "Disallowed port IO for port 0x%x\r\n", port);
+			} else {
+				if (type && (cap->AccessRights & READ)) { // IN
+					PRINTK::PrintK(PRINTK_DEBUG "Caught IN in port 0x%x for value 0x%x\r\n", port, vmcb->Save.RAX);
+					vmcb->Save.RAX = InB(port);
+				} else if (cap->AccessRights & WRITE) {    // OUT
+					PRINTK::PrintK(PRINTK_DEBUG "Caught OUT in port 0x%x for value 0x%x\r\n", port, vmcb->Save.RAX);
+					OutB(port, vmcb->Save.RAX);
+				}
 			}
 
 			vmcb->Save.RIP = vmcb->Control.ExitInfo2;

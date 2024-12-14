@@ -19,6 +19,10 @@ extern "C" void HandleSyscall64();
 extern "C" void HandleSyscall32();
 extern "C" void EnableSSE();
 
+extern "C" void SyscallMain() {
+
+}
+
 namespace x86 {
 
 inline static u32 GetFamily(u32 sig) {
@@ -109,8 +113,15 @@ void LoadEssentialCPUStructures() {
 }
 
 void InitializeCPUFeatures() {
-	//KInfo *info = GetInfo();
+	KInfo *info = GetInfo();
 	
+	CAPABILITY::GenerateIOCapability(info->RootCSpace, 0x3f8, sizeof(u8), ACCESS | READ | WRITE);
+	CAPABILITY::GenerateIOCapability(info->RootCSpace, 0x3f9, sizeof(u8), ACCESS | READ | WRITE);
+	CAPABILITY::GenerateIOCapability(info->RootCSpace, 0x3fa, sizeof(u8), ACCESS | READ | WRITE);
+	CAPABILITY::GenerateIOCapability(info->RootCSpace, 0x3fb, sizeof(u8), ACCESS | READ | WRITE);
+	CAPABILITY::GenerateIOCapability(info->RootCSpace, 0x3fc, sizeof(u8), ACCESS | READ | WRITE);
+	CAPABILITY::GenerateIOCapability(info->RootCSpace, 0x3fd, sizeof(u8), ACCESS | READ | WRITE);
+
 	u32 vendor[4];
 	Memclr(vendor, sizeof(u32) * 4);
 	u32 maxIntelLevel = 0, maxAmdLevel = 0;

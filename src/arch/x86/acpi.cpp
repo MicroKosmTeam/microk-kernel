@@ -121,6 +121,25 @@ int InitializeACPI(ACPI *acpi) {
 }
 	
 int InitializeFADT(ACPI *acpi, FADT_t *fadt) {
+	KInfo *info = GetInfo();
+
+	SDTHeader_t *dsdt;
+	if (fadt->X_Dsdt) {
+		VMM::MMap(info->KernelVirtualSpace, fadt->X_Dsdt, VMM::PhysicalToVirtual(fadt->X_Dsdt), PAGE_SIZE, VMM_FLAGS_READ | VMM_FLAGS_NOEXEC);
+		dsdt = (SDTHeader_t*)VMM::PhysicalToVirtual(fadt->X_Dsdt);
+	} else if (fadt->Dsdt) {
+		VMM::MMap(info->KernelVirtualSpace, fadt->X_Dsdt, VMM::PhysicalToVirtual(fadt->X_Dsdt), PAGE_SIZE, VMM_FLAGS_READ | VMM_FLAGS_NOEXEC);
+		dsdt = (SDTHeader_t*)VMM::PhysicalToVirtual(fadt->Dsdt);
+	}
+
+	usize size = dsdt->Length;
+	ROUND_UP_TO_PAGE(size);
+
+	PRINTK::PrintK(PRINTK_DEBUG "DSDT at 0x%x of size %d\r\n", dsdt, size);
+
+	PMM::CheckSpace(info->RootCSpace, DEFAULT_CHECK_SPACE);
+	CAPABILITY::GenerateCapability(info->RootCSpace, MMIO_MEMORY, VMM::VirtualToPhysical((uptr)dsdt), size, ACCESS | READ);
+
 
 	return 0;
 }
