@@ -61,6 +61,6 @@ namespace x86 {
 	void WriteAPIC(APIC *device, usize registerSelector, u32 lo, u32 hi);
 
 	int InitializeAPIC(APIC *apic, bool x2APIC);
-	void ArmTimer(APIC *apic);
+	void ArmTimer(APIC *apic, usize quantity);
 	int DeinitializeAPIC(APIC *apic);
 }

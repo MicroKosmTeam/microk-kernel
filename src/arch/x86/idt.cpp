@@ -1,6 +1,7 @@
 #include <panic.hpp>
 #include <printk.hpp>
 #include <kinfo.hpp>
+#include <capability.hpp>
 #include <vmm.hpp>
 #include <arch/x86/idt.hpp>
 #include <arch/x86/apic.hpp>
@@ -82,7 +83,11 @@ void IDTInit() {
 	_IDTR.Limit = (u16)sizeof(IDTEntry) * IDT_MAX_DESCRIPTORS - 1;
 
 	/* Fill in the 32 exception handlers */
-	for (u8 vector = 0; vector < 255; vector++) {
+	for (u8 vector = 0; vector < 32; vector++) {
+		IDTSetDescriptor(vector, ISRStubTable[vector], 0, 0x8F);
+	}
+
+	for (u8 vector = 32; vector < 255; vector++) {
 		IDTSetDescriptor(vector, ISRStubTable[vector], 0, 0x8E);
 	}
 	
@@ -192,9 +197,15 @@ extern "C" InterruptStatus *InterruptHandler(InterruptStatus *context) {
 
 			}
 			break;
-		case 32:
-			OOPS("Time");
-			ArmTimer(&apic);
+		case 32: {
+			//PRINTK::PrintK(PRINTK_DEBUG "Context switch called.\r\n");
+			Capability *cpuCap = CAPABILITY::AddressCPUCapability(&info->CurrentContainer->CSpace, (uptr)info->CurrentContainer);
+			if (cpuCap == NULL) {
+				ArmTimer(&apic,0);
+			} else {
+				ArmTimer(&apic, cpuCap->Size);
+			}
+			}
 			break;
 		default:
 			PRINTK::PrintK(PRINTK_DEBUG "Unhandled interrupt: 0x%x\r\n", context->Base.VectorNumber);

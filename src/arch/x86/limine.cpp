@@ -40,7 +40,8 @@ static volatile limine_paging_mode_request PagingModeRequest {
 	.revision = 0,
 	.response = NULL,
 	.mode = LIMINE_PAGING_MODE_DEFAULT,
-	.flags = 0
+	.max_mode = LIMINE_PAGING_MODE_DEFAULT,
+	.min_mode = LIMINE_PAGING_MODE_DEFAULT
 };
 
 /* Memory map request */
@@ -112,6 +113,12 @@ static volatile limine_boot_time_request BootTimeRequest {
 	.response = NULL,
 };
 
+static volatile limine_kernel_file_request KernelFileRequest {
+	.id = LIMINE_KERNEL_FILE_REQUEST,
+	.revision = 0,
+	.response = NULL
+};
+
 /* Main Limine initialization function */
 extern "C" __attribute__((noreturn))
 void LimineEntry() {
@@ -121,13 +128,22 @@ void LimineEntry() {
 	   MemoryMapRequest.response == NULL ||
 	   HHDMRequest.response == NULL ||
 	   KAddrRequest.response == NULL ||
-	   BootTimeRequest.response == NULL) {
+	   BootTimeRequest.response == NULL ||
+	   KernelFileRequest.response == NULL) {
 		PANIC("Requests not answered by Limine");
 	}
 
 	InitInfo();
 	
 	KInfo *info = GetInfo();
+	
+	char *responseCmdline = KernelFileRequest.response->kernel_file->cmdline;
+	usize length = Strnlen(responseCmdline, PAGE_SIZE);
+	char cmdline[length + 1];
+	Strncpy(cmdline, responseCmdline, length);
+	cmdline[length] = '\0';
+	info->KernelArgs = cmdline;
+	PRINTK::PrintK(PRINTK_DEBUG "Kernel cmdline: %s\r\n", info->KernelArgs);
 
 	ARCH::InitializeBootCPU();
 	RANDOM::SRand(BootTimeRequest.response->boot_time);

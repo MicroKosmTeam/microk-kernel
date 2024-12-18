@@ -254,8 +254,19 @@ inline void CheckBar(volatile u32 *bar, volatile u32 *nextBar) {
 		// IO SPACE BAR
 		// TODO: manage io ports
 		uptr addr = *bar & 0xFFF0;
+		usize size = 1;
+
+		volatile u16 originalBar = *bar;
+		*bar = 0xffff;
+		size = (~(*bar) + 1) & 0xffff;
+		*bar = originalBar;
+
 		if (addr != 0) {
-			PRINTK::PrintK(PRINTK_DEBUG "    16 bit BAR at 0x%x\r\n", addr);
+			PRINTK::PrintK(PRINTK_DEBUG "    16 bit BAR at 0x%x of size 0x%x\r\n", addr, size);
+			for (usize i = 0; i < size; ++i) {
+				PMM::CheckSpace(info->RootCSpace, DEFAULT_CHECK_SPACE);
+				CAPABILITY::GenerateIOCapability(info->RootCSpace, addr + i, sizeof(u8), ACCESS | READ | WRITE);
+			}
 		}
 	} else {
 		u8 type = ((*bar & 0b110) >> 1);

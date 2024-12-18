@@ -19,6 +19,7 @@ uptr InitializeRootSpace(uptr framesBase, MemoryHeader *memoryMap) {
 	/* Initializing the TCB and creating the root CSpace */
 	info->RootContainer = CONTAINERS::InitializeContainer(containerFrame);
 	info->RootCSpace = &info->RootContainer->CSpace;
+	info->CurrentContainer = info->RootContainer;
 
 	CapabilitySpace *space = info->RootCSpace;
 	CapabilityNode *node = (CapabilityNode*)slabNodeFrame;

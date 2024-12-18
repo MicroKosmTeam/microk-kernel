@@ -174,17 +174,22 @@ int InitializeAPIC(APIC *apic, bool x2APIC) {
 	WriteAPIC(apic, APIC_REGISTER_LVT_TIMER_REGISTER, timer, 0);
 
 	WriteAPIC(apic, APIC_REGISTER_TIMER_INITIAL_COUNT, -1, 0);
-
-	ArmTimer(apic);
-		
+/*
+	Capability *cpuCap = CAPABILITY::AddressCPUCapability(&info->CurrentContainer->CSpace, (uptr)info->CurrentContainer);
+	if (cpuCap == NULL) {
+		ArmTimer(apic,0);
+	} else {
+		ArmTimer(apic, cpuCap->Size);
+	}
+*/		
 	PRINTK::PrintK(PRINTK_DEBUG "APIC enabled.\r\n");
 
 	return 0;
 }
 
-void ArmTimer(APIC *apic) {
+void ArmTimer(APIC *apic, usize quantity) {
 	WriteAPIC(apic, APIC_REGISTER_EOI, 0, 0);
-	u64 tsc = __builtin_ia32_rdtsc() + 0x10000000;
+	u64 tsc = __builtin_ia32_rdtsc() + quantity;
 	SetMSR(MSR_TSC_DEADLINE, tsc & 0xFFFFFFFF, tsc >> 32);
 }
 

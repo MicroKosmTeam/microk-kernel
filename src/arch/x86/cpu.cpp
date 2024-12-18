@@ -114,17 +114,16 @@ void LoadEssentialCPUStructures() {
 void InitializeCPUFeatures() {
 	KInfo *info = GetInfo();
 	
-	CAPABILITY::GenerateCPUCapability(info->RootCSpace, 0, 1024, ACCESS | SPLIT | READ | WRITE);
-	
+	PMM::CheckSpace(info->RootCSpace, DEFAULT_CHECK_SPACE);
+	CAPABILITY::GenerateCPUCapability(info->RootCSpace, (uptr)info->CurrentContainer, 1000000, ACCESS | SPLIT | READ | WRITE);
 
+	PMM::CheckSpace(info->RootCSpace, DEFAULT_CHECK_SPACE);
 	CAPABILITY::GenerateIOCapability(info->RootCSpace, 0xe9, sizeof(u8), ACCESS | READ | WRITE);
 	
-	CAPABILITY::GenerateIOCapability(info->RootCSpace, 0x3f8, sizeof(u8), ACCESS | READ | WRITE);
-	CAPABILITY::GenerateIOCapability(info->RootCSpace, 0x3f9, sizeof(u8), ACCESS | READ | WRITE);
-	CAPABILITY::GenerateIOCapability(info->RootCSpace, 0x3fa, sizeof(u8), ACCESS | READ | WRITE);
-	CAPABILITY::GenerateIOCapability(info->RootCSpace, 0x3fb, sizeof(u8), ACCESS | READ | WRITE);
-	CAPABILITY::GenerateIOCapability(info->RootCSpace, 0x3fc, sizeof(u8), ACCESS | READ | WRITE);
-	CAPABILITY::GenerateIOCapability(info->RootCSpace, 0x3fd, sizeof(u8), ACCESS | READ | WRITE);
+	for (usize i = 0; i < 8; ++i) {
+		PMM::CheckSpace(info->RootCSpace, DEFAULT_CHECK_SPACE);
+		CAPABILITY::GenerateIOCapability(info->RootCSpace, 0x3f8 + i, sizeof(u8), ACCESS | READ | WRITE);
+	}
 
 	u32 vendor[4];
 	Memclr(vendor, sizeof(u32) * 4);
@@ -140,13 +139,28 @@ void InitializeCPUFeatures() {
 	
 	u32 eax = 0, ebx = 0, ecx = 0, edx = 0;
 
+	__get_cpuid_count(0x80000007, 0, &eax, &ebx, &ecx, &edx);
+	if (edx & (1 << 8)) {
+		PRINTK::PrintK(PRINTK_DEBUG "Tsc frequency is invariant\r\n");
+	} else {
+		PRINTK::PrintK(PRINTK_DEBUG "Tsc frequency is not invariant\r\n");
+	}
+	
+	__get_cpuid_count(0x00000001, 0, &eax, &ebx, &ecx, &edx);
+	
+	if (ecx & (1<<31)) {
+		u32 hypervisorString[4] = { 0 };
+		__cpuid(0x40000000, eax, hypervisorString[0], hypervisorString[1], hypervisorString[2]);
+		PRINTK::PrintK(PRINTK_DEBUG "CPUID Hypervisor: %s (0x%x)\r\n", hypervisorString, eax);
+	}
+
 	u32 cpustring[4 * 4 + 1];
 	Memclr(cpustring, sizeof(u32) * (4 * 4 + 1));
 
 	__get_cpuid_count(0x80000002, 0, &cpustring[0], &cpustring[1], &cpustring[2], &cpustring[3]);
 	__get_cpuid_count(0x80000003, 0, &cpustring[4], &cpustring[5], &cpustring[6], &cpustring[7]);
 	__get_cpuid_count(0x80000004, 0, &cpustring[8], &cpustring[9], &cpustring[10], &cpustring[11]);
-	PRINTK::PrintK(PRINTK_DEBUG "CPUID Processor %s\r\n", cpustring);
+	PRINTK::PrintK(PRINTK_DEBUG "CPUID Processor: %s\r\n", cpustring);
 
 	__get_cpuid_count(0x1, 0, &eax, &ebx, &ecx, &edx);
 	bool x2APIC = (ecx & (1 << 21));

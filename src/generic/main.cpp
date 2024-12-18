@@ -3,7 +3,7 @@
  * | |\/| || |/ _|| '_|/ _ \|   <       | (_) |\__ \
  * |_|  |_||_|\__||_|  \___/|_|\_\       \___/ |___/
  *
- * MicroKernel, a simple futiristic Unix-shattering kernel
+ * MicroKosm Kernel, a simple futiristic Unix-shattering kernel
  * Copyright (C) 2022-2023 Mutta Filippo
  *
  * This program is free software; you can redistribute it and/or modify

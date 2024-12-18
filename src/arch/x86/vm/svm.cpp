@@ -191,12 +191,24 @@ extern "C" void HandleVMExit(uptr addr, x86::GeneralRegisters *context) {
 			if (cap == NULL) {
 				PRINTK::PrintK(PRINTK_DEBUG "Disallowed port IO for port 0x%x\r\n", port);
 			} else {
-				if (type && (cap->AccessRights & READ)) { // IN
+				if (type && (cap->AccessRights & READ)) {
+					if (info & (1 << 4)) {
+						vmcb->Save.RAX = InB(port);
+					} else if (info & (1 << 5)) {
+						vmcb->Save.RAX = InW(port);
+					} else if (info & (1 << 6)) {
+						vmcb->Save.RAX = InD(port);
+					}
 					//PRINTK::PrintK(PRINTK_DEBUG "Caught IN in port 0x%x for value 0x%x\r\n", port, vmcb->Save.RAX);
-					vmcb->Save.RAX = InB(port);
-				} else if (cap->AccessRights & WRITE) {    // OUT
+				} else if (cap->AccessRights & WRITE) {
+					if (info & (1 << 4)) {
+						OutB(port, vmcb->Save.RAX);				
+					} else if (info & (1 << 5)) {
+						OutW(port, vmcb->Save.RAX);				
+					} else if (info & (1 << 6)) {
+						OutD(port, vmcb->Save.RAX);				
+					}
 					//PRINTK::PrintK(PRINTK_DEBUG "Caught OUT in port 0x%x for value 0x%x\r\n", port, vmcb->Save.RAX);
-					OutB(port, vmcb->Save.RAX);
 				}
 			}
 

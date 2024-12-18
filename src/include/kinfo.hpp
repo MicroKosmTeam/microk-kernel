@@ -38,7 +38,7 @@
  */
 struct KInfo {
 	/* Kernel args */
-	const char *KernelArgs;
+	char *KernelArgs;
 
 	/* Memory information */
 	MemoryHeader *MemoryMap; /* Boot memory map */
@@ -56,9 +56,12 @@ struct KInfo {
 	usize InitrdSize;
 
 	Container *RootContainer;
+	CapabilitySpace *RootCSpace;
+
 	ContainerInfo *_ContainerInfo;
 	uptr ContainerInfoAddr;
-	CapabilitySpace *RootCSpace;
+
+	Container *CurrentContainer;
 
 	void *BootDomain;
 

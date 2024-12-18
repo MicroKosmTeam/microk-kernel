@@ -8,8 +8,8 @@
 extern "C" void HypercallMain(usize syscallNumber, usize firstArgument, usize secondArgument, usize thirdArgument, usize fourthArgument, usize fithArgument, usize sixthArgument) {
 	KInfo *info = GetInfo();
 	// TODO
-	CapabilitySpace *cspace = &info->RootContainer->CSpace;
-	VirtualSpace vspace = info->RootContainer->MemorySpace;
+	CapabilitySpace *cspace = &info->CurrentContainer->CSpace;
+	VirtualSpace vspace = info->CurrentContainer->MemorySpace;
 
 	VMM::LoadVirtualSpace(vspace);
 
