@@ -137,8 +137,18 @@ int InitializeFADT(ACPI *acpi, FADT_t *fadt) {
 
 	PRINTK::PrintK(PRINTK_DEBUG "DSDT at 0x%x of size %d\r\n", dsdt, size);
 
-	PMM::CheckSpace(info->RootCSpace, DEFAULT_CHECK_SPACE);
-	CAPABILITY::GenerateCapability(info->RootCSpace, MMIO_MEMORY, VMM::VirtualToPhysical((uptr)dsdt), size, ACCESS | READ);
+	for (usize i = 0; i < size; i += PAGE_SIZE) {
+		PMM::CheckSpace(info->RootCSpace, DEFAULT_CHECK_SPACE);
+		CAPABILITY::GenerateCapability(info->RootCSpace, MMIO_MEMORY, VMM::VirtualToPhysical((uptr)dsdt) + i, PAGE_SIZE, ACCESS | READ);
+	}
+
+	if (fadt->ResetReg.AddressSpaceID == 0) {
+		PMM::CheckSpace(info->RootCSpace, DEFAULT_CHECK_SPACE);
+		CAPABILITY::GenerateCapability(info->RootCSpace, MMIO_MEMORY, fadt->ResetReg.Address, PAGE_SIZE, ACCESS | READ | WRITE);
+	} else if (fadt->ResetReg.AddressSpaceID == 1) {
+		PMM::CheckSpace(info->RootCSpace, DEFAULT_CHECK_SPACE);
+		CAPABILITY::GenerateIOCapability(info->RootCSpace, fadt->ResetReg.Address, sizeof(u8), ACCESS | READ | WRITE);
+	}
 
 
 	return 0;
@@ -283,8 +293,12 @@ inline void CheckBar(volatile u32 *bar, volatile u32 *nextBar) {
 
 			if (addr != 0) {
 				PRINTK::PrintK(PRINTK_DEBUG "    32 bit BAR at 0x%x of size 0x%x\r\n", addr, size);
-				PMM::CheckSpace(info->RootCSpace, DEFAULT_CHECK_SPACE);
-				CAPABILITY::GenerateCapability(info->RootCSpace, MMIO_MEMORY, addr, size, ACCESS | READ | WRITE);
+
+				for (usize i = 0; i < size; i += PAGE_SIZE) {
+					PMM::CheckSpace(info->RootCSpace, DEFAULT_CHECK_SPACE);
+					CAPABILITY::GenerateCapability(info->RootCSpace, MMIO_MEMORY, addr + i, PAGE_SIZE, ACCESS | READ | WRITE);
+				}
+
 			}
 		} else if (type == 2) {
 			//64 bit bar
@@ -300,8 +314,11 @@ inline void CheckBar(volatile u32 *bar, volatile u32 *nextBar) {
 
 			if (addr != 0) {
 				PRINTK::PrintK(PRINTK_DEBUG "    64 bit BAR at 0x%x of size 0x%x\r\n", addr, size);
-				PMM::CheckSpace(info->RootCSpace, DEFAULT_CHECK_SPACE);
-				CAPABILITY::GenerateCapability(info->RootCSpace, MMIO_MEMORY, addr, size, ACCESS | READ | WRITE);
+
+				for (usize i = 0; i < size; i += PAGE_SIZE) {
+					PMM::CheckSpace(info->RootCSpace, DEFAULT_CHECK_SPACE);
+					CAPABILITY::GenerateCapability(info->RootCSpace, MMIO_MEMORY, addr + i, PAGE_SIZE, ACCESS | READ | WRITE);
+				}
 			}
 		}
 	}
@@ -371,7 +388,8 @@ int InitializeMCFG(ACPI *acpi, MCFG_t *mcfg) {
 					PRINTK::PrintK(PRINTK_DEBUG"  Function addr: 0x%x\r\n", functionAddress);
 					PRINTK::PrintK(PRINTK_DEBUG"   ID: %x:%x\r\n", header->DeviceID, header->VendorID);
 
-					if (header->HeaderType == 0) {
+					u8 headerType = header->HeaderType & 0x0F;
+					if (headerType == 0) {
 						PCIHeader0_t *header0 = (PCIHeader0_t*)header;
 						PRINTK::PrintK(PRINTK_DEBUG "   Type 0\r\n"
 								            "    BAR0: 0x%x\r\n"
@@ -393,7 +411,7 @@ int InitializeMCFG(ACPI *acpi, MCFG_t *mcfg) {
 						CheckBar(&header0->BAR4, &header0->BAR5);
 						CheckBar(&header0->BAR5, 0);
 
-					} else if (header->HeaderType == 1) {
+					} else if (headerType == 1) {
 						PCIHeader1_t *header1 = (PCIHeader1_t*)header;
 						PRINTK::PrintK(PRINTK_DEBUG "   Type 1\r\n"
 								            "    BAR0: 0x%x\r\n"
@@ -403,7 +421,7 @@ int InitializeMCFG(ACPI *acpi, MCFG_t *mcfg) {
 						CheckBar(&header1->BAR0, &header1->BAR1);
 						CheckBar(&header1->BAR1, 0);
 
-					} else if (header->HeaderType == 2) {
+					} else if (headerType == 2) {
 						PCIHeader2_t *header2 = (PCIHeader2_t*)header;
 						PRINTK::PrintK(PRINTK_DEBUG "   Type 2\r\n"
 								            "    Base: 0x%x\r\n",

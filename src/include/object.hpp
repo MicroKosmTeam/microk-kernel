@@ -7,7 +7,8 @@
 #include <arch/x86/object.hpp>
 #elif defined(__aarch64__)
 #include <arch/aarch64/object.hpp>
-
+#elif defined(__riscv) 
+#include <arch/riscv64/object.hpp>
 #endif
 
 /*
@@ -129,6 +130,10 @@ struct ContainerIdentifier {
 
 struct VirtualCPU {
 	u8 ID;
+
+#if defined(__x86_64__)
+	x86::VMData *Data;
+#endif
 }__attribute__((aligned(PAGE_SIZE)));
 
 struct SchedulerContext {

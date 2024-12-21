@@ -62,8 +62,9 @@ uptr InitializeRootSpace(uptr framesBase, MemoryHeader *memoryMap) {
 			case MEMMAP_ACPI_RECLAIMABLE:
 				//GenerateCapability(space, UNTYPED_FRAMES, entry->Address, entry->Length, ACCESS);
 				break;
-			case MEMMAP_FRAMEBUFFER:
-				GenerateCapability(space, MMIO_MEMORY, entry->Address, entry->Length, ACCESS | GRANT);
+//			case MEMMAP_FRAMEBUFFER:
+//				for (usize i = 0,
+//				GenerateCapability(space, MMIO_MEMORY, entry->Address, entry->Length, ACCESS | GRANT);
 				break;
 			case MEMMAP_ACPI_NVS:
 			case MEMMAP_BAD_MEMORY:
@@ -211,7 +212,7 @@ Capability *GenerateIOCapability(CapabilitySpace *space, uptr iostart, usize siz
 	
 	space->IOCapabilityTree = SLAB::Insert(space->IOCapabilityTree, capability);
 
-	PRINTK::PrintK(PRINTK_DEBUG "Generated IO capability of 0x%x (%d)\r\n", iostart, size);
+	//PRINTK::PrintK(PRINTK_DEBUG "Generated IO capability of 0x%x (%d)\r\n", iostart, size);
 
 	return capability;
 }

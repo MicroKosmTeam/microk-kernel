@@ -27,6 +27,18 @@
 #define MSR_VM_CR        0xC0010114
 #define MSR_VM_HSAVE_PA  0xC0010117
 
+#define MSR_KVM_SYSTEM_TIME_NEW 0x4b564d01
+struct PVClockTimeInfo_t {
+	u32 version;
+	u32 pad0;
+	u64 TSCTimestamp;
+	u64 system_time;
+	u32 tsc_to_system_mul;
+	u8 tsc_shift;
+	u8 flags;
+	u8 pad[2];
+}__attribute__((packed));
+
 namespace x86 {
         inline __attribute__((always_inline))
         void GetMSR(u32 msr, u32 *lo, u32 *hi) {

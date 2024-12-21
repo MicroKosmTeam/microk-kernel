@@ -20,7 +20,9 @@ extern "C" void HandleSyscall32();
 extern "C" void EnableSSE();
 
 extern "C" void SyscallMain() {
+	PRINTK::PrintK(PRINTK_DEBUG "Syscall called\n");
 
+	while(true) { }
 }
 
 namespace x86 {
@@ -108,15 +110,13 @@ IOAPIC ioapic;
 void LoadEssentialCPUStructures() {
 	LoadGDT(&gdt, &pointer);
 	TSSInit(&gdt, &tss, (uptr)PMM::RequestPages(8) + PAGE_SIZE * 8);
-	IDTInit();	
+	IDTInit();
+	asm volatile ("cli");
 }
 
 void InitializeCPUFeatures() {
 	KInfo *info = GetInfo();
 	
-	PMM::CheckSpace(info->RootCSpace, DEFAULT_CHECK_SPACE);
-	CAPABILITY::GenerateCPUCapability(info->RootCSpace, (uptr)info->CurrentContainer, 1000000, ACCESS | SPLIT | READ | WRITE);
-
 	PMM::CheckSpace(info->RootCSpace, DEFAULT_CHECK_SPACE);
 	CAPABILITY::GenerateIOCapability(info->RootCSpace, 0xe9, sizeof(u8), ACCESS | READ | WRITE);
 	
@@ -138,6 +138,7 @@ void InitializeCPUFeatures() {
 			"CPUID vendor string: %s\r\n", maxIntelLevel, maxAmdLevel, vendor);
 	
 	u32 eax = 0, ebx = 0, ecx = 0, edx = 0;
+	u32 msrLo = 0, msrHi = 0;
 
 	__get_cpuid_count(0x80000007, 0, &eax, &ebx, &ecx, &edx);
 	if (edx & (1 << 8)) {
@@ -145,15 +146,10 @@ void InitializeCPUFeatures() {
 	} else {
 		PRINTK::PrintK(PRINTK_DEBUG "Tsc frequency is not invariant\r\n");
 	}
-	
-	__get_cpuid_count(0x00000001, 0, &eax, &ebx, &ecx, &edx);
-	
-	if (ecx & (1<<31)) {
-		u32 hypervisorString[4] = { 0 };
-		__cpuid(0x40000000, eax, hypervisorString[0], hypervisorString[1], hypervisorString[2]);
-		PRINTK::PrintK(PRINTK_DEBUG "CPUID Hypervisor: %s (0x%x)\r\n", hypervisorString, eax);
-	}
 
+	PMM::CheckSpace(info->RootCSpace, DEFAULT_CHECK_SPACE);
+	CAPABILITY::GenerateCPUCapability(info->RootCSpace, (uptr)info->CurrentContainer, 0x1000000, ACCESS | READ | WRITE);
+	
 	u32 cpustring[4 * 4 + 1];
 	Memclr(cpustring, sizeof(u32) * (4 * 4 + 1));
 
@@ -193,7 +189,6 @@ void InitializeCPUFeatures() {
 					"Nested paging not supported!\r\n");
 		}
 
-		u32 msrLo = 0, msrHi = 0;
 		GetMSR(MSR_VM_CR, &msrLo, &msrHi);
 		if ((msrLo & (1 << 4)) == 0) {
 			PRINTK::PrintK(PRINTK_DEBUG 
@@ -234,6 +229,22 @@ void InitializeCPUFeatures() {
 	if (!enabledVM) {
 		PANIC("Couldn't enable virtual machine extensions");
 	}
+
+	__get_cpuid_count(0x00000001, 0, &eax, &ebx, &ecx, &edx);
+	if (ecx & (1<<31)) {
+		u32 hypervisorString[4] = { 0 };
+		__cpuid(0x40000000, eax, hypervisorString[0], hypervisorString[1], hypervisorString[2]);
+		PRINTK::PrintK(PRINTK_DEBUG "CPUID Hypervisor: %s (0x%x)\r\n", hypervisorString, eax);
+
+		uptr pvclockPage = (uptr)PMM::RequestPage();
+		msrLo = VMM::VirtualToPhysical(pvclockPage) | 1;
+		msrHi = VMM::VirtualToPhysical(pvclockPage) >> 32;
+		SetMSR(MSR_KVM_SYSTEM_TIME_NEW, msrLo, msrHi);
+
+		PVClockTimeInfo_t *info = (PVClockTimeInfo_t*)pvclockPage;
+		PRINTK::PrintK(PRINTK_DEBUG "TscTimestamp from pvclock: 0x%x\r\n", info->TSCTimestamp);
+	}
+
 
 }
 

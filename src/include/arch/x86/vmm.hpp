@@ -17,6 +17,7 @@ namespace x86_64 {
 	        NX            = 63 // Only if supported
 	};
 
+
 #define VMM_FLAGS_READ       ((usize)1 << x86_64::PT_Flag::Present)
 #define VMM_FLAGS_NOEXEC     ((usize)1 << x86_64::PT_Flag::NX)
 #define VMM_FLAGS_WRITE      ((usize)1 << x86_64::PT_Flag::ReadWrite)

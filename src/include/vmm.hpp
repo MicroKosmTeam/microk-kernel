@@ -7,6 +7,8 @@
 #include <arch/x86/vmm.hpp>
 #elif defined(__aarch64__)
 #include <arch/aarch64/vmm.hpp>
+#elif defined(__riscv)
+#include <arch/riscv64/vmm.hpp>
 #endif
 
 #define ROUND_DOWN_TO_PAGE(x) \

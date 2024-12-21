@@ -199,12 +199,14 @@ extern "C" InterruptStatus *InterruptHandler(InterruptStatus *context) {
 			break;
 		case 32: {
 			//PRINTK::PrintK(PRINTK_DEBUG "Context switch called.\r\n");
+
 			Capability *cpuCap = CAPABILITY::AddressCPUCapability(&info->CurrentContainer->CSpace, (uptr)info->CurrentContainer);
 			if (cpuCap == NULL) {
 				ArmTimer(&apic,0);
 			} else {
 				ArmTimer(&apic, cpuCap->Size);
 			}
+
 			}
 			break;
 		default:

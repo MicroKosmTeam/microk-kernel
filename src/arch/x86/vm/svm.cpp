@@ -24,8 +24,6 @@ int InitializeVMCB(VMData *vcpu, uptr rip, uptr rsp, uptr rflags, uptr cr3) {
 	guestVmcb->Control.Intercepts[INTERCEPT_EXCEPTION] |= 0xFFFFFFFF;
 	guestVmcb->Control.Intercepts[INTERCEPT_WORD3] |= INTERCEPT_MSR_PROT |
 					                  INTERCEPT_CPUID |
-							  INTERCEPT_INVLPG |
-							  INTERCEPT_INVLPGA |
 							  INTERCEPT_IOIO_PROT;
 
 	guestVmcb->Control.Intercepts[INTERCEPT_WORD4] |= INTERCEPT_VMRUN |
@@ -134,7 +132,7 @@ void SaveVM(uptr statePhysAddr) {
 extern "C" void HandleVMExit(uptr addr, x86::GeneralRegisters *context) {
 	using namespace x86;
 	using namespace x86::SVM;
-
+			
 	KInfo *info = GetInfo();
 
 	VMCB *vmcb = (VMCB*)VMM::PhysicalToVirtual(addr);
@@ -239,20 +237,12 @@ extern "C" void HandleVMExit(uptr addr, x86::GeneralRegisters *context) {
 			PRINTK::PrintK(PRINTK_DEBUG "INT13\r\n");
 			PRINTK::PrintK(PRINTK_DEBUG "ErrorCode: 0x%x\r\n", vmcb->Control.ExitInfo1);
 			while(true) { }
-		case _INVLPG:
-			PRINTK::PrintK(PRINTK_DEBUG "INVLPG\r\n");
-			while(true) { }
-			//EXITINFO1
-		case _INVLPGA:
-			PRINTK::PrintK(PRINTK_DEBUG "INVLPGA\r\n");
-			while(true) { }
-
 		default:
 			PRINTK::PrintK(PRINTK_DEBUG "Hello, VMEXIT: 0x%x\r\n", vmcb->Control.ExitCode);
 			PRINTK::PrintK(PRINTK_DEBUG "Unknown error\r\n");
 			while(true) { }
 	}
-
+			
 	vmcb->Control.ExitCode = 0;
 }
 

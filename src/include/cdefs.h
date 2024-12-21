@@ -5,6 +5,7 @@
 
 #if defined(__x86_64__)
 #elif defined(__aarch64__)
+#elif defined(__riscv)
 #else
 #error "Unknown architecture"
 #endif

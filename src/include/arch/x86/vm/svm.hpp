@@ -12,8 +12,6 @@ namespace SVM {
 	 */
 
 #define INTERCEPT_CPUID     (1UL << 18) // Intercept CPUID Instruction.
-#define INTERCEPT_INVLPG    (1UL << 25)
-#define INTERCEPT_INVLPGA   (1UL << 26)
 #define INTERCEPT_IOIO_PROT (1UL << 27)
 #define INTERCEPT_MSR_PROT  (1UL << 28) // MSR_PROT—intercept RDMSR or WRMSR accesses to selected MSRs
 
